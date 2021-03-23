@@ -1,0 +1,37 @@
+---
+- name: Install ansible role requirements
+  package:
+    name: "py37-lxml"
+    state: present
+- name: Install freebsd syncthing
+  package:
+    name: "syncthing"
+    state: present
+- name: configure /usr/local/etc/rc.d/syncthing
+  template:
+    src: usrlocalrc.j2
+    dest: /usr/local/etc/rc.d/syncthing
+  notify: restart syncthing
+- name: configure service GUI listening IP:port
+  xml:
+    path: /usr/home/{{ syncthing_user }}/.config/syncthing/config.xml
+    xpath: /configuration/gui/address
+    value: "[{{ syncthing_guiip }}]:{{ syncthing_guiport }}"
+  notify: restart syncthing
+- name: configure service GUI username
+  xml:
+    path: /usr/home/jessica/.config/syncthing/config.xml
+    xpath: /configuration/gui/user
+    value: "{{ syncthing_guiuser }}"
+  notify: restart syncthing
+- name: configure service GUI password
+  xml:
+    path: /usr/home/jessica/.config/syncthing/config.xml
+    xpath: /configuration/gui/password
+    value: "{{ syncthing_guipassword }}"
+  notify: restart syncthing
+- name: Enable syncthing service
+  service:
+    name: "syncthing"
+    enabled: true
+    state: started

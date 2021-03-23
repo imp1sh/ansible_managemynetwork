@@ -1,0 +1,20 @@
+{% if motd_ascii is defined and motd_ascii == 'nftwall' %}
+
+ ____ ____ ____ ____ ____ ____ ____
+ ||n |||f |||t |||w |||a |||l |||l ||
+ ||__|||__|||__|||__|||__|||__|||__||
+ |/__\|/__\|/__\|/__\|/__\|/__\|/__\|
+                                     
+{% else %}
+   ___            _ __   __   
+  / _ | ___  ___ (_) /  / /__ 
+ / __ |/ _ \(_-</ / _ \/ / -_)
+/_/ |_/_//_/___/_/_.__/_/\__/ 
+                             
+{% endif %}
+This server is restricted for certain people. If you have gained access illegitimately leave now. Contravention will be prosecuted.
+Hostname:       {{ ansible_facts['fqdn'] }}
+OS family:      {{ ansible_facts['os_family'] }}
+site:           {{ motd_site }}
+purpose:        {{ motd_purpose }}
+IP address:     {{ ansible_facts['default_ipv6']['address'] }}

@@ -1,0 +1,113 @@
+- name: Install nginx packages
+  package:
+          name: nginx
+          state: present
+- name: Install php packages
+  package:
+    name: php74, php74-extensions, php74-composer, php74-gd, php74-json
+#          name: php7-fpm php7-mcrypt php7-soap php7-openssl php7-gmp php7-pdo_odbc php7-json php7-dom php7-pdo php7-zip php7-mysqli php7-sqlite3 php7-apcu php7-pdo_pgsql php7-bcmath php7-gd php7-odbc php7-pdo_mysql php7-pdo_sqlite php7-gettext php7-xmlreader php7-xmlrpc php7-bz2 php7-iconv php7-pdo_dblib php7-curl php7-ctype php7-mbstring php7-fileinfo php7-zlib imagemagick php7-session php7-sockets php7-pear php7-pcntl php7-ldap php7-simplexml php7-xmlwriter
+#          state: present
+- name: Setup php fpm configuration file
+  template:
+    src: www.conf.j2
+    dest: /usr/local/etc/php-fpm.d/www.conf
+- name: setup vhost conf directory
+  file:
+    path: /usr/local/etc/nginx/conf.d/
+    state: directory
+- name: Install python passlib for authentication
+  package:
+          name: py37-passlib
+          state: present
+#- name: create shared webhost directory /usr/local/www
+#  file:
+#          path: /usr/local/www/
+#          state: directory
+#          mode: '0771'
+#          owner: nginx
+#          group: nginx
+- name: copy nginx.conf
+  template:
+          src: freebsdnginx.conf.j2 
+          dest: /usr/local/etc/nginx/nginx.conf
+          owner: root
+          group: wheel
+          mode: '0744'
+#- name: copy default.conf
+#  copy:
+#          src: defaultalpine.conf
+#          dest: /etc/nginx/conf.d/default.conf
+#          owner: root
+#          group: root
+#          mode: '0744'
+#- name: copy phpfpm config
+#  copy:
+#          src: phpfpm.conf
+#          dest: /etc/php7/php-fpm.d/www.conf
+#          owner: root
+#          group: root
+#          mode: '0744'
+#- name: config php.sh
+#  copy:
+#          src: php7.sh
+#          dest: /etc/profile.d/php7.sh
+#          owner: root
+#          group: root
+#          mode: '0744'
+#- name: copy php.ini
+#  copy:
+#          src: php.ini
+#          dest: /etc/php7/php.ini
+#          owner: root
+#          group: root
+#          mode: '0644'
+- name: create vhost root dir
+  file:
+          path: "/usr/local/www/{{ item.fqdn }}"
+          state: directory
+          mode: '0750'
+          owner: root
+          group: wheel
+  when: nginxvhost is defined
+  loop: "{{ nginxvhost }}"
+- name: copy vhost template
+  template:
+          src: vhostnginx.conf
+          dest: "/usr/local/etc/nginx/conf.d/{{ item.fqdn }}.conf"
+          owner: root
+          group: wheel
+          mode: '0744'
+  when: nginxvhost is defined
+  loop: "{{ nginxvhost }}"
+  notify: restart nginx
+#- name: Setup basic authentication
+#  htpasswd:
+#          path: "{{ item.authfile }}"
+#          name: "{{ item.authuser }}"
+#          password: "{{ item.authpassword }}"
+#          owner: "{{ nginxuser }}"
+#          group: "{{ nginxgroup }}"
+#          mode: 0640
+#  loop: "{{ authenticationitems }}"
+#  when: authenticationitems is defined
+- name: copy php.ini
+  command: cp /usr/local/etc/php.ini-production /usr/local/etc/php.ini
+- name: copy php template
+  template:
+    src: freebsdphp.ini.j2
+    dest: /usr/local/etc/php/99-custom.ini
+  notify: restart phpfpm
+- name: Copy fastcgi_param file
+  template:
+    src: fastcgi_params.j2
+    dest: /usr/local/etc/nginx/fastcgi_params
+- name: enable php-fpm
+  service:
+          name: php-fpm
+          enabled: yes
+          state: started
+- name: enable nginx
+  service:
+          name: nginx
+          enabled: yes
+          state: restarted

@@ -1,0 +1,13 @@
+---
+- name: restart network
+  service:
+          name: networking
+          state: restarted
+- name: restart nginx
+  service:
+          name: nginx
+          state: restarted
+- name: restart phpfpm
+  service:
+    name: php-fpm
+    state: restarted

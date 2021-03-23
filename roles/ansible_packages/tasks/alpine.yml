@@ -1,0 +1,22 @@
+# Group definitions
+- name: Install alpine packages coming from group definitions
+  package:
+          name: "{{ packagesalpine }}"
+          state: present
+  when: packagesalpine is defined
+- name: Remove alpine packages coming from group definitions
+  package:
+          name: "{{ packagesalpine_absent }}"
+          state: absent
+  when: packagesalpine_absent is defined
+# Host definitions
+- name: Install alpine packages coming from host definition
+  package:
+          name: "{{ packages_host }}"
+          state: present
+  when: packages_host is defined
+- name: Remove alpine packages coming from host definition
+  package:
+    name: "{{ packages_host_absent }}"
+    state: absent
+  when: packages_host_absent is defined

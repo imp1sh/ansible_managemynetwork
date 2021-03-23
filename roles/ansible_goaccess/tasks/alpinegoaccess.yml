@@ -1,0 +1,4 @@
+- name: Install apk packages
+  apk:
+          name: goaccess
+          state: present

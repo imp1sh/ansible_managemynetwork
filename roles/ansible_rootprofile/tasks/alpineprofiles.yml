@@ -1,0 +1,7 @@
+- name: root user profile
+  copy:
+          src: profilerootalpine
+          dest: /root/.profile
+          owner: root
+          group: root
+          mode: '0640'

@@ -1,0 +1,11 @@
+# Group definitions
+- name: Install PowerDNS Recursor
+  package:
+          name: "pdns-recursor, pdns-recursor-doc"
+          state: present
+- name: Install pdnsrec config
+  template:
+    src: recursor.conf.j2
+    dest: /etc/pdns/recursor.conf
+    mode: 0640
+  notify: restart pdnsrec

@@ -1,0 +1,47 @@
+- name: Install nginx packages
+  apk:
+          name: nginx
+          state: present
+- name: Install python passlib for authentication
+  apk:
+          name: py3-passlib
+          repository: http://alpine.42.fr/edge/community
+          state: present
+- name: Install nginx main config
+  template:
+          src: nginx.conf.j2
+          dest: /etc/nginx/nginx.conf
+          owner: "{{ nginxuser }}"
+          group: "{{ nginxgroup }}"
+  notify: nginx reload
+- name: create nginx cache directory
+  file:
+          state: directory
+          path: "{{ nginxcachedir }}"
+          owner: "{{ nginxuser }}"
+          group: "{{ nginxgroup }}"
+- name: Setup basic authentication
+  htpasswd:
+          path: "{{ item.authfile }}"
+          name: "{{ item.authuser }}"
+          password: "{{ item.authpassword }}"
+          owner: "{{ nginxuser }}"
+          group: "{{ nginxgroup }}"
+          mode: 0640
+  loop: "{{ authenticationitems }}"
+  when: authenticationitems is defined
+- name: Install nginx vhost template
+  template:
+          src: nginxrproxy.conf.j2
+          dest: /etc/nginx/conf.d/{{ item.key }}.conf
+          owner: nginx
+          group: nginx
+  when: rproxyitems is defined
+  loop: "{{ lookup('dict', rproxyitems) }}"
+  notify:
+          - dehydrated cron
+          - nginx reload
+- name: enable nginx
+  service:
+          name: nginx
+          enabled: yes

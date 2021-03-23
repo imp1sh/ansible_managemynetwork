@@ -1,0 +1,11 @@
+dehydrateddomains: []
+DEHYDRATED_USER: nginx
+DEHYDRATED_GROUP: nginx
+CA: https://acme-v02.api.letsencrypt.org/directory
+CHALLENGETYPE: dns-01
+BASEDIR: /etc/dehydrated/basedir
+HOOK: /etc/dehydrated/basedir/pdns_api.sh
+HOOK_CHAIN: "yes"
+PDNS_VERSION: 1
+PDNS_WAIT: 20
+PDNS_NO_NOTIFY: "no"

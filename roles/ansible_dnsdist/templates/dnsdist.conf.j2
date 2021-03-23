@@ -1,0 +1,20 @@
+{% for aclitem in dnsdist_allowedclients %}
+addACL('{{ aclitem }}')
+{% endfor %}
+setLocal('{{ dnsdist_bindip | default('127.0.0.1:53') }}')
+{% for additionallisten in dnsdist_bindadditional %}
+addLocal('{{ additionallisten }}')
+{% endfor %}
+{% for downstreamitem in dnsdist_downstreams %}
+newServer({address="{{ downstreamitem }}"})
+{% endfor %}
+{% if dnsdist_consolekey is defined %}
+setKey('{{ dnsdist_consolekey }}')
+{% endif %}
+{% if dnsdist_consolebind is defined %}
+controlSocket('{{ dnsdist_consolebind }}')
+{% endif %}
+pc = newPacketCache({{ dnsdist_cachesize |default(10000, true) }}, {maxTTL=86400, minTTL=0, temporaryFailureTTL=60, staleTTL=60, dontAge=false})
+{% for webgui in dnsdistwebserver %}
+webserver("{{ webgui['ip'] }}", "{{ webgui['guipw'] }}", "{{ webgui['apikey'] }}", {}, "{{ webgui['allowfrom'] }}")
+{% endfor %}

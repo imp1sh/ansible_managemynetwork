@@ -1,0 +1,5 @@
+---
+- name: Alpine Task
+  import_tasks: alpine.yml
+  when: ansible_facts['os_family'] == 'Alpine'
+

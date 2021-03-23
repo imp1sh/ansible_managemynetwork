@@ -1,0 +1,14 @@
+{% for interface in radvd_ifs %}
+interface {{ interface.if }} { 
+        AdvSendAdvert {{ interface.enabled|default("on", true) }};
+        MinRtrAdvInterval {{ interface.minrtrint|default(3, true) }}; 
+        MaxRtrAdvInterval {{ interface.maxrtrint|default(10, true) }};
+{% for prefix in interface.prefixes %}
+        prefix {{ prefix.prefix }} { 
+                AdvOnLink {{ prefix.advonlink|default("on", true) }}; 
+                AdvAutonomous {{ prefix.advautonomous|default("on", true) }}; 
+                AdvRouterAddr {{ prefix.advrouteraddr|default("on", true) }}; 
+        };
+{% endfor %}
+};
+{% endfor %}

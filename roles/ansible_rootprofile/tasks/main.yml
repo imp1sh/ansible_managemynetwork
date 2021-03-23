@@ -1,0 +1,3 @@
+---
+- import_tasks: alpineprofiles.yml
+  when: ansible_facts['os_family'] == 'Alpine'

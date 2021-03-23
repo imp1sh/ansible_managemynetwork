@@ -1,0 +1,16 @@
+- name: Setup MOTD Linux
+  template:
+          src: motd
+          dest: /etc/motd
+          owner: root
+          group: root
+          mode: 0644
+  when: (ansible_facts['os_family'] == "RedHat") or (ansible_facts['os_family'] == "Alpine") or (ansible_facts['os_family'] == 'Debian')
+- name: Setup MOtD FreeBSD
+  template:
+    src: motd
+    dest: /etc/motd
+    owner: root
+    group: wheel
+    mode: 0644
+  when: ansible_facts['os_family'] == "FreeBSD"

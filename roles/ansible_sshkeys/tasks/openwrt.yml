@@ -1,0 +1,7 @@
+---
+- name: copy authorized hosts for openwrt
+  become: true
+  become_user: root
+  template:
+    src: dropbear_authkeys.j2
+    dest: /etc/dropbear/authorized_keys

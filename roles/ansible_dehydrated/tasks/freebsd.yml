@@ -1,0 +1,49 @@
+- name: Install curl and dehydrated
+  package:
+          name: "curl, dehydrated"
+          state: present
+- name: Setup dehydrated basedir directory
+  file:
+          path: "{{ BASEDIR }}"
+          state: directory
+          mode: 0755
+          owner: "{{ DEHYDRATED_USER }}"
+          group: "{{ DEHYDRATED_GROUP }}"
+- name: copy dehydrated config
+  template:
+          src: dehydratedconfig
+          dest: /usr/local/etc/dehydrated/config
+          owner: "{{ DEHYDRATED_USER }}"
+          group: "{{ DEHYDRATED_GROUP }}"
+          mode: 0750
+- name: copy pdnsapi hook script
+  template:
+          src: pdns_api.sh.j2
+          dest: "/usr/local/etc/dehydrated/pdns_api.sh"
+          owner: "{{ DEHYDRATED_USER }}"
+          group: "{{ DEHYDRATED_USER }}"
+          mode: 0755
+- name: setup pdns exit hook script
+  template:
+    src: freebsd_minio.sh
+    dest: /usr/local/etc/dehydrated/pdns_exithook.sh
+    owner: "{{ DEHYDRATED_USER }}"
+    group: "{{ DEHYDRATED_GROUP }}"
+    mode: 0755
+- name: setup dehydrated domains.txt
+  template:
+          src: domains.txt
+          dest: "{{ BASEDIR }}/domains.txt"
+          owner: "{{ DEHYDRATED_USER }}"
+          group: "{{ DEHYDRATED_GROUP }}"
+  when: dehydrateddomains is defined
+  notify:
+          - dehydrated cron
+- name: run dehydrated to accept terms
+  command: /usr/local/bin/dehydrated --register --accept-terms
+- name: setup dehydrated cronjob
+  cron:
+          name: renew certificates dehydrated
+          minute: "0"
+          hour: "12"
+          job: "/usr/local/bin/dehydrated -c"

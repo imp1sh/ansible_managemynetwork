@@ -1,0 +1,36 @@
+galaxy_info:
+  role_name: timezone
+  author: imp1sh
+  description: Setup system timezone
+  license: license (BSD, MIT)
+  min_ansible_version: 2.0
+  platforms:
+  - name: Alpine
+    versions:
+    - all
+  - name: EL
+    versions:
+    - 5
+    - 6
+    - 7
+    - 8
+  - name: Debian
+    versions:
+    - "Wheezy"
+    - "Jessie"
+    - "Stretch"
+    - "Buster"
+  - name: FreeBSD
+    versions:
+    - all
+  - name: Ubuntu
+    versions:
+    - trusty
+    - xenial
+    - bionic
+    - focal
+  galaxy_tags:
+  - timezone
+  - tzdata
+  - UTC
+dependencies: []

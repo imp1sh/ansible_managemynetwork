@@ -1,0 +1,49 @@
+---
+- name: Install ansible role requirements
+  package:
+    name: "python3-lxml"
+    state: present
+- name: Install fedora syncthing
+  package:
+    name: "syncthing"
+    state: present
+- name: create configuration directory for systemd unit
+  file:
+    state: directory
+    path: /home/{{ syncthing_user }}/.config/systemd/user/
+    owner: "{{ syncthing_user }}"
+    group: "{{ syncthing_user }}"
+- name: enable systemd service as user unit
+  template:
+    src: systemduser.j2
+    dest: /home/{{ syncthing_user }}/.config/systemd/user/syncthing.service
+    owner: "{{ syncthing_user }}"
+    group: "{{ syncthing_user }}"
+  notify: restart syncthing systemd user
+- name: configure service GUI listening IP:port
+  xml:
+    path: "/home/{{ syncthing_user }}/.config/syncthing/config.xml"
+    xpath: /configuration/gui/address
+    value: "[{{ syncthing_guiip }}]:{{ syncthing_guiport }}"
+  notify: restart syncthing systemd user
+- name: configure service GUI username
+  xml:
+    path: "/home/{{ syncthing_user }}/.config/syncthing/config.xml"
+    xpath: /configuration/gui/user
+    value: "{{ syncthing_guiuser }}"
+  notify: restart syncthing systemd user
+- name: configure service GUI password
+  xml:
+    path: "/home/{{ syncthing_user }}/.config/syncthing/config.xml"
+    xpath: /configuration/gui/password
+    value: "{{ syncthing_guipassword }}"
+  notify: restart syncthing systemd user
+- name: enable systemd unit user element
+  systemd:
+    scope: user
+    name: syncthing
+    daemon_reload: yes
+    state: started
+    enabled: yes
+  become: yes
+  become_user: "{{ syncthing_user }}"

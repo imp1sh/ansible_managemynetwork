@@ -1,0 +1,5 @@
+autoindex: 'off'
+php_timezone: "Europe/Berlin"
+nginxuser: nginx
+nginxgroup: nginx
+nginx_defaultbindip: "::"

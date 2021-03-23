@@ -1,0 +1,98 @@
+# {{ item.value.comment }}
+server {
+    listen	80;
+    listen	[::]:80;
+{% if item.value.rproxyaltfqdn is defined %}
+    server_name {{ item.key }} {{ item.value.rproxyaltfqdn }};
+{% else %}
+    server_name {{ item.key }};
+{% endif %}
+{% if item.value.authfile is defined %}
+    auth_basic "Restricted Access";
+    auth_basic_user_file "{{ item.value.authfile }}";
+{% endif %}
+    access_log /var/log/nginx/{{ item.key }}_access.log;
+    error_log /var/log/nginx/{{ item.key }}_error.log error;
+    location ^~ /.well-known/acme-challenge {
+            alias /usr/local/www/dehydrated;
+    }
+    location / {
+{% if item.value.redirectallhttps is sameas false %}
+      # return 301 https://$host$request_uri;
+{% else %}
+      return 301 https://$host$request_uri;
+{% endif %}
+      client_max_body_size 256M;
+      proxy_buffering on;
+      proxy_buffers 12 12k;
+{% if item.value.enablecache is sameas true %}
+      proxy_cache STATIC;
+      proxy_cache_valid 200 1d;
+      proxy_cache_use_stale  error timeout invalid_header updating http_500 http_502 http_503 http_504;
+{% endif %}
+      proxy_redirect off;
+      proxy_set_header X-Real-IP $remote_addr;
+      proxy_set_header X-Forward-For $remote_addr;
+      proxy_set_header Host $host;
+      proxy_pass {{ item.value.rproxytarget }};
+      add_header X-Frame-Options "SAMEORIGIN";
+    }
+}
+
+server {
+    listen      [::]:443 ssl;
+    listen      443 ssl;
+
+    ssl_certificate /etc/dehydrated/basedir/certs/{{ item.key }}/fullchain.pem;
+    ssl_certificate_key /etc/dehydrated/basedir/certs/{{ item.key }}/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers ECDHE-RSA-AES256-GCM-SHA512:DHE-RSA-AES256-GCM-SHA512:ECDHE-RSA-AES256-GCM-SHA384:DHE-RSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-SHA384;
+    ssl_ecdh_curve secp384r1;
+    ssl_session_timeout 10m;
+    #ssl_session_cache shared:SSL:10m;
+    ssl_session_tickets off;
+    ssl_stapling on;
+    ssl_stapling_verify on;
+    add_header Strict-Transport-Security "max-age=63072000; includeSubDomains; preload";
+    add_header X-Frame-Options DENY;
+    add_header X-Content-Type-Options nosniff;
+    add_header X-XSS-Protection "1; mode=block";
+{% if item.value.rproxyaltfqdn is defined %}
+    server_name {{ item.key }} {{ item.value.rproxyaltfqdn }};
+{% else %}
+    server_name {{ item.key }};
+{% endif %}
+{% if item.value.authfile is defined %}
+    auth_basic "Restricted Access";
+    auth_basic_user_file "{{ item.value.authfile }}";
+{% endif %}
+    access_log /var/log/nginx/{{ item.key }}-ssl_access.log;
+    error_log /var/log/nginx/{{ item.key }}-ssl_error.log error;
+    location / {
+            client_max_body_size 256M;
+            proxy_buffering on;
+            proxy_buffers 12 12k;
+{% if item.value.enablecache is sameas true %}
+            proxy_cache STATIC;
+            proxy_cache_valid 200 1d;
+            proxy_cache_use_stale  error timeout invalid_header updating http_500 http_502 http_503 http_504;
+{% endif %}
+            proxy_redirect off;
+            proxy_set_header X-Real-IP $remote_addr;
+            #proxy_set_header X-Forward-For $remote_addr;
+            proxy_set_header X-Forward-For $proxy_add_x_forwarded_for;
+	    proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_set_header Host $host;
+            proxy_pass {{ item.value.rproxytarget }};
+	    add_header X-Frame-Options "SAMEORIGIN";
+    }
+{% if item.value.additionallocations is defined %}
+{% for locationitem in item.value.additionallocations %}
+location {{ locationitem.location }} {
+{% for locationitemelement in locationitem.options %}
+  {{ locationitemelement }}
+{% endfor %}
+}
+{% endfor %}
+{% endif %}
+}

@@ -1,0 +1,9 @@
+- name: Install kea packages
+  apk:
+          name: "kea, kea-common, kea-dhcp6, kea-doc"
+          state: present
+- name: Install host specific additional packages
+  apk:
+          name: "{{ hostpackages }}"
+          state: present
+  when: hostpackages is defined

@@ -1,0 +1,11 @@
+---
+- import_tasks: alpine.yml
+  when: ansible_facts['os_family'] == 'Alpine'
+- import_tasks: redhat.yml
+  when: ansible_facts['os_family'] == 'RedHat'
+- import_tasks: freebsd.yml
+  when: ansible_facts['os_family'] == 'FreeBSD'
+- import_tasks: debian.yml
+  when: ansible_facts['os_family'] == 'Debian'
+- import_tasks: openwrt.yml
+  when: ansible_facts['os_family'] == 'OpenWrt'

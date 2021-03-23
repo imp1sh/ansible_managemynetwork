@@ -1,0 +1,8 @@
+---
+- name: setup apk repositories to latest
+  template:
+          src: alpine_repos
+          dest: /etc/apk/repositories
+          owner: root
+          group: root
+          mode: 0644

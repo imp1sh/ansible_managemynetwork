@@ -1,0 +1,5 @@
+{% for keyitem in sshkeys %}
+{% if keyitem['state'] != 'absent' %}
+{{ keyitem.key }}
+{% endif %}
+{% endfor %}

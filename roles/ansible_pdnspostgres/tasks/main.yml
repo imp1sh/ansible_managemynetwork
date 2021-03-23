@@ -1,0 +1,5 @@
+---
+- import_tasks: alpinepdns.yml
+  when: ansible_facts['os_family'] == 'Alpine'
+- import_tasks: debianpdns.yml
+  when: ansible_facts['os_family'] == 'Debian'

@@ -1,0 +1,14 @@
+- name: Install radvd
+  apk:
+    name: radvd
+    state: present
+- name: Install radvd template
+  template:
+    src: radvd.conf.j2
+    dest: /etc/radvd.conf
+  notify: restart radvd
+- name: Start radvd
+  service:
+    name: radvd
+    state: started
+    enabled: yes

@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+sudo -u postgres psql -lqt | cut -d \| -f 1 | grep -qw pdns
+if [ $? -eq 0 ]; then
+          echo "{\"pdnsdbexist\" : true}"
+	  exit 0
+  else
+          echo "{\"pdnsdbexist\" : false}"
+	  exit 1
+fi

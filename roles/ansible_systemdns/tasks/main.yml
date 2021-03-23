@@ -1,0 +1,7 @@
+- name: Include alpine dependant
+  import_tasks: alpine.yml
+  when: ansible_facts['os_family'] == 'Alpine'
+- name: Include FreeBSD dependant
+  import_tasks: freebsd.yml
+  when: ansible_facts['os_family'] == 'FreeBSD'
+

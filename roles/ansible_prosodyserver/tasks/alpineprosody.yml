@@ -1,0 +1,37 @@
+- name: Install prosody service
+  apk:
+          name: "prosody, prosody-openrc"
+          state: present
+- name: Make sure prosody is enabled
+  service:
+          name: prosody
+          enabled: yes
+- name: Include dehydrated role
+  include_role:
+          name: dehydrated
+- name: Make sure /etc/prosody/conf.d is there
+  file:
+          path: /etc/prosody/conf.d
+          state: directory
+          owner: root
+          group: root
+          mode: 0755
+- name: copy prosody vhosts
+  template:
+          src: prosodyvhost.lua
+          dest: "/etc/prosody/conf.d/{{ item.domain }}.cfg.lua"
+          owner: root
+          group: root
+          mode: 0644
+  notify: restart prosody
+  when: prosodyvhosts is defined
+  #loop: "{{ q('dict', prosodyvhosts) }}"
+  with_items: "{{ prosodyvhosts }}"
+- name: copy prosody config
+  template:
+          src: prosody.cfg.lua
+          dest: /etc/prosody/prosody.cfg.lua
+          owner: root
+          group: root
+          mode: 0644
+  notify: restart prosody

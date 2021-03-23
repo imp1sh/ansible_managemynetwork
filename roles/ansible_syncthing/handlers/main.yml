@@ -1,0 +1,13 @@
+---
+# handlers file for ansible_syncthing
+- name: restart syncthing
+  service:
+    name: syncthing
+    state: restarted
+- name: restart syncthing systemd user
+  systemd:
+    name: syncthing
+    scope: user
+    state: restarted
+  become: yes
+  become_user: "{{ syncthing_user }}"

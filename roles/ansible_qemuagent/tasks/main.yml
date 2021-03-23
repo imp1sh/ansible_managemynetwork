@@ -1,0 +1,8 @@
+---
+# tasks file for qemuagent
+- name: enable qemu agent
+  service:
+    name: qemu-guest-agent
+    state: started
+    enabled: true
+  when: ansible_facts['os_family'] == 'Alpine'

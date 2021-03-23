@@ -1,0 +1,4 @@
+- name: Install required packages
+  apk:
+          name: "redis, redis-openrc, postgresql, postgresql-dev, python3, python3-dev, py3-pip, libpq, libffi-dev, libffi, libxml2-utils, libxml2, libxml2-dev, git, libxslt-dev, gcc, jpeg-dev, openjpeg-dev, libc-dev, make"
+          state: present

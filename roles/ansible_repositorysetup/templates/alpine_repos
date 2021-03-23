@@ -1,0 +1,15 @@
+# Created and managed by Ansible
+{% for repoitem in repolist_alpine %}
+{{ repoitem['url'] }}/{{ repoitem['version'] }}/main
+{% if repoitem['communityenable'] is defined and repoitem['communityenable'] %}
+{{ repoitem['url'] }}/{{ repoitem['version'] }}/community
+{% endif %}
+{% if repoitem['testingenable'] is defined and repoitem['testingenable'] %}
+{{ repoitem['url'] }}/{{ repoitem['version'] }}/testing
+{% endif %}
+{% endfor %}
+{% if repolist_alpinetagged is defined %}
+{% for taggedrepo in repolist_alpinetagged %}
+@{{ taggedrepo['name'] }} {{ taggedrepo['url'] }}
+{% endfor %}
+{% endif %}
