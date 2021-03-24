@@ -1,0 +1,21 @@
+# Group definitions
+- name: "Install postgresql"
+  ansible.builtin.package:
+    name: "postgresql12-server, postgresql12-client"
+    state: present
+- name: "Install reuirement for db query check"
+  package:
+    name: "py37-psycopg2"
+    state: present
+- name: "Check if DB is initialized"
+  stat:
+    path: /var/db/postgres/data12
+  register: dbinit
+- name: "Initialize DB"
+  command: "/usr/local/etc/rc.d/postgresql initdb"
+  when: not dbinit.stat.exists
+- name: "Enable postgresql service"
+  ansible.builtin.service:
+    name: postgresql
+    enabled: true
+    state: started
