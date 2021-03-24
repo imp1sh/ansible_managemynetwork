@@ -14,8 +14,20 @@
 - name: "Initialize DB"
   command: "/usr/local/etc/rc.d/postgresql initdb"
   when: not dbinit.stat.exists
+- name: "Provide postgres config"
+  template:
+    src: postgresql_freebsd.conf.j2
+    dest: /var/db/postgres/data12/postgresql.conf
+    mode: 0600
+    owner: postgres
+    group: postgres
+  notify: restart postgres
 - name: "Enable postgresql service"
   ansible.builtin.service:
     name: postgresql
     enabled: true
     state: started
+- name: Install phppgadmin
+  ansible.builtin.package:
+    name: phppgadmin-php74
+    state: present
