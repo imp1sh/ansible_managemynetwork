@@ -27,7 +27,35 @@
     name: postgresql
     enabled: true
     state: started
+- name: "Setup pg_hba"
+  postgresql_pg_hba:
+    dest: "{{ item['dest']}}"
+    contype: "{{ item['contype'] }}"
+    users: "{{ item['users'] }}"
+    source: "{{ item['source'] }}"
+    databases: "{{ item['databases'] }}"
+    method: "{{ item['method'] }}"
+    state: "{{ item['state'] }}"
+  with_items:
+    - "{{ postgres_hba }}"
+  when: postgres_hba is defined
+  notify: restart postgres
+- name: "Setup databases"
+  ansible.builtin.postgresql_db:
+    name: "{{ item['dbname'] }}"
+  with_items:
+    - "{{ postgres_dbs }}"
+  when: postgres_dbs is defined
+- name: "Install postgresql roles"
+  postgresql_user:
+    name: "{{ item.rolename }}"
+    db: "{{ item.db }}"
+    password: "{{ item.password }}"
+    priv: "{{ item.priv }}"
+  with_items:
+    - "{{ postgres_roles }}"
+  when: postgres_roles is defined
 - name: Install phppgadmin
   ansible.builtin.package:
-    name: phppgadmin-php74
+    name: adminer
     state: present
