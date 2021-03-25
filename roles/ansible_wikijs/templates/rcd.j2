@@ -1,0 +1,115 @@
+#!/bin/sh
+
+# Copyright (c) 2015, Randy Westlund. All rights reserved.
+# 
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+# 
+# 1. Redistributions of source code must retain the above copyright notice,
+# this list of conditions and the following disclaimer.
+# 
+# 2. Redistributions in binary form must reproduce the above copyright notice,
+# this list of conditions and the following disclaimer in the documentation
+# and/or other materials provided with the distribution.
+# 
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
+
+
+# This is a FreeBSD rc script for starting a node process and keeping it alive.
+# It requires forever.js to be installed: 'npm install -g forever'.
+
+# In addition to node_enable, the following rc variables should be defined:
+
+# node_msg      The name of your program, printed at start. Defaults to "node".
+# node_dir      The directory where your node files live. Must be defined.
+# node_logdir   The directory for logfiles. Defaults to ${node_dir}/logs.
+# node_user     Passed to noded process as process.env.USER. Defaults to "www".
+# node_group    Passed to noded process as process.env.GROUP. Defaults to "www".
+#               node_user and node_group may be used to drop node's root
+#               privileges after binding to ports.
+# node_app      Application main script. Defaults to "/bin/www" (relative
+#               to node_user's home
+# node_forever  forever binary file path. Defaults to "/usr/local/bin/forever".
+# node_local_forever    use local forever binary
+#               (ie. node_user's home/node_modules/.bin/forever)
+# node_forever_log      forever log file. Defaults to /var/log/forever.log.
+
+# PROVIDE: node
+# REQUIRE: LOGIN mongod
+# KEYWORD: shutdown
+
+. /etc/rc.subr
+
+name="{{ wikijsinstance }}"
+rcvar="${name}_enable"
+
+start_precmd="${name}_prestart"
+start_cmd="${name}_start"
+stop_cmd="${name}_stop"
+
+# node executable
+command="/usr/local/bin/${name}"
+pidfile="/var/run/${name}.pid"
+
+# forever needs a path for each command
+PATH=/sbin:/bin:/usr/sbin:/usr/bin:/usr/games:/usr/local/sbin:/usr/local/bin:/root/bin
+
+# get rc vars
+load_rc_config $name
+: ${node_enable:="no"}
+: ${node_msg:="node"}
+: ${node_logdir:="${node_dir}/logs"}
+: ${node_user:="www"}
+: ${node_group:="www"}
+: ${node_app:="/bin/www"}
+: ${node_forever:="/usr/local/bin/forever"}
+: ${node_local_forever:="no"}
+: ${node_forever_log:="/var/log/forever.log"}
+
+case ${node_local_forever} in
+    [Yy][Ee][Ss])
+        node_forever="/home/${node_user}/node_modules/.bin/forever"
+        ;;
+    *)
+        ;;
+esac
+
+
+# make sure we're pointing to the right place
+required_dirs="${node_dir}"
+required_files="${node_dir}/${node_app}"
+
+# any other checks go here
+node_prestart()
+{
+    echo "$node_msg starting"
+}
+
+node_start()
+{
+    # pass USER and GROUP to node so it can drop privs
+    NEW_USER="${node_user}" \
+    NEW_GROUP="${node_group}" \
+    ${node_forever} start -a -l ${node_forever_log} -o ${node_logdir}/node.log \
+        -e ${node_logdir}/node_err.log --minUptime 3000 --pidFile ${pidfile} \
+        --workingDir ${node_dir} ${node_dir}/${node_app}
+}
+
+node_stop()
+{
+    # kill node nicely -- node should catch this signal gracefully
+    ${node_forever} stop --killSignal SIGTERM `cat ${pidfile}`
+}
+
+run_rc_command "$1"
+

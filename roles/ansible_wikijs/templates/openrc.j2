@@ -1,0 +1,16 @@
+#!/sbin/openrc-run
+ 
+user="{{ item['runasuser'] }}"
+group="{{ item['runasgroup'] }}"
+command="/usr/bin/node"
+directory="{{ item['path'] }}"
+command_args="server"
+command_user="${user}:${group}"
+command_background="yes"
+pidfile="/run/${RC_SVCNAME}.pid"
+output_log="/var/log/{{ item['name'] }}/${RC_SVCNAME}.log"
+error_log="${output_log}"
+ 
+depend() {
+	use net
+}

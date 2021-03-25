@@ -1,0 +1,54 @@
+---
+# tasks file for ansible_wikijs
+- name: "Install unarchive requirements"
+  ansible.builtin.package:
+    name: "unzip, tar"
+    state: present
+- name: "create wikijs directories"
+  ansible.builtin.file:
+    path: "{{ item['path'] }}"
+    state: directory
+    owner: "{{ item['runasuser'] }}"
+    group: "{{ item['runasgroup'] }}"
+  with_items:
+    - "{{ wikijsinstances }}"
+- name: "create logging directories"
+  ansible.builtin.file:
+    path: "/var/log/{{ item['name'] }}"
+    state: directory
+    owner: "{{ item['runasuser'] }}"
+    group: "{{ item['runasgroup'] }}"
+  with_items:
+    - "{{ wikijsinstances }}"
+- name: "fetch and extract wikijs instances"
+  ansible.builtin.unarchive:
+    src: "{{ item['url'] }}"
+    dest: "{{ item['path'] }}"
+    owner: "{{ item['runasuser'] }}"
+    group: "{{ item['runasgroup'] }}"
+    remote_src: yes
+  with_items:
+    - "{{ wikijsinstances }}"
+- name: "setup wikijs config"
+  ansible.builtin.template:
+    src: config.yml.j2
+    dest: "{{ item['path'] }}/config.yml"
+    owner: "{{ item['runasuser'] }}"
+    group: "{{ item['runasgroup'] }}"
+  with_items:
+    - "{{ wikijsinstances }}"
+- name: "setup openrc script for Alpine systems"
+  ansible.builtin.template:
+    src: openrc.j2
+    dest: "/etc/init.d/{{ item['name'] }}"
+    mode: 0770
+  with_items:
+    - "{{ wikijsinstances }}"
+  when: ansible_facts['os_family'] == 'Alpine'
+- name: "Enable and start service"
+  ansible.builtin.service:
+    name: "{{ item['name'] }}"
+    state: started
+    enabled: true
+  with_items:
+    - "{{ wikijsinstances }}"
