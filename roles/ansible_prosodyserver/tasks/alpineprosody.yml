@@ -8,7 +8,7 @@
           enabled: yes
 - name: Include dehydrated role
   include_role:
-          name: dehydrated
+          name: imp1sh.ansible_managemynetwork.ansible_dehydrated
 - name: Make sure /etc/prosody/conf.d is there
   file:
           path: /etc/prosody/conf.d
