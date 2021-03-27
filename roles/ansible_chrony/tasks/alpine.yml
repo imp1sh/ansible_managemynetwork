@@ -11,3 +11,4 @@
     name: chronyd
     state: started
     enabled: true
+  ignore_errors: yes
