@@ -57,7 +57,7 @@
 # - Connection Settings -
 
 #listen_addresses = 'localhost'		# what IP address(es) to listen on;
-listen_addresses = '{{ postgres_listenips | default(localhost, true) }}'
+listen_addresses = '{{ postgres_listenips | default('localhost', true) }}'
 					# comma-separated list of addresses;
 					# defaults to 'localhost'; use '*' for all
 					# (change requires restart)
