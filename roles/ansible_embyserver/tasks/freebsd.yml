@@ -9,3 +9,4 @@
     name: emby-server
     enabled: yes
     state: started
+  ignore_errors: yes
