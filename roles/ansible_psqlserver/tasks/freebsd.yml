@@ -55,6 +55,18 @@
   with_items:
     - "{{ postgres_roles }}"
   when: postgres_roles is defined
+- name: "Setup additional privileges"
+  postgresql_privs:
+    database: "{{ item.dbname }}"
+    state: present
+    privs: "{{ item.privs | join(',') }}"
+    type: "{{ item.type }}"
+    objs: "{{ item.objs }}"
+    schema: "{{ item.schema }}"
+    roles: "{{ item.roles | join(',') }}"
+  with_items:
+    - "{{ postgres_privs }}"
+  when: postgres_privs is defined
 - name: Install phppgadmin
   ansible.builtin.package:
     name: adminer
