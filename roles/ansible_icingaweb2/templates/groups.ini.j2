@@ -1,0 +1,6 @@
+{% for group in icingaweb2_groups %}
+[{{ group['name'] }}]
+backend = "{{ group['backend'] }}"
+resource = "{{ group['resource'] }}"
+
+{% endfor %}

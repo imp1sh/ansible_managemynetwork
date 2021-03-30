@@ -1,0 +1,67 @@
+---
+# Rolle installiert die Basis, node setup muss von Hand gemacht werden
+- name: Install needed packages
+  apk:
+          name: "icinga2@edgecommunity icinga2-bash-completion@edgecommunity monitoring-plugins icinga2-vim@edgecommunity mariadb-client py3-mysqlclient"
+          state: present
+- name: check if schema is already there
+  shell: mysql -s -N -P {{ icinga2ido_dbport }} -u {{ icinga2ido_dbuser }} -p{{ icinga2ido_dbpw }} -h {{ icinga2ido_dbhost }} information_schema -e "select count(*) as totals from TABLES WHERE TABLE_SCHEMA = '{{ icinga2ido_dbname  }}'"
+  register: schemastatus
+  #failed_when: schemastatus.stdout != 0
+- name: import mysql schema
+  mysql_db:
+    name: "{{ icinga2ido_dbname }}"
+    state: import
+    target: /usr/share/icinga2-ido-mysql/schema/mysql.sql
+    login_host: "{{ icinga2ido_dbhost }}"
+    login_port: "{{ icinga2ido_dbport }}"
+    login_user: "{{ icinga2ido_dbuser }}"
+    login_password: "{{ icinga2ido_dbpw }}"
+  when:
+    - icinga2ido_importschema is true
+    - icinga2ido_dbtype == "mysql"
+    - schemastatus.stdout == "0"
+- name: Enable selected features
+  command: icinga2 feature enable {{ item }}
+  loop: "{{ icinga2_enablefeature }}"
+  notify: restart icinga2
+- name: setup icinga2 db connection credentials
+  template:
+    src: ido-mysql.conf.j2
+    dest: /etc/icinga2/features-available/ido-mysql.conf
+    owner: icinga
+    group: icinga
+    mode: 0644
+  when: icinga2ido_dbtype == "mysql"
+  notify: restart icinga2
+- name: Setup group objects
+  template:
+    src: group.j2
+    dest: "/etc/icinga2/zones.d/{{ icingadefaultzone }}/hostgroups.conf"
+  when: icingagroups is defined
+  notify: restart icinga2
+- name: Setup templates
+  template:
+    src: templates.conf.j2
+    dest: /etc/icinga2/zones.d/{{ icingadefaultzone }}/templates.conf
+- name: Setup host objects
+  template:
+    src: host.j2
+    dest: "/etc/icinga2/zones.d/{{ icingadefaultzone }}/hosts.conf"
+  when: icingahosts is defined
+  notify: restart icinga2
+- name: Setup agent objects
+  template:
+    src: agent.j2
+    dest: "/etc/icinga2/zones.d/{{ icingadefaultzone }}/agents.conf"
+  notify: restart icinga2
+- name: setup user file
+  template:
+    src: user.j2
+    dest: "/etc/icinga2/zones.d/{{ icingadefaultzone }}/user.conf"
+  when: icingausers is defined
+- name: enable icinga2 service
+  service:
+    name: icinga2
+    state: started
+    enabled: yes

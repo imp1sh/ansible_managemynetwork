@@ -1,0 +1,5 @@
+icinga2_enablefeature:
+  - checker
+  - ido-mysql
+  - mainlog
+  - notification

@@ -1,0 +1,13 @@
+{% for resource in icingaweb2_resources %}
+[{{ resource['name'] }}]
+type = "{{ resource['type'] }}"
+db = "{{ resource['db'] }}"
+host = "{{ resource['host'] }}"
+port = "{{ resource['port'] }}"
+dbname = "{{ resource['dbname'] }}"
+username = "{{ resource['username'] }}"
+password = "{{ resource['password'] }}"
+charset = "{{ resource['charset'] }}"
+use_ssl = "{{ resource['use_ssl'] }}"
+
+{% endfor %}

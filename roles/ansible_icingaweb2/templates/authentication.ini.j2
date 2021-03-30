@@ -1,0 +1,6 @@
+{% for authitem in icingaweb2_authentication %}
+[{{ authitem['name'] }}]
+backend= "{{ authitem['backend'] }}"
+resource= "{{ authitem['resource'] }}"
+
+{% endfor %}

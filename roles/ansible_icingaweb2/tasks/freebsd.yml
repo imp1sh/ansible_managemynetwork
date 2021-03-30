@@ -1,0 +1,120 @@
+# Group definitionsa
+- name: "include nginxphp role"
+  include_role: 
+    name: imp1sh.ansible_managemynetwork.ansible_nginxphp
+- name: Install freebsd packages coming from group definitions
+  package:
+    name: "icingaweb2-php74-2.8.2, php74-curl, php74-gettext, php74-intl, php74-mbstring, php74-openssl, php74-xml, php74-pgsql, php74-pecl-imagick-im7"
+    state: present
+- name: create system group icingaweb2
+  group:
+    name: icingaweb2
+    state: present
+- name: add user www to group icingaweb2
+  user:
+    name: www
+    append: yes
+    groups: icingaweb2
+- name: setup icingaweb2 authentication.ini
+  template:
+    src: authentication.ini.j2
+    dest: /usr/local/etc/icingaweb2/authentication.ini
+    owner: www
+    group: icingaweb2
+- name: setup icingaweb2 config.ini
+  template:
+    src: config.ini.j2
+    dest: /usr/local/etc/icingaweb2/config.ini
+    owner: www
+    group: icingaweb2
+- name: setup icingaweb2 groups.ini
+  template:
+    src: groups.ini.j2
+    dest: /usr/local/etc/icingaweb2/groups.ini
+    owner: www
+    group: icingaweb2
+- name: setup icingaweb2 resources.ini
+  template:
+    src: resources.ini.j2
+    dest: /usr/local/etc/icingaweb2/resources.ini
+    owner: www
+    group: icingaweb2
+- name: setup icingaweb2 roles.ini
+  template:
+    src: roles.ini.j2
+    dest: /usr/local/etc/icingaweb2/roles.ini
+    owner: www
+    group: icingaweb2
+- name: setup icingaweb2 modules directory
+  file:
+    path: /usr/local/etc/icingaweb2/modules
+    owner: www
+    group: icingaweb2
+    mode: 0770
+    state: directory
+- name: setup icingaweb2 enabledModules directory
+  file:
+    path: /usr/local/etc/icingaweb2/enabledModules
+    owner: www
+    group: icingaweb2
+    mode: 0770
+    state: directory
+- name: setup icingaweb2 modules subdirectories
+  file:
+    path: /usr/local/etc/icingaweb2/modules/{{ item }}
+    owner: www
+    group: icingaweb2
+    state: directory
+    mode: 0770
+  loop: "{{ icingaweb2_modules }}"
+- name: setup icingaweb2 module monitoring backends.ini
+  template:
+    src: monitoringbackends.ini
+    dest: /usr/local/etc/icingaweb2/modules/monitoring/backends.ini
+    owner: www
+    group: icingaweb2
+  when: '"monitoring" in icingaweb2_modules'
+- name: setup icingaweb2 module monitoring commandtransports.ini
+  template:
+    src: monitoringcommandtransports.ini.j2
+    dest: /usr/local/etc/icingaweb2/modules/monitoring/commandtransports.ini
+    owner: www
+    group: icingaweb2
+  when: '"monitoring" in icingaweb2_modules'
+- name: setup icingaweb2 modules monitoring config.ini
+  template:
+    src: monitoringconfig.ini.j2
+    dest: /usr/local/etc/icingaweb2/modules/monitoring/config.ini
+    owner: www
+    group: icingaweb2
+  when: '"monitoring" in icingaweb2_modules'
+- name: enable modules
+  file:
+    src: /usr/local/www/icingaweb2/modules/{{ item }}
+    dest: /usr/local/etc/icingaweb2/enabledModules/{{ item }}
+    owner: www
+    group: icingaweb2
+    state: link
+  loop: "{{ icingaweb2_modules }}"
+- name: enable icingacli setup module
+  command: icingacli module enable setup
+- name: create icingaweb2 setup token
+  command: icingacli setup token create
+  register: setup_token
+- name: output setup token
+  debug:
+    msg: "Please note this setup token in order to finish icingaweb2 setup {{ setup_token }}. Call http://{{ inventory_hostname }}/icingaweb2/setup in Browser."
+- name: change setup token owner
+  file:
+    path: /usr/local/etc/icingaweb2/setup.token
+    owner: www
+    group: icingaweb2
+    mode: 0740
+  notify: restart nginx
+- name: configure permissions on icingaweb2 etc
+  file:
+    path: /usr/local/etc/icingaweb2/
+    group: icingaweb2
+    recurse: yes
+    mode: 0770
+

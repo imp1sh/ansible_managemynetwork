@@ -1,0 +1,7 @@
+{% for role in icingaweb2_roles %}
+[{{ role['name'] }}]
+users = "{{ role['users'] }}"
+permissions = "{{ role['permissions'] }}"
+groups = "{{ role['groups'] }}"
+
+{% endfor %}

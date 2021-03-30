@@ -1,0 +1,5 @@
+{% for config in icingaweb2_monitoring_configs %}
+[{{ config['name'] }}]
+protected_customvars = "{{ config['protected_customvars'] }}"
+
+{% endfor %}

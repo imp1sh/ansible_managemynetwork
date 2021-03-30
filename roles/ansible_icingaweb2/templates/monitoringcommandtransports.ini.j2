@@ -1,0 +1,9 @@
+{% for transport in icingaweb2_monitoring_commandtransports %}
+[{{ transport['name'] }}]
+transport = "{{ transport['transport'] }}"
+host = "{{ transport['host'] }}"
+port = "{{ transport['port'] }}"
+username = "{{ transport['username'] }}"
+password = "{{ transport['password'] }}"
+
+{% endfor %}

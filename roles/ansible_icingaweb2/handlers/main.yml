@@ -1,0 +1,6 @@
+---
+# handlers file for ansible_icingaweb2
+- name: restart nginx
+  service:
+    name: nginx
+    state: restarted

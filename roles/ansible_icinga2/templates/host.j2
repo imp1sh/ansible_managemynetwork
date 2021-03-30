@@ -1,0 +1,22 @@
+{% for host in icingahosts %}
+object Host "{{ host['name'] }}" {
+{% if host['address'] is defined %}
+  address = "{{ host['address'] }}"
+{% elif host['address6'] is defined %}
+  address6 = "{{ host['address6'] }}"
+{% endif %}
+{% if hostvars[host.name] is defined %}
+{% if hostvars[host.name].icingahostvars is defined %}
+{% for hostvar in hostvars[host.name].icingahostvars %}
+  vars.{{ hostvar['key'] }} = "{{ hostvar['value'] }}"
+{% endfor %}
+{% endif %}
+{% endif %}
+{% if host['icingahostvars'] is defined %}
+{% for hostvar in host['icingahostvars'] %}
+  vars.{{ hostvar['key'] }} = "{{ hostvar['value'] }}"
+{% endfor %}
+{% endif %}
+  import "generic-host"
+}
+{% endfor %}

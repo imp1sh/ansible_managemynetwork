@@ -1,0 +1,33 @@
+/** Ansible generated */
+template Host "generic-host" {
+  max_check_attempts = 3
+  check_interval = 1m
+  retry_interval = 30s
+  check_command = "hostalive"
+}
+
+template Service "generic-service" {
+  max_check_attempts = 5
+  check_interval = 1m
+  retry_interval = 30s
+}
+
+{% for notificationtemplate in icinganotificationtemplates %}
+template Notification "{{ notificationtemplate['name'] }}" {
+  interval = {{ notificationtemplate['interval'] }}
+  command = {{ notificationtemplate['command'] }}
+  states = [ {{ notificationtemplate['notifystates']|join(', ') }} ]
+  types = [ {{ notificationtemplate['notifytypes']|join(', ') }} ]
+  period = "{{ notificationtemplate['period'] }}"
+}
+{% endfor %}
+
+{% for checktemplate in icingachecktemplates %}
+apply Service "{{ checktemplate['name'] }}" {
+  import "{{ checktemplate['import'] }}"
+  check_command = "{{ checktemplate['commandname'] }}"
+  assign where {{ checktemplate['assignto'] }}
+  command_endpoint = {{ checktemplate['assignto'] }}
+}
+
+{% endfor %}
