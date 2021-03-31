@@ -35,6 +35,27 @@
     #    mode: 0644
     #  when: icinga2ido_dbtype == "mysql"
     #  notify: restart icinga2
+- name: "deploy icinga2 zones.conf"
+  template:
+    src: zones.conf.j2
+    dest: /usr/local/etc/icinga2/zones.conf
+    owner: icinga
+    group: icinga
+  notify: restart icinga2
+- name: "deploy icinga2 constants.conf"
+  template:
+    src: constants.conf.j2
+    dest: /usr/local/etc/icinga2/constants.conf
+    owner: icinga
+    group: icinga
+  notify: restart icinga2
+- name: "deploy icinga2 icinga2.conf"
+  template:
+    src: icinga2.conf.j2
+    dest: /usr/local/etc/icinga2/icinga2.conf
+    owner: icinga
+    group: icinga
+  notify: restart icinga2
             #- name: check if schema is already there
             #  shell: mysql -s -N -P {{ icinga2ido_dbport }} -u {{ icinga2ido_dbuser }} -p{{ icinga2ido_dbpw }} -h {{ icinga2ido_dbhost }} information_schema -e "select count(*) as totals from TABLES WHERE TABLE_SCHEMA = '{{ icinga2ido_dbname  }}'"
             #  register: schemastatus
@@ -78,6 +99,15 @@
     #    src: user.j2
     #    dest: "/etc/icinga2/zones.d/{{ icingadefaultzone }}/user.conf"
     #  when: icingausers is defined
+- name: check is server certificate is there
+  stat:
+    path: /var/lib/icinga2/certs/{{ inventory_hostname }}.crt
+  register: certificatecheck
+- name: create master server certificate
+  command: icinga2 pki new-cert --cn {{ inventory_hostname }} --key /var/lib/icinga2/certs/{{ inventory_hostname }}.key --csr /var/lib/icinga2/certs/{{ inventory_hostname }}.csr --cert /var/lib/icinga2/certs/{{ inventory_hostname }}.crt && icinga2 pki sign-csr --csr /var/lib/icinga2/certs/{{ inventory_hostname }}.csr --cert /var/lib/icinga2/certs/{{ inventory_hostname }}.crt
+  when:
+    - not certificatecheck.stat.exists
+    - icinga2signingmaster == inventory_hostname
 - name: enable icinga2 service
   service:
     name: icinga2
