@@ -25,7 +25,9 @@
     owner: "icinga"
     group: "icinga"
     mode: 0644
-  when: icinga2ido_dbtype == "postgres"
+  when: 
+    - '"ido-pgsql" in icinga2_enablefeature'
+    - icinga2ido_dbtype == "postgres"
     #- name: setup icinga2 db connection credentials
     #  template:
     #    src: ido-mysql.conf.j2
@@ -108,6 +110,17 @@
   when:
     - not certificatecheck.stat.exists
     - icinga2signingmaster == inventory_hostname
+- name: check if client already has a certificate
+  stat:
+    path: /var/lib/icinga2/certs/{{ inventory_hostname }}.crt
+  register: "stat_{{ inventory_hostname }}"
+  delegate to: "{{ item }}"
+  loop: "{{ icinga2signclients }}"
+- name: debug output of created var:
+  debug:
+    msg: "Current file status: stat_{{ item }}"
+  loop:
+    "{{ icinga2signclients }}"
 - name: enable icinga2 service
   service:
     name: icinga2
