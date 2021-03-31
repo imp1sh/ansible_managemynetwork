@@ -1,0 +1,27 @@
+{% for endpoint in icinga2_endpoints %}
+object Endpoint "{{ endpoint['name'] }}" {
+{% if endpoint['host'] is defined %}
+  host = "{{ endpoint['host'] }}"
+{% endif %}
+{% if endpoint['port'] is defined %}
+  port = "{{ endpoint['port'] }}"
+{% endif %}
+}
+
+{% endfor %}
+{% for zone in icinga2_zones %}
+object Zone "{{ zone['name'] }}" {
+{% if zone['endpoints'] is defined %}
+  endpoints = [ "{{ zone['endpoints'] | join('", "')}}" ]
+{% endif %}
+{% if zone['global'] is defined %}
+{% if zone['global'] == "true" %}
+  global = true
+{% endif %}
+{% endif %}
+{% if zone['parent'] is defined %}
+  parent = "{{ zone['parent'] }}"
+{% endif %}
+}
+
+{% endfor %}
