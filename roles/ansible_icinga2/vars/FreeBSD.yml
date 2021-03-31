@@ -1,0 +1,6 @@
+---
+icinga2_packagename: "icinga2"
+plugins_packagename: "monitoring-plugins"
+icinga2_user: "icinga"
+icinga2_group: "icinga"
+icinga2_etcdir: "/usr/local/etc/icinga2"
