@@ -1,5 +1,15 @@
 ---
-- import_tasks: alpine.yml
-  when: ansible_facts['os_family'] == 'Alpine'
-- import_tasks: freebsd.yml
-  when: ansible_facts['os_family'] == 'FreeBSD'
+- name: include OS vars
+  include_vars: "{{ ansible_os_family }}.yml"
+- name: Installation
+  import_tasks: installation.yml
+- name: Configuration
+  import_tasks: configuration.yml
+- name: Certificates
+  import_tasks: certificates.yml
+- name: enable icinga2 service
+  service:
+    name: icinga2
+    state: started
+    enabled: yes
+

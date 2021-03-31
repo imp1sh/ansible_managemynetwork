@@ -1,0 +1,50 @@
+---
+- name: Enable chosen features
+  command: icinga2 feature enable {{ item }}
+  loop: "{{ icinga2_enablefeature }}"
+  when: icinga2_enablefeature is defined
+  notify: restart icinga2
+- name: "setup api"
+  command: icinga2 api setup
+  when: '"api" in icinga2_enablefeature'
+  notify: restart icinga2
+- name: "setup api users"
+  template:
+    src: "api-users.conf.j2"
+    dest: "{{ icinga2_etcdir }}/conf.d/api-users.conf"
+    owner: "{{ icinga2_user }}"
+    group: "{{ icinga2_group }}"
+  when: icinga2api_users is defined
+  notify: restart icinga2
+- name: "configure postgres connection parameters"
+  template:
+    src: ido-pgsql.conf.j2
+    dest: "{{ icinga2_etcdir }}/features-available/ido-pgsql.conf"
+    owner: "{{ icinga2_user }}"
+    group: "{{ icinga2_group }}"
+    mode: 0644
+  when:
+    - '"ido-pgsql" in icinga2_enablefeature'
+    - icinga2ido_dbtype == "postgres"
+- name: "deploy icinga2 zones.conf"
+  template:
+    src: zones.conf.j2
+    dest: "{{ icinga2_etcdir }}/zones.conf"
+    owner: "{{ icinga2_user }}"
+    group: "{{ icinga2_group }}"
+  notify: restart icinga2
+- name: "deploy icinga2 constants.conf"
+  template:
+    src: constants.conf.j2
+    dest: "{{ icinga2_etcdir }}/constants.conf"
+    owner: "{{ icinga2_user }}"
+    group: "{{ icinga2_group }}"
+  notify: restart icinga2
+- name: "deploy icinga2 icinga2.conf"
+  template:
+    src: icinga2.conf.j2
+    dest: "{{ icinga2_etcdir }}/icinga2.conf"
+    owner: "{{ icinga2_user }}"
+    group: "{{ icinga2_group }}"
+  notify: restart icinga2
+

@@ -1,0 +1,8 @@
+---
+- name: Install base package
+  package:
+    name: "{{ icinga2_packagename }}"
+    state: present
+- name: Install monitoring packages
+  package:
+    name: "{{ plugins_packagename }}"
