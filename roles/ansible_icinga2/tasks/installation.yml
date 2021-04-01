@@ -6,3 +6,12 @@
 - name: Install monitoring packages
   package:
     name: "{{ plugins_packagename }}"
+    state: present
+- name: Install bash as it is needed for client fetch cert
+  package:
+    name: bash
+    state: present
+- name: Install pyopenssl for certificate check
+  package:
+    name: "{{ pyopenssl_packagename }}"
+    state: present
