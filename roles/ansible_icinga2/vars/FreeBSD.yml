@@ -1,6 +1,7 @@
 ---
 icinga2_packagename: "icinga2"
 plugins_packagename: "monitoring-plugins"
+pyopenssl_packagename: "py37-openssl"
 icinga2_user: "icinga"
 icinga2_group: "icinga"
 icinga2_etcdir: "/usr/local/etc/icinga2"
