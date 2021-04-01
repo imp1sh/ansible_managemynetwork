@@ -1,4 +1,10 @@
 ---
+- name: workaround for freebsd bug
+  file:
+    name: "{{ icinga2_etcdir }}"
+    group: "{{ icinga2_group }}"
+    recurse: yes
+  when: ansible_facts['os_family'] == 'FreeBSD'
 - name: Enable chosen features
   command: icinga2 feature enable {{ item }}
   loop: "{{ icinga2_enablefeature }}"
