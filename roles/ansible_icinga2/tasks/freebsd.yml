@@ -109,7 +109,7 @@
   command: icinga2 pki new-cert --cn {{ inventory_hostname }} --key /var/lib/icinga2/certs/{{ inventory_hostname }}.key --csr /var/lib/icinga2/certs/{{ inventory_hostname }}.csr --cert /var/lib/icinga2/certs/{{ inventory_hostname }}.crt && icinga2 pki sign-csr --csr /var/lib/icinga2/certs/{{ inventory_hostname }}.csr --cert /var/lib/icinga2/certs/{{ inventory_hostname }}.crt
   when:
     - not certificatecheck.stat.exists
-    - icinga2signingmaster == inventory_hostname
+    - icinga2_signingmaster == inventory_hostname
 - name: check if client already has a certificate
   stat:
     path: /var/lib/icinga2/certs/{{ inventory_hostname }}.crt
