@@ -1,2 +1,2 @@
-icinga2conf_confd: true
+icinga2_conf_confd: true
 icinga2_forcerecert: false
