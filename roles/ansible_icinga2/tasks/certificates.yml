@@ -7,36 +7,36 @@
     group: "{{ icinga2_group }}"
     mode: 0750
     state: directory
-- name: check if the system already has a certificate
+- name: check if the system already has a host certificate
   stat:
     path: "/var/lib/icinga2/certs/{{ inventory_hostname }}.crt"
   register: certificatecheck
+  register: check_certificatehost
+- name: check for ticket
+  stat:
+    path: /var/lib/icinga2/certs/ticket
+  register: check_ticketagent
+  when:
+    - icinga2_signingmaster != inventory_hostname
 # Signing Master Actions
 - name: create csr
   command: icinga2 pki new-cert --cn {{ inventory_hostname }} --key /var/lib/icinga2/certs/{{ inventory_hostname }}.key --csr /var/lib/icinga2/certs/{{ inventory_hostname }}.csr --cert /var/lib/icinga2/certs/{{ inventory_hostname }}.crt 
   when:
-    ((certificatecheck.stat.exists == false) and
-    (icinga2signingmaster == inventory_hostname)) or
+    ((check_certificatehost.stat.exists == false) and (icinga2_signingmaster == inventory_hostname)) or
     (icinga2_forcerecert)
 - name: sign csr
   command: icinga2 pki sign-csr --csr /var/lib/icinga2/certs/{{ inventory_hostname }}.csr --cert /var/lib/icinga2/certs/{{ inventory_hostname }}.crt
   when:
-    ((certificatecheck.stat.exists == false) and
-    (icinga2signingmaster == inventory_hostname)) or
+    ((check_certificatehost.stat.exists == false) and
+    (icinga2_signingmaster == inventory_hostname)) or
     (icinga2_forcerecert)
-- name: check for ticket
-  stat:
-    path: /var/lib/icinga2/certs/ticket
-  register: agentticket
-  when:
-    - icinga2signingmaster != inventory_hostname
 # ACTIONS ON SIGNING CLIENTS
 - name: request ticket from signingmaster
   uri:
-    url: "{{ icinga2signingmasterapiurl }}/v1/actions/generate-ticket"
+    url: "{{ icinga2_signingmasterapiurl }}/v1/actions/generate-ticket"
     method: POST
-    user: "{{ icinga2signinguser }}"
-    password: "{{ icinga2signingpassword }}"
+    user: "{{ icinga2_signinguser }}"
+    password: "{{ icinga2_signingpassword }}"
     body: '{ "cn": "{{ inventory_hostname }}"}'
     force_basic_auth: yes
     status_code: 200
@@ -45,54 +45,90 @@
       Accept: 'application/json'
     validate_certs: no
   register: icinga2_client_register_ticket
-  when: ((icinga2signingmaster != inventory_hostname) and ( certificatecheck['stat']['exists'] == false )) or
-        ((icinga2signingmaster != inventory_hostname) and ( icinga2_forcerecert ))
+  when: ((icinga2_signingmaster != inventory_hostname) and ( check_certificatehost['stat']['exists'] == false )) or
+        ((icinga2_signingmaster != inventory_hostname) and ( icinga2_forcerecert ))
+- name: delete old trusted  when recert
+  file:
+    path: /var/lib/icinga2/certs/icinga2_master_ca.crt
+    state: absent
+  when: icinga2_forcerecert or (check_certificatehost['stat']['exists'] == false)
+- name: delete ca crt when recert
+  file:
+    path: /var/lib/icinga2/certs/ca.crt
+    state: absent
+  when: (icinga2_forcerecert or (check_certificatehost['stat']['exists'] == false)) and ( icinga2_signingmaster != inventory_hostname )
 - name: fetch master CA
-  command: icinga2 pki save-cert --host {{ icinga2signingmaster }} --trustedcert /var/lib/icinga2/certs/icinga2_master_ca.crt
+  command: icinga2 pki save-cert --host {{ icinga2_signingmaster }} --trustedcert /var/lib/icinga2/certs/icinga2_master_ca.crt
   args:
     creates:
       /var/lib/icinga2/certs/icinga2_master_ca.crt
   when:
-    - icinga2signingmaster != inventory_hostname
-      #    - certificatecheck['stat']['exists'] == false
+    - icinga2_signingmaster != inventory_hostname
+      #    - check_certificatehost['stat']['exists'] == false
 - name: check if ca file exists
   stat:
     path: /var/lib/icinga2/certs/ca.crt
   register: icinga2_client_register_ca_created
-  when: (icinga2signingmaster != inventory_hostname) or
+  when: (icinga2_signingmaster != inventory_hostname) or
         (icinga2_forcerecert)
-- name: create client cert
-  command: icinga2 node setup --zone {{ inventory_hostname }} --endpoint {{ icinga2signingmaster }} --parent_host {{ icinga2signingmaster }} --parent_zone {{ icinga2_zones[0]['parent'] }} --ticket {{ icinga2_client_register_ticket['json']['results'][0]['ticket'] }} --trustedcert /var/lib/icinga2/certs/icinga2_master_ca.crt --cn {{ inventory_hostname }} --accept-config --accept-commands
+        #- name:
+        #  debug:
+        #    msg: "json: {{ icinga2_client_register_ticket }}"
+- name: create client cert for agents
+  command: >
+    icinga2 node setup
+    --zone {{ inventory_hostname }}
+    --endpoint {{ icinga2_primarymaster }} {% if icinga2_secondarymaster is defined %}--endpoint {{ icinga2_secondarymaster }} {% endif %}
+    --parent_host {{ icinga2_primarymaster }}
+    --parent_zone {{ icinga2_zones[0]['parent'] }}
+    --ticket {{ icinga2_client_register_ticket['json']['results'][0]['ticket'] }}
+    --trustedcert /var/lib/icinga2/certs/icinga2_master_ca.crt
+    --cn {{ inventory_hostname }}
+    --accept-config
+    --accept-commands
   args:
     creates: /var/lib/icinga2/certs/ca.crt
-  when: ((icinga2signingmaster != inventory_hostname) and (certificatecheck['stat']['exists'] == false)) or
-        (icinga2_forcerecert)
-- name: request cert from master
-  command: icinga2 node setup --cn {{ inventory_hostname }} --endpoint "{{ icinga2signingmaster }}" --zone "{{ inventory_hostname }}" --parent_zone "masterjochen" --parent_host "{{ icinga2signingmaster }}" --trustedcert "/var/lib/icinga2/certs/icinga2_master_ca.crt"  --accept-commands --accept-config --disable-confd
-  when: ((icinga2signingmaster != inventory_hostname) and (certificatecheck['stat']['exists'] == false)) or
-        (icinga2_forcerecert)
+  when: ((icinga2_primarymaster != inventory_hostname ) and (icinga2_secondarymaster != inventory_hostname ) and (check_certificatehost['stat']['exists'] == false) or
+        ((icinga2_primarymaster != inventory_hostname ) and (icinga2_secondarymaster != inventory_hostname ) and icinga2_forcerecert ))
+- name: create client cert for secondary master
+  command: >
+    icinga2 node setup
+    --zone {{ inventory_hostname }}
+    --endpoint {{ icinga2_primarymaster }} {% if icinga2_secondarymaster is defined %}--endpoint {{ icinga2_secondarymaster }} {% endif %}
+    --parent_host {{ icinga2_primarymaster }}
+    --ticket {{ icinga2_client_register_ticket['json']['results'][0]['ticket'] }}
+    --trustedcert /var/lib/icinga2/certs/icinga2_master_ca.crt
+    --cn {{ inventory_hostname }}
+    --accept-config
+    --accept-commands
+  args:
+    creates: /var/lib/icinga2/certs/ca.crt
+  when: (( icinga2_secondarymaster == inventory_hostname ) and (check_certificatehost['stat']['exists'] == false)) or
+        (( icinga2_secondarymaster == inventory_hostname ) and (icinga2_forcerecert ))
 - name: restart icinga2
   service:
     name: icinga2
     state: restarted
-  when: icinga2signingmaster != inventory_hostname
-    #- name: get the certificate fingerprint
-    #  shell: >
-    #    set -o pipefail;
-    #    openssl x509
-    #    -in /var/lib/icinga2/certs/{{ inventory_hostname }}.crt
-    #    -fingerprint -sha256 -noout | cut -d '=' -f 2 | sed 's/://g' | tr A-Z a-z
-    #  args:
-    #    executable: /usr/bin/env bash
-    #  register: icinga2_client_register_certfinger
-    #  when: icinga2signingmaster != inventory_hostname
-- name: get certificate fingerprint
-  community.crypto.x509_certificate_info:
-    path: "/var/lib/icinga2/certs/{{ inventory_hostname }}.crt"
-  register: icinga2_client_certificate_check
-- name: sign client cert on master
-  command: >
-    icinga2 ca sign {{ icinga2_client_certificate_check['fingerprints']['sha256'] | replace(':','') | lower }}
-  delegate_to: '{{ icinga2signingmaster }}'
-  when: ((icinga2signingmaster != inventory_hostname) and (certificatecheck['stat']['exists'] == false)) or
-        (icinga2_forcerecert)
+  when: icinga2_signingmaster != inventory_hostname
+- name: get the certificate fingerprint
+  shell: >
+    set -o pipefail;
+    openssl x509 -in /var/lib/icinga2/certs/{{ inventory_hostname }}.crt -fingerprint -sha256 -noout | cut -d '=' -f 2
+  args:
+    executable: "{{ bash_path }}"
+  register: icinga2_client_certificate_check 
+    #- name: debug cert check output
+    #  debug:
+    #    msg: "{{ icinga2_client_certificate_check }}"
+  when: icinga2_signingmaster != inventory_hostname
+    # this method I consider more elegant but it will not work on Alpine since it does not work even with dependencies installed
+    #- name: get certificate fingerprint
+    #  community.crypto.x509_certificate_info:
+    #    path: "/var/lib/icinga2/certs/{{ inventory_hostname }}.crt"
+    #  register: icinga2_client_certificate_check
+    #- name: sign client cert on master
+    #  command: >
+    #    icinga2 ca sign {{ icinga2_client_certificate_check['stdout'] | replace(':','') | lower }}
+    #  delegate_to: '{{ icinga2_signingmaster }}'
+    #  when: ((icinga2_signingmaster != inventory_hostname) and (check_certificatehost['stat']['exists'] == false)) or
+    #        (icinga2_forcerecert)
