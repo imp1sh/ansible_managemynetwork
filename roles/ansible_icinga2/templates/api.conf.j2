@@ -1,0 +1,30 @@
+/**
+ * The API listener is used for distributed monitoring setups.
+ */
+
+object ApiListener "api" {
+{% if icinga2_api_acceptconf is defined %}
+{% if icinga2_api_acceptconf %}
+  accept_config = true
+{% else %}
+  accept_config = false
+{% endif %}
+{% else %}
+  //accept_config = false
+{% endif %}
+{% if icinga2_api_acceptcmd is defined %}
+{% if icinga2_api_acceptcmd %}
+  accept_commands = true
+{% else %}
+  accept_commands = false
+{% endif %}
+{% else %}
+  //accept_commands = false
+{% endif %}
+{% if icinga2_api_bindhost is defined %}
+  bind_host = "{{ icinga2_api_bindhost }}"
+{% endif %}
+  bind_port = "{{ icinga2_api_bindport | default('5665', true) }}"
+  ticket_salt = TicketSalt
+}
+
