@@ -4,25 +4,25 @@
  */
 
 /* The directory which contains the plugins from the Monitoring Plugins project. */
-const PluginDir = "/usr/local/libexec/nagios"
+const PluginDir = "{{ icinga2_pluginpath }}"
 
 /* The directory which contains the Manubulon plugins.
  * Check the documentation, chapter "SNMP Manubulon Plugin Check Commands", for details.
  */
-const ManubulonPluginDir = "/usr/local/libexec/nagios"
+const ManubulonPluginDir = "{{ icinga2_manubulonpath }}"
 
 /* The directory which you use to store additional plugins which ITL provides user contributed command definitions for.
  * Check the documentation, chapter "Plugins Contribution", for details.
  */
-const PluginContribDir = "/usr/local/libexec/nagios"
+const PluginContribDir = "{{ icinga2_plugincontribpath }}"
 
 /* Our local instance name. By default this is the server's hostname as returned by `hostname --fqdn`.
  * This should be the common name from the API certificate.
  */
-const NodeName = "{{ icinga2conf_nodename | default(inventory_hostname) }}"
+const NodeName = "{{ icinga2_conf_nodename | default(inventory_hostname) }}"
 
 /* Our local zone name. */
-const ZoneName = "{{ icinga2conf_zonename | default(inventory_hostname) }}"
+const ZoneName = "{{ icinga2_conf_zonename | default(inventory_hostname) }}"
 
 /* Secret key for remote node tickets */
-const TicketSalt = "{{ icinga2conf_ticketsalt | default("", true) }}"
+const TicketSalt = "{{ icinga2_conf_ticketsalt | default("", true) }}"
