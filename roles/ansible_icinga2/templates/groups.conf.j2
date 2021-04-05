@@ -1,0 +1,7 @@
+{% for hostgroup in icinga2_groups %}
+object HostGroup "{{ hostgroup['name'] }}" {
+  display_name = "{{ hostgroup['displayname'] }}"
+  assign where host.vars.os == "{{ hostgroup['variableflag'] }}"
+}
+
+{% endfor %}
