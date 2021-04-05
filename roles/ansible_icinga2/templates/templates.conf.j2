@@ -12,6 +12,18 @@ template Service "generic-service" {
   retry_interval = 30s
 }
 
+apply Service "ping4" {
+  import "generic-service"
+  check_command = "ping4"
+  assign where host.address
+}
+
+apply Service "ping6" {
+  import "generic-service"
+  check_command = "ping6"
+  assign where host.address6
+}
+
 {% for notificationtemplate in icinganotificationtemplates %}
 template Notification "{{ notificationtemplate['name'] }}" {
   interval = {{ notificationtemplate['interval'] }}
@@ -28,6 +40,11 @@ apply Service "{{ checktemplate['name'] }}" {
   check_command = "{{ checktemplate['commandname'] }}"
   assign where {{ checktemplate['assignto'] }}
   command_endpoint = {{ checktemplate['assignto'] }}
+{% if checktemplate['checkvars'] is defined %}
+{% for checkvar in checktemplate['checkvars'] %}
+  vars.{{ checkvar['key'] }} = "{{ checkvar['value'] }}"
+{% endfor %}
+{% endif %}
 }
 
 {% endfor %}
