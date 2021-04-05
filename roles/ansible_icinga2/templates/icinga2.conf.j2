@@ -54,7 +54,7 @@ include "features-enabled/*.conf"
  * the preferred way is to create separate directories and files in the conf.d
  * directory. Each of these files must have the file extension ".conf".
  */
-{% if icinga2conf_confd %}
+{% if icinga2_conf_confd %}
 include_recursive "conf.d"
 {% else %}
 include "conf.d/api-users.conf"
