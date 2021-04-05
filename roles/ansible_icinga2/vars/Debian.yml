@@ -1,0 +1,11 @@
+---
+icinga2_packagename: "icinga2"
+plugins_packagename: "monitoring-plugins"
+pyopenssl_packagename: "python3-openssl"
+icinga2_user: "nagios"
+icinga2_group: "nagios"
+icinga2_etcdir: "/etc/icinga2"
+bash_path: "/bin/bash"
+icinga2_pluginpath: "/usr/lib/nagios/plugins/"
+icinga2_manubulonpath: "/usr/lib/nagios/plugins/"
+icinga2_plugincontribpath: "/usr/lib/nagios/plugins/"
