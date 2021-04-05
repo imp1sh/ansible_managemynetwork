@@ -1,10 +1,23 @@
 ---
 - name: workaround for freebsd bug
   file:
-    name: "{{ icinga2_etcdir }}"
+    path: "{{ icinga2_etcdir }}"
     group: "{{ icinga2_group }}"
     recurse: yes
+    mode: 0774
   when: ansible_facts['os_family'] == 'FreeBSD'
+- name: set ansible user for conf.d Debian
+  file:
+    path: "{{ icinga2_etcdir }}/conf.d"
+    owner: "{{ icinga2_user }}"
+    group: "{{ icinga2_group }}"
+  when: ansible_facts['os_family'] == 'Debian'
+- name: set ansible user for features-available Debian
+  file:
+    path: "{{ icinga2_etcdir }}/features-available"
+    owner: "{{ icinga2_user }}"
+    group: "{{ icinga2_group }}"
+  when: ansible_facts['os_family'] == 'Debian'
 - name: Enable chosen features
   command: icinga2 feature enable {{ item }}
   loop: "{{ icinga2_enablefeature }}"
@@ -14,13 +27,21 @@
   command: icinga2 api setup
   when: '"api" in icinga2_enablefeature'
   notify: restart icinga2
+- name: "configure api"
+  template:
+    src: api.conf.j2
+    dest: "{{ icinga2_etcdir }}/features-enabled/api.conf"
+    owner: "{{ icinga2_user }}"
+    group: "{{ icinga2_group }}"
+  when: '"api" in icinga2_enablefeature'
+  notify: restart icinga2
 - name: "setup api users"
   template:
     src: "api-users.conf.j2"
     dest: "{{ icinga2_etcdir }}/conf.d/api-users.conf"
     owner: "{{ icinga2_user }}"
     group: "{{ icinga2_group }}"
-  when: icinga2api_users is defined
+  when: icinga2_api_users is defined
   notify: restart icinga2
 - name: "configure postgres connection parameters"
   template:
@@ -31,7 +52,7 @@
     mode: 0644
   when:
     - '"ido-pgsql" in icinga2_enablefeature'
-    - icinga2ido_dbtype == "postgres"
+    - icinga2_ido_dbtype == "postgres"
 - name: "deploy icinga2 zones.conf"
   template:
     src: zones.conf.j2
@@ -53,4 +74,67 @@
     owner: "{{ icinga2_user }}"
     group: "{{ icinga2_group }}"
   notify: restart icinga2
-
+    #- name:
+    #  debug:
+    #    msg: "primarymasterstatus: {{ icinga2_primarymaster }} secondarymasterstatus {{ icinga2_secondarymaster }}"
+- name: create masterzone directory
+  file:
+    path: "{{ icinga2_etcdir }}/zones.d/{{ icinga2_conf_zonename }}/"
+    state: directory
+    owner: "{{ icinga2_user }}"
+    group: "{{ icinga2_group }}"
+    mode: 0774
+  notify: restart icinga2
+  when: (icinga2_primarymaster == inventory_hostname) or (icinga2_secondarymaster == inventory_hostname)
+- name: deploy commands.conf to masterzone
+  template:
+    src: commands.conf.j2
+    dest: "{{ icinga2_etcdir }}/zones.d/{{ icinga2_conf_zonename }}/commands.conf"
+    owner: "{{ icinga2_user }}"
+    group: "{{ icinga2_group }}"
+  notify: restart icinga2
+  when: (icinga2_primarymaster == inventory_hostname) or (icinga2_secondarymaster == inventory_hostname)
+- name: deploay downtimes.conf to masterzone
+  template:
+    src: downtimes.conf.j2
+    dest: "{{ icinga2_etcdir }}/zones.d/{{ icinga2_conf_zonename }}/downtimes.conf"
+    owner: "{{ icinga2_user }}"
+    group: "{{ icinga2_group }}"
+  notify: restart icinga2
+  when: (icinga2_primarymaster == inventory_hostname) or (icinga2_secondarymaster == inventory_hostname)
+- name: deploy groups.conf to masterzone
+  template:
+    src: groups.conf.j2
+    dest: "{{ icinga2_etcdir }}/zones.d/{{ icinga2_conf_zonename }}/groups.conf"
+    owner: "{{ icinga2_user }}"
+    group: "{{ icinga2_group }}"
+  notify: restart icinga2
+  when: (icinga2_primarymaster == inventory_hostname) or (icinga2_secondarymaster == inventory_hostname)
+    #- name: debug hostvars variable
+    #  debug:
+    #    msg: "host item {{ hostvars[item.name].icinga2_hostvars }}"
+    #  loop: "{{ icinga2_hosts }}"
+- name: deploy hosts.conf to masterzone
+  template:
+    src: hosts.conf.j2
+    dest: "{{ icinga2_etcdir }}/zones.d/{{ icinga2_conf_zonename }}/hosts.conf"
+    owner: "{{ icinga2_user }}"
+    group: "{{ icinga2_group }}"
+  notify: restart icinga2
+  when: (icinga2_primarymaster == inventory_hostname) or (icinga2_secondarymaster == inventory_hostname)
+- name: deploy templates.conf to masterzone
+  template:
+    src: templates.conf.j2
+    dest: "{{ icinga2_etcdir }}/zones.d/{{ icinga2_conf_zonename }}/templates.conf"
+    owner: "{{ icinga2_user }}"
+    group: "{{ icinga2_group }}"
+  notify: restart icinga2
+  when: (icinga2_primarymaster == inventory_hostname) or (icinga2_secondarymaster == inventory_hostname)
+- name: deploy agents.conf to masterzone
+  template:
+    src: agents.conf.j2
+    dest: "{{ icinga2_etcdir }}/zones.d/{{ icinga2_conf_zonename }}/agents.conf"
+    owner: "{{ icinga2_user }}"
+    group: "{{ icinga2_group }}"
+  notify: restart icinga2
+  when: (icinga2_primarymaster == inventory_hostname) or (icinga2_secondarymaster == inventory_hostname)
