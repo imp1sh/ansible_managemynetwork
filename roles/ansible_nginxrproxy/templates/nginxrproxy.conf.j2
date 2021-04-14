@@ -11,6 +11,14 @@ server {
     auth_basic "Restricted Access";
     auth_basic_user_file "{{ item.value.authfile }}";
 {% endif %}
+{% if item['clientmaxbodysize'] is defined %}
+    client_max_body_size {{ item['clientmaxbodysize'] }};
+{% else %}
+    client_max_body_size {{ nginx_clientmaxbodysize }};
+{% endif %}
+{% if item['proxyrequestbuffering'] is defined %}
+    proxy_request_buffering {{ item['proxyrequestbuffering'] }};
+{% endif %}
     access_log /var/log/nginx/{{ item.key }}_access.log;
     error_log /var/log/nginx/{{ item.key }}_error.log error;
     location ^~ /.well-known/acme-challenge {
@@ -22,7 +30,6 @@ server {
 {% else %}
       return 301 https://$host$request_uri;
 {% endif %}
-      client_max_body_size 256M;
       proxy_buffering on;
       proxy_buffers 12 12k;
 {% if item.value.enablecache is sameas true %}
@@ -65,6 +72,14 @@ server {
 {% if item.value.authfile is defined %}
     auth_basic "Restricted Access";
     auth_basic_user_file "{{ item.value.authfile }}";
+{% endif %}
+{% if item['clientmaxbodysize'] is defined %}
+    client_max_body_size {{ item['clientmaxbodysize'] }};
+{% else %}
+    client_max_body_size {{ nginx_clientmaxbodysize }};
+{% endif %}
+{% if item['proxyrequestbuffering'] is defined %}
+    proxy_request_buffering {{ item['proxyrequestbuffering'] }};
 {% endif %}
     access_log /var/log/nginx/{{ item.key }}-ssl_access.log;
     error_log /var/log/nginx/{{ item.key }}-ssl_error.log error;

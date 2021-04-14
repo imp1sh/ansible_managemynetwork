@@ -1,0 +1,20 @@
+ #!/bin/sh
+ template=`cat <<TEMPLATE
+ $NOTIFICATIONTYPE - $HOSTDISPLAYNAME - $SERVICEDISPLAYNAME is $SERVICESTATE
+
+ Notification Type: $NOTIFICATIONTYPE
+
+ Service: $SERVICEDESC
+ Host: $HOSTALIAS
+ Address: $HOSTADDRESS
+ State: $SERVICESTATE
+
+ Date/Time: $LONGDATETIME
+
+ Additional Info: $SERVICEOUTPUT
+
+ Comment: [$NOTIFICATIONAUTHORNAME] $NOTIFICATIONCOMMENT
+ TEMPLATE
+ `
+
+ /usr/bin/printf "%b" "$template" | signal-cli -u $SIGNALNUMBER send $USERPHONE

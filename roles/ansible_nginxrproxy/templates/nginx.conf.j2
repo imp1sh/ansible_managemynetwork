@@ -22,6 +22,18 @@ events {
 }
 
 http {
+{% if backenditems is defined %}
+{% for backend in backenditems %}
+        upstream {{ backend['name'] }} {
+{% if backend['algo'] is defined %}
+          {{ backend['algo'] }};
+{% endif %}
+{% for server in backend['servers'] %}
+          server {{ server['name'] }}{% if server['weight'] is defined %} weight={{ server['weight'] }}{% endif %}{% if server['mode'] is defined %} {{ server['mode'] }}{% endif %};
+{% endfor %}
+{% endfor %}
+{% endif %}
+        }
         # proxy cache options
 	proxy_cache_path {{ nginxcachedir }} levels=1:2 keys_zone=STATIC:10m inactive=24h  max_size={{ nginxcachemaxsize }};
 	# Includes mapping of file name extensions to MIME types of responses

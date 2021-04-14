@@ -5,3 +5,4 @@ nginxuser: nginx
 nginxgroup: nginx
 nginxerrorlog: "/var/log/nginx/error.log warn"
 nginxaccesslog: "/var/log/nginx/access.log main"
+nginx_clientmaxbodysize: "1M"
