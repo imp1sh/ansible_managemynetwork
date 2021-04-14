@@ -46,6 +46,7 @@
   with_items:
     - "{{ postgres_dbs }}"
   when: postgres_dbs is defined
+  notiry: restart postgres
 - name: "Install postgresql roles"
   postgresql_user:
     name: "{{ item.rolename }}"
