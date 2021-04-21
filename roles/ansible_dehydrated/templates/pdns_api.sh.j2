@@ -47,7 +47,9 @@ rev() {
   local str rev
   str="$(cat)"
   rev=""
+{% raw %}
   for (( i=${#str}-1; i>=0; i-- )); do rev="${rev}${str:$i:1}"; done
+{% endraw %}
   echo "${rev}"
 }
 
@@ -273,7 +275,9 @@ setup_domain() {
 
   # Find zone name, cut off subdomains until match
   for check_zone in ${all_zones}; do
+{% raw %}
     for (( j=${#name_array[@]}-1; j>=0; j-- )); do
+{% endraw %}
       if [[ "${check_zone}" = "$(join . "${name_array[@]:j}")" ]]; then
         zone="${check_zone}"
         break 2

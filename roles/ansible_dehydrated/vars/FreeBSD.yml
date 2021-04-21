@@ -1,0 +1,3 @@
+dehydrated_packages: "curl, dehydrated"
+dehydrated_basedir: "/usr/local/etc/dehydrated"
+dehydrated_binpath: "/usr/local/bin/dehydrated"

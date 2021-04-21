@@ -1,7 +1,21 @@
-- name: Install needed packages
+- name: Install curl from apk
   package:
-    name: "{{ dehydrated_packages }}"
+    name: curl
     state: present
+- name: Install dehydrated bin manually from git
+  copy:
+    src: dehydrated/dehydrated
+    dest: "{{ dehydrated_binpath }}"
+    owner: root
+    group: root
+    mode: 0755
+- name: Setup dehydrated etc directory
+  file:
+    path: "{{ dehydrated_basedir }}"
+    state: directory
+    mode: 0755
+    owner: "{{ dehydrated_user }}"
+    group: "{{ dehydrated_group }}"
 - name: Setup dehydrated basedir directory
   file:
     path: "{{ dehydrated_basedir }}"
@@ -12,24 +26,17 @@
 - name: copy dehydrated config
   template:
     src: dehydratedconfig
-    dest: /usr/local/etc/dehydrated/config
+    dest: "{{ dehydrated_basedir }}/config"
     owner: "{{ dehydrated_user }}"
     group: "{{ dehydrated_group }}"
     mode: 0750
 - name: copy pdnsapi hook script
-  template:
-    src: pdns_api.sh.j2
+  copy:
+    src: pdns_api.sh/pdns_api.sh
     dest: "{{ dehydrated_basedir }}/pdns_api.sh"
     owner: "{{ dehydrated_user }}"
-    group: "{{ dehydrated_group }}"
+    group: "{{ dehydrated_user }}"
     mode: 0755
-            #- name: setup pdns exit hook script
-            #  template:
-            #    src: freebsd_minio.sh
-            #    dest: /usr/local/etc/dehydrated/pdns_exithook.sh
-            #    owner: "{{ DEHYDRATED_USER }}"
-            #    group: "{{ DEHYDRATED_GROUP }}"
-            #    mode: 0755
 - name: setup dehydrated domains.txt
   template:
     src: domains.txt

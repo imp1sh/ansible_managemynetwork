@@ -12,11 +12,11 @@
 
 # Which user should dehydrated run as? This will be implictly enforced when running as root
 #DEHYDRATED_USER=
-DEHYDRATED_USER={{ DEHYDRATED_USER }}
+DEHYDRATED_USER={{ dehydrated_user }}
 
 # Which group should dehydrated run as? This will be implictly enforced when running as root
 #DEHYDRATED_GROUP=
-DEHYDRATED_GROUP={{ DEHYDRATED_USER }}
+DEHYDRATED_GROUP={{ dehydrated_group }}
 
 # Resolve names to addresses of IP version only. (curl)
 # supported values: 4, 6
@@ -52,7 +52,7 @@ CHALLENGETYPE="{{ CHALLENGETYPE }}"
 
 # Base directory for account key, generated certificates and list of domains (default: $SCRIPTDIR -- uses config directory if undefined)
 #BASEDIR=$SCRIPTDIR
-BASEDIR={{ BASEDIR }}
+BASEDIR={{ dehydrated_basedir }}
 
 # File containing the list of domains to request certificates for (default: $BASEDIR/domains.txt)
 #DOMAINS_TXT="${BASEDIR}/domains.txt"
