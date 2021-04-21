@@ -1,0 +1,37 @@
+- name: Install prosody service
+  package:
+          name: "prosody"
+          state: present
+- name: Make sure prosody is enabled
+  service:
+          name: prosody
+          enabled: yes
+- name: Include dehydrated role
+  include_role:
+          name: imp1sh.ansible_managemynetwork.ansible_dehydrated
+- name: Make sure /etc/prosody/conf.d is there
+  file:
+          path: /usr/local/etc/prosody/conf.d
+          state: directory
+          owner: root
+          group: wheel
+          mode: 0755
+- name: copy prosody vhosts
+  template:
+          src: prosodyvhost.lua
+          dest: "/usr/local/etc/prosody/conf.d/{{ item.domain }}.cfg.lua"
+          owner: root
+          group: wheel
+          mode: 0644
+  notify: restart prosody
+  when: prosodyvhosts is defined
+  #loop: "{{ q('dict', prosodyvhosts) }}"
+  with_items: "{{ prosodyvhosts }}"
+- name: copy prosody config
+  template:
+          src: prosody.cfg.lua
+          dest: /usr/local/etc/prosody/prosody.cfg.lua
+          owner: root
+          group: wheel
+          mode: 0644
+  notify: restart prosody
