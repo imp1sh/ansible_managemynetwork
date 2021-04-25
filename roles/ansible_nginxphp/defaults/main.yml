@@ -3,3 +3,6 @@ php_timezone: "Europe/Berlin"
 nginxuser: nginx
 nginxgroup: nginx
 nginx_defaultbindip: "::"
+nginx_phpversion: "80"
+phpfpmlisten: "{{ phpfpm_socketpath }}"
+phpfpmlistenmode: "0660"
