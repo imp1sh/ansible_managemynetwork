@@ -37,7 +37,7 @@ group = www
 ;                                  FreeBSD for security reasons;
 ;   '/path/to/unix/socket' - to listen on a unix socket.
 ; Note: This value is mandatory.
-listen = {{ phpfpmlisten  | default('127.0.0.1:9000', true) }}
+listen = {{ phpfpmlisten }}
 
 ; Set listen(2) backlog.
 ; Default Value: 511 (-1 on FreeBSD and OpenBSD)

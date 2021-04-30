@@ -1,0 +1,4 @@
+---
+phpfpm_socketpath: "/var/run/php-fpm.sock"
+phpfpmlistenowner: "www"
+phpfpmlistengroup: "www"
