@@ -1,0 +1,33 @@
+- name: Install mariadb and associated packages
+  package:
+    name: "{{ mariadbserver_packages }}"
+    state: present
+- name: Install mariadb server configuration
+  template:
+    src: mariadb-server.cnf.j2
+    dest: "{{ mariadbserver_etcpath }}/{{ mariadbserver_etcfile }}"
+  notify: restart mariadb
+- name: enable mariadb server
+  service:
+    name: "{{ mariadbserver_servicename }}"
+    enabled: yes
+    state: started
+- name: Install packages for phpmyadmin
+  package:
+    name: "{{ mariadbserver_packagesmyadmin }}"
+    state: present
+- name: Install lighttpd.conf
+  template:
+    src: lighttpd.conf.alpine.j2
+    dest: "{{ lighttpd_etcpath }}/{{ lighttpd_etcfile }}"
+  notify: restart lighttpd
+- name: Install fastcgi.conf
+  template:
+    src: mod_fastcgi.conf.j2
+    dest: "{{ lighttpd_etcpath }}/mod_fastcgi.conf"
+  notify: restart lighttpd
+- name: Enable lighttpd
+  service:
+    name: lighttpd
+    enabled: yes
+    state: started

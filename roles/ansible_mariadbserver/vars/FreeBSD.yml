@@ -1,0 +1,6 @@
+---
+mariadbserver_packages: "mariadb{{ mariadbversion }}-server"
+mariadbserver_packagesmyadmin: "phpMyAdmin5-php{{ phpversion }}"
+mariadbserver_etcpath: "/usr/local/etc/mysql/conf.d"
+mariadbserver_etcfile: "server.cnf"
+mariadbserver_servicename: "mysql-server"

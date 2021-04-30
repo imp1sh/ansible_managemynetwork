@@ -1,8 +1,4 @@
-- name: restart lighttpd
-  service:
-          name: lighttpd
-          state: restarted
 - name: restart mariadb
   service:
-          name: mariadb
-          state: restarted
+    name: "{{ mariadbserver_servicename }}"
+    state: restarted
