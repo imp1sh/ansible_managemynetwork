@@ -1,7 +1,109 @@
 ---
 - name: include OS vars
   include_vars: "{{ ansible_os_family }}.yml"
-- import_tasks: alpine.yml
-  when: ansible_facts['os_family'] == 'Alpine'
-- import_tasks: freebsd.yml
+- name: Install nginx package
+  package:
+    name: nginx
+    state: present
+- name: Install additional packages php and stuff
+  package:
+    name: "{{ nginxphp_packages }}"
+    state: present
+- name: Install python passlib for authentication
+  package:
+    name: "{{ nginxphp_passlib_packagename }}"
+    state: present
+- name: setup main nginx.conf
+  template:
+    src: "{{ nginxphp_nginxconf }}"
+    dest: "{{ nginxphp_nginxconfdir }}/nginx.conf"
+    owner: "{{ nginxphp_nginxconf_owner }}"
+    group: "{{ nginxphp_nginxconf_group }}"
+    mode: '0744'
+- name: deploy default vhost for non-matching requests
+  template:
+    src: defaultvhost.conf.j2
+    dest: "{{ nginxphp_nginxconfdir }}/conf.d/defaultvhost.conf"
+    owner: "{{ nginxphp_nginxconf_owner }}"
+    group: "{{ nginxphp_nginxconf_group }}"
+    mode: '0744'
+- name: Setup php fpm configuration file
+  template:
+    src: www.conf.j2
+    dest: "{{ nginxphp_fpmconfdir }}/www.conf"
+    owner: "{{ nginxphp_nginxconf_owner }}"
+    group: "{{ nginxphp_nginxconf_group }}"
+    mode: '0744'
+      # Alpine specific? Check if needed
+      #- name: config php.sh
+      #  copy:
+      #    src: php7.sh
+      #    dest: /etc/profile.d/php7.sh
+      #    owner: root
+      #    group: root
+      #    mode: '0744'
+      #- name: copy php.ini
+      #  copy:
+      #    rc: php.ini
+      #    dest: /etc/php7/php.ini
+      #    owner: root
+      #    group: root
+      #    mode: '0644'
+- name: create vhost root dir
+  file:
+    path: "{{ nginxphp_wwwdir }}/{{ item.fqdn }}"
+    state: directory
+    mode: '0750'
+    owner: "{{ nginxphp_nginxuser }}"
+    group: "{{ nginxphp_nginxgroup }}"
+  when: nginxphp_vhosts is defined
+  loop: "{{ nginxphp_vhosts }}"
+- name: copy vhost template
+  template:
+    src: vhostnginx.conf
+    dest: "{{ nginxphp_nginxconfdir }}/conf.d/{{ item.fqdn }}.conf"
+    owner: "{{ nginxphp_nginxconf_owner }}"
+    group: "{{ nginxphp_nginxconf_group }}"
+    mode: '0744'
+  when: nginxphp_vhosts is defined
+  loop: "{{ nginxphp_vhosts }}"
+  notify: restart nginx
+- name: Setup basic authentication
+  htpasswd:
+    path: "{{ item.authfile }}"
+    name: "{{ item.authuser }}"
+    password: "{{ item.authpassword }}"
+    owner: "{{ nginxphp_nginxconf_owner }}"
+    group: "{{ nginxphp_nginxcnonf_group }}"
+    mode: 0640
+  loop: "{{ nginxphp_authenticationitems }}"
+  when: authenticationitems is defined
+- name: copy php.ini freebsd only
+  command: cp /usr/local/etc/php.ini-production /usr/local/etc/php.ini
   when: ansible_facts['os_family'] == 'FreeBSD'
+- name: setup individual php.ini
+  template:
+    src: freebsdphp.ini.j2
+    dest: /usr/local/etc/php/99-custom.ini
+  notify: restart phpfpm
+  when: ansible_facts['os_family'] == 'FreeBSD'
+- name: copy php.ini
+  template:
+    src: php.ini.j2
+    dest: /etc/php7/php.ini
+  notify: restart phpfpm
+  when: ansible_facts['os_family'] == 'Alpine'
+- name: Copy fastcgi_param file
+  template:
+    src: fastcgi_params.j2
+    dest: "{{ nginxphp_nginxconfdir }}/fastcgi_params"
+- name: enable php-fpm
+  service:
+    name: "{{ nginxphp_fpmservicename }}"
+    enabled: yes
+    state: started
+- name: enable nginx
+  service:
+    name: nginx
+    enabled: yes
+    state: restarted

@@ -1,8 +1,9 @@
-autoindex: 'off'
-php_timezone: "Europe/Berlin"
-nginxuser: nginx
-nginxgroup: nginx
-nginx_defaultbindip: "::"
-nginx_phpversion: "80"
-phpfpmlisten: "{{ phpfpm_socketpath }}"
-phpfpmlistenmode: "0660"
+---
+nginxphp_autoindex: 'off'
+nginxphp_defaultbindip: "::"
+nginxphp_fpmlisten: "{{ nginxphp_fpmsocketpath }}"
+nginxphp_fpmlistenmode: "0660"
+nginxphp_phptimezone: "Europe/Berlin"
+nginxphp_phpversionalpine: "7"
+nginxphp_phpversiondebian: "7.4"
+nginxphp_phpversionfreebsd: "74"

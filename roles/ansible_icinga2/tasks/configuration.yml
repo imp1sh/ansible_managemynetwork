@@ -114,14 +114,57 @@
     #  debug:
     #    msg: "host item {{ hostvars[item.name].icinga2_hostvars }}"
     #  loop: "{{ icinga2_hosts }}"
+- name: Create directory for hosts in defaultzone
+  file:
+    path: "{{ icinga2_etcdir }}/zones.d/{{ icinga2_conf_zonename }}/hosts"
+    state: directory
+    owner: "{{ icinga2_user }}"
+    group: "{{ icinga2_group }}"
+  when: (icinga2_primarymaster == inventory_hostname) or (icinga2_secondarymaster == inventory_hostname)
+- name: Create directory for non agent hosts in defaultzone
+  file:
+    path: "{{ icinga2_etcdir }}/zones.d/{{ icinga2_conf_zonename }}/hosts/notagent"
+    state: directory
+    owner: "{{ icinga2_user }}"
+    group: "{{ icinga2_group }}"
+  when: (icinga2_primarymaster == inventory_hostname) or (icinga2_secondarymaster == inventory_hostname)
+- name: Create directory for agent hosts in defaultzone
+  file:
+    path: "{{ icinga2_etcdir }}/zones.d/{{ icinga2_conf_zonename }}/hosts/agent"
+    state: directory
+    owner: "{{ icinga2_user }}"
+    group: "{{ icinga2_group }}"
+  when: (icinga2_primarymaster == inventory_hostname) or (icinga2_secondarymaster == inventory_hostname)
 - name: deploy hosts.conf to masterzone
   template:
     src: hosts.conf.j2
-    dest: "{{ icinga2_etcdir }}/zones.d/{{ icinga2_conf_zonename }}/hosts.conf"
+    dest: "{{ icinga2_etcdir }}/zones.d/{{ icinga2_conf_zonename }}/hosts/notagent/{{ item['name'] }}.conf"
     owner: "{{ icinga2_user }}"
     group: "{{ icinga2_group }}"
   notify: restart icinga2
   when: (icinga2_primarymaster == inventory_hostname) or (icinga2_secondarymaster == inventory_hostname)
+  loop: "{{ icinga2_hosts }}"
+- name: debug output to get variable clarity
+  debug:
+    msg: "debug ansible facts {{ ansible_delegated_vars['icinga2_etcdir'] }}"
+  delegate_to: "{{ icinga2_primarymaster }}"
+  when: (icinga2_primarymaster != inventory_hostname) and (icinga2_secondarymaster != inventory_hostname)
+- name: deploy agent configs to the primary master
+  template:
+    src: hostagents.conf.j2
+    dest: "{{ ansible_delegated_vars['icinga2_etcdir'] }}/zones.d/{{ icinga2_conf_zonename }}/hosts/agent/{{ inventory_hostname }}.conf"
+    owner: "{{ icinga2_user }}"
+    group: "{{ icinga2_group }}"
+  delegate_to: "{{ icinga2_primarymaster }}"
+  when: (icinga2_primarymaster != inventory_hostname) and (icinga2_secondarymaster != inventory_hostname)
+- name: deploy agent configs to the secondary master
+  template:
+    src: hostagents.conf.j2
+    dest: "{{ icinga2_etcdir }}/zones.d/{{ icinga2_conf_zonename }}/hosts/agent/{{ inventory_hostname }}.conf"
+    owner: "{{ icinga2_user }}"
+    group: "{{ icinga2_group }}"
+  delegate_to: "{{ icinga2_secondarymaster }}"
+  when: (icinga2_primarymaster != inventory_hostname) and (icinga2_secondarymaster != inventory_hostname)
 - name: deploy templates.conf to masterzone
   template:
     src: templates.conf.j2

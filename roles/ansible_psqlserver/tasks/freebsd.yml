@@ -46,7 +46,7 @@
   with_items:
     - "{{ postgres_dbs }}"
   when: postgres_dbs is defined
-  notiry: restart postgres
+  notify: restart postgres
 - name: "Install postgresql roles"
   postgresql_user:
     name: "{{ item.rolename }}"
@@ -68,7 +68,7 @@
   with_items:
     - "{{ postgres_privs }}"
   when: postgres_privs is defined
-- name: Install phppgadmin
-  ansible.builtin.package:
-    name: adminer
-    state: present
+    #- name: Install phppgadmin
+    #  ansible.builtin.package:
+    #    name: adminer
+    #    state: present
