@@ -16,5 +16,5 @@ controlSocket('{{ dnsdist_consolebind }}')
 {% endif %}
 pc = newPacketCache({{ dnsdist_cachesize |default(10000, true) }}, {maxTTL=86400, minTTL=0, temporaryFailureTTL=60, staleTTL=60, dontAge=false})
 {% for webgui in dnsdistwebserver %}
-webserver("{{ webgui['ip'] }}", "{{ webgui['guipw'] }}", "{{ webgui['apikey'] }}", {}, "{{ webgui['allowfrom'] }}")
+webserver("{{ webgui['ip'] }}", "{{ webgui['guipw'] }}", "{{ webgui['apikey'] }}", {}, "{{ webgui['allowfrom']|join(', ') }}")
 {% endfor %}
