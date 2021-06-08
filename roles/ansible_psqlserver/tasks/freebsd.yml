@@ -68,6 +68,13 @@
   with_items:
     - "{{ postgres_privs }}"
   when: postgres_privs is defined
+- name: "Setup full sql backup"
+  cron:
+    name: "postgresql full backup"
+    minute: "24"
+    hour: "3"
+    user: "postgres"
+    job: "pg_dumpall -f /var/db/postgres/fullbackup.sql"
     #- name: Install phppgadmin
     #  ansible.builtin.package:
     #    name: adminer
