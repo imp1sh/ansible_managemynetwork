@@ -12,8 +12,8 @@
           mode: '0750'
           owner: "{{ nginxuser }}"
           group: "{{ nginxgroup }}"
-  when: nginxvhost is defined
-  loop: "{{ nginxvhost }}"
+  when: nginxphp_vhost is defined
+  loop: "{{ nginxphp_vhost }}"
 - name: copy vhost template
   template:
           src: vhostnginx.conf
@@ -21,6 +21,6 @@
           owner: root
           group: wheel
           mode: '0744'
-  when: nginxvhost is defined
-  loop: "{{ nginxvhost }}"
+  when: nginxphp_vhost is defined
+  loop: "{{ nginxphp_vhost }}"
   notify: restart nginx
