@@ -2,7 +2,17 @@
   authorized_key:
           user: "{{ item.user }}"
           key: "{{ item.key }}"
+          state: present
   when:
     - sshkeys is defined
     - item['state'] != 'absent'
+  loop: "{{ sshkeys }}"
+- name: "Removing ssh keys"
+  authorized_key:
+    user: "{{ item.user }}"
+    key: "{{ item.key }}"
+    state: absent
+  when:
+    - sshkeys is defined
+    - item['state'] == 'absent'
   loop: "{{ sshkeys }}"
