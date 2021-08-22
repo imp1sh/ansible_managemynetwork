@@ -1,0 +1,28 @@
+- name: Install nodejs
+  package:
+    name: node14
+    state: present
+- name: Install npm
+  package:
+    name: npm-node14
+    state: present
+- name: Install sudo
+  package:
+    name: sudo
+    state: present
+- name: Install ghost cli via npm
+  npm:
+    name: ghost-cli
+    global: yes
+      #- name: Install ghost user
+      #  user:
+      #    name: "{{ ghostuser }}"
+      #    comment: Ghost Blog user
+      #    shell: /sbin/nologin
+      #    password_lock: yes
+      #- name: ghostuser sudo permissions
+      #  copy:
+      #          src: ghostsudo
+      #          dest: /etc/sudoers.d/ghostsudo
+      #          owner: root
+      #          group: root
