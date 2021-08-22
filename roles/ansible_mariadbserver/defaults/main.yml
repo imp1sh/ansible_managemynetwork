@@ -1,4 +1,4 @@
 ---
 mariadbbindip: "::"
 mariadbversion: "105"
-phpversion: "80"
+phpversion: "74"
