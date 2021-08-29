@@ -1,9 +1,15 @@
 ---
 # tasks file for ansible_wikijs
-- name: "Install unarchive requirements"
+- name: "Install Alpine requirements"
   ansible.builtin.package:
     name: "unzip, tar"
     state: present
+  when: ansible_facts['os_family'] == 'Alpine'
+- name: "Install FreeBSD requirements"
+  ansible.builtin.package:
+    name: "unzip, gtar"
+    state: "present"
+  when: ansible_facts['os_family'] == 'FreeBSD'
 - name: "create wikijs directories"
   ansible.builtin.file:
     path: "{{ item['path'] }}"
@@ -50,5 +56,6 @@
     name: "{{ item['name'] }}"
     state: started
     enabled: true
+  when: ansible_facts['os_family'] == 'Alpine'
   with_items:
     - "{{ wikijsinstances }}"
