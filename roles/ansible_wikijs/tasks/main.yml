@@ -43,6 +43,17 @@
     group: "{{ item['runasgroup'] }}"
   with_items:
     - "{{ wikijsinstances }}"
+- name: Install npm for FreeBSD
+  ansible.builtin.package:
+    name: npm
+    state: present
+  when: ansible_facts['os_family'] == 'FreeBSD'
+- name: Install pm2 via npm on FreeBSD
+  npm:
+    name: pm2
+    global: yes
+    state: present
+  when: ansible_facts['os_family'] == 'FreeBSD'
 - name: "setup openrc script for Alpine systems"
   ansible.builtin.template:
     src: openrc.j2
