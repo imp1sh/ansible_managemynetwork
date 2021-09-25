@@ -3,6 +3,11 @@
   package:
           name: "pdns-recursor, pdns-recursor-doc"
           state: present
+- name: fetch root hints file
+  get_url:
+    url: http://www.internic.net/domain/named.root
+    dest: /etc/pdns/roothints.txt
+    mode: 0644
 - name: Install pdnsrec config
   template:
     src: recursor.conf.j2

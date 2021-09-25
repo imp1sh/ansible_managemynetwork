@@ -31,6 +31,9 @@ allow-from={{ pdnsrec_allowfrom }}
 # api-key	Static pre-shared authentication key for access to the REST API
 #
 # api-key=
+{% if pdnsrec_apikey is defined %}
+api-key={{pdnsrec_apikey}}
+{% endif %}
 
 #################################
 # auth-zones	Zones for which we have authoritative data, comma separated domain=file pairs 
@@ -243,7 +246,9 @@ forward-zones={{ pdnsrec_forwardzones }}
 #################################
 # hint-file	If set, load root hints from this file
 #
-hint-file=/etc/pdns/root.hints
+hint-file={{ pdnsrec_hintfile | default('/etc/pdns/roothints.txt', true) }}
+
+#hint-file=/etc/pdns/root.hints
 
 #################################
 # include-dir	Include *.conf files from this directory
