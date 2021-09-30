@@ -47,11 +47,8 @@ local-port={{ pdnslistenport|default(53, true) }}
 # log-dns-details       If PDNS should log DNS non-erroneous details
 #
 # log-dns-details=
-
-#################################
-# log-failed-updates    If PDNS should log failed update requests
-#
-# log-failed-updates=
+log-dns-details = {{ pdnslogdnsdetails | default('no', true) }}
+log-dns-queries = {{ pdnslogdnsqueries | default('no', true) }}
 
 #################################
 # logfile       Logfile to use (Windows only)
@@ -285,4 +282,8 @@ webserver-allow-from={{ pdnswebserverallowfrom }}
 #################################
 # geoip-dnssec-keydir Specifies the full path of a directory that will contain DNSSEC keys
 #
-
+#DNS Update
+dnsupdate={{ pdnsupdate | default('no', true) }}
+{% if pdnsupdatefrom is defined %}
+allow-dnsupdate-from={{ pdnsupdatefrom | join(' ', true) }}"
+{% endif %}
