@@ -30,13 +30,13 @@
     owner: "{{ dehydrated_user }}"
     group: "{{ dehydrated_group }}"
     mode: 0750
-- name: copy pdnsapi hook script
-  copy:
-    src: pdns_api.sh/pdns_api.sh
+- name: fetch pdns_api.sh from url
+  get_url:
+    url: https://raw.githubusercontent.com/silkeh/pdns_api.sh/master/pdns_api.sh
     dest: "{{ dehydrated_basedir }}/pdns_api.sh"
+    mode: 0755
     owner: "{{ dehydrated_user }}"
     group: "{{ dehydrated_user }}"
-    mode: 0755
 - name: setup dehydrated domains.txt
   template:
     src: domains.txt
