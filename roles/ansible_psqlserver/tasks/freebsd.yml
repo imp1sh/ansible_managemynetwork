@@ -5,7 +5,7 @@
     state: present
 - name: "Install reuirement for db query check"
   package:
-    name: "py37-psycopg2"
+    name: "py38-psycopg2"
     state: present
 - name: "Check if DB is initialized"
   stat:
