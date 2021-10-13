@@ -7,6 +7,9 @@ server {
 {% else %}
     server_name {{ item.key }};
 {% endif %}
+{% if item.value.redirect is defined %}
+    return 301 {{ item.value.redirect }};
+{% endif %}
 {% if item.value.authfile is defined %}
     auth_basic "Restricted Access";
     auth_basic_user_file "{{ item.value.authfile }}";
@@ -53,13 +56,17 @@ server {
     ssl_certificate {{ nginx_certpath }}/{{ item.key }}/fullchain.pem;
     ssl_certificate_key {{ nginx_certpath }}/{{ item.key }}/privkey.pem;
     ssl_protocols TLSv1.2 TLSv1.3;
-    ssl_ciphers ECDHE-RSA-AES256-GCM-SHA512:DHE-RSA-AES256-GCM-SHA512:ECDHE-RSA-AES256-GCM-SHA384:DHE-RSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-SHA384;
+{% if item.value.vhostcipher is defined %}
+    ssl_ciphers {{ item.value.vhostcipher }};
+{% else %}
+    ssl_ciphers {{ nginxvhostcipher }};
+{% endif %}
     ssl_ecdh_curve secp384r1;
     ssl_session_timeout 10m;
     #ssl_session_cache shared:SSL:10m;
     ssl_session_tickets off;
-    ssl_stapling on;
-    ssl_stapling_verify on;
+    ssl_stapling {{ item.value.sslstapling | default('on', true) }};
+    ssl_stapling_verify {{ item.value.sslstaplingverify | default('on', true) }};
     add_header Strict-Transport-Security "max-age=63072000; includeSubDomains; preload";
     add_header X-Frame-Options DENY;
     add_header X-Content-Type-Options nosniff;
@@ -68,6 +75,9 @@ server {
     server_name {{ item.key }} {{ item.value.rproxyaltfqdn }};
 {% else %}
     server_name {{ item.key }};
+{% endif %}
+{% if item.value.redirect is defined %}
+    return 301 {{ item.value.redirect }};
 {% endif %}
 {% if item.value.authfile is defined %}
     auth_basic "Restricted Access";

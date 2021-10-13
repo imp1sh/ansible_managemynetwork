@@ -6,3 +6,4 @@ nginxgroup: nginx
 nginxerrorlog: "/var/log/nginx/error.log warn"
 nginxaccesslog: "/var/log/nginx/access.log main"
 nginx_clientmaxbodysize: "1M"
+nginxvhostcipher: "ECDHE-RSA-AES256-GCM-SHA512:DHE-RSA-AES256-GCM-SHA512:ECDHE-RSA-AES256-GCM-SHA384:DHE-RSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-SHA384"
