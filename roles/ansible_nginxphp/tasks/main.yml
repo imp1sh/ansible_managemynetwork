@@ -20,6 +20,13 @@
     owner: "{{ nginxphp_nginxconf_owner }}"
     group: "{{ nginxphp_nginxconf_group }}"
     mode: '0744'
+- name: Make sure conf.d directory exists
+  file:
+    path: "{{ nginxphp_nginxconfdir }}/conf.d/"
+    state: "directory"
+    owner: "{{ nginxphp_nginxconf_owner }}"
+    group: "{{ nginxphp_nginxconf_group }}"
+    mode: 0744
 - name: deploy default vhost for non-matching requests
   template:
     src: defaultvhost.conf.j2

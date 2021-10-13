@@ -449,3 +449,15 @@ pm.max_spare_servers = 3
 ;php_admin_value[error_log] = /var/log/fpm-php.www.log
 ;php_admin_flag[log_errors] = on
 ;php_admin_value[memory_limit] = 32M
+{% if nginxphp_memorylimit is defined %}
+php_admin_value[memory_limit] = {{ nginxphp_memorylimit }}
+{% endif %}
+{% if nginxphp_postmaxsize is defined %}
+php_admin_value[post_max_size] = {{ nginxphp_postmaxsize }}
+{% endif %}
+{% if nginxphp_maxexecutiontime is defined %}
+php_admin_value[max_execution_time] = {{ nginxphp_maxexecutiontime }}
+{% endif %}
+{% if nginxphp_maxinputtime is defined %}
+php_admin_value[max_input_time] = {{ nginxphp_maxinputtime }}
+{% endif %}
