@@ -285,5 +285,5 @@ webserver-allow-from={{ pdnswebserverallowfrom }}
 #DNS Update
 dnsupdate={{ pdnsupdate | default('no', true) }}
 {% if pdnsupdatefrom is defined %}
-allow-dnsupdate-from={{ pdnsupdatefrom | join(' ', true) }}"
+allow-dnsupdate-from={{ pdnsupdatefrom | join(" ") }}
 {% endif %}
