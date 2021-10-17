@@ -4,7 +4,7 @@
     state: present
 - name: Install PyMysql dependency
   package:
-    name: py37-pymysql
+    name: py38-pymysql
     state: present
 - name: Install mariadb server configuration
   template:
