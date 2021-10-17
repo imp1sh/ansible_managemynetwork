@@ -1,0 +1,9 @@
+zabbixagent_packagename: "zabbix54-agent"
+zabbixagent_servicename: "zabbix_agentd"
+zabbixagent_ownername: "root"
+zabbixagent_groupname: "wheel"
+zabbixagent_pathconf: "/usr/local/etc/zabbix54/zabbix_agentd.conf"
+zabbixagent_filelog: "/tmp/zabbix_agentd.log"
+zabbixagent_filelogsize: "0"
+zabbixagent_pathincludeconfd:
+  - "/usr/local/etc/zabbix54/zabbix_agentd.conf.d/"

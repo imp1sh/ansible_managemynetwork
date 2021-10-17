@@ -1,0 +1,61 @@
+---
+# tasks file for ansible_zabbixagent
+- name: include OS vars
+  include_vars: "{{ ansible_distribution }}.yml"
+- name: Install Repo Debian 10
+  apt:
+    deb: "https://repo.zabbix.com/zabbix/5.4/debian/pool/main/z/zabbix-release/zabbix-release_5.4-1+debian10_all.deb"
+  when:
+    - ansible_distribution == "Debian"
+    - ansible_distribution_release == "buster"
+- name: Install Repo Debian 11
+  apt:
+    deb: "https://repo.zabbix.com/zabbix/5.4/debian/pool/main/z/zabbix-release/zabbix-release_5.4-1+debian11_all.deb"
+  when:
+    - ansible_distribution == "Debian"
+    - ansible_distribution_release == "bullseye"
+- name: Install Repo Ubuntu 20.04
+  apt:
+    deb: "https://repo.zabbix.com/zabbix/5.4/ubuntu/pool/main/z/zabbix-release/zabbix-release_5.4-1+ubuntu20.04_all.deb"
+  when:
+    - ansible_distribution == "Ubuntu"
+    - ansible_distribution_release == "focal"
+- name: Apt update
+  shell: apt update
+  when: ansible_os_family == "Debian"
+- name: Install Zabbix Agent
+  package:
+    name: "{{ zabbixagent_packagename }}"
+    state: present
+- name: Install coreutils on Alpine
+  package:
+    name: "coreutils"
+    state: present
+  when: ansible_os_family == "Alpine"
+- name: Install OpenWrt specific
+  package:
+    name: zabbix-extra-network
+    state: present
+  when: ansible_os_family == 'OpenWrt'
+- name: Make sure include directories exist
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ zabbixagent_ownername }}"
+    group: "{{ zabbixagent_groupname }}"
+    mode: 0755
+  loop: "{{ zabbixagent_pathincludeconfd }}"
+  when: zabbixagent_pathincludeconfd is defined
+- name: Install Zabbix Agent config
+  template:
+    src: "zabbix_agentd.conf.jinja2"    
+    dest: "{{ zabbixagent_pathconf }}"
+    owner: "{{ zabbixagent_ownername }}"
+    group: "{{ zabbixagent_groupname }}"
+    mode: 0744
+  notify: restart zabbixagent
+- name: Enable Zabbix Agent service
+  service:
+    name: "{{ zabbixagent_servicename }}"
+    enabled: yes
+    state: started
