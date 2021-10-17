@@ -461,3 +461,6 @@ php_admin_value[max_execution_time] = {{ nginxphp_maxexecutiontime }}
 {% if nginxphp_maxinputtime is defined %}
 php_admin_value[max_input_time] = {{ nginxphp_maxinputtime }}
 {% endif %}
+{% if nginxphp_uploadmaxfilesize is defined %}
+php_admin_value[upload_max_filesize] = {{ nginxphp_uploadmaxfilesize }}
+{% endif %}
