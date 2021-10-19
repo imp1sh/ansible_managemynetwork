@@ -16,6 +16,16 @@ One of those Operating Systems:
 Role Variables
 --------------
 
+Passphrase for encryption
+borgmatic_encpassphrase: "yoursupersecurepassphrase1234567890"
+Default compression is lz4, overwrite like this.
+borgmatic_compression: "zstd"
+
+Setup retention if you don't like the default of just keeping 7 dailies.
+borgmatic_keepdaily: 9
+borgmatic_keepweekly: 2
+borgmatic_keepmonthly: 2
+
 Set up a target where to send the backups to:
 borgmatic_repositories:
   - "backupuser@targethost.example.domain:{{ ansible_fqdn }}"
