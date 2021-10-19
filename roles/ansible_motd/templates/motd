@@ -13,9 +13,9 @@
                              
 {% endif %}
 This server is restricted for certain people. If you have gained access illegitimately leave now. Contravention will be prosecuted.
-Hostname:       {{ ansible_facts['fqdn'] }}
+Hostname:       {{ inventory_hostname }}
 OS:             {{ ansible_facts['distribution'] }}
 Version:        {{ ansible_facts['distribution_version'] }}
 site:           {{ motd_site }}
 purpose:        {{ motd_purpose }}
-IP address:     {{ ansible_facts['default_ipv6']['address'] }}
+IP address:     {{ netinterfaces[netprimarynic]['ip6'] | ipaddr('address') }}
