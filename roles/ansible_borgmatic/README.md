@@ -79,6 +79,30 @@ borgmatic_cron_minuterange_start: 34
 borgmatic_cron_minuterange_end: 51
 ```
 
+If you want to integrate Postgresql into backup:
+```
+borgmatic_postgresdbs:
+  - name: "DB1"
+    username: "postgres"
+  - name: "DB2"
+    username: "postgres"
+```
+If you just want all databases to be included:
+```
+borgmatic_postgresdbs:
+  - name: "all"
+    username: "postgres"
+```
+Further options for DB connection:
+* hostname
+* port
+* format
+* ssl_mode
+* ssl_cert
+* ssl_key
+* ssl_root_cert
+* ssl_crl
+
 Dependencies
 ------------
 
