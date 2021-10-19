@@ -1,31 +1,73 @@
-Role Name
+ansible_borgmatic
 =========
 
-A brief description of the role goes here.
+sets up borgmatic borg backup wrapper
 
 Requirements
 ------------
 
-Any pre-requisites that may not be covered by Ansible itself or the role should be mentioned here. For instance, if the role uses the EC2 module, it may be a good idea to mention in this section that the boto package is required.
+One of those Operating Systems:
+* FreeBSD
+* Debian
+* Ubuntu
+* Alpine
+* Fedora
 
 Role Variables
 --------------
 
-A description of the settable variables for this role should go here, including any variables that are in defaults/main.yml, vars/main.yml, and any variables that can/should be set via parameters to the role. Any variables that are read from other roles and/or the global scope (ie. hostvars, group vars, etc.) should be mentioned here as well.
+Set up a target where to send the backups to:
+borgmatic_repositories:
+  - "backupuser@targethost.example.domain:{{ ansible_fqdn }}"
+or with subfolder at the target:
+borgmatic_repositories:
+  - "backupuser@targethost.example.domain:subfolder/{{ ansible_fqdn }}"
+SSH settings are also being managed by this role, thus needing those variables on top of the repository variable.
+borgmatic_sshkey_user: "backupuser"
+borgmatic_sshkey_targethost: "targethost.example.com"
+
+The borg backup target host needs to be managed by ansible, too.
+
+This is how you define src directories:
+borgmatic_srcdirs:
+  - "/etc"
+  - "/opt"
+  - "/home"
+  - "/root"
+
+You can setup exclude patterns, just an ez example:
+borgmatic_excludepatterns:
+  - "/home/userx/.local/share/"
+
+If you don't want the role to manage SSH:
+borgmatic_ssh_manage: False
+
+If you don't want the role to manage CRON:
+borgmatic_cron_manage: False
+
+By default CRON is being setup in a range between 1st and 6th hour, 1st and 59th minute, adjustable with e.g.:
+borgmatic_cron_hourrange_start: 4
+borgmatic_cron_hourrange_end: 9
+borgmatic_cron_minuterange_start: 34
+borgmatic_cron_minuterange_end: 51
+
 
 Dependencies
 ------------
 
-A list of other roles hosted on Galaxy should go here, plus any details in regards to parameters that may need to be set for other roles, or variables that are used from other roles.
+none
 
 Example Playbook
 ----------------
 
-Including an example of how to use your role (for instance, with variables passed in as parameters) is always nice for users too:
+I suggest to combine hosts that need backup by group, here borgmatic:
 
-    - hosts: servers
-      roles:
-         - { role: username.rolename, x: 42 }
+- hosts: borgmatic
+  become: true
+  roles:
+    - imp1sh.ansible_managemynetwork.ansible_borgmatic
+
+Role naming depends on how you install the role / collection.
 
 License
 -------
@@ -35,4 +77,4 @@ BSD
 Author Information
 ------------------
 
-An optional section for the role authors to include contact information, or a website (HTML is not allowed).
+Jochen Demmer 2021
