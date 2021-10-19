@@ -6,8 +6,10 @@
   include_tasks: 1install.yml
 - name: include cron tasks
   include_tasks: 3cron.yml
+  when: borgmatic_cron_manage
 - name: include ssh tasks
   include_tasks: 5ssh.yml
+  when: borgmatic_ssh_manage
 - name: Provide borgmatic config
   template:
     src: config.yaml.jinja2
