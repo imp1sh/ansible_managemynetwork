@@ -1,0 +1,100 @@
+location:
+    source_directories:
+{% for directory in borgmatic_srcdirs %}
+      - {{ directory }}
+{% endfor %}
+    repositories:
+{% for repository in borgmatic_repositories %}
+      - {{ repository }}
+{% endfor %}
+{% if borgmatic_excludepatterns is defined %}
+    exclude_patterns:
+{% for excludepattern in borgmatic_excludepatterns %}
+      - {{ excludepattern }}
+{% endfor %}
+{% endif %}
+
+storage:
+{% if borgmatic_encpassphrase is defined %}
+    encryption_passphrase: "{{ borgmatic_encpassphrase }}"
+{% endif %}
+    compression: {{ borgmatic_compression | default('lz4', true) }}
+
+retention:
+{% if borgmatic_keepwithin is defined %}
+    keep_within: {{ borgmatic_keepwithin }}
+{% endif %}
+{% if borgmatic_keepsecondly is defined %}
+    keep_secondly: {{ borgmatic_keepsecondly }}
+{% endif %}
+{% if borgmatic_keepminutely is defined %}
+    keep_minutely: {{ borgmatic_keepminutely }}
+{% endif %}
+{% if borgmatic_keephourly is defined %}
+    keep_hourly: {{ borgmatic_keephourly }}
+{% endif %}
+    keep_daily: {{ borgmatic_keepdaily | default('7', true) }}
+{% if borgmatic_keepweekly is defined %}
+    keep_weekly: {{ borgmatic_keepweekly }}
+{% endif %}
+{% if borgmatic_keepmonthly is defined %}
+    keep_monthly: {{ borgmatic_keepmonthly }}
+{% endif %}
+{% if borgmatic_keepyearly is defined %}
+    keep_yearly: {{ borgmatic_keepyearly }}
+{% endif %}
+
+{% if borgmatic_postgresdbs is defined or borgmatic_mysqldbs is defined %}
+hooks:
+{% endif %}
+{% if borgmatic_postgresdbs is defined %}
+  postgresql_databases:
+{% for postgresdb in borgmatic_postgresdbs %}
+    - name: {{ postgresdb['name'] }}
+{% if postgresdb['username'] is defined %}
+      username: {{ postgresdb['username'] }}
+{% endif %}
+{% if postgresdb['port'] is defined %}
+      port: {{ postgresdb['port'] }}
+{% endif %}
+{% if postgresdb['hostname'] is defined %}
+      hostname: {{ postgresdb['hostname'] }}
+{% endif %}
+{% if postgresdb['format'] is defined %}
+      format: {{ postgresdb['format'] }}
+{% endif %}
+{% if postgresdb['ssl_mode'] is defined %}
+      ssl_mode: {{ postgresdb['ssl_mode'] }}
+{% endif %}
+{% if postgresdb['ssl_cert'] is defined %}
+      ssl_cert: {{ postgresdb['ssl_cert'] }}
+{% endif %}
+{% if postgresdb['ssl_key'] is defined %}
+      ssl_key: {{ postgresdb['ssl_key'] }}
+{% endif %}
+{% if postgresdb['ssl_root_cert'] is defined %}
+      ssl_root_cert: {{ postgresdb['ssl_root_cert'] }}
+{% endif %}
+{% if postgresdb['ssl_crl'] is defined %}
+      ssl_crl: {{ postgresdb['ssl_crl'] }}
+{% endif %}
+{% endfor %}
+{% endif %}
+{% if borgmatic_mysqldbs is defined %}
+  mysql_databases:
+{% for mysqldb in borgmatic_mysqldbs %}
+    - name: {{ mysqldb['name'] }}
+{%if mysqldb['port'] is defined %}
+      port: {{ mysqldb['port'] }}
+{% endif %}
+{%if mysqldb['username'] is defined %}
+      username: {{ mysqldb['username'] }}
+{% endif %}
+{%if mysqldb['password'] is defined %}
+      password: {{ mysqldb['password'] }}
+{% endif %}
+{%if mysqldb['hostname'] is defined %}
+      hostname: {{ mysqldb['hostname'] }}
+{% endif %}
+{% endfor %}
+{% endif %}

@@ -1,0 +1,14 @@
+---
+- name: Alpine setup cronjob
+  cron:
+    name: "{{ borgmatic_cron_name }}"
+    hour: "{{ borgmatic_cron_hour }}"
+    minute: "{{ borgmatic_cron_minute }}"
+    user: "root"
+    job: "{{ borgmatic_commandname_borgmatic }} --syslog-verbosity 1"
+- name: setup cron PATH env
+  cron:
+    user: "root"
+    name: PATH
+    env: yes
+    value: /usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin

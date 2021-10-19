@@ -1,0 +1,20 @@
+---
+# tasks file for ansible_borgmatic
+- name: include OS vars
+  include_vars: "{{ ansible_distribution }}.yml"
+- name: include install tasks
+  include_tasks: 1install.yml
+- name: include cron tasks
+  include_tasks: 3cron.yml
+- name: include ssh tasks
+  include_tasks: 5ssh.yml
+- name: Provide borgmatic config
+  template:
+    src: config.yaml.jinja2
+    dest: "{{ borgmatic_pathconfig }}/{{ borgmatic_fileconfig }}"
+    owner: "{{ borgmatic_fileconfig_owner }}"
+    group: "{{ borgmatic_fileconfig_group }}"
+    mode: 0740
+- name: borgmatic init repository
+  command: "{{ borgmatic_commandname_borgmatic }} init --encryption repokey"
+  register: borgmatic_init_success

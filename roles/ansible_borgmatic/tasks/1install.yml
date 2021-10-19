@@ -1,0 +1,45 @@
+---
+- name: Install borg backup package
+  package:
+    name: "{{ borgmatic_packagename_borg }}"
+    state: present
+# Alpine specific
+- name: Alpine Install borgmatic requirements from edge
+  apk:
+    name: py3-jsonschema,py3-attrs,py3-requests,py3-setuptools
+    state: present
+    update_cache: yes
+      #    repository: http://alpine.42.fr/edge/community
+  when: ansible_os_family == "Alpine"
+- name: Alpine Install borgmatic Alpine from edge
+  apk:
+    name: "{{ borgmatic_packagename_borgmatic }}"
+    state: present
+    update_cache: yes
+    repository: http://alpine.42.fr/edge/community
+  when: ansible_os_family == "Alpine"
+# FreeBSD specific
+- name: FreeBSD install borgmatic requirements
+  package:
+    name: py38-jsonschema
+    state: present
+  when: ansible_os_family == "FreeBSD"
+- name: FreeBSD install borgmatic
+  package:
+    name: "{{ borgmatic_packagename_borgmatic }}"
+    state: present
+  when: ansible_os_family == "FreeBSD"
+# Debian specific
+- name: Debian / Ubuntu install borgmatic
+  package:
+    name: "{{ borgmatic_packagename_borgmatic }}"
+    state: present
+  when: ansible_os_family == "Debian"
+# All
+- name: Make sure borgmatic config dir exists
+  file:
+    path: "{{ borgmatic_pathconfig }}"
+    state: directory
+    owner: "{{ borgmatic_pathconfig_owner }}"
+    group: "{{ borgmatic_pathconfig_group }}"
+    mode: 0700
