@@ -1,5 +1,9 @@
 ---
 # defaults file for ansible_borgmatic
 borgmatic_cron_name: borgmatic
-borgmatic_cron_hour: "{{ 6 | random(seed=inventory_hostname) }}"
-borgmatic_cron_minute: "{{ 59 | random(seed=inventory_hostname) }}"
+borgmatic_cron_hourrange_start: 1
+borgmatic_cron_hourrange_end: 6
+borgmatic_cron_minuterange_start: 1
+borgmatic_cron_minuterange_end: 59
+borgmatic_cron_hour: "{{ borgmatic_cron_hourrange_end | random(start=borgmatic_cron_hourrange_start, seed=inventory_hostname) }}"
+borgmatic_cron_minute: "{{ borgmatic_cron_minuterange_end | random(start=borgmatic_cron_minuterange_start, seed=inventory_hostname) }}"
