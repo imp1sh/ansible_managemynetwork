@@ -17,7 +17,7 @@ Role Variables
 --------------
 
 Passphrase for encryption
-borgmatic_encpassphrase: "yoursupersecurepassphrase1234567890"
+```borgmatic_encpassphrase: "yoursupersecurepassphrase1234567890"```
 Default compression is lz4, overwrite like this.
 borgmatic_compression: "zstd"
 
