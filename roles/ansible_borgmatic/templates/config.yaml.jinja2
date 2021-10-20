@@ -10,7 +10,7 @@ location:
 {% if borgmatic_excludepatterns is defined %}
     exclude_patterns:
 {% for excludepattern in borgmatic_excludepatterns %}
-      - {{ excludepattern }}
+      - "{{ excludepattern }}"
 {% endfor %}
 {% endif %}
 
