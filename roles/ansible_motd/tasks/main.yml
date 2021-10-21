@@ -1,16 +1,38 @@
 - name: Setup MOTD Linux
   template:
-          src: motd
-          dest: /etc/motd
-          owner: root
-          group: root
-          mode: 0644
+    src: motd
+    dest: /etc/motd
+    owner: root
+    group: root
+    mode: 0644
   when: (ansible_facts['os_family'] == "RedHat") or (ansible_facts['os_family'] == "Alpine") or (ansible_facts['os_family'] == 'Debian')
-- name: Setup MOtD FreeBSD
+- name: FreeBSD 12 setup MOtD
   template:
     src: motd
     dest: /etc/motd
     owner: root
     group: wheel
     mode: 0644
-  when: ansible_facts['os_family'] == "FreeBSD"
+  when:
+    - ansible_facts['os_family'] == "FreeBSD"
+    - ansible_distribution_major_version == "12"
+- name: FreeBSD 13 setup MOtD
+  template:
+    src: motd
+    dest: /etc/motd.template
+    owner: root
+    group: wheel
+    mode: 0644
+  when:
+    - ansible_os_family == "FreeBSD"
+    - ansible_distribution_major_version == "13"
+- name: FreeBSD 13 set update_motd
+  template:
+    src: rc.conf.jinja2
+    dest: /etc/rc.conf.d/motd
+    owner: root
+    group: wheel
+    mode: 0644
+  when:
+    - ansible_os_family == "FreeBSD"
+    - ansible_distribution_major_version == "13"
