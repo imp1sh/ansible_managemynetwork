@@ -1,0 +1,7 @@
+---
+# tasks file for ansible_gnome
+- name: run over all users dconf settins
+  include_tasks: dconf.yml
+  loop: "{{ gnome_gsettings }}"
+  loop_control:
+    loop_var: useritem

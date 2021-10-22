@@ -1,0 +1,8 @@
+---
+- name: run over all useritems gsettings
+  dconf:
+    key: "{{ item['schema'] }}/{{ item['name'] }}"
+    value: "{{ item['value'] }}"
+    state: "{{ item['state'] | default('present', true) }}"
+  loop: "{{ useritem['gsettings'] }}"
+  become_user: "{{ useritem['username'] }}"
