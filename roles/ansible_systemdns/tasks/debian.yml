@@ -1,4 +1,4 @@
-- name: Alpine install /etc/resolv.conf
+- name: Debian install /etc/resolv.conf
   template:
           src: resolv.conf.j2
           dest: /etc/resolv.conf

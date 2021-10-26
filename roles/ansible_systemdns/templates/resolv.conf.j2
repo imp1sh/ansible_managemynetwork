@@ -1,8 +1,8 @@
-{% if domainsearch is defined %}
-search {{ domainsearch }}
+{% if systemdns_domainsearch is defined %}
+search {{ systemdns_domainsearch }}
 {% endif %}
-{% if dnsservers is defined %}
-{% for dnsserver in dnsservers %}
+{% if systemdns_dnsservers is defined %}
+{% for dnsserver in systemdns_dnsservers %}
 nameserver {{ dnsserver }}
 {% endfor %}
 {% endif %}
