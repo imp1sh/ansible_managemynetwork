@@ -1,5 +1,25 @@
 ---
-- import_tasks: freebsd.yml
-  when: ansible_facts['os_family'] == 'FreeBSD'
-- import_tasks: alpine.yml
-  when: ansible_facts['os_family'] == 'Alpine'
+- name: include OS vars
+  include_vars: "{{ ansible_os_family }}.yml"
+- name: Install chrony package
+  ansible.builtin.package:
+    name: "{{ chronyd_packagename }}"
+    state: present
+- name: setup conf.d dir for non ansible config options
+  file:
+    path: "{{ chronyd_pathconfig }}/{{ chronyd_config_includedir }}"
+    state: directory
+    owner: "{{ chronyd_fileowner }}"
+    group: "{{ chronyd_filegroup }}"
+    mode: 0755
+- name: Implant chrony configuration file
+  ansible.builtin.template:
+    src: "{{ chronyd_filetemplate }}"
+    dest: "{{ chronyd_pathconfig }}/{{ chronyd_fileconfig }}"
+  notify: restart chronyd
+- name: Enable chrony service
+  ansible.builtin.service:
+    name: "{{ chronyd_servicename }}"
+    state: started
+    enabled: true
+  ignore_errors: yes
