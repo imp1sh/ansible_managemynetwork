@@ -32,8 +32,8 @@ http {
           server {{ server['name'] }}{% if server['weight'] is defined %} weight={{ server['weight'] }}{% endif %}{% if server['mode'] is defined %} {{ server['mode'] }}{% endif %};
 {% endfor %}
 {% endfor %}
-{% endif %}
         }
+{% endif %}
         # proxy cache options
 	proxy_cache_path {{ nginxcachedir }} levels=1:2 keys_zone=STATIC:10m inactive=24h  max_size={{ nginxcachemaxsize }};
 	# Includes mapping of file name extensions to MIME types of responses
@@ -68,8 +68,11 @@ http {
 
 	# Causes nginx to attempt to send its HTTP response head in one packet,
 	# instead of using partial frames.
-	#tcp_nopush on;
+	tcp_nopush on;
 
+        # Enables the specified protocols. Default is TLSv1 TLSv1.1 TLSv1.2.
+        # TIP: If you're not obligated to support ancient clients, remove TLSv1.1.
+        ssl_protocols TLSv1.2 TLSv1.3;
 
 	# Path of the file with Diffie-Hellman parameters for EDH ciphers.
 	#ssl_dhparam /etc/ssl/nginx/dh2048.pem;
