@@ -1,0 +1,33 @@
+---
+- name: init empty list for bridges
+  set_fact:
+    netconf_bridgelist: []
+- name: init empty list of simple interfaces
+  set_fact:
+    netconf_simplelist: []
+- name: init empty list of ipv4 default gateways
+  set_fact:
+    netconf_gw4: []
+- name: init empty list of ipv6 default gateways
+  set_fact:
+    netconf_gw6: []
+- name: add NIC names to list if type is simple
+  set_fact:
+    netconf_simplelist: "{{ netconf_simplelist + [ item.key ] }}"
+  when: item.value.type | lower == "simple"
+  loop: "{{ netconf_interfaces | dict2items }}"
+- name: add NIC names to list if type is bridge
+  set_fact:
+    netconf_bridgelist: "{{ netconf_bridgelist + [ item.key ] }}"
+  when: item.value.type | lower == "bridge"
+  loop: "{{ netconf_interfaces | dict2items }}"
+- name: add IPv4 default gateway to list
+  set_fact:
+    netconf_gw4: "{{ netconf_gw4 + [ item.value.gw4 ] }}"
+  when: item.value.gw4 is defined
+  loop: "{{ netconf_interfaces | dict2items }}"
+- name: add IPv6 default gateway to list
+  set_fact:
+    netconf_gw6: "{{ netconf_gw6 + [ item.value.gw6 ] }}"
+  when: item.value.gw6 is defined
+  loop: "{{ netconf_interfaces | dict2items }}"

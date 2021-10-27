@@ -1,0 +1,25 @@
+---
+- name: provide network config
+  template:
+    src: freebsd.conf.jinja2
+    dest: /etc/rc.conf.d/network
+    owner: "root"
+    group: "wheel"
+    mode: 0644
+- name: provide IPv4 default route to /etc/rc.conf
+  lineinfile:
+    path: /etc/rc.conf
+    regexp: '^defaultrouter=$'
+    line: "defaultrouter=\"{{ item }}\""
+  loop: "{{ netconf_gw4 }}"
+- name: provide IPv6 default route to /etc/rc.conf
+  lineinfile:
+    path: /etc/rc.conf
+    regexp: "^ipv6_defaultrouter="
+    line: "ipv6_defaultrouter=\"{{ item }}\""
+  loop: "{{ netconf_gw6 }}"
+- name: IPv6 activate all interfaces
+  lineinfile:
+    path: /etc/rc.conf
+    regexp: "^ipv6_activate_all_interfaces$"
+    line: "ipv6_activate_all_interfaces=\"yes\""

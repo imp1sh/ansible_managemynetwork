@@ -1,0 +1,8 @@
+---
+# tasks file for ansible_netconf
+- name: checks
+  include_tasks: "checks.yml"
+  when: netconf_interfaces is defined
+- name: Include FreeBSD tasks
+  include_tasks: "freebsd.yml"
+  when: ansible_os_family == "FreeBSD"
