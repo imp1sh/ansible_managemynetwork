@@ -6,20 +6,36 @@
     owner: "root"
     group: "wheel"
     mode: 0644
+  notify: restart network freebsd
+- name: remove ifconfig_* lines in /etc/rc.conf
+  lineinfile:
+    path: /etc/rc.conf
+    regexp: "^ifconfig_"
+    state: absent
+  notify: restart network freebsd
+- name: remove cloned_interfaces lines in /etc/rc.conf
+  lineinfile:
+    path: /etc/rc.conf
+    regexp: "^cloned_interfaces="
+    state: absent
+  notify: restart network freebsd
 - name: provide IPv4 default route to /etc/rc.conf
   lineinfile:
     path: /etc/rc.conf
     regexp: '^defaultrouter=$'
     line: "defaultrouter=\"{{ item }}\""
   loop: "{{ netconf_gw4 }}"
+  notify: restart network freebsd
 - name: provide IPv6 default route to /etc/rc.conf
   lineinfile:
     path: /etc/rc.conf
     regexp: "^ipv6_defaultrouter="
     line: "ipv6_defaultrouter=\"{{ item }}\""
   loop: "{{ netconf_gw6 }}"
+  notify: restart network freebsd
 - name: IPv6 activate all interfaces
   lineinfile:
     path: /etc/rc.conf
     regexp: "^ipv6_activate_all_interfaces$"
     line: "ipv6_activate_all_interfaces=\"yes\""
+  notify: restart network freebsd
