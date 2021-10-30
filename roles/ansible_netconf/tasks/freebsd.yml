@@ -22,7 +22,7 @@
 - name: provide IPv4 default route to /etc/rc.conf
   lineinfile:
     path: /etc/rc.conf
-    regexp: '^defaultrouter=$'
+    regexp: '^defaultrouter='
     line: "defaultrouter=\"{{ item }}\""
   loop: "{{ netconf_gw4 }}"
   notify: restart network freebsd
