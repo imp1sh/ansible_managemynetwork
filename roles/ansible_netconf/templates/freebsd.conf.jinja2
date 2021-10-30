@@ -1,25 +1,42 @@
 {% if netconf_bridgelist | length > 0 %}
+# Bridge interfaces
 cloned_interfaces="{{ netconf_bridgelist | join(' ') }}"
 {% for interface in netconf_bridgelist %}
 {% if netconf_interfaces[interface]['children'] is defined %}
+# Associate children with bridge
 ifconfig_{{ interface }}="{% for child in netconf_interfaces[interface]['children'] %}addm {{ child }} {% endfor %}{% if netconf_interfaces[interface]['method4'] | lower == "dhcp" %}SYNCDHCP{% else %}up{% endif %}"
 {% for child in netconf_interfaces[interface]['children'] %}
+# Bring children up
 ifconfig_{{ child }}="up"
 {% endfor %}
 {% endif %}
 {% endfor %}
 {% for key, value in netconf_interfaces.items() %}
-{% if value.method4 == "static" %}
+{% if value.method4 | lower == "static" %}
 ifconfig_{{ key }}="inet {{ value.ip4 | ipaddr('address') }} netmask {{ value.ip4 | ipaddr('netmask') }}"
 {% endif %}
-{% if value.method6 == "static" %}
+{% if value.method4 | lower == "dhcp" %}
+ifconfig_{{ key }}="DHCP"
+{% endif %}
+{% if value.method6 | lower == "static" %}
 ifconfig_{{ key }}_ipv6="inet6 {{ value.ip6 | ipaddr('address') }} prefixlen {{ value.ip6 | ipaddr('prefix') }} auto_linklocal"
+{% endif %}
+{% if value.method6 | lower == "autoconf" %}
+ifconfig_{{ key}}_ipv6="inet6 accept_rtadv"
 {% endif %}
 {% endfor %}
 {% endif %}
-{% if netconf_simplelist | length > 0 %}
-{% for interface in netconf_simplelist %}
-ifconfig_{{ interface }}="{% if netconf_interfaces[interface]['method4'] | lower == "dhcp" %}DHCP{% elif netconf_interfaces[interface]['method4'] | lower == "static" %}inet {{ netconf_interfaces[interface]['ip4'] | ipaddr('address') }} netmask {{ netconf_interfaces[interface]['ip4'] | ipaddr('netmask') }}{% endif %}"
-ifconfig_{{ interface }}_ipv6="{% if netconf_interfaces[interface]['method6'] | lower == "autoconf" %}inet6 accept_rtadv{% elif netconf_interfaces[interface]['method6'] | lower == "static" %}inet6 {{ netconf_interfaces[interface]['ip6'] }}{% endif %}"
+{% if netconf_aliaslist | length > 0 %}
+{% for interface in netconf_aliaslist %}
+{% if netconf_interfaces[interface]['alias4'] is defined %}
+{% for alias4 in netconf_interfaces[interface]['alias4'] %}
+ifconfig_{{ interface }}_alias{{ loop.index0 }}="inet {{ alias4 | ipaddr('address') }} netmask {{ alias4 | ipaddr('netmask') }}"
+{% endfor %}
+{% endif %}
+{% if netconf_interfaces[interface]['alias6'] is defined %}
+{% for alias6 in netconf_interfaces[interface]['alias6'] %}
+ifconfig_{{ interface }}_alias{{ loop.index0 }}="inet6 {{ alias6 }}"
+{% endfor %}
+{% endif %}
 {% endfor %}
 {% endif %}
