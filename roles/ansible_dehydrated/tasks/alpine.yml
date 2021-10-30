@@ -23,6 +23,14 @@
     mode: 0755
     owner: "{{ dehydrated_user }}"
     group: "{{ dehydrated_group }}"
+- name: Create dehydrated wellknown path
+  file:
+    path: "{{ dehydrated_wellknown }}"
+    state: directory
+    mode: 0750
+    owner: "{{ dehydrated_user }}"
+    group: "{{ dehydrated_group }}"
+  when: dehydrated_wellknown is defined
 - name: copy dehydrated config
   template:
     src: dehydratedconfig
