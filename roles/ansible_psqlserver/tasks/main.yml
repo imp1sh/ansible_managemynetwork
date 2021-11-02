@@ -1,3 +1,83 @@
 ---
-- import_tasks: freebsd.yml
-  when: ansible_facts['os_family'] == 'FreeBSD'
+- name: include OS vars
+  include_vars: "{{ ansible_distribution }}.yml"
+- name: "Install postgresql"
+  ansible.builtin.package:
+    name: "{{ psqlserver_packages }}"
+    state: present
+- name: "Check if DB is initialized"
+  stat:
+    path: "{{ psqlserver_datadir }}"
+  register: dbinit
+  when: ansible_distribution == "FreeBSD"
+- name: "Initialize DB"
+  command: "{{ psqlserver_initbinpath }} initdb"
+  when:
+    - ansible_distribution == "FreeBSD"
+    - dbinit is defined and not dbinit.stat.exists
+- name: "Provide postgres config"
+  template:
+    src: "{{ psqlserver_configtemplate }}"
+    dest: "{{ psqlserver_configpath }}/{{ psqlserver_configname }}"
+    mode: 0600
+    owner: "{{ psqlserver_owner }}"
+    group: "{{ psqlserver_group }}"
+  notify: restart postgres
+- name: "Enable postgresql service"
+  ansible.builtin.service:
+    name: "{{ psqlserver_servicename }}"
+    enabled: true
+    state: started
+- name: "Setup pg_hba"
+  postgresql_pg_hba:
+    dest: "{{ item['dest']}}"
+    contype: "{{ item['contype'] }}"
+    users: "{{ item['users'] }}"
+    source: "{{ item['source'] | default(omit) }}"
+    databases: "{{ item['databases'] }}"
+    method: "{{ item['method'] }}"
+    state: "{{ item['state'] }}"
+  with_items:
+    - "{{ psqlserver_hba }}"
+  when: psqlserver_hba is defined
+  notify: restart postgres
+- name: "Setup databases"
+  ansible.builtin.postgresql_db:
+    name: "{{ item['dbname'] }}"
+  with_items:
+    - "{{ psqlserver_dbs }}"
+  when: psqlserver_dbs is defined
+  notify: restart postgres
+- name: "Install postgresql roles"
+  postgresql_user:
+    name: "{{ item.rolename }}"
+    db: "{{ item.db }}"
+    password: "{{ item.password }}"
+    priv: "{{ item.priv }}"
+  with_items:
+    - "{{ psqlserver_roles }}"
+  when: psqlserver_roles is defined
+- name: "Setup additional privileges"
+  postgresql_privs:
+    database: "{{ item.dbname }}"
+    state: present
+    privs: "{{ item.privs | join(',') }}"
+    type: "{{ item.type }}"
+    objs: "{{ item.objs }}"
+    schema: "{{ item.schema }}"
+    roles: "{{ item.roles | join(',') }}"
+  with_items:
+    - "{{ psqlserver_privs }}"
+  when: psqlserver_privs is defined
+# make this optional, since borgmatic also makes db backups
+#- name: "Setup full sql backup"
+#  cron:
+#    name: "postgresql full backup"
+#    minute: "24"
+#    hour: "3"
+#    user: "postgres"
+#    job: "pg_dumpall -f /var/db/postgres/fullbackup.sql"
+    #- name: Install phppgadmin
+    #  ansible.builtin.package:
+    #    name: adminer
+    #    state: present
