@@ -18,6 +18,9 @@ storage:
 {% if borgmatic_encpassphrase is defined %}
     encryption_passphrase: "{{ borgmatic_encpassphrase }}"
 {% endif %}
+{% if borgmatic_sshcommand is defined %}
+    ssh_command: {{ borgmatic_sshcommand }}
+{% endif %}
     compression: {{ borgmatic_compression | default('lz4', true) }}
 
 retention:
