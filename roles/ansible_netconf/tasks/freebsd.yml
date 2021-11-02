@@ -38,4 +38,5 @@
     path: /etc/rc.conf
     regexp: "^ipv6_activate_all_interfaces$"
     line: "ipv6_activate_all_interfaces=\"yes\""
+    state: absent
   notify: restart network freebsd

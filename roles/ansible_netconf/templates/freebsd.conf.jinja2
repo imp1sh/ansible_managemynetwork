@@ -11,6 +11,7 @@ ifconfig_{{ child }}="up"
 {% endfor %}
 {% endif %}
 {% endfor %}
+{% endif %}
 {% for key, value in netconf_interfaces.items() %}
 {% if value.method4 | lower == "static" %}
 ifconfig_{{ key }}="inet {{ value.ip4 | ipaddr('address') }} netmask {{ value.ip4 | ipaddr('netmask') }}"
@@ -25,7 +26,6 @@ ifconfig_{{ key }}_ipv6="inet6 {{ value.ip6 | ipaddr('address') }} prefixlen {{ 
 ifconfig_{{ key}}_ipv6="inet6 accept_rtadv"
 {% endif %}
 {% endfor %}
-{% endif %}
 {% if netconf_aliaslist | length > 0 %}
 {% for interface in netconf_aliaslist %}
 {% if netconf_interfaces[interface]['alias4'] is defined %}
