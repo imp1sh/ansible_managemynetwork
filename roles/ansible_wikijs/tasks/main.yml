@@ -1,15 +1,11 @@
 ---
 # tasks file for ansible_wikijs
-- name: "Install Alpine requirements"
+- name: include OS vars
+  include_vars: "{{ ansible_distribution }}.yml"
+- name: "Install requiremed packages"
   ansible.builtin.package:
-    name: "unzip, tar"
+    name: "{{ wikijs_packages }}"
     state: present
-  when: ansible_facts['os_family'] == 'Alpine'
-- name: "Install FreeBSD requirements"
-  ansible.builtin.package:
-    name: "unzip, gtar"
-    state: "present"
-  when: ansible_facts['os_family'] == 'FreeBSD'
 - name: "create wikijs directories"
   ansible.builtin.file:
     path: "{{ item['path'] }}"
@@ -62,6 +58,25 @@
   with_items:
     - "{{ wikijsinstances }}"
   when: ansible_facts['os_family'] == 'Alpine'
+- name: "Setup systemd service"
+  template:
+    src: "systemd.jinja2"
+    dest: "/etc/systemd/system/{{ item.name }}.service"
+    owner: root
+    group: root
+  loop: "{{ wikijsinstances }}"
+  when:
+    - ansible_distribution == "Debian"
+- name: "systemd reload"
+  command: systemctl daemon-reload
+  when:
+    - ansible_distribution == "Debian"
+- name: "systemd enable"
+  service:
+    name: "{{ item['name'] }}"
+    state: started
+    enabled: true
+  loop: "{{ wikijsinstances }}"
 - name: "Enable and start service"
   ansible.builtin.service:
     name: "{{ item['name'] }}"

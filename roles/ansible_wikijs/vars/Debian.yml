@@ -1,0 +1,6 @@
+---
+wikijs_packages:
+  - "unzip"
+  - "tar"
+  - "nodejs"
+nodejsbinpath: "/usr/bin/node"

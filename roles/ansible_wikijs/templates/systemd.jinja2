@@ -1,0 +1,15 @@
+[Unit]
+Description={{ item.name }}
+After=network.target
+
+[Service]
+Type=simple
+ExecStart={{ nodejsbinpath }} server
+Restart=always
+# Consider creating a dedicated user for Wiki.js here:
+User={{ item.runasuser }}
+Environment=NODE_ENV=production
+WorkingDirectory={{ item.path }}
+
+[Install]
+WantedBy=multi-user.target
