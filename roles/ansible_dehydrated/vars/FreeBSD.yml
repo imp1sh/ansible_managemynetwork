@@ -1,3 +1,8 @@
-dehydrated_packages: "curl, dehydrated"
+dehydrated_packages:
+  - "curl"
+  - "dehydrated"
 dehydrated_basedir: "/usr/local/etc/dehydrated"
 dehydrated_binpath: "/usr/local/bin/dehydrated"
+dehydrated_confdir: "/usr/local/etc/dehydrated"
+dehydrated_domainstxt: "{{ dehydrated_confdir }}/domains.txt"
+dehydrated_wellknown: "/usr/local/www/dehydrated"

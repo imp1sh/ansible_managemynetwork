@@ -1,10 +1,1 @@
-dehydrateddomains: []
-CA: https://acme-v02.api.letsencrypt.org/directory
-CHALLENGETYPE: dns-01
-HOOK: "{{ dehydrated_basedir }}/pdns_api.sh"
-HOOK_CHAIN: "yes"
-PDNS_VERSION: 1
-PDNS_WAIT: 20
-PDNS_NO_NOTIFY: "no"
-dehydrated_user: "root"
-dehydrated_group: "wheel"
+dehydrated_ca: letsencrypt

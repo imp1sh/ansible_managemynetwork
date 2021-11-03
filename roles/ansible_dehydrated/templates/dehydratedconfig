@@ -12,21 +12,30 @@
 
 # Which user should dehydrated run as? This will be implictly enforced when running as root
 #DEHYDRATED_USER=
+{% if dehydrated_user is defined %}
 DEHYDRATED_USER={{ dehydrated_user }}
+{% endif %}
 
 # Which group should dehydrated run as? This will be implictly enforced when running as root
 #DEHYDRATED_GROUP=
+{% if dehydrated_group is defined %}
 DEHYDRATED_GROUP={{ dehydrated_group }}
+{% endif %}
 
 # Resolve names to addresses of IP version only. (curl)
 # supported values: 4, 6
 # default: <unset>
 #IP_VERSION=
+{% if dehydrated_ipversion is defined %}
+IP_VERSION={{ dehydrated_ipversion }}
+{% endif %}
 
-# Path to certificate authority (default: https://acme-v02.api.letsencrypt.org/directory)
-#CA="https://acme-v02.api.letsencrypt.org/directory"
-#CA="https://acme-staging-v02.api.letsencrypt.org/directory"
-CA="{{ CA }}"
+# URL to certificate authority or internal preset
+# # Presets: letsencrypt, letsencrypt-test, zerossl, buypass, buypass-test
+# # default: letsencrypt
+{% if dehydrated_ca is defined %}
+CA="{{ dehydrated_ca }}"
+{% endif %}
 
 # Path to old certificate authority
 # Set this value to your old CA value when upgrading from ACMEv1 to ACMEv2 under a different endpoint.
@@ -37,34 +46,52 @@ CA="{{ CA }}"
 
 # Which challenge should be used? Currently http-01, dns-01 and tls-alpn-01 are supported
 #CHALLENGETYPE="http-01"
-CHALLENGETYPE="{{ CHALLENGETYPE }}"
+CHALLENGETYPE="{{ dehydrated_challengetype }}"
 
 # Path to a directory containing additional config files, allowing to override
 # the defaults found in the main configuration file. Additional config files
 # in this directory needs to be named with a '.sh' ending.
 # default: <unset>
 #CONFIG_D=
+{% if dehydrated_confd is defined %}
+CONFIG_D={{ dehydrated_confd }}
+{% endif %}
 
 # Directory for per-domain configuration files.
 # If not set, per-domain configurations are sourced from each certificates output directory.
 # default: <unset>
 #DOMAINS_D=
+{% if dehydrated_domainsd is defined %}
+DOMAINS_D={{ dehydrated_domainsd }}
+{% endif %}
 
 # Base directory for account key, generated certificates and list of domains (default: $SCRIPTDIR -- uses config directory if undefined)
 #BASEDIR=$SCRIPTDIR
-BASEDIR={{ dehydrated_basedir }}
+BASEDIR="{{ dehydrated_basedir }}"
 
 # File containing the list of domains to request certificates for (default: $BASEDIR/domains.txt)
 #DOMAINS_TXT="${BASEDIR}/domains.txt"
+{% if dehydrated_domainstxt is defined %}
+DOMAINS_TXT="{{ dehydrated_domainstxt }}"
+{% endif %}
 
 # Output directory for generated certificates
 #CERTDIR="${BASEDIR}/certs"
+{% if dehydrated_certdir is defined %}
+CERTDIR="{{ dehydrated_certdir }}"
+{% endif %}
 
 # Output directory for alpn verification certificates
 #ALPNCERTDIR="${BASEDIR}/alpn-certs"
+{% if dehydrated_alpncertdir is defined %}
+ALPNCERTDIR="{{ dehydrated_alpncertdir }}"
+{% endif %}
 
 # Directory for account keys and registration information
 #ACCOUNTDIR="${BASEDIR}/accounts"
+{% if dehydrated_accountdir is defined %}
+ACCOUNTDIR="{{ dehydrated_accountdir }}"
+{% endif %}
 
 # Output directory for challenge-tokens to be served by webserver or deployed in HOOK (default: /var/www/dehydrated)
 #WELLKNOWN="/var/www/dehydrated"
@@ -74,6 +101,9 @@ WELLKNOWN="{{ dehydrated_wellknown }}"
 
 # Default keysize for private keys (default: 4096)
 #KEYSIZE="4096"
+{% if dehydrated_keysize is defined %}
+KEYSIZE="{{ dehydrated_keysize }}"
+{% endif %}
 
 # Path to openssl config file (default: <unset> - tries to figure out system default)
 #OPENSSL_CNF=
@@ -94,14 +124,21 @@ WELLKNOWN="{{ dehydrated_wellknown }}"
 #
 # BASEDIR and WELLKNOWN variables are exported and can be used in an external program
 # default: <unset>
-HOOK="{{ HOOK }}"
+{% if dehydrated_hook is defined %}
+HOOK="{{ dehydrated_hook }}"
+{% endif %}
 
 # Chain clean_challenge|deploy_challenge arguments together into one hook call per certificate (default: no)
 #HOOK_CHAIN="no"
-HOOK_CHAIN="{{ HOOK_CHAIN }}"
+{% if dehydrated_hookchain is defined %}
+HOOK_CHAIN="{{ dehydrated_hookchain }}"
+{% endif %}
 
 # Minimum days before expiration to automatically renew certificate (default: 30)
 #RENEW_DAYS="30"
+{% if dehydrated_renewdays is defined %}
+RENEW_DAYS="{{ dehydrated_renewdays }}"
+{% endif %}
 
 # Regenerate private keys instead of just signing new certificates on renewal (default: yes)
 #PRIVATE_KEY_RENEW="yes"
@@ -114,6 +151,9 @@ HOOK_CHAIN="{{ HOOK_CHAIN }}"
 
 # E-mail to use during the registration (default: <unset>)
 #CONTACT_EMAIL=
+{% if dehydrated_contactemail is defined %}
+CONTACT_EMAIL={{ dehydrated_contactemail }}
+{% endif %}
 
 # Lockfile location, to prevent concurrent access (default: $BASEDIR/lock)
 #LOCKFILE="${BASEDIR}/lock"
@@ -137,8 +177,18 @@ HOOK_CHAIN="{{ HOOK_CHAIN }}"
 #API=auto
 
 # pdns api config
-PDNS_HOST={{ PDNS_HOST }}
-PDNS_KEY={{ PDNS_KEY }}
-PDNS_VERSION={{ PDNS_VERSION }}
-PDNS_WAIT={{ PDNS_WAIT }}
-PDNS_NO_NOTIFY={{ PDNS_NO_NOTIFY }}
+{% if dehydrated_pdnshost is defined %}
+PDNS_HOST={{ dehydrated_pdnshost }}
+{% endif %}
+{% if dehydrated_pdnskey is defined %}
+PDNS_KEY={{ dehydrated_pdnskey }}
+{% endif %}
+{% if dehydrated_pdnsversion is defined %}
+PDNS_VERSION={{ dehydrated_pdnsversion }}
+{% endif %}
+{% if dehydrated_pdnswait is defined %}
+PDNS_WAIT={{ dehydrated_pdnswait }}
+{% endif %}
+{% if dehydrated_pdnsnonotiry is defined %}
+PDNS_NO_NOTIFY={{ dehydrated_pdnsnonotify }}
+{% endif %}
