@@ -1,5 +1,6 @@
 ---
 nginx_accesslog: "/var/log/nginx/access.log main"
+nginx_certpath: "/etc/dehydrated/certs"
 nginx_confdir: "/etc/nginx"
 nginx_confgroup: "root"
 nginx_confowner: "root"
@@ -17,4 +18,5 @@ nginx_php_fpmuser: "nginx"
 nginx_php_packages: "php{{ nginx_php_versionalpine }}-fpm php{{ nginx_php_versionalpine }}-mcrypt php{{ nginx_php_versionalpine }}-soap php{{ nginx_php_versionalpine }}-openssl php{{ nginx_php_versionalpine }}-gmp php{{ nginx_php_versionalpine }}-pdo_odbc php{{ nginx_php_versionalpine }}-json php{{ nginx_php_versionalpine }}-dom php{{ nginx_php_versionalpine }}-pdo php{{ nginx_php_versionalpine }}-zip php{{ nginx_php_versionalpine }}-mysqli php{{ nginx_php_versionalpine }}-sqlite3 php{{ nginx_php_versionalpine }}-apcu php{{ nginx_php_versionalpine }}-pdo_pgsql php{{ nginx_php_versionalpine }}-bcmath php{{ nginx_php_versionalpine }}-gd php{{ nginx_php_versionalpine }}-odbc php{{ nginx_php_versionalpine }}-pdo_mysql php{{ nginx_php_versionalpine }}-pdo_sqlite php{{ nginx_php_versionalpine }}-gettext php{{ nginx_php_versionalpine }}-xmlreader php{{ nginx_php_versionalpine }}-xmlrpc php{{ nginx_php_versionalpine }}-bz2 php{{ nginx_php_versionalpine }}-iconv php{{ nginx_php_versionalpine }}-pdo_dblib php{{ nginx_php_versionalpine }}-curl php{{ nginx_php_versionalpine }}-ctype php{{ nginx_php_versionalpine }}-mbstring php{{ nginx_php_versionalpine }}-fileinfo php{{ nginx_php_versionalpine }}-zlib imagemagick php{{ nginx_php_versionalpine }}-session php{{ nginx_php_versionalpine }}-sockets php{{ nginx_php_versionalpine }}-pear php{{ nginx_php_versionalpine }}-pcntl php{{ nginx_php_versionalpine }}-ldap php{{ nginx_php_versionalpine }}-simplexml php{{ nginx_php_versionalpine }}-xmlwriter"
 nginx_servicename: "nginx"
 nginx_user: "nginx"
+nginx_wellknownpath: "/usr/local/www/dehydrated"
 nginx_wwwdir: "/var/www"

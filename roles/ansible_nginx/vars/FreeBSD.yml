@@ -1,5 +1,6 @@
 ---
 nginx_accesslog: "/var/log/nginx/access.log"
+nginx_certpath: "/usr/local/www/dehydrated"
 nginx_confdir: "/usr/local/etc/nginx"
 nginx_confgroup: "wheel"
 nginx_confowner: "root"
@@ -17,4 +18,5 @@ nginx_php_fpmuser: "www"
 nginx_php_packages: "php{{ nginx_php_versionfreebsd }}, php{{ nginx_php_versionfreebsd }}-extensions, php{{ nginx_php_versionfreebsd }}-composer, php{{ nginx_php_versionfreebsd }}-gd, php{{ nginx_php_versionfreebsd }}-mysqli"
 nginx_servicename: "nginx"
 nginx_user: "www"
+nginx_wellknownpath: "/usr/local/www/dehydrated"
 nginx_wwwdir: "/usr/local/www"
