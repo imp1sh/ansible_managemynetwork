@@ -1,0 +1,13 @@
+---
+- name: restart nginx
+  service:
+    name: "{{ nginx_servicename }}"
+    state: restarted
+- name: reload nginx
+  service:
+    name: "{{ nginx_servicename }}"
+    state: reloaded
+- name: restart phpfpm
+  service:
+    name: "{{ nginx_php_fpmservicename }}"
+    state: restarted

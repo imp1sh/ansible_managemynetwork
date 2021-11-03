@@ -1,0 +1,3 @@
+---
+dependencies:
+        - role: imp1sh.ansible_managemynetwork.ansible_dehydrated

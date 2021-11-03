@@ -1,0 +1,128 @@
+# /etc/nginx/nginx.conf
+
+user {{ nginx_user }};
+
+# Set number of worker processes automatically based on number of CPU cores.
+worker_processes {{ nginx_workerprocesses | default('auto', true) }};
+
+# Enables the use of JIT for regular expressions to speed-up their processing.
+pcre_jit on;
+
+# Configures default error logger.
+error_log {{ nginx_errorlog }};
+
+# Includes files with directives to load dynamic modules.
+include /etc/nginx/modules/*.conf;
+
+# Uncomment to include files with config snippets into the root context.
+include {{ nginx_confdir }}/conf.d/*.conf;
+
+{% if nginx_pid is defined %}
+pid {{ nginx_pid }};
+{% endif %}
+
+events {
+	# The maximum number of simultaneous connections that can be opened by
+	# a worker process.
+	worker_connections {{ nginx_workerconnections | default('1024', true) }};
+}
+
+http {
+{% if backenditems is defined %}
+{% for backend in backenditems %}
+        upstream {{ backend['name'] }} {
+{% if backend['algo'] is defined %}
+          {{ backend['algo'] }};
+{% endif %}
+{% for server in backend['servers'] %}
+          server {{ server['name'] }}{% if server['weight'] is defined %} weight={{ server['weight'] }}{% endif %}{% if server['mode'] is defined %} {{ server['mode'] }}{% endif %};
+{% endfor %}
+{% endfor %}
+        }
+{% endif %}
+        # proxy cache options
+{% if nginx_cachedir is defined %}
+	proxy_cache_path {{ nginx_cachedir }} levels=1:2 keys_zone=STATIC:10m inactive=24h  max_size={{ nginx_cachemaxsize }};
+{% endif %}
+	# Includes mapping of file name extensions to MIME types of responses
+	# and defines the default type.
+	include {{ nginx_mimetypesfile | default('mime.types', true) }};
+	default_type application/octet-stream;
+
+	# Name servers used to resolve names of upstream servers into addresses.
+	# It's also needed when using tcpsocket and udpsocket in Lua modules.
+	#resolver 208.67.222.222 208.67.220.220;
+
+	# Don't tell nginx version to clients.
+	server_tokens {{ nginx_servertokens | default('off', true) }};
+
+	# Specifies the maximum accepted body size of a client request, as
+	# indicated by the request header Content-Length. If the stated content
+	# length is greater than this size, then the client receives the HTTP
+	# error code 413. Set to 0 to disable.
+	client_max_body_size {{ nginx_clientmaxbodysize | default('1m') }};
+
+	# Timeout for keep-alive connections. Server will close connections after
+	# this time.
+	keepalive_timeout {{ nginx_keepalivetimeout | default('300', true) }};
+
+	# Sendfile copies data between one FD and other from within the kernel,
+	# which is more efficient than read() + write().
+	sendfile {{ nginx_sendfile | default('on', true) }};
+
+	# Don't buffer data-sends (disable Nagle algorithm).
+	# Good for sending frequent small bursts of data in real time.
+	tcp_nodelay {{ nginx_nodelay | default('on', true) }};
+
+	# Causes nginx to attempt to send its HTTP response head in one packet,
+	# instead of using partial frames.
+	tcp_nopush {{ nginx_nopush | default('on', true) }};
+
+        # Enables the specified protocols. Default is TLSv1 TLSv1.1 TLSv1.2.
+        # TIP: If you're not obligated to support ancient clients, remove TLSv1.1.
+        ssl_protocols {{ nginx_sslprotocols }};
+
+	# Path of the file with Diffie-Hellman parameters for EDH ciphers.
+	#ssl_dhparam /etc/ssl/nginx/dh2048.pem;
+
+	# Specifies that our cipher suits should be preferred over client ciphers.
+	ssl_prefer_server_ciphers {{ nginx_sslpreferserverciphers | default('on', true) }};
+
+	# Enables a shared SSL cache with size that can hold around 8000 sessions.
+	ssl_session_cache {{ nginx_sessioncache | default('shared:SSL:2m', true) }};
+
+
+	# Enable gzipping of responses.
+	#gzip on;
+{% if nginx_gzip is defined %}
+	gzip {{ nginx_gzip }};
+{% endif %}
+
+	# Set the Vary HTTP header as defined in the RFC 2616.
+	#gzip_vary on;
+{% if nginx_gzipvary is defined %}
+	gzip_vary {{ nginx_gzipvary }};
+{% endif %}
+
+	# Enable checking the existence of precompressed files.
+	#gzip_static on;
+{% if nginx_gzipstatic is defined %}
+	gzip_static {{ nginx_gzipstatic }};
+{% endif %}
+
+
+	# Specifies the main log format.
+	#log_format main '$remote_addr - $remote_user [$time_local] "$request" '
+	#		'$status $body_bytes_sent "$http_referer" '
+	#		'"$http_user_agent" "$http_x_forwarded_for"';
+{% if nginx_logformat is defined %}
+	log_format {{ nginx_logformat }};
+{% endif %}
+
+	# Sets the path, format, and configuration for a buffered log write.
+	access_log {{ nginx_accesslog }};
+
+
+	# Includes virtual hosts configs.
+	include {{ nginx_confdir }}/http.d/*.conf;
+}

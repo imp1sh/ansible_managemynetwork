@@ -1,0 +1,41 @@
+---
+nginx_accesslog: "/var/log/nginx/access.log"
+nginx_certpath: "/var/lib/dehydrated/certs"
+nginx_confdir: "/etc/nginx"
+nginx_confgroup: "root"
+nginx_confowner: "root"
+nginx_conftemplate: "nginx.conf.j2"
+nginx_errorlog: "/var/log/nginx/error.log warn"
+nginx_packages: "nginx-full"
+nginx_passlib_packagename: "python3-passlib"
+nginx_php_fpmconfdir: "/etc/php/7.4/fpm/pool.d"
+nginx_php_fpmgroup: "www-data"
+nginx_php_fpmlistengroup: "www-data"
+nginx_php_fpmlistenowner: "www-data"
+nginx_php_fpmservicename: "php7.4-fpm"
+nginx_php_fpmsocketpath: "/var/run/php-fpm.sock"
+nginx_php_fpmuser: "www-data"
+nginx_php_packages:
+  - php{{ nginx_php_versiondebian }}-common
+  - php{{ nginx_php_versiondebian }}-fpm
+  - php{{ nginx_php_versiondebian }}-soap
+  - php{{ nginx_php_versiondebian }}-gmp
+  - php{{ nginx_php_versiondebian }}-json
+  - php{{ nginx_php_versiondebian }}-zip
+  - php{{ nginx_php_versiondebian }}-sqlite3
+  - php-apcu
+  - php{{ nginx_php_versiondebian }}-bcmath
+  - php{{ nginx_php_versiondebian }}-gd
+  - php{{ nginx_php_versiondebian }}-odbc
+  - php{{ nginx_php_versiondebian }}-xml
+  - php{{ nginx_php_versiondebian }}-xmlrpc
+  - php{{ nginx_php_versiondebian }}-bz2
+  - php{{ nginx_php_versiondebian }}-curl
+  - php{{ nginx_php_versiondebian }}-mbstring
+  - php{{ nginx_php_versiondebian }}-mysql
+  - imagemagick
+nginx_roup: "www-data"
+nginx_servicename: "nginx"
+nginx_user: "www-data"
+nginx_wellknownpath: "/var/www/dehydrated"
+nginx_wwwdir: "/var/www"

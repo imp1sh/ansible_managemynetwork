@@ -1,0 +1,14 @@
+---
+nginx_firstrollout: False
+nginx_autoindex: 'off'
+nginx_cachemaxsize: "2g"
+nginx_clientmaxbodysize: "4M"                                                                                                                                                                 
+nginx_defaultbindip: "::"
+nginx_php_fpmlisten: "{{ nginx_fpmsocketpath }}"
+nginx_php_fpmlistenmode: "0660"
+nginx_php_timezone: "Europe/Berlin"
+nginx_php_versionalpine: "7"
+nginx_php_versiondebian: "7.4"
+nginx_php_versionfreebsd: "74"
+nginx_sslprotocols: "TLSv1.2 TLSv1.3"
+nginx_vhostcipher: "ECDHE-RSA-AES256-GCM-SHA512:DHE-RSA-AES256-GCM-SHA512:ECDHE-RSA-AES256-GCM-SHA384:DHE-RSA-AES256-GCM-SHA384:ECDHE-RSA-AES256-SHA384"
