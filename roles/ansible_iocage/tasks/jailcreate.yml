@@ -1,0 +1,14 @@
+---
+- name: check if jail release exists
+  shell: /sbin/zfs list {{ iocage_zpool }}/iocage/releases/{{ jail.release }}
+  register: jailreleasefetched
+- name: fetch jail relase if necessary
+  shell: /usr/local/bin/iocage fetch -r {{ jail.release }}
+  when: jailreleasefetched.rc != 0
+- name: check if jail already exists
+  shell: /usr/local/bin/iocage get boot {{ jail.name }}
+  register: jailexistcheck
+  ignore_errors: yes
+- name: Create iocage jails
+  shell: /usr/local/bin/iocage create -n "{{ jail.name }}" -r "{{ jail.release | default(iocage_mainrelease) }}" notes="{{ jail.notes | default('defaultnotes', true) }}" boot="{{ jail.boot | default('0', true) }}"{% if jail.vnet is defined %} vnet="{{ jail.vnet }}"{% endif %}{% if jail.interfaces is defined %} interfaces="{{ jail.interfaces }}"{% endif %}{% if jail.jailnic is defined and jail.ip4 is defined %} ip4_addr="{{ jail.jailnic }}|{{ jail.ip4 }}"{% endif %}{% if jail.gw4 is defined %} defaultrouter="{{ jail.gw4 }}"{% endif %}{% if jail.jailnic is defined and jail.ip6 is defined %} ip6_addr="{{ jail.jailnic }}|{{ jail.ip6 }}"{% endif %}{% if jail.gw6 is defined %} defaultrouter6="{{ jail.gw6}}"{%endif %}
+  when: jailexistcheck.rc != 0

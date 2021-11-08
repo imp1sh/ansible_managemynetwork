@@ -1,0 +1,3 @@
+---
+# defaults file for ansible_iocage
+iocage_mainrelease: "13.0-RELEASE"

@@ -1,0 +1,29 @@
+---
+# tasks file for ansible_iocage
+- name: Install iocage package
+  package:
+    name: py38-iocage
+    state: present
+- name: Activate iocage zpool
+  shell: /usr/local/bin/iocage activate {{ iocage_zpool }}
+  when: iocage_zpool is defined
+- name: Enable fdescfs
+  lineinfile:
+    path: /etc/fstab
+    regexp: "^fdesc"
+    line: "fdesc /dev/fd fdescfs rw 0 0"
+- name: Mount fdescfs
+  shell: /sbin/mount -a
+- name: check if mainrelease already fetched
+  shell: /sbin/zfs list {{ iocage_zpool }}/iocage/releases/{{ iocage_mainrelease }}
+  register: mainreleasefetched
+  ignore_errors: yes
+- name: Fetch latest release for iocage
+  shell: /usr/local/bin/iocage fetch -r {{ iocage_fetchrelease | default('13.0-RELEASE', true) }}
+  when: mainreleasefetched.rc != 0
+- name: create jails subtask
+  include_tasks: "jailcreate.yml"
+  loop: "{{ iocage_jails }}"
+  loop_control:
+    loop_var: jail
+
