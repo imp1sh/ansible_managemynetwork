@@ -1,10 +1,10 @@
 ---
 - name: Install PowerDNS packages
   apk:
-          name: pdns, pdns-tools, pdns-backend-pgsql, pdns-doc, postgresql, postgresql-client, pdnsd-doc
+    name: pdns, pdns-tools, pdns-backend-pgsql, pdns-doc, postgresql, postgresql-client, pdnsd-doc
 - name: Install Ansible required packages
   apk:
-          name: py3-psycopg2
+    name: py3-psycopg2
 #- name: Enable PowerDNS Service
 #  command: rc-update add pdns
 #- name: Enable Postgresql Service
@@ -22,44 +22,44 @@
 #          mode: 0740
 - name: Copy pdns config file
   template:
-          src: pdns.conf.alpine.j2
-          dest: /etc/pdns/pdns.conf
-          owner: "{{ pdnssetuid }}"
-          group: "{{ pdnssetgid }}"
-          mode: 0640
-          backup: yes
+    src: pdns.conf.alpine.j2
+    dest: /etc/pdns/pdns.conf
+    owner: "{{ pdnssetuid }}"
+    group: "{{ pdnssetgid }}"
+    mode: 0640
+    backup: yes
   notify: restart powerdns
 - name: Enable PostgreSQL Service
   service:
-          name: postgresql
-          enabled: yes
-          state: started
+    name: postgresql
+    enabled: yes
+    state: started
 - name: create pdns db
   postgresql_db:
-          name: pdns
+    name: pdns
 - name: create pdns user
   postgresql_user:
-          db: pdns
-          name: pdns
-          password: "{{ pdnsbackendpw }}"
-          priv: ALL
+    db: pdns
+    name: pdns
+    password: "{{ pdnsbackendpw }}"
+    priv: ALL
 # two thing are missing here, loading the schema from /usr/share/doc into pdns db and subscription
 - name: Enable pdns Service
   service:
-          name: pdns
-          enabled: yes
-          state: restarted
-- name: create pgsql backup directory in /opt/pg_dump
-  file:
-          path: /opt/pg_dump
-          state: directory
-          owner: postgres
-          group: root
-          mode: '0770'
-- name: Setup pgsql cron job runbackup
-  cron:
-          name: runbackup
-          minute: 0
-          hour: 0
-          job: sudo -u postgres /usr/bin/pg_dump pdns > /opt/pg_dump/pdns_backup.sql
+    name: pdns
+    enabled: yes
+    state: restarted
+      #- name: create pgsql backup directory in /opt/pg_dump
+      #  file:
+      #    path: /opt/pg_dump
+      #    state: directory
+      #    owner: postgres
+      #    group: root
+      #    mode: '0770'
+      #- name: Setup pgsql cron job runbackup
+      #  cron:
+      #    name: runbackup
+      #    minute: 0
+      #    hour: 0
+      #    job: sudo -u postgres /usr/bin/pg_dump pdns > /opt/pg_dump/pdns_backup.sql
 
