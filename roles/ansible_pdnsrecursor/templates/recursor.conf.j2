@@ -507,7 +507,7 @@ local-port=5353
 #
 # query-local-address6=
 {% if pdnsrec_queryip6 is defined %}
-query-local-address6={{ pdnsrec_queryip6 }}
+query-local-address={{ pdnsrec_queryip6 }}
 {% endif %}
 
 #################################
