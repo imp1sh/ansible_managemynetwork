@@ -30,13 +30,14 @@ api-key={{ pdnsapikey }}
 # local-address Local IP addresses to which we bind
 #
 # local-address=0.0.0.0
-local-address={{ pdnslistenip }}
+local-address={{ pdnslistenip }} {{ pdnslistenip6 }}
 
 #################################
 # local-ipv6    Local IP address to which we bind
 #
 # local-ipv6=
-local-ipv6={{ pdnslistenip6 }}
+#local-ipv6={{ pdnslistenip6 }}
+# deprecated since 4.5
 
 #################################
 # local-port    The port on which we listen
