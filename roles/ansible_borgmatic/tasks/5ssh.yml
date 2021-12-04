@@ -10,9 +10,19 @@
     state: present
     key: "{{ rootuser['ssh_public_key'] }}"
   delegate_to: "{{ borgmatic_sshkey_targethost }}"
+- name: register remote host key
+  command: "ssh-keyscan -trsa {{ borgmatic_sshkey_targethost }}"
+  register: hostkey
 - name: install target hosts fingerprint to known hosts
   known_hosts:
     path: "{{ borgmatic_file_sshknownhosts }}"
-    key: "{{ lookup('pipe', 'ssh-keyscan -trsa ' + borgmatic_sshkey_targethost) }}"
+    key: "{{ hostkey.stdout }}"
     name: "{{ borgmatic_sshkey_targethost }}"
     state: present
+      # this didn't work reliably. In rare cases the key value was just empty
+      #- name: install target hosts fingerprint to known hosts
+      #  known_hosts:
+      #    path: "{{ borgmatic_file_sshknownhosts }}"
+      #    key: "{{ lookup('pipe', 'ssh-keyscan -trsa ' + borgmatic_sshkey_targethost) }}"
+      #    name: "{{ borgmatic_sshkey_targethost }}"
+      #    state: present
