@@ -16,7 +16,7 @@
     name: "{{ borgmatic_packagename_borgmatic }}"
     state: present
     update_cache: yes
-    repository: http://alpine.42.fr/edge/community
+      #    repository: http://alpine.42.fr/edge/community
   when: ansible_os_family == "Alpine"
 # FreeBSD specific
 - name: FreeBSD install borgmatic requirements
