@@ -11,7 +11,7 @@
     key: "{{ rootuser['ssh_public_key'] }}"
   delegate_to: "{{ borgmatic_sshkey_targethost }}"
 - name: register remote host key
-  command: "ssh-keyscan -trsa {{ borgmatic_sshkey_targethost }}"
+  command: "ssh-keyscan -tecdsa {{ borgmatic_sshkey_targethost }}"
   register: hostkey
 - name: install target hosts fingerprint to known hosts
   known_hosts:
