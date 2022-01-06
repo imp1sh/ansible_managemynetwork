@@ -27,4 +27,4 @@ OS:             {{ ansible_facts['distribution'] }}
 Version:        {{ ansible_facts['distribution_version'] }}
 site:           {{ motd_site }}
 purpose:        {{ motd_purpose }}
-IP address:     {{ netconf_interfaces[netconf_primarynic]['ip6'] | ipaddr('address') }}
+IP address:     {{ primary_ip6 }}
