@@ -4,3 +4,4 @@ wikijs_packages:
   - "tar"
   - "nodejs"
 nodejsbinpath: "/usr/bin/node"
+wikijs_restartservice: "restart wikijs Systemd"

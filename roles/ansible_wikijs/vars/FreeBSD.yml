@@ -3,3 +3,4 @@ wikijs_packages:
   - "unzip"
   - "gtar"
 nodejsbinpath: "/usr/local/bin/node"
+wikijs_restartservice: "restart wikijs FreeBSD"
