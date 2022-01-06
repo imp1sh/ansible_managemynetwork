@@ -1,2 +1,11 @@
 ---
 # handlers file for ansible_wikijs
+- name: restart wikijs FreeBSD
+  become_user: "{{ item['runasuser'] }}"
+  command: pm2 restart {{ item['name'] }}
+  loop: "{{ wikijsinstances }}"
+- name: restart wikijs Systemd
+  service:
+    name: "{{ item.name }}"
+    state: restarted
+  loop: "{{ wikijsinstances }}"
