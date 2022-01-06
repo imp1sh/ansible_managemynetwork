@@ -1,4 +1,3 @@
-allow_registration: "true"
-c2s_require_encryption: "true"
-s2s_require_encryption: "true"
-sslbasepath: "/etc/dehydrated/basedir/certs"
+prosody_allow_registration: "true"
+prosody_c2s_require_encryption: "true"
+prosody_s2s_require_encryption: "true"

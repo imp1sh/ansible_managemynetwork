@@ -1,6 +1,40 @@
 ---
-- import_tasks: alpine.yml
-  when: ansible_facts['os_family'] == 'Alpine'
-- import_tasks: freebsd.yml
-  when: ansible_facts['os_family'] == 'FreeBSD'
-
+- name: include OS vars
+  include_vars: "{{ ansible_distribution }}.yml"
+- name: Install prosody service
+  package:
+    name: "{{ prosody_packagename }}"
+    state: present
+- name: Make sure prosody is enabled
+  service:
+    name: "{{ prosody_servicename }}"
+    enabled: yes
+- name: Include dehydrated role
+  include_role:
+    name: imp1sh.ansible_managemynetwork.ansible_dehydrated
+- name: Make sure {{ prosody_pathconfd }} is there
+  file:   
+    path: "{{ prosody_pathconfd }}"
+    state: directory
+    owner: "{{ prosody_owner }}"
+    group: "{{ prosody_group }}"
+    mode: 0755
+- name: copy prosody vhosts
+  template:
+    src: prosodyvhost.lua
+    dest: "{{ prosody_pathconfd }}/{{ item.domain }}.cfg.lua"
+    owner: "{{ prosody_owner }}"
+    group: "{{ prosody_group }}"
+    mode: 0644
+  notify: restart prosody
+  when: prosody_vhosts is defined
+  #loop: "{{ q('dict', prosodyvhosts) }}"
+  loop: "{{ prosody_vhosts }}"
+- name: copy prosody config
+  template:
+    src: prosody.cfg.lua
+    dest: "{{ prosody_pathconf }}/prosody.cfg.lua"
+    owner: "{{ prosody_owner }}"
+    group: "{{ prosody_group }}"
+    mode: 0644
+  notify: restart prosody

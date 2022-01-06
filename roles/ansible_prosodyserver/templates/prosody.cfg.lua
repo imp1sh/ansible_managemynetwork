@@ -12,9 +12,8 @@
 -- The only thing left to do is rename this file to remove the .dist ending, and fill in the
 -- blanks. Good luck, and happy Jabbering!
 
-
 daemonize = true
-pidfile = "/var/run/prosody/prosody.pid"
+pidfile = "{{ prosody_pidfile }}"
 
 ---------- Server-wide settings ----------
 -- Settings in this section apply to the whole server and are the default settings
@@ -24,7 +23,7 @@ pidfile = "/var/run/prosody/prosody.pid"
 -- for the server. Note that you must create the accounts separately
 -- (see https://prosody.im/doc/creating_accounts for info)
 -- Example: admins = { "user1@example.com", "user2@example.net" }
-admins = { "{{ prosodyadmin }}" }
+admins = { "{{ prosody_admin }}" }
 
 -- Enable use of libevent for better performance under high load
 -- For more information see: https://prosody.im/doc/libevent
@@ -96,17 +95,17 @@ modules_disabled = {
 
 -- Disable account creation by default, for security
 -- For more information see https://prosody.im/doc/creating_accounts
-allow_registration = {{ allow_registration }}
+allow_registration = {{ prosody_allow_registration }}
 
 -- Force clients to use encrypted connections? This option will
 -- prevent clients from authenticating unless they are using encryption.
 
-c2s_require_encryption = {{ c2s_require_encryption }}
+c2s_require_encryption = {{ prosody_c2s_require_encryption }}
 
 -- Force servers to use encrypted connections? This option will
 -- prevent servers from authenticating unless they are using encryption.
 
-s2s_require_encryption = {{ s2s_require_encryption }}
+s2s_require_encryption = {{ prosody_s2s_require_encryption }}
 
 -- Force certificate authentication for server-to-server connections?
 

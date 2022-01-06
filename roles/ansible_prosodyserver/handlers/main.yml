@@ -1,5 +1,5 @@
 ---
 - name: restart prosody
   service:
-          name: prosody
-          state: restarted
+    name: "{{ prosody_servicename }}"
+    state: restarted
