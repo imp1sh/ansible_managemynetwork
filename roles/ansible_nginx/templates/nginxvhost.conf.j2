@@ -8,7 +8,7 @@ server {
 {% if item.ipaddress is defined %}
         listen [{{ item.ipaddress }}]:80;
 {% else %}
-	listen [{{ nginxphp_defaultbindip }}]:80;
+	listen [{{ nginx_defaultbindip }}]:80;
 {% endif %}
 {% if item.altfqdn is defined and item.userproxyitem_fromhost is defined and hostvars[item.userproxyitem_fromhost].rproxyitems[item.fqdn].rproxyaltfqdn is not defined %}
 	server_name {{ item.fqdn }} {{ item.altfqdn }};
@@ -26,8 +26,8 @@ server {
 {% if item.maxbodysize is defined %}
 	client_max_body_size {{ item.maxbodysize }};
 {% endif %}
-{% if item.nginxphp_autoindex is defined %}
-        autoindex {{ item.nginxphp_autoindex }};
+{% if item.nginx_autoindex is defined %}
+        autoindex {{ item.nginx_autoindex }};
 {% else %}
         autoindex off;
 {% endif %}

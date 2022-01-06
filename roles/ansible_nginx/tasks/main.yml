@@ -39,6 +39,10 @@
     owner: "{{ nginx_confowner }}"
     group: "{{ nginx_confgroup }}"
     mode: 0744
+- name: make sure package default vhost is absent
+  file:
+    path: "{{ nginx_confdir }}/http.d/default.conf"
+    state: absent
 - name: deploy default vhost for non-matching requests
   template:
     src: defaultvhost.conf.j2
@@ -65,6 +69,18 @@
     group: "{{ nginx_group }}"
   when: nginx_vhosts is defined
   loop: "{{ nginx_vhosts }}"
+- name: Install nginx vhost items
+  template:
+    src: nginxvhost.conf.j2
+    dest: "{{ nginx_confdir }}/http.d/{{ item.fqdn }}.conf"
+    owner: "{{ nginx_confowner }}"
+    group: "{{ nginx_confgroup }}"
+    mode: '0744'
+  when: nginx_vhosts is defined
+  loop: "{{ nginx_vhosts }}"
+  notify:
+    - reload nginx
+    - dehydrated cron
 - name: Install nginx rproxy items
   template:
     src: nginxrproxy.conf.j2
@@ -73,17 +89,9 @@
     group: "{{ nginx_confgroup }}"
   when: nginx_rproxyitems is defined
   loop: "{{ query('dict', nginx_rproxyitems) }}"
-  notify: reload nginx
-- name: Install nginx vhosts
-  template:
-    src: nginxvhost.conf.j2
-    dest: "{{ nginx_confdir }}/http.d/{{ iftem.fqdn }}.conf"
-    owner: "{{ nginx_confowner }}"
-    group: "{{ nginx_confgroup }}"
-    mode: '0744'
-  when: nginxphp_vhosts is defined
-  loop: "{{ nginxphp_vhosts }}"
-  notify: reload nginx
+  notify: 
+    - dehydrated cron
+    - reload nginx
 - name: Setup basic authentication
   htpasswd:
     path: "{{ item.authfile }}"
@@ -127,7 +135,7 @@
     - nginx_php_enabled
 - name: enable php-fpm
   service:
-    name: "{{ nginxphp_fpmservicename }}"
+    name: "{{ nginx_php_fpmservicename }}"
     enabled: yes
     state: started
   when:

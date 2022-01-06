@@ -11,3 +11,6 @@
   service:
     name: "{{ nginx_php_fpmservicename }}"
     state: restarted
+- name: dehydrated cron
+  command: "{{ nginx_dehydrated_binpath }} -c"
+
