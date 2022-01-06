@@ -1,6 +1,6 @@
 - name: Set timezone Europe/Berlin
   timezone:
-          name: Europe/Berlin
+    name: Europe/Berlin
   when: ansible_facts['os_family'] != 'Alpine'
 - name: Alpine specific
   command: setup-timezone -z {{ timezone }}
