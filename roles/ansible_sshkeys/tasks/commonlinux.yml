@@ -1,8 +1,16 @@
+- name: Make sure ssh dir exists
+  ansible.builtin.file:
+    path: "/home/{{ item.user }}/.ssh"
+    state: directory
+    owner: "{{ item.user }}"
+    mode: 0700
+  loop: "{{ sshkeys }}"
+  when: sshkeys is defined
 - name: "Installing ssh keys"
   authorized_key:
-          user: "{{ item.user }}"
-          key: "{{ item.key }}"
-          state: present
+    user: "{{ item.user }}"
+    key: "{{ item.key }}"
+    state: present
   when:
     - sshkeys is defined
     - item['state'] != 'absent'
