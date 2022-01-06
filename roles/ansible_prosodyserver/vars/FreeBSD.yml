@@ -1,0 +1,8 @@
+---
+prosody_packagename: "prosody"
+prosody_servicename: "prosody"
+prosody_pathconfd: "/usr/local/etc/prosody/conf.d"
+prosody_pathconf: "/usr/local/etc/prosody"
+prosody_owner: "root"
+prosody_group: "wheel"
+prosody_pidfile: "/var/run/prosody/prosody.pid"
