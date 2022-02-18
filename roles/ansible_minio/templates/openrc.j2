@@ -1,0 +1,19 @@
+#!/sbin/openrc-run
+
+export MINIO_ROOT_USER="{{ miniouserroot }}"
+export MINIO_ROOT_PASSWORD="{{ miniopasswordroot }}"
+user="{{ miniouser }}"
+group="{{ miniouser }}"
+command="/usr/local/bin/minio"
+#directory="/home/{{ miniouser }}"
+command_args="server {{ miniopathdata }}{% if miniopathcert is defined %} --certs-dir {{ miniopathcert }} {% endif %}"
+command_user="${user}:${group}"
+command_background="yes"
+pidfile="/run/${RC_SVCNAME}.pid"
+output_log="/var/log/minio/${RC_SVCNAME}.log"
+error_log="${output_log}"
+
+depend() {
+        use net
+}
+

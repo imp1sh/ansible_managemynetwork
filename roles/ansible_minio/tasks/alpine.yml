@@ -1,0 +1,55 @@
+# Group definitions
+- name: "Install minio bin amd64"
+  get_url:
+    url: https://dl.min.io/server/minio/release/linux-amd64/minio
+    dest: /usr/local/bin/minio
+    mode: 0755
+- name: "Install minio client"
+  get_url:
+    url: https://dl.min.io/client/mc/release/linux-amd64/mc
+    dest: /usr/local/bin/minioclient
+    mode: 0755
+- name: setup log directory
+  file:
+    dest: /var/log/minio
+    owner: "{{ miniouser }}"
+    group: "{{ miniouser }}"
+    state: directory
+- name: "setup cert directory"
+  file:
+    dest: "{{ miniopathcert }}"
+    owner: "{{ miniouser }}"
+    group: "{{ miniouser }}"
+    state: directory
+  when: miniopathcert is defined
+- name: "link cert"
+  file:
+    src: "{{ miniosourcecert }}"
+    dest: "{{ miniopathcert }}/public.crt"
+    owner: "{{ miniouser }}"
+    group: "{{ miniouser }}"
+    state: link
+- name: "link private key"
+  file:
+    src: "{{ miniosourceprivkey }}"
+    dest: "{{ miniopathcert }}/private.key"
+    owner: "{{ miniouser }}"
+    group: "{{ miniouser }}"
+    state: link
+      #- name: "setup configuration file"
+      #  template:
+      #    src: "minioconf.j2"
+      #    dest: "{{ miniopathdata }}/config.json"
+      #    owner: "{{ miniouser }}"
+      #    group: "{{ miniouser }}"
+- name: "setup openrc script"
+  template:
+    src: openrc.j2
+    dest: /etc/init.d/minio
+    mode: 755
+  notify: restart minio
+- name: "enable minio service"
+  service:
+    name: minio
+    state: started
+    enabled: yes

@@ -1,0 +1,4 @@
+export MINIO_ROOT_USER={{ miniouserroot }}
+export MINIO_ROOT_PASSWORD={{ miniopasswordroot }}
+{% if minioregion is defined %}export MINIO_REGION_NAME={{ minioregion }}{% endif %}
+minio server {{ miniopathdata }}

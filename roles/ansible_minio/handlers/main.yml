@@ -1,0 +1,6 @@
+---
+# handlers file for ansible_minio
+- name: "restart minio"
+  service:
+    name: minio
+    state: restarted
