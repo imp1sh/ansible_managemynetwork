@@ -1,0 +1,4 @@
+---
+# tasks file for ansible_icinga2agent
+- name: include OS vars
+  include_vars: "{{ ansible_os_family }}.yml"

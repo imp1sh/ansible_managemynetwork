@@ -1,0 +1,14 @@
+object Host "{{ inventory_hostname }}" {
+  vars.agent_endpoint = "{{ inventory_hostname }}"
+{% if icinga2_facts['address6'] is defined %}
+  address6 = "{{ icinga2_facts['address6'] }}"
+{% elif icinga2_facts['address'] is defined %}
+  address = "{{ icinga2_facts['address'] }}"
+{% endif %}
+{% if icinga2_facts['hostvars'] is defined %}
+{% for hostvar in icinga2_facts['hostvars'] %}
+  vars.{{ hostvar['key'] }} = "{{ hostvar['value'] }}"
+{% endfor %}
+{% endif %}
+  import "generic-host"
+}
