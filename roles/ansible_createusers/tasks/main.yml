@@ -1,21 +1,23 @@
 ---
 # create password with mkpasswd -m sha-512 for example, depends on what hash you want
-- name: create users that come from groups
+- name: create users that come from group definitions
   user:
     name: "{{ item.username }}"
     comment: "{{ item.comment |default(omit) }}"
     password: "{{ item.pw | default(omit) }}"
     uid: "{{ item.uid | default(omit) }}"
     shell: "{{ item.shell | default(omit) }}"
+    state: "{{ item.state | default(omit) }}"
   loop:
     "{{ createusers_group }}"
-- name: create host individual users
+- name: create users that come from host definitions
   user:
     name: "{{ item.username }}"
     comment: "{{ item.comment |default(omit) }}"
     password: "{{ item.pw | default(omit) }}"
     uid: "{{ item.uid | default(omit) }}"
     shell: "{{ item.shell | default(omit) }}"
+    state: "{{ item.state | default(omit) }}"
   loop:
     "{{ createusers_host }}"
   when: createusers_host is defined
