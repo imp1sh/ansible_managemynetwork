@@ -1,0 +1,17 @@
+---                                                                                                                                                                                           
+- name: include OS vars                                                                                                                                                                       
+  include_vars: "{{ ansible_os_family }}.yml"
+- name: Install snmpd package
+  package:
+    name: "{{ snmpd_packagename }}"
+    state: present
+- name: Install snmpd.conf
+  template:
+    src: snmpd.conf.j2
+    dest: /etc/snmp/snmpd.conf
+  notify: restart snmpd
+- name: Enable snmpd service
+  service:
+    name: snmpd
+    enabled: true
+    state: started  

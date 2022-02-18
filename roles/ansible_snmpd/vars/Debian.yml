@@ -1,0 +1,38 @@
+---
+snmpd_packagename: "snmpd"
+nginxphp_fpmconfdir: "/etc/php/7.4/fpm/pool.d"
+nginxphp_fpmlistengroup: "www-data"
+nginxphp_fpmlistenowner: "www-data"
+nginxphp_fpmsocketpath: "/var/run/php-fpm.sock"
+nginxphp_fpmservicename: "php7.4-fpm"
+nginxphp_fpmuser: "www-data"
+nginxphp_fpmgroup: "www-data"
+nginxphp_nginxconf: "nginxdebian.conf.j2"
+nginxphp_nginxconf_group: "root"
+nginxphp_nginxconf_owner: "root"
+nginxphp_nginxconfdir: "/etc/nginx"
+nginxphp_nginxgroup: "www-data"
+nginxphp_nginxuser: "www-data"
+nginxphp_packages:
+  - php{{ nginxphp_phpversiondebian }}-common
+  - php{{ nginxphp_phpversiondebian }}-fpm
+  - php{{ nginxphp_phpversiondebian }}-soap
+  - php{{ nginxphp_phpversiondebian }}-gmp
+  - php{{ nginxphp_phpversiondebian }}-json
+  - php{{ nginxphp_phpversiondebian }}-zip
+  - php{{ nginxphp_phpversiondebian }}-sqlite3
+  - php-apcu
+  - php{{ nginxphp_phpversiondebian }}-bcmath
+  - php{{ nginxphp_phpversiondebian }}-gd
+  - php{{ nginxphp_phpversiondebian }}-odbc
+  - php{{ nginxphp_phpversiondebian }}-xml
+  - php{{ nginxphp_phpversiondebian }}-xmlrpc
+  - php{{ nginxphp_phpversiondebian }}-bz2
+  - php{{ nginxphp_phpversiondebian }}-curl
+  - php{{ nginxphp_phpversiondebian }}-mbstring
+  - php{{ nginxphp_phpversiondebian }}-mysql
+  - imagemagick
+    #  - php{{ nginxphp_phpversiondebian }}-ldap"
+  #nginxphp_packages: "php{{ nginxphp_phpversiondebian }}-common php{{ nginxphp_phpversiondebian }}-fpm php{{ nginxphp_phpversiondebian }}-soap php{{ nginxphp_phpversiondebian }}-gmp php{{ nginxphp_phpversiondebian }}-json php{{ nginxphp_phpversiondebian }}-zip php{{ nginxphp_phpversiondebian }}-sqlite3 php-apcu php{{ nginxphp_phpversiondebian }}-bcmath php{{ nginxphp_phpversiondebian }}-gd php{{ nginxphp_phpversiondebian }}-odbc php{{ nginxphp_phpversiondebian }}-xml php{{ nginxphp_phpversiondebian }}-xmlrpc php{{ nginxphp_phpversiondebian }}-bz2 php{{ nginxphp_phpversiondebian }}-curl php{{ nginxphp_phpversiondebian }}-mbstring imagemagick php{{ nginxphp_phpversiondebian }}-ldap"
+nginxphp_passlib_packagename: "python3-passlib"
+nginxphp_wwwdir: "/var/www"
