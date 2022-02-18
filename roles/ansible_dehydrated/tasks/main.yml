@@ -72,7 +72,7 @@
     dest: "{{ dehydrated_confdir }}/domains.txt"
     owner: "{{ dehydrated_user }}"
     group: "{{ dehydrated_group }}"
-  when: dehydrateddomains is defined
+  when: dehydrated_domains is defined
   notify:
     - dehydrated cron
 # Accept terms and cron
