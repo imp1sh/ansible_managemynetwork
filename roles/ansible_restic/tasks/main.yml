@@ -1,0 +1,20 @@
+---
+# tasks file for ansible_openwrtrestic
+- name: include OS vars                                                                                                                                                                       
+  include_vars: "{{ ansible_distribution }}.yml"    
+- name: Installation and preparation
+  include_tasks: 1install.yml
+- name: SSH setup
+  include_tasks: 3ssh.yml
+- name: init repository
+  command: "restic -r {{ restic_repository }} init"
+  environment:
+    RESTIC_PASSWORD: "{{ restic_encpassphrase }}"
+  register: restic_init
+  failed_when:
+    - restic_init.rc != 0
+    - not 'config file already exists' in restic_init.stderr
+    - not 'config already initialized' in restic_init.stderr
+    - not 'config already exists' in restic_init.stderr
+- name: "setup cron jobs"
+  include_tasks: 5cron.yml

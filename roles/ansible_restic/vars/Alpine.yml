@@ -1,0 +1,13 @@
+---
+restic_packages:
+  - "restic"
+restic_configfile: "/etc/restic"
+restic_configowner: "root"
+restic_configgroup: "root"
+restic_passwordfile: "/etc/resticpassword"
+restic_binary: "/usr/bin/restic"
+restic_srcdirs:                                                                                                                                                                               |
+  - "/etc"                                                                                                                                                                                    |
+  - "/opt"                                                                                                                                                                                    |
+  - "/home"                                                                                                                                                                               |
+  - "/root"                                                                                                                                                                                   |

@@ -1,0 +1,19 @@
+---
+- name: Install restic and other needed software
+  package:
+    name: "{{ restic_packages }}"
+    state: present
+- name: deploy restic configuration
+  template:
+    src: restic.conf.jinja2
+    dest: "{{ restic_configfile }}"
+    owner: "{{ restic_configowner }}"
+    group: "{{ restic_configgroup }}"
+    mode: 0600
+- name: deploy restic password file
+  template:
+    src: password.jinja2
+    dest: "{{ restic_passwordfile }}"
+    owner: "{{ restic_configowner }}"
+    group: "{{ restic_configgroup }}"
+    mode: 0600

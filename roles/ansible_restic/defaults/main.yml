@@ -1,0 +1,14 @@
+---
+# defaults file for ansible_openwrtrestic
+restic_cron_name: "resticbackup"
+restic_cron_hourrange_start: 1
+restic_cron_hourrange_end: 6
+restic_cron_minuterange_start: 1
+restic_cron_minuterange_end: 59
+restic_cron_hour: "{{ restic_cron_hourrange_end | random(start=restic_cron_hourrange_start, seed=inventory_hostname) }}"
+restic_cron_minute: "{{ restic_cron_minuterange_end | random(start=restic_cron_minuterange_start, seed=inventory_hostname) }}"
+restic_cron_manage: true
+restic_ssh_manage: true
+restic_keepweekly: 3
+restic_keepdaily: 9
+restic_keepmonthly: 2

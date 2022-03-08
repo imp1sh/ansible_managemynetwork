@@ -1,0 +1,16 @@
+---
+- name: setup cron backup jobs for different include paths
+  cron:
+    name: "{{ restic_cron_name }} {{ item }}"
+    hour: "{{ restic_cron_hour }}"
+    minute: "{{ restic_cron_minute }}"
+    user: "root"
+    job: "{{ restic_binary }} -p {{ restic_passwordfile }} -r {{ restic_repository }} backup {{ item }}"
+  loop: "{{ restic_srcdirs }}"
+- name: setup cron prune jobs
+  cron:
+    name: "{{ restic_cron_name }} prune"
+    hour: 6
+    minute: 0
+    user: "root"
+    job: "{{ restic_binary }} forget --keep-daily {{ restic_keepdaily }} --keep-weekly {{ restic_keepweekly }} --keep-monthly {{ restic_keepmonthly }} -p {{ restic_passwordfile }} -r {{ restic_repository }} --prune"

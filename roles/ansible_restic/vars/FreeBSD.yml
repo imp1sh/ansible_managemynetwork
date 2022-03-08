@@ -1,0 +1,13 @@
+---
+restic_packages:
+  - "restic"
+restic_configfile: "/usr/local/etc/restic"
+restic_configowner: "root"
+restic_configgroup: "wheel"
+restic_passwordfile: "/usr/local/etc/resticpassword"
+restic_binary: "/usr/local/bin/restic"
+restic_srcdirs:                                                                                                                                                                               |
+  - "/etc"                                                                                                                                                                                    |
+  - "/usr/home"                                                                                                                                                                               |
+  - "/root"                                                                                                                                                                                   |
+  - "/usr/local/etc" 

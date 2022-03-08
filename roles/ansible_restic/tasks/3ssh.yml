@@ -1,0 +1,22 @@
+---
+
+
+- name: make sure root user has ssh public key
+  user:
+    name: "root"
+    generate_ssh_key: yes
+  register: rootuser
+- name: provide root user's public key to destination machine
+  authorized_key:
+    user: "{{ restic_sshkey_user }}"
+    state: present
+    key: "{{ rootuser['ssh_public_key'] }}"
+  delegate_to: "{{ restic_sshkey_targethost }}"
+- name: register remote host key
+  command: "ssh-keyscan -ted25519 {{ restic_sshkey_targethost }}"
+  register: hostkey
+- name: install target hosts fingerprint to known hosts
+  known_hosts:
+    path: "/root/.ssh/known_hosts"
+    key: "{{ hostkey.stdout }}"
+    name: "{{ restic_sshkey_targethost }}"
