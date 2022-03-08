@@ -8,6 +8,7 @@
     uid: "{{ item.uid | default(omit) }}"
     shell: "{{ item.shell | default(omit) }}"
     state: "{{ item.state | default(omit) }}"
+    home: "{{ item.home | default(omit) }}"
   loop:
     "{{ createusers_group }}"
 - name: create users that come from host definitions
@@ -18,6 +19,7 @@
     uid: "{{ item.uid | default(omit) }}"
     shell: "{{ item.shell | default(omit) }}"
     state: "{{ item.state | default(omit) }}"
+    home: "{{ item.home | default(omit) }}"
   loop:
     "{{ createusers_host }}"
   when: createusers_host is defined
