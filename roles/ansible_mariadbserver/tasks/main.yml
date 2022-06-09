@@ -5,9 +5,12 @@
   when: ansible_facts['os_family'] == 'Alpine'
 - import_tasks: freebsd.yml
   when: ansible_facts['os_family'] == 'FreeBSD'
+- import_tasks: debian.yml
+  when: ansible_facts['os_family'] == 'Debian'
 - name: create databases
   mysql_db:
     name: "{{ mariadb_databases }}"
     state: present
     login_user: "root"
     login_password: "{{ mariadb_rootpw }}"
+  when: mariadb_databases is defined
