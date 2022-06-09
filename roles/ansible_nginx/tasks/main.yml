@@ -62,7 +62,7 @@
     - nginx_php_enabled
 - name: create vhost root dir
   file:
-    path: "{{ nginx_wwwdir }}/{{ item.fqdn }}"
+    path: "{{ nginx_wwwdir }}/vhosts/{{ item.fqdn }}"
     state: directory
     mode: '0750'
     owner: "{{ nginx_user }}"
