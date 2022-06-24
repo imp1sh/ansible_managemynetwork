@@ -26,6 +26,7 @@
   when:
     - ansible_os_family == "FreeBSD"
     - ansible_distribution_major_version == "13"
+  notify: restart motd
 - name: FreeBSD 13 set update_motd
   template:
     src: rc.conf.jinja2

@@ -1,2 +1,6 @@
 ---
 # handlers file for ansible_sysctl
+- name: restart motd
+  service:
+    name: motd
+    state: restarted
