@@ -5,6 +5,17 @@
  ||__|||__|||__|||__|||__|||__|||__||
  |/__\|/__\|/__\|/__\|/__\|/__\|/__\|
                                      
+{% elif motd_ascii is defined and motd_ascii | lower == 'pplznet' %}
+
+                ___                              __      
+               /\_ \                            /\ \__   
+ _____    _____\//\ \    ____      ___       __ \ \ ,_\  
+/\ '__`\ /\ '__`\\ \ \  /\_ ,`\  /' _ `\   /'__`\\ \ \/  
+\ \ \L\ \\ \ \L\ \\_\ \_\/_/  /_ /\ \/\ \ /\  __/ \ \ \_ 
+ \ \ ,__/ \ \ ,__//\____\ /\____\\ \_\ \_\\ \____\ \ \__\
+  \ \ \/   \ \ \/ \/____/ \/____/ \/_/\/_/ \/____/  \/__/
+   \ \_\    \ \_\                                        
+    \/_/     \/_/                                        
 {% elif motd_ascii is defined and motd_ascii | lower == 'krach' %}
 
    __                             _ _     _ _  __                                   _     
@@ -28,3 +39,4 @@ Version:        {{ ansible_facts['distribution_version'] }}
 site:           {{ motd_site }}
 purpose:        {{ motd_purpose }}
 IP address:     {{ primary_ip6 }}
+timezone:       {{ ansible_date_time['tz'] }}
