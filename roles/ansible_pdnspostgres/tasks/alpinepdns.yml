@@ -35,10 +35,10 @@
     enabled: yes
     state: started
 - name: create pdns db
-  postgresql_db:
+  community.general.postgresql_db:
     name: pdns
 - name: create pdns user
-  postgresql_user:
+  community.general.postgresql_user:
     db: pdns
     name: pdns
     password: "{{ pdnsbackendpw }}"
