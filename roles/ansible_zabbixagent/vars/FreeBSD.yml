@@ -1,4 +1,4 @@
-zabbixagent_packagename: "zabbix54-agent"
+zabbixagent_packagename: "zabbix6-agent"
 zabbixagent_servicename: "zabbix_agentd"
 zabbixagent_ownername: "root"
 zabbixagent_groupname: "wheel"
