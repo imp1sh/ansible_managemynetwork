@@ -1,5 +1,6 @@
 borgmatic_packagename_borg: "py39-borgbackup"
 borgmatic_packagename_borgmatic: "py39-borgmatic"
+borgmatic_packagename_jsonschema: "py39-jsonschema"
 borgmatic_pathconfig: "/usr/local/etc/borgmatic"
 borgmatic_pathconfig_owner: "root"
 borgmatic_pathconfig_group: "wheel"
