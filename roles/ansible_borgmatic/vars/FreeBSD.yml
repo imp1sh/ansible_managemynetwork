@@ -1,5 +1,5 @@
-borgmatic_packagename_borg: "py38-borgbackup"
-borgmatic_packagename_borgmatic: "py38-borgmatic"
+borgmatic_packagename_borg: "py39-borgbackup"
+borgmatic_packagename_borgmatic: "py39-borgmatic"
 borgmatic_pathconfig: "/usr/local/etc/borgmatic"
 borgmatic_pathconfig_owner: "root"
 borgmatic_pathconfig_group: "wheel"
