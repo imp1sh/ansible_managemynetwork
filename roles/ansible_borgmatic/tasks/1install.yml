@@ -21,7 +21,7 @@
 # FreeBSD specific
 - name: FreeBSD install borgmatic requirements
   package:
-    name: "{{ borgmatic_packagename_jsonschema }}
+    name: "{{ borgmatic_packagename_jsonschema }}"
     state: present
   when: ansible_os_family == "FreeBSD"
 - name: FreeBSD install borgmatic
