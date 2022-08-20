@@ -1,0 +1,11 @@
+zabbixagent_logtype: "system"
+zabbixagent_packagename: "zabbix-agent"
+zabbixagent_servicename: "zabbix-agent"
+zabbixagent_ownername: "root"
+zabbixagent_groupname: "root"
+zabbixagent_pathconf: "/etc/zabbix_agentd.conf"
+zabbixagent_pathpidfile: "/run/zabbix/zabbix_agentd.pid"
+zabbixagent_filelog: "/var/log/zabbix/zabbix_agentd.log"
+zabbixagent_filelogsize: "0"
+zabbixagent_pathincludeconfd:
+  - "/etc/zabbix_agentd.conf.d/"
