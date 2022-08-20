@@ -1,6 +1,6 @@
 ---
 - name: include OS vars
-  include_vars: "{{ ansible_os_family }}.yml"
+  include_vars: "{{ ansible_distribution }}.yml"
 - name: Install chrony package
   ansible.builtin.package:
     name: "{{ chronyd_packagename }}"
