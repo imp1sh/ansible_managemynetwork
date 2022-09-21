@@ -17,6 +17,7 @@
     groups: "{{ item.groups | default(omit) }}"
   loop:
     "{{ createusers_group }}"
+  when: createusers_group is defined
 - name: create users that come from host definitions
   ansible.builtin.user:
     name: "{{ item.username }}"
