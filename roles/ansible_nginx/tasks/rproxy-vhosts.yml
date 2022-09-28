@@ -1,0 +1,28 @@
+---
+- name: "Installing nginx rproxy http item {{ rproxyitem.name }}"
+  template:
+    src: rproxy_http.conf.j2
+    dest: "{{ nginx_confdir }}/http.d/{{ rproxyitem.name }}.conf"
+    owner: "{{ nginx_confowner }}"
+    group: "{{ nginx_confgroup }}"
+  notify: 
+    - reload nginx
+- name: "Check if rproxy item has fullchain.pem"
+  ansible.builtin.stat:
+    path: "{{ nginx_certpath }}/{{ rproxyitem.name }}/fullchain.pem"
+  register: rproxyitem_fullchain
+- name: "Check if rproxy item has privkey.pem"
+  ansible.builtin.stat:
+    path: "{{ nginx_certpath }}/{{ rproxyitem.name }}/privkey.pem"
+  register: rproxyitem_privkey
+- name: "Installing nginx rproxy https item {{ rproxyitem.name }} if certs are available"
+  template:
+    src: rproxy_https.conf.j2
+    dest: "{{ nginx_confdir }}/http.d/{{ rproxyitem.name }}-tls.conf"
+    owner: "{{ nginx_confowner }}"
+    group: "{{ nginx_confgroup }}"
+  when:
+    - rproxyitem_fullchain.stat.exists
+    - rproxyitem_privkey.stat.exists
+  notify:
+    - reload nginx

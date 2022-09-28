@@ -39,6 +39,14 @@
     owner: "{{ nginx_confowner }}"
     group: "{{ nginx_confgroup }}"
     mode: 0744
+- name: Make sure cache directory exists
+  file:
+    path: "{{ nginx_cachedir }}"
+    state: directory
+    owner: "{{ nginx_confowner }}"
+    group: "{{ nginx_confgroup }}"
+    mode: 0774
+  when: nginx_cachedir is defined
 - name: make sure package default vhost is absent
   file:
     path: "{{ nginx_confdir }}/http.d/default.conf"
@@ -81,17 +89,12 @@
   notify:
     - reload nginx
     - dehydrated cron
-- name: Install nginx rproxy items
-  template:
-    src: nginxrproxy.conf.j2
-    dest: "{{ nginx_confdir }}/http.d/{{ item.key }}.conf"
-    owner: "{{ nginx_confowner }}"
-    group: "{{ nginx_confgroup }}"
+- name: Setup nginx rproxy items task
+  include_tasks: rproxy-vhosts.yml
+  loop: "{{ nginx_rproxyitems }}"
+  loop_control:
+    loop_var: rproxyitem
   when: nginx_rproxyitems is defined
-  loop: "{{ query('dict', nginx_rproxyitems) }}"
-  notify: 
-    - dehydrated cron
-    - reload nginx
 - name: Setup basic authentication
   htpasswd:
     path: "{{ item.authfile }}"

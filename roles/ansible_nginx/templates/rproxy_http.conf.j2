@@ -1,0 +1,53 @@
+# {{ rproxyitem.name }}
+# {{ rproxyitem.comment }}
+server {
+    listen	80;
+    listen	[::]:80;
+{% if rproxyitem.rproxyaltfqdn is defined %}
+    server_name {{ rproxyitem.name }} {{ rproxyitem.rproxyaltfqdn }};
+{% else %}
+    server_name {{ rproxyitem.name }};
+{% endif %}
+{% if rproxyitem.redirect is defined %}
+    return 301 {{ rproxyitem.redirect }};
+{% endif %}
+{% if rproxyitem.authfile is defined %}
+    auth_basic "Restricted Access";
+    auth_basic_user_file "{{ rproxyitem.authfile }}";
+{% endif %}
+{% if rproxyitem.clientmaxbodysize is defined %}
+    client_max_body_size {{ rproxyitem.clientmaxbodysize }};
+{% else %}
+    client_max_body_size {{ nginx_clientmaxbodysize }};
+{% endif %}
+{% if rproxyitem.proxyrequestbuffering is defined %}
+    proxy_request_buffering {{ rproxyitem.proxyrequestbuffering }};
+{% endif %}
+    access_log /var/log/nginx/{{ rproxyitem.name }}_access.log;
+    error_log /var/log/nginx/{{ rproxyitem.name }}_error.log error;
+    location ^~ /.well-known/acme-challenge {
+            alias {{ nginx_wellknownpath }};
+    }
+    location / {
+{% if rproxyitem.redirectallhttps is sameas false or nginx_firstrollout %}
+      # return 301 https://$host$request_uri;
+{% else %}
+      return 301 https://$host$request_uri;
+{% endif %}
+      proxy_buffering on;
+      proxy_buffers 4 512k;
+      proxy_busy_buffers_size 512k;
+      proxy_buffer_size 512k;
+{% if rproxyitem.enablecache is sameas true %}
+      proxy_cache STATIC;
+      proxy_cache_valid 200 1d;
+      proxy_cache_use_stale  error timeout invalid_header updating http_500 http_502 http_503 http_504;
+{% endif %}
+      proxy_redirect off;
+      proxy_set_header X-Real-IP $remote_addr;
+      proxy_set_header X-Forward-For $remote_addr;
+      proxy_set_header Host $host;
+      proxy_pass {{ rproxyitem.rproxytarget }};
+      add_header X-Frame-Options "SAMEORIGIN";
+    }
+}
