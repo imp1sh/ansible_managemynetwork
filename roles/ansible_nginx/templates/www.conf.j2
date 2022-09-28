@@ -37,7 +37,7 @@ group = {{ nginx_php_fpmgroup }}
 ;                                  FreeBSD for security reasons;
 ;   '/path/to/unix/socket' - to listen on a unix socket.
 ; Note: This value is mandatory.
-listen = {{ nginxi_php_fpmlisten }}
+listen = {{ nginx_php_fpmlisten }}
 
 ; Set listen(2) backlog.
 ; Default Value: 511 (-1 on FreeBSD and OpenBSD)
@@ -59,7 +59,7 @@ listen.group = {{ nginx_php_fpmlistengroup }}
 ;listen.group = www
 ;listen.mode = 0660
 {% if nginx_php_fpmlistenmode is defined %}
-listen.mode = {{ nginxphp_fpmlistenmode }}
+listen.mode = {{ nginx_php_fpmlistenmode }}
 {% endif %}
 ; When POSIX Access Control Lists are supported you can set them using
 ; these options, value is a comma separated list of user/group names.
