@@ -4,7 +4,7 @@ nginx_autoindex: 'off'
 nginx_cachemaxsize: "2g"
 nginx_clientmaxbodysize: "4M"                                                                                                                                                                 
 nginx_defaultbindip: "::"
-nginx_php_fpmlisten: "{{ nginx_fpmsocketpath }}"
+nginx_php_fpmlisten: "{{ nginx_php_fpmsocketpath }}"
 nginx_php_fpmlistenmode: "0660"
 nginx_php_timezone: "Europe/Berlin"
 nginx_php_versionalpine: "7"
