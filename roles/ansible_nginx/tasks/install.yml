@@ -1,0 +1,17 @@
+---
+- name: Install nginx
+  package:
+    name: "{{ nginx_packages }}"
+    state: present
+- name: Install additional packages php
+  package:
+    name: "{{ nginx_php_packages }}"
+    state: present
+  when:
+    - nginx_php_enabled is defined
+    - nginx_php_enabled
+- name: Install python passlib for authentication
+  package:
+    name: "{{ nginx_passlib_packagename }}"
+    state: present
+  when: nginx_authenticationitems is defined

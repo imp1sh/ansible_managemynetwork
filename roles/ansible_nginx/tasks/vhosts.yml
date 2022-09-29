@@ -1,0 +1,18 @@
+---
+- name: create vhost root dir
+  file:
+    path: "{{ nginx_wwwdir }}/vhosts/{{ vhostitem.fqdn }}"
+    state: directory
+    mode: '0750'
+    owner: "{{ nginx_user }}"
+    group: "{{ nginx_group }}"
+- name: "Install nginx vhost item {{ vhostitem.fqdn }}"
+  template:
+    src: vhost_http.conf.j2
+    dest: "{{ nginx_confdir }}/http.d/{{ vhostitem.fqdn }}.conf"
+    owner: "{{ nginx_confowner }}"
+    group: "{{ nginx_confgroup }}"
+    mode: '0744'
+  notify:
+    - reload nginx
+# SSL support missing, template needs to be adjusted first

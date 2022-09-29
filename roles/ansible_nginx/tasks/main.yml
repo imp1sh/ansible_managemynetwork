@@ -2,148 +2,24 @@
 # tasks file for ansible_nginx
 - name: include OS vars
   include_vars: "{{ ansible_distribution }}.yml"
-- name: Install nginx
-  package:
-    name: "{{ nginx_packages }}"
-    state: present
-- name: Install additional packages php
-  package:
-    name: "{{ nginx_php_packages }}"
-    state: present
-  when:
-    - nginx_php_enabled is defined
-    - nginx_php_enabled
-- name: Install python passlib for authentication
-  package:
-    name: "{{ nginx_passlib_packagename }}"
-    state: present
-  when: nginx_authenticationitems is defined
-- name: setup main nginx.conf
-  template:
-    src: "{{ nginx_conftemplate }}"
-    dest: "{{ nginx_confdir }}/nginx.conf"
-    owner: "{{ nginx_confowner }}"
-    group: "{{ nginx_confgroup }}"
-    mode: '0744'
-- name: Make sure conf.d directory exists
-  file:
-    path: "{{ nginx_confdir }}/conf.d/"
-    state: directory
-    owner: "{{ nginx_confowner }}"
-    group: "{{ nginx_confgroup }}"
-    mode: 0744
-- name: Make sure http.d directory exists
-  file:
-    path: "{{ nginx_confdir }}/http.d/"
-    state: directory
-    owner: "{{ nginx_confowner }}"
-    group: "{{ nginx_confgroup }}"
-    mode: 0744
-- name: Make sure cache directory exists
-  file:
-    path: "{{ nginx_cachedir }}"
-    state: directory
-    owner: "{{ nginx_confowner }}"
-    group: "{{ nginx_confgroup }}"
-    mode: 0774
-  when: nginx_cachedir is defined
-- name: make sure package default vhost is absent
-  file:
-    path: "{{ nginx_confdir }}/http.d/default.conf"
-    state: absent
-- name: deploy default vhost for non-matching requests
-  template:
-    src: defaultvhost.conf.j2
-    dest: "{{ nginx_confdir }}/http.d/defaultvhost.conf"
-    owner: "{{ nginx_confowner }}"
-    group: "{{ nginx_confgroup }}"
-    mode: '0744'
-- name: Setup php fpm configuration file
-  template:
-    src: www.conf.j2
-    dest: "{{ nginx_php_fpmconfdir }}/www.conf"
-    owner: "{{ nginx_confowner }}"
-    group: "{{ nginx_confgroup }}"
-    mode: '0744'
-  when:
-    - nginx_php_enabled is defined
-    - nginx_php_enabled
-- name: create vhost root dir
-  file:
-    path: "{{ nginx_wwwdir }}/vhosts/{{ item.fqdn }}"
-    state: directory
-    mode: '0750'
-    owner: "{{ nginx_user }}"
-    group: "{{ nginx_group }}"
-  when: nginx_vhosts is defined
+- name: Install components
+  include_tasks: install.yml
+- name: Preparations
+  include_tasks: prepare.yml
+- name: Configurations
+  include_tasks: configure.yml
+- name: Setup nginx vhost items task
+  include_tasks: vhosts.yml
   loop: "{{ nginx_vhosts }}"
-- name: Install nginx vhost items
-  template:
-    src: nginxvhost.conf.j2
-    dest: "{{ nginx_confdir }}/http.d/{{ item.fqdn }}.conf"
-    owner: "{{ nginx_confowner }}"
-    group: "{{ nginx_confgroup }}"
-    mode: '0744'
+  loop_control:
+    loop_var: vhostitem
   when: nginx_vhosts is defined
-  loop: "{{ nginx_vhosts }}"
-  notify:
-    - reload nginx
-    - dehydrated cron
 - name: Setup nginx rproxy items task
   include_tasks: rproxy-vhosts.yml
   loop: "{{ nginx_rproxyitems }}"
   loop_control:
     loop_var: rproxyitem
   when: nginx_rproxyitems is defined
-- name: Setup basic authentication
-  htpasswd:
-    path: "{{ item.authfile }}"
-    name: "{{ item.authuser }}"
-    password: "{{ item.authpassword }}"
-    owner: "{{ nginx_confowner }}"
-    group: "{{ nginx_confgroup }}"
-    mode: 0640
-  loop: "{{ nginx_authenticationitems }}"
-  when: nginx_authenticationitems is defined
-- name: copy php.ini freebsd only
-  command: cp /usr/local/etc/php.ini-production /usr/local/etc/php.ini
-  when:
-    - ansible_os_family == 'FreeBSD'
-    - nginx_php_enabled is defined
-    - nginx_php_enabled
-- name: setup individual php.ini
-  template:
-    src: freebsdphp.ini.j2
-    dest: /usr/local/etc/php/99-custom.ini
-  notify: restart phpfpm
-  when:
-    - ansible_os_family == 'FreeBSD'
-    - nginx_php_enabled is defined
-    - nginx_php_enabled
-- name: copy php.ini
-  template:
-    src: php.ini.j2
-    dest: /etc/php7/php.ini
-  notify: restart phpfpm
-  when:
-    - ansible_os_family == 'Alpine'
-    - nginx_php_enabled is defined
-    - nginx_php_enabled
-- name: Copy fastcgi_param file
-  template:
-    src: fastcgi_params.j2
-    dest: "{{ nginx_confdir }}/fastcgi_params"
-  when:
-    - nginx_php_enabled is defined
-    - nginx_php_enabled
-- name: enable php-fpm
-  service:
-    name: "{{ nginx_php_fpmservicename }}"
-    enabled: yes
-    state: started
-  when:
-    - nginx_php_enabled is defined
-    - nginx_php_enabled
 - name: enable nginx
   service:
     name: "{{ nginx_servicename }}"

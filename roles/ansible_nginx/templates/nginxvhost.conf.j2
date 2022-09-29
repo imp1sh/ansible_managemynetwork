@@ -1,51 +1,51 @@
 server {
-{% if item.comment is defined %}
-        # {{ item.comment }}
+{% if vhostitem.comment is defined %}
+        # {{ vhostitem.comment }}
 {% endif %}
-{% if item.userproxyitem_fromhost is defined and hostvars[item.userproxyitem_fromhost].rproxyitems[item.fqdn].comment is defined %}
-	# {{ hostvars[item.userproxyitem_fromhost].rproxyitems[item.fqdn].comment }}
+{% if vhostitem.userproxyitem_fromhost is defined and hostvars[vhostitem.userproxyitem_fromhost].rproxyitems[vhostitem.fqdn].comment is defined %}
+	# {{ hostvars[vhostitem.userproxyitem_fromhost].rproxyitems[vhostitem.fqdn].comment }}
 {% endif %}
-{% if item.ipaddress is defined %}
-        listen [{{ item.ipaddress }}]:80;
+{% if vhostitem.ipaddress is defined %}
+        listen [{{ vhostitem.ipaddress }}]:80;
 {% else %}
 	listen [{{ nginx_defaultbindip }}]:80;
 {% endif %}
-{% if item.altfqdn is defined and item.userproxyitem_fromhost is defined and hostvars[item.userproxyitem_fromhost].rproxyitems[item.fqdn].rproxyaltfqdn is not defined %}
-	server_name {{ item.fqdn }} {{ item.altfqdn }};
-{% elif item.altfqdn is defined and item.userproxyitem_fromhost is defined and hostvars[item.userproxyitem_fromhost].rproxyitems[item.fqdn].rproxyaltfqdn is defined %}
-	server_name {{ item.fqdn }} {{ item.altfqdn }} {{ hostvars[item.userproxyitem_fromhost].rproxyitems[item.fqdn].rproxyaltfqdn }};
-{% elif item.altfqdn is not defined and item.userproxyitem_fromhost is defined and hostvars[item.userproxyitem_fromhost].rproxyitems[item.fqdn].rproxyaltfqdn is defined %}
-	server_name {{ item.fqdn }} {{ hostvars[item.userproxyitem_fromhost].rproxyitems[item.fqdn].rproxyaltfqdn }};
+{% if vhostitem.altfqdn is defined and vhostitem.userproxyitem_fromhost is defined and hostvars[vhostitem.userproxyitem_fromhost].rproxyitems[vhostitem.fqdn].rproxyaltfqdn is not defined %}
+	server_name {{ vhostitem.fqdn }} {{ vhostitem.altfqdn }};
+{% elif vhostitem.altfqdn is defined and vhostitem.userproxyitem_fromhost is defined and hostvars[vhostitem.userproxyitem_fromhost].rproxyitems[vhostitem.fqdn].rproxyaltfqdn is defined %}
+	server_name {{ vhostitem.fqdn }} {{ vhostitem.altfqdn }} {{ hostvars[vhostitem.userproxyitem_fromhost].rproxyitems[vhostitem.fqdn].rproxyaltfqdn }};
+{% elif vhostitem.altfqdn is not defined and vhostitem.userproxyitem_fromhost is defined and hostvars[vhostitem.userproxyitem_fromhost].rproxyitems[vhostitem.fqdn].rproxyaltfqdn is defined %}
+	server_name {{ vhostitem.fqdn }} {{ hostvars[vhostitem.userproxyitem_fromhost].rproxyitems[vhostitem.fqdn].rproxyaltfqdn }};
 {% else %}
-{% if item.altfqdn is defined %}
-	server_name {{ item.fqdn }} {{ item.altfqdn }};
+{% if vhostitem.altfqdn is defined %}
+	server_name {{ vhostitem.fqdn }} {{ vhostitem.altfqdn }};
 {% else %}
-	server_name {{ item.fqdn }};
+	server_name {{ vhostitem.fqdn }};
 {% endif %}
 {% endif %}
-{% if item.maxbodysize is defined %}
-	client_max_body_size {{ item.maxbodysize }};
+{% if vhostitem.maxbodysize is defined %}
+	client_max_body_size {{ vhostitem.maxbodysize }};
 {% endif %}
-{% if item.nginx_autoindex is defined %}
-        autoindex {{ item.nginx_autoindex }};
+{% if vhostitem.nginx_autoindex is defined %}
+        autoindex {{ vhostitem.nginx_autoindex }};
 {% else %}
         autoindex off;
 {% endif %}
-{% if item.authfile is defined %}
+{% if vhostitem.authfile is defined %}
     auth_basic "Restricted Access";
-    auth_basic_user_file "{{ item.authfile }}";
+    auth_basic_user_file "{{ vhostitem.authfile }}";
 {% endif %}
-        access_log /var/log/nginx/{{ item.fqdn }}-access.log;
-        error_log /var/log/nginx/{{ item.fqdn }}-error.log;
-{% if item.root is defined %}
-        root {{ item.root }};
+        access_log /var/log/nginx/{{ vhostitem.fqdn }}-access.log;
+        error_log /var/log/nginx/{{ vhostitem.fqdn }}-error.log;
+{% if vhostitem.root is defined %}
+        root {{ vhostitem.root }};
 {% else %}
 {% if ansible_os_family == 'FreeBSD' %}
-        root /usr/local/www/{{ item.fqdn }};
+        root /usr/local/www/{{ vhostitem.fqdn }};
 {% else %}
-        root /var/www/vhosts/{{ item.fqdn }};
+        root /var/www/vhosts/{{ vhostitem.fqdn }};
 {% endif %}
-{% if item.enablewordpress is defined and item.enablewordpress %}
+{% if vhostitem.enablewordpress is defined and vhostitem.enablewordpress %}
         if (!-e $request_filename) {
                 rewrite ^(.+)$ /index.php?q=$1 last;
         }
@@ -54,7 +54,7 @@ server {
         location / {
                 index index.html index.htm index.php;
         }
-{% if item.ommitphplocation is true %}
+{% if vhostitem.ommitphplocation is true %}
 {% else %}
         location ~ \.php$  {
 {% if ansible_os_family == 'FreeBSD' %}
@@ -71,10 +71,10 @@ server {
                 fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
     }
 {% endif %}
-{% if item.additionallocations is defined %}
-{% for locationitem in item.additionallocations %}
-location {{ locationitem.location }} {
-{% for locationitemelement in locationitem.options %}
+{% if vhostitem.additionallocations is defined %}
+{% for locationitem in vhostitem.additionallocations %}
+location {{ locationvhostitem.location }} {
+{% for locationitemelement in locationvhostitem.options %}
   {{ locationitemelement }}
 {% endfor %}
 }

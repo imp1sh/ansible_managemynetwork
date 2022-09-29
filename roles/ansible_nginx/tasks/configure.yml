@@ -1,0 +1,78 @@
+---
+- name: setup main nginx.conf
+  template:
+    src: "{{ nginx_conftemplate }}"
+    dest: "{{ nginx_confdir }}/nginx.conf"
+    owner: "{{ nginx_confowner }}"
+    group: "{{ nginx_confgroup }}"
+    mode: '0744'
+- name: make sure package default vhost is absent
+  file:
+    path: "{{ nginx_confdir }}/http.d/default.conf"
+    state: absent
+- name: deploy default vhost for non-matching requests
+  template:
+    src: defaultvhost.conf.j2
+    dest: "{{ nginx_confdir }}/http.d/defaultvhost.conf"
+    owner: "{{ nginx_confowner }}"
+    group: "{{ nginx_confgroup }}"
+    mode: '0744'
+- name: Setup php fpm configuration file
+  template:
+    src: www.conf.j2
+    dest: "{{ nginx_php_fpmconfdir }}/www.conf"
+    owner: "{{ nginx_confowner }}"
+    group: "{{ nginx_confgroup }}"
+    mode: '0744'
+  when:
+    - nginx_php_enabled is defined
+    - nginx_php_enabled
+- name: Setup basic authentication
+  htpasswd:
+    path: "{{ item.authfile }}"
+    name: "{{ item.authuser }}"
+    password: "{{ item.authpassword }}"
+    owner: "{{ nginx_confowner }}"
+    group: "{{ nginx_confgroup }}"
+    mode: 0640
+  loop: "{{ nginx_authenticationitems }}"
+  when: nginx_authenticationitems is defined
+- name: copy php.ini freebsd only
+  command: cp /usr/local/etc/php.ini-production /usr/local/etc/php.ini
+  when:
+    - ansible_os_family == 'FreeBSD'
+    - nginx_php_enabled is defined
+    - nginx_php_enabled
+- name: setup individual php.ini
+  template:
+    src: freebsdphp.ini.j2
+    dest: /usr/local/etc/php/99-custom.ini
+  notify: restart phpfpm
+  when:
+    - ansible_os_family == 'FreeBSD'
+    - nginx_php_enabled is defined
+    - nginx_php_enabled
+- name: copy php.ini
+  template:
+    src: php.ini.j2
+    dest: /etc/php7/php.ini
+  notify: restart phpfpm
+  when:
+    - ansible_os_family == 'Alpine'
+    - nginx_php_enabled is defined
+    - nginx_php_enabled
+- name: Copy fastcgi_param file
+  template:
+    src: fastcgi_params.j2
+    dest: "{{ nginx_confdir }}/fastcgi_params"
+  when:
+    - nginx_php_enabled is defined
+    - nginx_php_enabled
+- name: enable php-fpm
+  service:
+    name: "{{ nginx_php_fpmservicename }}"
+    enabled: yes
+    state: started
+  when:
+    - nginx_php_enabled is defined
+    - nginx_php_enabled
