@@ -1,0 +1,19 @@
+#!/sbin/openrc-run
+
+name=$RC_SVCNAME
+description="Podman container-{{ item.name }}.service"
+command="/usr/bin/podman"
+command_args="start {{ item.name }}"
+pidfile="/run/containers/storage/overlay-containers/{{ item.name }}/userdata/conmon.pid"
+
+depend() {
+        after network-online
+        use network-online
+}
+
+stop() {
+        ebegin "Stopping $RC_SVCNAME"
+        /usr/bin/podman stop -t 1 {{ item.name }}
+        eend $?
+}
+

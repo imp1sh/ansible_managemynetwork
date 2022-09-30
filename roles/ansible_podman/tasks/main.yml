@@ -1,0 +1,28 @@
+---
+# tasks file for ansible_podman
+- name: Create networks
+  containers.podman.podman_network:
+    name: "{{ item.name }}"
+    driver: "{{ item.driver }}"
+    ipv6: "{{ item.ipv6 }}"
+  loop: "{{ podman_networks }}"
+- name: ensure podman container directories
+  ansible.builtin.file:
+    path: "{{ item.1 | split(':') | first }}"
+    state: directory
+  loop: "{{ podman_containers | subelements('volume', 'skip_missing=True') }}"
+- name: Create containers
+  containers.podman.podman_containers:
+    containers: "{{ podman_containers }}"
+- name: create openrc init file
+  ansible.builtin.template:
+    src: podman_openrc.jinja2
+    dest: /etc/init.d/podman-{{ item.name }}
+    mode: '0770'
+  loop: "{{ podman_containers }}"
+- name: enable container services
+  ansible.builtin.service:
+    name: "podman-{{ item.name }}"
+    state: started
+    enabled: yes
+  loop: "{{ podman_containers }}"
