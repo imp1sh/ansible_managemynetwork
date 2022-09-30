@@ -1,4 +1,6 @@
 # Needed packages
+dehydrated_user: "root"
+dehydrated_group: "dehydrated"
 dehydrated_packages:
   - "curl"
 dehydrated_basedir: "/etc/dehydrated"

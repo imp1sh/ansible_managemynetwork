@@ -192,3 +192,9 @@ PDNS_WAIT={{ dehydrated_pdnswait }}
 {% if dehydrated_pdnsnonotiry is defined %}
 PDNS_NO_NOTIFY={{ dehydrated_pdnsnonotify }}
 {% endif %}
+{% if dehydrated_pdnsdeploycerthook is defined %}
+PDNS_DEPLOY_CERT_HOOK="{{ dehydrated_pdnsdeploycerthook }}"
+{% endif %}
+{% if dehydrated_pdnsexithook is defined %}
+PDNS_EXIT_HOOK="{{ dehydrated_pdnsexithook }}"
+{% endif %}

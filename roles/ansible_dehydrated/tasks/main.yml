@@ -14,15 +14,69 @@
     group: root
     mode: 0755
   when: ansible_distribution == "Alpine"
-# Setup Directories and files
-- name: Setup dehydrated basedir directory
-  file:
+# Preparations
+- name: Create dehydrated group
+  ansible.builtin.group:
+    name: dehydrated
+    state: present
+- name: Add users to dehydrated group
+  ansible.builtin.user:
+    name: "{{ item }}"
+    groups: dehydrated
+    append: true
+  loop: "{{ dehydrated_users_groupadd }}"
+  when: dehydrated_users_groupadd is defined
+# create directories
+- name: ensure dehydrated basedir directory
+  ansible.builtin.file:
     path: "{{ dehydrated_basedir }}"
     state: directory
     mode: 0755
     owner: "{{ dehydrated_user }}"
     group: "{{ dehydrated_group }}"
-- name: copy dehydrated config
+- name: ensure dehydrated certs dir
+  ansible.builtin.file:
+    path: "{{ dehydrated_basedir }}/certs"
+    state: directory
+    recurse: true
+    mode: 0740
+    owner: "{{ dehydrated_user }}"
+    group: "{{ dehydrated_group }}"
+- name: ensure dehydrated wellknown path
+  ansible.builtin.file:
+    path: "{{ dehydrated_wellknown }}"
+    state: directory
+    recurse: true
+    mode: 0750
+    owner: "{{ dehydrated_user }}"
+    group: "{{ dehydrated_group }}"
+  when: dehydrated_wellknown is defined
+- name: ensure accounts directory
+  ansible.builtin.file:
+    path: "{{ dehydrated_basedir }}/accounts"
+    state: directory
+    recurse: true
+    mode: 0750
+    owner: "{{ dehydrated_user }}"
+    group: "{{ dehydrated_group }}"
+- name: ensure chains directory
+  ansible.builtin.file:
+    path: "{{ dehydrated_basedir }}/chains"
+    state: directory
+    recurse: true
+    mode: 0750
+    owner: "{{ dehydrated_user }}"
+    group: "{{ dehydrated_group }}"
+- name: ensure acme-challenges directory
+  ansible.builtin.file:
+    path: "{{ dehydrated_basedir }}/acme-challenges"
+    state: directory
+    recurse: true
+    mode: 0750
+    owner: "{{ dehydrated_user }}"
+    group: "{{ dehydrated_group }}"
+# deploy files and jobs
+- name: Install dehydrated config
   template:
     src: dehydratedconfig
     dest: "{{ dehydrated_confdir }}/config"
@@ -30,43 +84,21 @@
     group: "{{ dehydrated_group }}"
     mode: 0750
   notify: dehydrated cron
-- name: setup dehydrated wellknown path
-  file:
-    path: "{{ dehydrated_wellknown }}"
-    state: directory
+- name: Install nginx hook script
+  ansible.builtin.template:
+    src: nginxhook.sh
+    dest: "{{ dehydrated_basedir }}/nginxhook.sh"
     mode: 0750
     owner: "{{ dehydrated_user }}"
     group: "{{ dehydrated_group }}"
-  when: dehydrated_wellknown is defined
-- name: ensure accounts directory
-  file:
-    path: "{{ dehydrated_basedir }}/accounts"
-    state: directory
-    mode: 0750
-    owner: "{{ dehydrated_user }}"
-    group: "{{ dehydrated_group }}"
-- name: ensure chains directory
-  file:
-    path: "{{ dehydrated_basedir }}/chains"
-    state: directory
-    mode: 0750
-    owner: "{{ dehydrated_user }}"
-    group: "{{ dehydrated_group }}"
-- name: ensure acme-challenges directory
-  file:
-    path: "{{ dehydrated_basedir }}/acme-challenges"
-    state: directory
-    mode: 0750
-    owner: "{{ dehydrated_user }}"
-    group: "{{ dehydrated_group }}"
-- name: fetch pdns_api.sh hook script from url
+- name: Fetch pdns_api.sh hook script from url
   get_url:
     url: https://raw.githubusercontent.com/silkeh/pdns_api.sh/master/pdns_api.sh
     dest: "{{ dehydrated_basedir }}/pdns_api.sh"
     mode: 0755
     owner: "{{ dehydrated_user }}"
     group: "{{ dehydrated_group }}"
-- name: setup dehydrated domains.txt
+- name: Install dehydrated domains.txt
   template:
     src: domains.txt
     dest: "{{ dehydrated_confdir }}/domains.txt"
@@ -76,9 +108,9 @@
   notify:
     - dehydrated cron
 # Accept terms and cron
-- name: run dehydrated to accept terms
+- name: Run dehydrated to accept terms
   command: "{{ dehydrated_binpath }} --register --accept-terms"
-- name: setup dehydrated cronjob
+- name: Setup dehydrated cronjob
   cron:
     name: renew certificates dehydrated
     minute: "0"
