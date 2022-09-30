@@ -42,7 +42,7 @@
   when: psqlserver_hba is defined
   notify: restart postgres
 - name: "Setup databases"
-  ansible.builtin.postgresql_db:
+  community.general.postgresql_db:
     name: "{{ item['dbname'] }}"
   with_items:
     - "{{ psqlserver_dbs }}"
