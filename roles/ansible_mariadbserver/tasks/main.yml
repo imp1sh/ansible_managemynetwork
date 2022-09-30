@@ -8,7 +8,7 @@
 - import_tasks: debian.yml
   when: ansible_facts['os_family'] == 'Debian'
 - name: create databases
-  mysql_db:
+  community.mysql.mysql_db:
     name: "{{ mariadb_databases }}"
     state: present
     login_user: "root"
