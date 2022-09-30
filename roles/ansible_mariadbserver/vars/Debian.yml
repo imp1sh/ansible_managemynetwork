@@ -1,0 +1,6 @@
+---
+mariadbserver_packages: "mariadb-server"
+mariadbserver_packagesmyadmin: "phpmyadmin"
+mariadbserver_etcpath: "/etc/mysql/conf.d"
+mariadbserver_etcfile: "mysql.cnf"
+mariadbserver_servicename: "mysql"
