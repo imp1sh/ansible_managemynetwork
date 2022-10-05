@@ -44,6 +44,8 @@
 - name: "Setup databases"
   community.general.postgresql_db:
     name: "{{ item['dbname'] }}"
+    lc_ctype: "{{ item['lc_ctype'] | default(omit) }}"
+    lc_collate: "{{ item['lc_collate'] | default(omit) }}"
   with_items:
     - "{{ psqlserver_dbs }}"
   when: psqlserver_dbs is defined
