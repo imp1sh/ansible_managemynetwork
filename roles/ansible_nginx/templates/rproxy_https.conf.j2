@@ -4,8 +4,8 @@ server {
     listen      [::]:443 ssl;
     listen      443 ssl;
 
-    ssl_certificate {{ nginx_certpath }}/{{ rproxyitem.name }}/fullchain.pem;
-    ssl_certificate_key {{ nginx_certpath }}/{{ rproxyitem.name }}/privkey.pem;
+    ssl_certificate {{ nginx_certpath }}/{{ rproxy_certname }}/fullchain.pem;
+    ssl_certificate_key {{ nginx_certpath }}/{{ rproxy_certname }}/privkey.pem;
     ssl_protocols TLSv1.2 TLSv1.3;
 {% if rproxyitem.vhostcipher is defined %}
     ssl_ciphers {{ rproxyitem.vhostcipher }};

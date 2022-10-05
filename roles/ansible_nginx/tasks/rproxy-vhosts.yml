@@ -7,13 +7,21 @@
     group: "{{ nginx_confgroup }}"
   notify: 
     - reload nginx
+- name: "Use manually defined cert"
+  ansible.builtin.set_fact:
+    rproxy_certname: "{{ rproxyitem.usecert }}"
+  when: rproxyitem.usecert is defined
+- name: "Use rproxy main name as certname"
+  ansible.builtin.set_fact:
+    rproxy_certname: "{{ rproxyitem.name }}"
+  when: rproxyitem.usecert is not defined
 - name: "Check if rproxy item has fullchain.pem"
   ansible.builtin.stat:
-    path: "{{ nginx_certpath }}/{{ rproxyitem.name }}/fullchain.pem"
+    path: "{{ nginx_certpath }}/{{ rproxy_certname }}/fullchain.pem"
   register: rproxyitem_fullchain
 - name: "Check if rproxy item has privkey.pem"
   ansible.builtin.stat:
-    path: "{{ nginx_certpath }}/{{ rproxyitem.name }}/privkey.pem"
+    path: "{{ nginx_certpath }}/{{ rproxy_certname }}/privkey.pem"
   register: rproxyitem_privkey
 - name: "Installing nginx rproxy https item {{ rproxyitem.name }} if certs are available"
   template:

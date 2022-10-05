@@ -1,5 +1,7 @@
 ---
-- import_tasks: freebsd.yml
-  when: ansible_facts['os_family'] == 'FreeBSD'
-- import_tasks: fedora.yml
-  when: ansible_distribution == "Fedora"
+- name: include OS vars
+  include_vars: "{{ ansible_distribution }}.yml"
+- name: include install task
+  include_tasks: 1install.yml
+- name: include setup task
+  include_tasks: 2setup.yml
