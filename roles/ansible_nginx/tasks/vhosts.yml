@@ -15,4 +15,30 @@
     mode: '0744'
   notify:
     - reload nginx
-# SSL support missing, template needs to be adjusted first
+- name: "Use manually defined cert"
+  ansible.builtin.set_fact:
+    vhost_certname: "{{ vhostitem.usecert }}"
+  when: vhostitem.usecert is defined
+- name: "Use vhost main name as certname"
+  ansible.builtin.set_fact:
+    vhost_certname: "{{ vhostitem.name }}"
+  when: vhostitem.usecert is not defined
+- name: "Check if vhost item has fullchain.pem"
+  ansible.builtin.stat:
+    path: "{{ nginx_certpath }}/{{ vhost_certname }}/fullchain.pem"
+  register: vhostitem_fullchain
+- name: "Check if vhost item has privkey.pem"
+  ansible.builtin.stat:
+    path: "{{ nginx_certpath }}/{{ vhost_certname }}/privkey.pem"
+  register: vhostitem_privkey
+- name: "Installing nginx vhost https item {{ vhostitem.name }} if certs are available"
+  template:
+    src: vhost_https.conf.j2
+    dest: "{{ nginx_confdir }}/http.d/{{ vhostitem.name }}-tls.conf"
+    owner: "{{ nginx_confowner }}"
+    group: "{{ nginx_confgroup }}"
+  when:
+    - vhostitem_fullchain.stat.exists
+    - vhostitem_privkey.stat.exists
+  notify:
+    - reload nginx
