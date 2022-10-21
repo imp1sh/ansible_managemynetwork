@@ -21,7 +21,7 @@
   when: vhostitem.usecert is defined
 - name: "Use vhost main name as certname"
   ansible.builtin.set_fact:
-    vhost_certname: "{{ vhostitem.name }}"
+    vhost_certname: "{{ vhostitem.fqdn }}"
   when: vhostitem.usecert is not defined
 - name: "Check if vhost item has fullchain.pem"
   ansible.builtin.stat:
@@ -31,10 +31,10 @@
   ansible.builtin.stat:
     path: "{{ nginx_certpath }}/{{ vhost_certname }}/privkey.pem"
   register: vhostitem_privkey
-- name: "Installing nginx vhost https item {{ vhostitem.name }} if certs are available"
+- name: "Installing nginx vhost https item {{ vhostitem.fqdn }} if certs are available"
   template:
     src: vhost_https.conf.j2
-    dest: "{{ nginx_confdir }}/http.d/{{ vhostitem.name }}-tls.conf"
+    dest: "{{ nginx_confdir }}/http.d/{{ vhostitem.fqdn }}-tls.conf"
     owner: "{{ nginx_confowner }}"
     group: "{{ nginx_confgroup }}"
   when:

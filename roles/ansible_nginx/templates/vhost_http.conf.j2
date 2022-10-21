@@ -5,6 +5,7 @@ server {
 {% if vhostitem.userproxyitem_fromhost is defined and hostvars[vhostitem.userproxyitem_fromhost].rproxyitems[vhostitem.fqdn].comment is defined %}
 	# {{ hostvars[vhostitem.userproxyitem_fromhost].rproxyitems[vhostitem.fqdn].comment }}
 {% endif %}
+        listen 80;
 {% if vhostitem.ipaddress is defined %}
         listen [{{ vhostitem.ipaddress }}]:80;
 {% else %}
@@ -37,6 +38,9 @@ server {
 {% endif %}
         access_log /var/log/nginx/{{ vhostitem.fqdn }}-access.log;
         error_log /var/log/nginx/{{ vhostitem.fqdn }}-error.log;
+        location ^~ /.well-known/acme-challenge/ {
+                alias {{ nginx_wellknownpath }};
+        }	
 {% if vhostitem.root is defined %}
         root {{ vhostitem.root }};
 {% else %}
@@ -45,14 +49,14 @@ server {
 {% else %}
         root /var/www/vhosts/{{ vhostitem.fqdn }};
 {% endif %}
-{% if vhostitem.enablewordpress is defined and vhostitem.enablewordpress %}
-        if (!-e $request_filename) {
-                rewrite ^(.+)$ /index.php?q=$1 last;
-        }
-{% endif %}
 {% endif %}
         location / {
                 index index.html index.htm index.php;
+{% if vhostitem.redirectallhttps is sameas false or nginx_firstrollout %}
+                # return 301 https://$host$request_uri;
+{% else %}
+                return 301 https://$host$request_uri;
+{% endif %}
         }
 {% if vhostitem.ommitphplocation is true %}
 {% else %}
