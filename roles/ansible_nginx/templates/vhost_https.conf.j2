@@ -64,13 +64,11 @@ server {
 {% else %}
         root /var/www/vhosts/{{ vhostitem.fqdn }};
 {% endif %}
-{% if vhostitem.enablewordpress is defined and vhostitem.enablewordpress %}
-        if (!-e $request_filename) {
-                rewrite ^(.+)$ /index.php?q=$1 last;
-        }
-{% endif %}
 {% endif %}
         location / {
+{% if vhostitem.enablewordpress is defined and vhostitem.enablewordpress %}
+		try_files $uri $uri/ /index.php?q=$uri&$args;
+{% endif %}
                 index index.html index.htm index.php;
         }
 {% if vhostitem.ommitphplocation is true %}

@@ -51,6 +51,9 @@ server {
 {% endif %}
 {% endif %}
         location / {
+{% if vhostitem.enablewordpress is defined and vhostitem.enablewordpress %}
+		try_files $uri $uri/ /index.php?q=$uri&$args;
+{% endif %}
                 index index.html index.htm index.php;
 {% if vhostitem.redirectallhttps is sameas false or nginx_firstrollout %}
                 # return 301 https://$host$request_uri;
