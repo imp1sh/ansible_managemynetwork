@@ -19,7 +19,7 @@ nginx_php_fpmuser: "www"
 nginx_php_packages: "php{{ nginx_php_versionfreebsd }}, php{{ nginx_php_versionfreebsd }}-extensions, php{{ nginx_php_versionfreebsd }}-composer, php{{ nginx_php_versionfreebsd }}-gd, php{{ nginx_php_versionfreebsd }}-mysqli"
 nginx_servicename: "nginx"
 nginx_user: "www"
-nginx_wellknownpath: "/usr/local/www/dehydrated"
+nginx_wellknownpath: "/usr/local/www/dehydrated/"
 nginx_wwwdir: "/usr/local/www"
 nginx_dehydrated_binpath: "/usr/local/bin/dehydrated"
 
