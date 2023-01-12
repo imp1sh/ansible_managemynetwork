@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+
+apprisepath=/usr/local/bin/apprise
+matrixsenderuser="{{ borgmatic_apprise_user }}"
+matrixsenderpassword="{{ borgmatic_apprise_password }}"
+matrixhostname="{{ borgmatic_apprise_hostname }}"
+matrixroomid="{{ borgmatic_apprise_matrixroom }}"
+subject="Borgmatic error"
+filename_config="$1"
+reponame="$2"
+error="$3"
+$apprisepath -vv -t "${subject}" -b "config: ${filename_config} repo: ${reponame} error: ${error}" "matrixs://$matrixsenderuser:$matrixsenderpassword@$matrixhostname/$matrixroomid?format=markdown"
+

@@ -1,0 +1,6 @@
+---
+# tasks file for ansible_openwrtrestic
+- name: include OS vars                                                                                                                                                                       
+  include_vars: "{{ ansible_distribution }}.yml"    
+- name: Installation and preparation
+  include_tasks: 1install.yml

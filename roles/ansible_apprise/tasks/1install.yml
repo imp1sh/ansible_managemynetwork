@@ -1,0 +1,15 @@
+---
+- name: Install apprise
+  ansible.builtin.package:
+    name: "{{ packagepip }}"
+    state: present
+- name: install apprise via pip
+  ansible.builtin.pip:
+    name: "{{ packageapprisepip }}"
+- name: install borgmatic template (optional)
+  ansible.builtin.template:
+    src: apprise_borgmatic.sh.jinja2
+    dest: "{{ path_apprise_script }}/apprise_borgmatic.sh"
+    mode: 0750
+    owner: root
+  when: borgmatic_apprise
