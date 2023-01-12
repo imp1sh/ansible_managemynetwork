@@ -47,8 +47,14 @@ retention:
     keep_yearly: {{ borgmatic_keepyearly }}
 {% endif %}
 
-{% if borgmatic_postgresdbs is defined or borgmatic_mysqldbs is defined %}
+{% if borgmatic_postgresdbs is defined or borgmatic_mysqldbs is defined or borgmatic_hooks_on_error is defined %}
 hooks:
+{% endif %}
+{% if borgmatic_hooks_on_error is defined %}
+  on_error:
+{% for errorhook in borgmatic_hooks_on_error %}
+    - {{ errorhook }}
+{% endfor %}
 {% endif %}
 {% if borgmatic_postgresdbs is defined %}
   postgresql_databases:

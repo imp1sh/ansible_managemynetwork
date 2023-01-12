@@ -1,6 +1,6 @@
 ---
 - name: Install borg backup package
-  package:
+  ansible.builtin.package:
     name: "{{ borgmatic_packagename_borg }}"
     state: present
 # Alpine specific
@@ -20,28 +20,32 @@
   when: ansible_os_family == "Alpine"
 # FreeBSD specific
 - name: FreeBSD install borgmatic requirements
-  package:
+  ansible.builtin.package:
     name: "{{ borgmatic_packagename_jsonschema }}"
     state: present
   when: ansible_os_family == "FreeBSD"
 - name: FreeBSD install borgmatic
-  package:
+  ansible.builtin.package:
     name: "{{ borgmatic_packagename_borgmatic }}"
     state: present
   when: ansible_os_family == "FreeBSD"
 # Debian specific
 - name: Debian / Ubuntu install borgmatic
-  package:
+  ansible.builtin.package:
     name: "{{ borgmatic_packagename_borgmatic }}"
     state: present
   when: ansible_os_family == "Debian"
 # Fedora specific
 - name: Fedora install borgmatic
-  package:
+  ansible.builtin.package:
     name: "{{ borgmatic_packagename_borgmatic }}"
     state: present
   when: ansible_distribution == "Fedora"
 # All
+- name: Install apprise if needed
+  ansible.builtin.include_role:
+    name: imp1sh.ansible_managemynetwork.ansible_apprise
+  when: borgmatic_apprise
 - name: Make sure borgmatic config dir exists
   file:
     path: "{{ borgmatic_pathconfig }}"
