@@ -1,0 +1,4 @@
+---
+- name: check if group fits
+  ansible.builtin.include_tasks: justdoit.yml
+  when: groupname in group_names

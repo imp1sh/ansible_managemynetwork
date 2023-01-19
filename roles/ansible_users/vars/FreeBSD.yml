@@ -1,0 +1,6 @@
+---
+shells:
+  zsh: "/usr/local/bin/zsh"
+  sh: "/bin/sh"
+  bash: "/usr/local/bin/bash"
+  fish: "/usr/local/bin/fish"

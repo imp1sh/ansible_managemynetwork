@@ -1,0 +1,19 @@
+---
+- name: show user iteration
+  debug:
+    var: user.name
+- name: set users shell for this OS
+  set_fact:
+    usershell: "{{ shells[user.shell] }}"
+  when: user.shell is defined
+- name: check if the host is in the list
+  ansible.builtin.include_tasks: "justdoit.yml"
+  when:
+    - user.createonhosts is defined
+    - inventory_hostname in user.createonhosts
+- name: check if the group associates with host
+  ansible.builtin.include_tasks: "checkgroup.yml"
+  when: user.createonhost_bygroup is defined
+  loop: "{{ user.createonhost_bygroup }}"
+  loop_control:
+    loop_var: groupname
