@@ -1,11 +1,12 @@
 ---
-- import_tasks: alpine.yml
-  when: ansible_facts['os_family'] == 'Alpine'
-- import_tasks: redhat.yml
-  when: ansible_facts['os_family'] == 'RedHat'
-- import_tasks: freebsd.yml
-  when: ansible_facts['os_family'] == 'FreeBSD'
-- import_tasks: debian.yml
-  when: ansible_facts['os_family'] == 'Debian'
-- import_tasks: openwrt.yml
-  when: ansible_facts['os_family'] == 'OpenWrt'
+- name: prepare install variables
+  include_tasks: "1prepare_install.yml"
+- name: prepare install variables
+  include_tasks: "2prepare_remove.yml"
+- name: updating caches if possible
+  include_tasks: "3cache.yml"
+- name: Remove tasks
+  include_tasks: "4remove.yml"
+- name: Install tasks
+  include_tasks: "5install.yml"
+
