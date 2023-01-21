@@ -1,0 +1,11 @@
+---
+- name: List of packages to be installed
+  debug:
+    var: flatpak_install
+- name: Install packages
+  community.general.flatpak:
+    name: "{{ flatpak_install }}"
+    state: present
+  when:
+    - flatpak_install is defined
+    - flatpak_install != ""

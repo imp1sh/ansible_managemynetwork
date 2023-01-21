@@ -1,0 +1,64 @@
+---
+# Prepare first phase
+- name: Merge flatpak_install from all groups this host is a member of
+  ansible.builtin.set_fact:
+    flatpak_installmergedgroup: "{{ flatpak_installgroup.keys() | list | intersect(group_names) | map('extract', flatpak_installgroup) | list | flatten }}"
+  when: flatpak_installgroup is defined
+- name: Set separator
+  ansible.builtin.set_fact:
+    flatpak_separator: ','
+# Prepare second phase. There are 8 possibilities on how role, group based or host based vars can be set
+# Variant H is where none is set so no action for this
+- name: Variant A - Merge role/host/group
+  ansible.builtin.set_fact:
+    flatpak_install: "{{ flatpak_installhost + flatpak_installmergedgroup + flatpak_installrole }}"
+  when:
+    - flatpak_installmergedgroup is defined
+    - flatpak_installhost is defined
+    - flatpak_installrole is defined
+- name: Variant B - Merge Group and Host
+  ansible.builtin.set_fact:
+    flatpak_install: "{{ flatpak_installhost + flatpak_installmergedgroup }}"
+  when:
+    - flatpak_installmergedgroup is defined
+    - flatpak_installhost is defined
+    - flatpak_installrole is not defined
+- name: Variant C - Merge Host and Role
+  ansible.builtin.set_fact:
+    flatpak_install: "{{ flatpak_installhost + flatpak_installrole }}"
+  when:
+    - flatpak_installmergedgroup is not defined
+    - flatpak_installhost is defined
+    - flatpak_installrole is defined
+- name: Variant D - Only host set
+  ansible.builtin.set_fact:
+    flatpak_install: "{{ flatpak_installhost }}"
+  when:
+    - flatpak_installmergedgroup is not defined
+    - flatpak_installhost is defined
+    - flatpak_installrole is not defined
+- name: Variant E - Merge Group and Role
+  ansible.builtin.set_fact:
+    flatpak_install: "{{ flatpak_installmergedgroup + flatpak_installrole }}"
+  when:
+    - flatpak_installmergedgroup is defined
+    - flatpak_installhost is not defined
+    - flatpak_installrole is defined
+- name: Variant F - Only group set
+  ansible.builtin.set_fact:
+    flatpak_install: "{{ flatpak_installmergedgroup }}"
+  when:
+    - flatpak_installmergedgroup is defined
+    - flatpak_installhost is not defined
+    - flatpak_installrole is not defined
+- name: Variant G - Only role set
+  ansible.builtin.set_fact:
+    flatpak_install: "{{ flatpak_installrole }}"
+  when:
+    - flatpak_installmergedgroup is not defined
+    - flatpak_installhost is not defined
+    - flatpak_installrole is defined
+- name: Convert List to string
+  ansible.builtin.set_fact:
+    flatpak_install: "{{ flatpak_install | join(flatpak_separator) }}"
+  when: flatpak_install is defined
