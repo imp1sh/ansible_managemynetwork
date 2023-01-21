@@ -1,0 +1,64 @@
+---
+# Prepare first phase
+- name: Merge packages_remove from all groups this host is a member of
+  ansible.builtin.set_fact:
+    packages_removemergedgroup: "{{ packages_removegroup.keys() | list | intersect(group_names) | map('extract', packages_removegroup) | list | flatten }}"
+  when: packages_removegroup is defined
+- name: Set separator
+  ansible.builtin.set_fact:
+    packages_separator: ','
+# Prepare second phase. There are 8 possibilities on how role, group based or host based vars can be set
+# Variant H is where none is set so no action for this
+- name: Variant A - Merge role/host/group
+  ansible.builtin.set_fact:
+    packages_remove: "{{ packages_removehost + packages_removemergedgroup + packages_removerole }}"
+  when:
+    - packages_removemergedgroup is defined
+    - packages_removehost is defined
+    - packages_removerole is defined
+- name: Variant B - Merge Group and Host
+  ansible.builtin.set_fact:
+    packages_remove: "{{ packages_removehost + packages_removemergedgroup }}"
+  when:
+    - packages_removemergedgroup is defined
+    - packages_removehost is defined
+    - packages_removerole is not defined
+- name: Variant C - Merge Host and Role
+  ansible.builtin.set_fact:
+    packages_remove: "{{ packages_removehost + packages_removerole }}"
+  when:
+    - packages_removemergedgroup is not defined
+    - packages_removehost is defined
+    - packages_removerole is defined
+- name: Variant D - Only host set
+  ansible.builtin.set_fact:
+    packages_remove: "{{ packages_removehost }}"
+  when:
+    - packages_removemergedgroup is not defined
+    - packages_removehost is defined
+    - packages_removerole is not defined
+- name: Variant E - Merge Group and Role
+  ansible.builtin.set_fact:
+    packages_remove: "{{ packages_removemergedgroup + packages_removerole }}"
+  when:
+    - packages_removemergedgroup is defined
+    - packages_removehost is not defined
+    - packages_removerole is defined
+- name: Variant F - Only group set
+  ansible.builtin.set_fact:
+    packages_remove: "{{ packages_removemergedgroup }}"
+  when:
+    - packages_removemergedgroup is defined
+    - packages_removehost is not defined
+    - packages_removerole is not defined
+- name: Variant G - Only role set
+  ansible.builtin.set_fact:
+    packages_remove: "{{ packages_removerole }}"
+  when:
+    - packages_removemergedgroup is not defined
+    - packages_removehost is not defined
+    - packages_removerole is defined
+- name: Convert List to string
+  ansible.builtin.set_fact:
+    packages_remove: "{{ packages_remove | join(packages_separator) }}"
+  when: packages_remove is defined

@@ -1,0 +1,11 @@
+---
+- name: List of packages to be installed
+  debug:
+    var: packages_install
+- name: Install packages
+  ansible.builtin.package:
+    name: "{{ packages_install }}"
+    state: present
+  when:
+    - packages_install is defined
+    - packages_install != ""

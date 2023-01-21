@@ -1,0 +1,17 @@
+---
+- name: Updating cache Alpine
+  community.general.apk:
+    update_cache: true
+  when: ansible_distribution == "Alpine"
+- name: Updating cache Debian based OS
+  ansible.builtin.apt:
+    update_cache: true
+  when: ansible_os_family == "Debian"
+- name: Updating cache Arch based OS
+  community.general.pacman:
+    update_cache: true
+  when: ansible_os_family == "ArchLinux"
+- name: Updating cache RedHat based OS
+  ansible.builtin.dnf:
+    update_cache: true
+  when: (ansible_os_family == "RedHat") 

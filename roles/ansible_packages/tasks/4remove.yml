@@ -1,0 +1,11 @@
+---
+- name: List of packages to be removed
+  debug:
+    var: packages_remove
+- name: Uninstall packages
+  ansible.builtin.package:
+    name: "{{ packages_remove }}"
+    state: absent
+  when:
+    - packages_remove is defined
+    - packages_remove != ""
