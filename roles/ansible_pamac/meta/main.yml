@@ -1,0 +1,25 @@
+galaxy_info:
+  role_name: imp1sh.ansible_managemynetwork.ansible_pamac
+  author: imp1sh
+  company: Libcom.de
+  description: Install pamac and set it up so the AUR repo gets available in Manjaro Linux
+  license: license (BSD, MIT)
+  min_ansible_version: 2.9
+  platforms:
+  - name: Manjaro
+    version:
+    - all
+
+  galaxy_tags:
+  - Manjaro
+  - pamac
+  - AUR
+
+dependencies:
+  - role: imp1sh.ansible_managemynetwork.ansible_packages
+    vars:
+      packages_installrole:
+        - "pamac-gnome-integration"
+        - "pamac-gtk"
+        - "libpamac"
+        - "pamac-cli"

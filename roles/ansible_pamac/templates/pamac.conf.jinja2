@@ -1,0 +1,103 @@
+### Pamac configuration file
+
+## When removing a package, also remove those dependencies
+## that are not required by other packages (recurse option):
+{% if pamac_RemoveUnrequiredDeps %}
+RemoveUnrequiredDeps
+{% else %}
+#RemoveUnrequiredDeps
+{% endif %}
+
+## How often to check for updates, value in hours (0 to disable):
+RefreshPeriod = {{ pamac_RefreshPeriod }}
+
+## When no update is available, hide the tray icon:
+{% if pamac_NoUpdateHideIcon %}
+NoUpdateHideIcon
+{% else %}
+#NoUpdateHideIcon
+{% endif %}
+
+## When applying updates, enable packages downgrade:
+{% if pamac_EnableDowngrade %}
+EnableDowngrade
+{% else %}
+#EnableDowngrade
+{% endif %}
+
+## When installing packages, do not check for updates:
+{% if pamac_SimpleInstall %}
+SimpleInstall
+{% else %}
+#SimpleInstall
+{% endif %}
+
+## Allow Pamac to search and install packages from AUR:
+{% if pamac_EnableAUR %}
+EnableAUR
+{% else %}
+#EnableAUR
+{% endif %}
+
+## Keep built packages from AUR in cache after installation:
+{% if pamac_KeepBuiltPkgs %}
+KeepBuiltPkgs
+{% else %}
+#KeepBuiltPkgs
+{% endif %}
+
+## When AUR support is enabled check for updates from AUR:
+{% if pamac_CheckAURUpdates %}
+CheckAURUpdates
+{% else %}
+#CheckAURUpdates
+{% endif %}
+
+## When check updates from AUR support is enabled check for vcs updates:
+{% if pamac_CheckAURVCSUpdates %}
+CheckAURVCSUpdates
+{% else %}
+#CheckAURVCSUpdates
+{% endif %}
+
+## AUR build directory:
+BuildDirectory = {{ pamac_BuildDirectory | default('/var/tmp', true) }}
+
+## Number of versions of each package to keep when cleaning the packages cache:
+KeepNumPackages = {{ pamac_KeepNumPackages | default('3', true) }}
+
+## Remove only the versions of uninstalled packages when cleaning the packages cache:
+{% if pamac_OnlyRmUninstalled %}
+OnlyRmUninstalled
+{% else %}
+#OnlyRmUninstalled
+{% endif %}
+
+## Download updates in background:
+{% if pamac_DownloadUpdates %}
+DownloadUpdates
+{% else %}
+#DownloadUpdates
+{% endif %}
+
+## Maximum Parallel Downloads:
+MaxParallelDownloads = {{ pamac_MaxParallelDownloads | default('4') }}
+
+## Snap Plugin
+{% if pamac_EnableSnap %}
+EnableSnap
+{% else %}
+#EnableSnap
+{% endif %}
+
+## Flatpak Plugin
+{% if pamac_EnableFlatpak %}
+EnableFlatpak
+{% else %}
+#EnableFlatpak
+{% endif %}
+{% if pamac_CheckFlatpakUpdates %}
+CheckFlatpakUpdates
+{% else %}
+#CheckFlatpakUpdates
+{% endif %}

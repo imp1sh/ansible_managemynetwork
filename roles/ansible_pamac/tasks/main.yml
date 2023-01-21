@@ -1,0 +1,17 @@
+---
+# tasks file for ansible_pamac
+- name: Option snap for pamac
+  ansible.builtin.set_fact:
+    packages_installrole: "{{ packages_installrole + ['libpamac-snap-plugin'] }}"
+  when: pamac_EnableSnap
+- name: Option flatpak for pamac
+  ansible.builtin.set_fact:
+    packages_installrole: "{{ packages_installrole + ['libpamac-flatpak-plugin'] }}"
+  when: pamac_EnableFlatpak
+- name: Deploy pamac.conf via template
+  ansible.builtin.template:
+    src: pamac.conf.jinja2
+    dest: /etc/pamac.conf
+- name: install additional packages for snap or flatpak
+  ansible.builtin.include_role:
+    name: imp1sh.ansible_managemynetwork.ansible_packages

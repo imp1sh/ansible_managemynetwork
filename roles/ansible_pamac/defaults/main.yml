@@ -1,0 +1,16 @@
+---
+# defaults file for ansible_flatpak
+pamac_RemoveUnrequiredDeps: false
+pamac_RefreshPeriod: 6
+pamac_NoUpdateHideIcon: false
+pamac_EnableDowngrade: false
+pamac_SimpleInstall: false
+pamac_EnableAUR: true
+pamac_KeepBuiltPkgs: false
+pamac_CheckAURUpdates: true
+pamac_CheckAURVCSUpdates: false
+pamac_OnlyRmUninstalled: false
+pamac_DownloadUpdates: false
+pamac_EnableFlatpak: false
+pamac_EnableSnap: false
+pamac_CheckFlatpakUpdates: false
