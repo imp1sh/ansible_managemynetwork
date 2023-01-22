@@ -6,6 +6,4 @@
   ansible.builtin.package:
     name: "{{ packages_install }}"
     state: present
-  when:
-    - packages_install is defined
-    - packages_install != ""
+  when: packages_install

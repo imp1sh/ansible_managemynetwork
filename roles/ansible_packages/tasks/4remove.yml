@@ -6,6 +6,4 @@
   ansible.builtin.package:
     name: "{{ packages_remove }}"
     state: absent
-  when:
-    - packages_remove is defined
-    - packages_remove != ""
+  when: packages_remove

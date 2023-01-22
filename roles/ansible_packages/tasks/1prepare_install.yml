@@ -4,61 +4,6 @@
   ansible.builtin.set_fact:
     packages_installmergedgroup: "{{ packages_installgroup.keys() | list | intersect(group_names) | map('extract', packages_installgroup) | list | flatten }}"
   when: packages_installgroup is defined
-- name: Set separator
-  ansible.builtin.set_fact:
-    packages_separator: ','
-# Prepare second phase. There are 8 possibilities on how role, group based or host based vars can be set
-# Variant H is where none is set so no action for this
-- name: Variant A - Merge role/host/group
-  ansible.builtin.set_fact:
-    packages_install: "{{ packages_installhost + packages_installmergedgroup + packages_installrole }}"
-  when:
-    - packages_installmergedgroup is defined
-    - packages_installhost is defined
-    - packages_installrole is defined
-- name: Variant B - Merge Group and Host
-  ansible.builtin.set_fact:
-    packages_install: "{{ packages_installhost + packages_installmergedgroup }}"
-  when:
-    - packages_installmergedgroup is defined
-    - packages_installhost is defined
-    - packages_installrole is not defined
-- name: Variant C - Merge Host and Role
-  ansible.builtin.set_fact:
-    packages_install: "{{ packages_installhost + packages_installrole }}"
-  when:
-    - packages_installmergedgroup is not defined
-    - packages_installhost is defined
-    - packages_installrole is defined
-- name: Variant D - Only host set
-  ansible.builtin.set_fact:
-    packages_install: "{{ packages_installhost }}"
-  when:
-    - packages_installmergedgroup is not defined
-    - packages_installhost is defined
-    - packages_installrole is not defined
-- name: Variant E - Merge Group and Role
-  ansible.builtin.set_fact:
-    packages_install: "{{ packages_installmergedgroup + packages_installrole }}"
-  when:
-    - packages_installmergedgroup is defined
-    - packages_installhost is not defined
-    - packages_installrole is defined
-- name: Variant F - Only group set
-  ansible.builtin.set_fact:
-    packages_install: "{{ packages_installmergedgroup }}"
-  when:
-    - packages_installmergedgroup is defined
-    - packages_installhost is not defined
-    - packages_installrole is not defined
-- name: Variant G - Only role set
-  ansible.builtin.set_fact:
-    packages_install: "{{ packages_installrole }}"
-  when:
-    - packages_installmergedgroup is not defined
-    - packages_installhost is not defined
-    - packages_installrole is defined
-- name: Convert List to string
-  ansible.builtin.set_fact:
-    packages_install: "{{ packages_install | join(packages_separator) }}"
-  when: packages_install is defined
+- name: combine lists into packages_install var
+  ansible.builtin.set_fact: 
+    packages_install: "{{ [packages_installmergedgroup, packages_installhost, packages_installrole] | select('defined') | flatten | unique }}"
