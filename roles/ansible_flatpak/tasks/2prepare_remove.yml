@@ -4,61 +4,6 @@
   ansible.builtin.set_fact:
     flatpak_removemergedgroup: "{{ flatpak_removegroup.keys() | list | intersect(group_names) | map('extract', flatpak_removegroup) | list | flatten }}"
   when: flatpak_removegroup is defined
-- name: Set separator
-  ansible.builtin.set_fact:
-    flatpak_separator: ','
-# Prepare second phase. There are 8 possibilities on how role, group based or host based vars can be set
-# Variant H is where none is set so no action for this
-- name: Variant A - Merge role/host/group
-  ansible.builtin.set_fact:
-    flatpak_remove: "{{ flatpak_removehost + flatpak_removemergedgroup + flatpak_removerole }}"
-  when:
-    - flatpak_removemergedgroup is defined
-    - flatpak_removehost is defined
-    - flatpak_removerole is defined
-- name: Variant B - Merge Group and Host
-  ansible.builtin.set_fact:
-    flatpak_remove: "{{ flatpak_removehost + flatpak_removemergedgroup }}"
-  when:
-    - flatpak_removemergedgroup is defined
-    - flatpak_removehost is defined
-    - flatpak_removerole is not defined
-- name: Variant C - Merge Host and Role
-  ansible.builtin.set_fact:
-    flatpak_remove: "{{ flatpak_removehost + flatpak_removerole }}"
-  when:
-    - flatpak_removemergedgroup is not defined
-    - flatpak_removehost is defined
-    - flatpak_removerole is defined
-- name: Variant D - Only host set
-  ansible.builtin.set_fact:
-    flatpak_remove: "{{ flatpak_removehost }}"
-  when:
-    - flatpak_removemergedgroup is not defined
-    - flatpak_removehost is defined
-    - flatpak_removerole is not defined
-- name: Variant E - Merge Group and Role
-  ansible.builtin.set_fact:
-    flatpak_remove: "{{ flatpak_removemergedgroup + flatpak_removerole }}"
-  when:
-    - flatpak_removemergedgroup is defined
-    - flatpak_removehost is not defined
-    - flatpak_removerole is defined
-- name: Variant F - Only group set
-  ansible.builtin.set_fact:
-    flatpak_remove: "{{ flatpak_removemergedgroup }}"
-  when:
-    - flatpak_removemergedgroup is defined
-    - flatpak_removehost is not defined
-    - flatpak_removerole is not defined
-- name: Variant G - Only role set
-  ansible.builtin.set_fact:
-    flatpak_remove: "{{ flatpak_removerole }}"
-  when:
-    - flatpak_removemergedgroup is not defined
-    - flatpak_removehost is not defined
-    - flatpak_removerole is defined
-- name: Convert List to string
-  ansible.builtin.set_fact:
-    flatpak_remove: "{{ flatpak_remove | join(flatpak_separator) }}"
-  when: flatpak_remove is defined
+- name: combine lists into flatpak_remove var
+  ansible.builtin.set_fact: 
+    flatpak_remove: "{{ [flatpak_removemergedgroup, flatpak_removehost, flatpak_removerole] | select('defined') | flatten | unique }}"

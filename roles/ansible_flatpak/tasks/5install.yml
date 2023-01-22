@@ -6,6 +6,4 @@
   community.general.flatpak:
     name: "{{ flatpak_install }}"
     state: present
-  when:
-    - flatpak_install is defined
-    - flatpak_install != ""
+  when: flatpak_install

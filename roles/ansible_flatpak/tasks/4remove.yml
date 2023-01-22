@@ -6,6 +6,4 @@
   ansible.builtin.package:
     name: "{{ flatpak_remove }}"
     state: absent
-  when:
-    - flatpak_remove is defined
-    - flatpak_remove != ""
+  when: flatpak_remove
