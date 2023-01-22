@@ -11,3 +11,5 @@ domainsearch: "demo.ansible.com"
 
 ```
 domainsearch is optional
+
+This is not suited for systems using NetworkManager.
