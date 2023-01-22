@@ -1,6 +1,11 @@
 ---
 shells:
-  zsh: "/usr/bin/zsh"
-  sh: "/usr/bin/sh"
-  bash: "/usr/bin/bash"
-  fish: "/usr/bin/fish"
+  zsh: "/bin/zsh"
+  sh: "/bin/sh"
+  bash: "/bin/bash"
+  fish: "/bin/fish"
+shellpackages:
+  zsh: "zsh"
+  sh: "bash"
+  bash: "bash"
+  fish: "fish"

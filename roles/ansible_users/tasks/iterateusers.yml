@@ -1,7 +1,15 @@
 ---
-- name: show user iteration
+- name: Showing current user
   debug:
     var: user.name
+- name: Set fact for package install
+  ansible.builtin.set_fact:
+    packages_installrole: "{{ shellpackages[user.shell] }}"
+  when: user.shell is defined
+- name: Install package for shell
+  ansible.builtin.include_role:
+    name: imp1sh.ansible_managemynetwork.ansible_packages
+  when: user.shell is defined
 - name: set users shell for this OS
   set_fact:
     usershell: "{{ shells[user.shell] }}"

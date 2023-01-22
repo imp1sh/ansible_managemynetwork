@@ -9,7 +9,7 @@
     force: "{{ user.force | default('false', true) }}"
     generate_ssh_key: "{{ user.generate_ssh_key | default('false', true) }}"
     group: "{{ user.group | default(omit, true) }}"
-    groups: "{{ user.groups | default(omit) }}"
+    groups: "{{ user['groups_byhostname'][inventory_hostname] | default(omit) }}"
     home: "{{ user.home | default(omit, true) }}"
     local: "{{ user.local | default(omit, true) }}"
     login_class: "{{ user.login_class | default(omit) }}"
