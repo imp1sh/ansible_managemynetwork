@@ -1,0 +1,8 @@
+chronyd_packagename: "chrony"
+chronyd_pathconfig: "/etc"
+chronyd_fileconfig: "chrony.conf"
+chronyd_servicename: "chronyd"
+chronyd_filetemplate: "chrony.conf.j2"
+chronyd_config_driftfile: "/var/lib/chrony/drift"
+chronyd_fileowner: "root"
+chronyd_filegroup: "root"

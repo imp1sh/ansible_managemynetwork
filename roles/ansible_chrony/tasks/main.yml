@@ -1,10 +1,12 @@
 ---
 - name: include OS vars
   include_vars: "{{ ansible_distribution }}.yml"
-- name: Install chrony package
-  ansible.builtin.package:
-    name: "{{ chronyd_packagename }}"
-    state: present
+- name: Set package name for calling packages role
+  ansible.builtin.set_fact:
+    packages_installrole: "{{ chronyd_packagename }}"
+- name: install additional packages for snap or flatpak
+  ansible.builtin.include_role:
+    name: imp1sh.ansible_managemynetwork.ansible_packages
 - name: setup conf.d dir for non ansible config options
   file:
     path: "{{ chronyd_pathconfig }}/{{ chronyd_config_includedir }}"
@@ -12,11 +14,18 @@
     owner: "{{ chronyd_fileowner }}"
     group: "{{ chronyd_filegroup }}"
     mode: 0755
+  when: chronyd_config_includedir is defined
 - name: Implant chrony configuration file
   ansible.builtin.template:
     src: "{{ chronyd_filetemplate }}"
     dest: "{{ chronyd_pathconfig }}/{{ chronyd_fileconfig }}"
   notify: restart chronyd
+- name: Disable systemd-timesyncd
+  ansible.builtin.service:
+    name: systemd-timesyncd
+    state: stopped
+    enabled: no
+  when: ansible_service_mgr == "systemd"
 - name: Enable chrony service
   ansible.builtin.service:
     name: "{{ chronyd_servicename }}"

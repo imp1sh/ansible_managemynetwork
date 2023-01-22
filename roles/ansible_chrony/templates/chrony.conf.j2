@@ -169,4 +169,6 @@ driftfile {{ chronyd_config_driftfile }}
 # run-time monitoring port
 cmdport {{ chronyd_config_cmdport | default('0', true) }}
 # include config parameters not controlled by Ansible
+{% if chronyd_config_includedir is defined %}
 include {{ chronyd_pathconfig }}/{{ chronyd_config_includedir }}/*.conf
+{% endif %}
