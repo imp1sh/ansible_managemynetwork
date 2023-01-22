@@ -9,5 +9,7 @@
   when: ansible_facts['os_family'] == 'Debian'
 - import_tasks: commonlinux.yml
   when: ansible_facts['os_family'] == 'FreeBSD'
+- import_tasks: commonlinux.yml
+  when: ansible_facts['os_family'] == 'Archlinux'
 - import_tasks: openwrt.yml
   when: ansible_facts['os_family'] == 'OpenWrt'
