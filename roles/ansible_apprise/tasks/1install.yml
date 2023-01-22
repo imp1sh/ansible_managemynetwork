@@ -6,6 +6,9 @@
 - name: install apprise via pip
   ansible.builtin.pip:
     name: "{{ packageapprisepip }}"
+- name: Get apprise path
+  ansible.builtin.command: which apprise
+  register: apprisequery
 - name: install borgmatic template (optional)
   ansible.builtin.template:
     src: apprise_borgmatic.sh.jinja2
