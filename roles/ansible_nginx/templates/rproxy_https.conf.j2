@@ -22,6 +22,11 @@ server {
     add_header X-Frame-Options DENY;
     add_header X-Content-Type-Options nosniff;
     add_header X-XSS-Protection "1; mode=block";
+{% if rproxyitem.addheaders is defined %}
+{% for header in rproxyitem.addheaders %}
+   add_header {{ header }};
+{% endfor %}
+{% endif %}
 {% if rproxyitem.rproxyaltfqdn is defined %}
     server_name {{ rproxyitem.name }} {{ rproxyitem.rproxyaltfqdn }};
 {% else %}
