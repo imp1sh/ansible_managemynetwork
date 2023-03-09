@@ -1,0 +1,5 @@
+---
+# tasks file for ansible_sudoers
+- name: include OS vars
+  include_vars: "{{ ansible_distribution }}.yml"
+
