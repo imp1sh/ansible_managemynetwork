@@ -1,0 +1,7 @@
+---
+syncthing_required_packages:
+  - "py3-lxml"
+syncthing_packages:
+  - "syncthing"
+  - "syncthing-utils"
+syncthing_init: "openrc"
