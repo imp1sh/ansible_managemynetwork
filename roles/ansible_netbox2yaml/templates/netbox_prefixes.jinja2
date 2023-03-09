@@ -1,22 +1,21 @@
 ---
-{% if netbox_prefixes_4 is defined %}
-netbox_prefixes_4:
-{% for key, value in netbox_prefixes_4.items() %}
+{% if netbox_prefixes is defined %}
+netbox_prefixes:
+{% for key, value in netbox_prefixes.items() %}
 {% if key %}
   {{ key }}:
-    prefix: {{ value.prefix }}
+{% if value.4 is defined %}
+    "4":
+      prefix: {{ value.4.prefix }}
 {% endif %}
-{% endfor %}
+{% if value.6 is defined %}
+    "6":
+{% if value.6.prefix.gua is defined %}
+      gua: {{ value.6.prefix.gua }}
 {% endif %}
-{% if netbox_prefixes_6 is defined %}
-netbox_prefixes_6:
-{% for key, value in netbox_prefixes_6.items() %}
-{% if key %}
-  {{ key }}:
-{% if value.prefix_ula is defined %}
-    prefix_ula: {{ value.prefix_ula }}
-{% elif value.prefix_gua is defined %}
-    prefix_gua: {{ value.prefix_gua }}"
+{% if value.6.prefix.ula is defined %}
+      ula: {{ value.6.prefix.ula }}
+{% endif %}
 {% endif %}
 {% endif %}
 {% endfor %}
