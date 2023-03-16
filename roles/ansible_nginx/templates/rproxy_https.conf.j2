@@ -7,10 +7,10 @@ server {
     ssl_certificate {{ nginx_certpath }}/{{ rproxy_certname }}/fullchain.pem;
     ssl_certificate_key {{ nginx_certpath }}/{{ rproxy_certname }}/privkey.pem;
     ssl_protocols TLSv1.2 TLSv1.3;
-{% if rproxyitem.vhostcipher is defined %}
-    ssl_ciphers {{ rproxyitem.vhostcipher }};
+{% if rproxyitem.rproxycipher is defined %}
+    ssl_ciphers {{ rproxyitem.rproxycipher }};
 {% else %}
-    ssl_ciphers {{ nginx_vhostcipher }};
+    ssl_ciphers {{ nginx_rproxycipher }};
 {% endif %}
     ssl_ecdh_curve secp384r1;
     ssl_session_timeout 10m;
