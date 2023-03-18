@@ -1,0 +1,2 @@
+elemente in dict nur setzen, wenn sie auch aus netbox kommen, damit ich im template einfach überprüfen kann, ob ich sie dort setzen muss. In Dict Erstellung dazu if-condition nutzen
+Dict Erstellung multiline machen, damit es übersichtlicher ist

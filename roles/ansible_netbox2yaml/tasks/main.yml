@@ -1,32 +1,10 @@
 ---
 # tasks file for ansible_netbox2yaml
-# This is a prototype of querying netbox prefixes in order to make them accessible during ansible runs
-# On the bottom there is an example of how to access a prefix by it's name. The name is being formed by a custom field
-# The custom Field needs to carry the name ansible_identifier
-- name: "Fetching All IPv4 Prefixes"
-  ansible.builtin.set_fact:
-    prefixes4: "{{ query('netbox.netbox.nb_lookup', 'prefixes', api_filter='family=4', api_endpoint=NETBOX_URL, token=NETBOX_TOKEN) }}"
-- name: "Fetching All IPv6 Prefixes"
-  set_fact:
-    prefixes6: "{{ query('netbox.netbox.nb_lookup', 'prefixes', api_filter='family=6', api_endpoint=NETBOX_URL, token=NETBOX_TOKEN) }}"
-- name: debug
-  debug:
-    var: prefixes6
-- name: "Writing found IPv4 prefixes into netbox_prefixes"
-  ansible.builtin.set_fact:
-    netbox_prefixes: "{{ netbox_prefixes | default({}) | combine( { item.name: { 4: { 'prefix': item.prefix }}} ) }}"
-  loop: "{{ prefixes4 | community.general.json_query('[*].value.{name: custom_fields.ansible_identifier, prefix: prefix}') }}"
-- name: "Writing found IPv6 ULA prefixes into netbox_prefixes"
-  ansible.builtin.set_fact:
-    netbox_prefixes: "{{ netbox_prefixes | default({}) | combine( {item.name: { 6: { 'prefix': { 'ula': item.prefix }}}}, recursive=true ) }}"
-  loop: "{{ prefixes6 | community.general.json_query('[*].value.{name: custom_fields.ansible_identifier, prefix: prefix}') }}"
-  when: item.prefix | ansible.utils.ipv6('address') is ansible.utils.in_network( 'fc00::/7' )
-- name: "Writing found IPv6 GUA prefixes into netbox_prefixes"
-  ansible.builtin.set_fact:
-    netbox_prefixes: "{{ netbox_prefixes | default({}) | combine( {item.name: { 6: { 'prefix': { 'gua': item.prefix }}}}, recursive=true ) }}"
-  loop: "{{ prefixes6 | community.general.json_query('[*].value.{name: custom_fields.ansible_identifier, prefix: prefix}') }}"
-  when: item.prefix | ansible.utils.ipv6('address') is ansible.utils.in_network( '2000::/3' )
-- name: write prefixes to file
-  ansible.builtin.template:
-    src: netbox_prefixes.jinja2
-    dest: "{{ netbox_prefixes_destination }}"
+- name: Run prefix task
+  ansible.builtin.include_tasks:
+    file: prefixes.yml
+  when: nb_fetch_prefixes
+- name: Run devices task
+  ansible.builtin.include_tasks:
+    file: devices.yml
+  when: nb_fetch_devices

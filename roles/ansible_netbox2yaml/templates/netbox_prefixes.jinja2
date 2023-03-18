@@ -1,7 +1,7 @@
 ---
-{% if netbox_prefixes is defined %}
+{% if nb_prefixes is defined %}
 netbox_prefixes:
-{% for key, value in netbox_prefixes.items() %}
+{% for key, value in nb_prefixes.items() %}
 {% if key %}
   {{ key }}:
 {% if value.4 is defined %}

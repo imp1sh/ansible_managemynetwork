@@ -1,0 +1,39 @@
+---
+{% if nb_devices is defined %}
+netbox_devices:
+{% for device, devvalue in nb_devices.items() %}
+  {{ device }}:
+{% if devvalue.comments is defined %}
+    comments: {{ devvalue.comments }}
+{% endif %}
+{% if devvalue.device_role is defined %}
+    comments: {{ devvalue.device_type }}
+{% endif %}
+{% if devvalue.device_type is defined %}
+    device_type: {{ devvalue.device_type }}
+{% endif %}
+{% if devvalue.id is defined %}
+    id: {{ devvalue.id }}
+{% endif %}
+{% if devvalue.interfaces is defined %}
+{% for interface, ifvalue in devvalue.interfaces.items() %}
+    {{ interface }}:
+{% if ifvalue.description is defined %}
+      description: {{ ifvalue.description }}
+{% endif %}
+{% if ifvalue.dns_name is defined %}
+      dns_name: {{ ifvalue.dns_name }}
+{% endif %}
+{% if ifvalue.id is defined %}
+      id: {{ ifvalue.id }}
+{% endif %}
+{% if ifvalue.ip4 is defined %}
+      ip4: {{ ifvalue.ip4 }}
+{% endif %}
+{% if ifvalue.ip6 is defined %}
+      ip6: {{ ifvalue.ip6 }}
+{% endif %}
+{% endfor %}
+{% endif %}
+{% endfor %}
+{% endif %}

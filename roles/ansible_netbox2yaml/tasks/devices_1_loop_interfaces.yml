@@ -1,0 +1,10 @@
+---
+- name: debug interface
+  debug:
+    var: current.interface.value.name
+- name: Trying to find interfaces that belong to current device
+  ansible.builtin.include_tasks:
+    file: devices_2_inspect_interface.yml
+  loop: "{{ nb_interfaces_fetched }}"
+  loop_control:
+    loop_var: current_interface

@@ -1,0 +1,10 @@
+---
+#- name: check if it is a match
+#  debug:
+#    msg: "Comparing: {{ current_interface.value.device.id }} EQUALS {{ current_device.key }}"
+- name: loop over ip addresses, when current interface belongs to device
+  ansible.builtin.include_tasks:
+    file: devices_3_loop_ips.yml
+  when:
+    - current_interface.value.device is defined
+    - current_interface.value.device.id == current_device.key

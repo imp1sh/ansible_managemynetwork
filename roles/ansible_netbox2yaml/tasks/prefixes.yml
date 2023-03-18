@@ -1,0 +1,32 @@
+---
+# This is a prototype of querying netbox prefixes in order to make them accessible during ansible runs
+# On the bottom there is an example of how to access a prefix by it's name. The name is being formed by a custom field
+# The custom Field needs to carry the name ansible_identifier
+#
+# Fetching
+- name: "Fetching All IPv4 Prefixes"
+  ansible.builtin.set_fact:
+    prefixes4: "{{ query('netbox.netbox.nb_lookup', 'prefixes', api_filter='family=4', api_endpoint=NETBOX_URL, token=NETBOX_TOKEN) }}"
+- name: "Fetching All IPv6 Prefixes"
+  set_fact:
+    prefixes6: "{{ query('netbox.netbox.nb_lookup', 'prefixes', api_filter='family=6', api_endpoint=NETBOX_URL, token=NETBOX_TOKEN) }}"
+# Creating Vars
+- name: "Writing found IPv4 prefixes into nb_prefixes"
+  ansible.builtin.set_fact:
+    nb_prefixes: "{{ nb_prefixes | default({}) | combine( { item.name: { 4: { 'prefix': item.prefix }}}, recursive=true  ) }}"
+  loop: "{{ prefixes4 | community.general.json_query('[*].value.{name: custom_fields.ansible_identifier, prefix: prefix}') }}"
+- name: "Writing found IPv6 ULA prefixes into nb_prefixes"
+  ansible.builtin.set_fact:
+    nb_prefixes: "{{ nb_prefixes | default({}) | combine( {item.name: { 6: { 'prefix': { 'ula': item.prefix }}}}, recursive=true ) }}"
+  loop: "{{ prefixes6 | community.general.json_query('[*].value.{name: custom_fields.ansible_identifier, prefix: prefix}') }}"
+  when: item.prefix | ansible.utils.ipv6('address') is ansible.utils.in_network( 'fc00::/7' )
+- name: "Writing found IPv6 GUA prefixes into nb_prefixes"
+  ansible.builtin.set_fact:
+    nb_prefixes: "{{ nb_prefixes | default({}) | combine( {item.name: { 6: { 'prefix': { 'gua': item.prefix }}}}, recursive=true ) }}"
+  loop: "{{ prefixes6 | community.general.json_query('[*].value.{name: custom_fields.ansible_identifier, prefix: prefix}') }}"
+  when: item.prefix | ansible.utils.ipv6('address') is ansible.utils.in_network( '2000::/3' )
+# Write to file
+- name: write prefixes to file
+  ansible.builtin.template:
+    src: netbox_prefixes.jinja2
+    dest: "{{ nb_prefixes_destination }}"

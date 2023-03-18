@@ -1,0 +1,7 @@
+---
+- name: looping over ips
+  ansible.builtin.include_tasks:
+    file: devices_4_inspect_ip.yml
+  loop: "{{ nb_ips_fetched }}"
+  loop_control:
+    loop_var: current_ip
