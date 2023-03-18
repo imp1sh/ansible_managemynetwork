@@ -5,11 +5,20 @@
     nb_devices_fetched: "{{ query('netbox.netbox.nb_lookup', 'devices', api_endpoint=NETBOX_URL, token=NETBOX_TOKEN) }}"
 - name: "Fetching interfaces"
   ansible.builtin.set_fact:
-    nb_interfaces_fetched: "{{ query('netbox.netbox.nb_lookup', 'interfaces', api_endpoint=NETBOX_URL, token=NETBOX_TOKEN) }}"
+    nb_interfaces_fetched: "{{ query('netbox.netbox.nb_lookup', 'interfaces', api_filter='assigned_object_type=dcim.interface', api_endpoint=NETBOX_URL, token=NETBOX_TOKEN) }}"
 - name: "Fetching IP addresses"
   ansible.builtin.set_fact:
     nb_ips_fetched: "{{ query('netbox.netbox.nb_lookup', 'ip-addresses',  api_endpoint=NETBOX_URL, token=NETBOX_TOKEN) }}"
-# Creating Vars
+    #- name: debug devices
+    #  debug:
+    #    var: nb_devices_fetched
+    #- name: debug interfaces
+    #  debug:
+    #    var: nb_interfaces_fetched
+    #- name: debug ips
+    #  debug:
+    #    var: nb_ips_fetched
+    ## Creating Vars
 - name: "Looping over devices and assign interface to them"
   ansible.builtin.include_tasks:
     file: devices_1_loop_interfaces.yml
