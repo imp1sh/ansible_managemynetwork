@@ -1,51 +1,38 @@
 ---
-- name: Install borg backup package
+- name: Borgmatic requirements
+  ansible.builtin.package:
+    name: "{{ borgmatic_package_requirements }}"
+    state: present
+  when: borgmatic_package_requirements is defined
+# package manager
+- name: borg backup via package manager
   ansible.builtin.package:
     name: "{{ borgmatic_packagename_borg }}"
-    state: present
-# Alpine specific
-- name: Alpine Install borgmatic requirements from edge
-  apk:
-    name: py3-jsonschema,py3-attrs,py3-requests,py3-setuptools
-    state: present
-    update_cache: yes
-      #    repository: http://alpine.42.fr/edge/community
-  when: ansible_os_family == "Alpine"
-- name: Alpine Install borgmatic Alpine from edge
-  apk:
-    name: "{{ borgmatic_packagename_borgmatic }}"
-    state: present
-    update_cache: yes
-      #    repository: http://alpine.42.fr/edge/community
-  when: ansible_os_family == "Alpine"
-# FreeBSD specific
-- name: FreeBSD install borgmatic requirements
-  ansible.builtin.package:
-    name: "{{ borgmatic_packagename_jsonschema }}"
-    state: present
-  when: ansible_os_family == "FreeBSD"
-- name: FreeBSD install borgmatic
+    state: "{{ borgmatic_package_state }}"
+- name: borgmatic via package manager
   ansible.builtin.package:
     name: "{{ borgmatic_packagename_borgmatic }}"
-    state: present
-  when: ansible_os_family == "FreeBSD"
-# Debian specific
-- name: Debian / Ubuntu install borgmatic
+    state: "{{ borgmatic_package_state }}"
+# pip  
+- name: Install pip for pip installation
   ansible.builtin.package:
-    name: "{{ borgmatic_packagename_borgmatic }}"
+    name: "{{ borgmatic_pip_package }}"
     state: present
-  when: ansible_os_family == "Debian"
-# Fedora specific
-- name: Fedora install borgmatic
-  ansible.builtin.package:
-    name: "{{ borgmatic_packagename_borgmatic }}"
-    state: present
-  when: ansible_distribution == "Fedora"
-# All
+  when: borgmatic_via_pip
+- name: Install borgmatic via pip
+  ansible.builtin.pip:
+    name: borgmatic
+  when: borgmatic_via_pip
+- name: Install borg via pip
+  ansible.builtin.pip:
+    name: borgbackup
+  when: borgmatic_via_pip
+# Apprise
 - name: Install apprise if needed
   ansible.builtin.include_role:
     name: imp1sh.ansible_managemynetwork.ansible_apprise
   when: borgmatic_apprise
+# config dir
 - name: Make sure borgmatic config dir exists
   file:
     path: "{{ borgmatic_pathconfig }}"
