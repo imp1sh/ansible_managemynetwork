@@ -6,33 +6,45 @@
 - name: "Fetching interfaces"
   ansible.builtin.set_fact:
     nb_interfaces_fetched: "{{ query('netbox.netbox.nb_lookup', 'interfaces', api_filter='assigned_object_type=dcim.interface', api_endpoint=NETBOX_URL, token=NETBOX_TOKEN) }}"
+- name: "filter interfaces for devices only"
+  ansible.builtin.set_fact:
+    nb_interfaces_filtered: "{{ nb_interfaces_fetched | selectattr('value.device', 'defined') }}"
 - name: "Fetching IP addresses"
   ansible.builtin.set_fact:
-    nb_ips_fetched: "{{ query('netbox.netbox.nb_lookup', 'ip-addresses',  api_filter='status=active', api_endpoint=NETBOX_URL, token=NETBOX_TOKEN) }}"
+    nb_ips_fetched: "{{ query('netbox.netbox.nb_lookup', 'ip-addresses',  api_filter='assigned_to_interface=True assigned_object_type=dcim.interface', api_endpoint=NETBOX_URL, token=NETBOX_TOKEN) }}"
+- name: "filter ip addresses for devices only"
+  ansible.builtin.set_fact:
+    nb_ips_filtered: "{{ nb_ips_fetched | selectattr('value.assigned_object_type', '==', 'dcim.interface') }}"
     #- name: debug devices
     #  debug:
     #    var: nb_devices_fetched
+    #- name: debug ips
+    #  debug:
+    #    var: nb_ips_filtered
     #- name: debug interfaces
     #  debug:
-    #    var: nb_interfaces_fetched
-- name: debug ips
-  debug:
-    var: nb_ips_fetched
-# Creating Vars
+    #    var: nb_interfaces_filtered
+# Assembling IPs
 - name: Configure IP json query
   ansible.builtin.set_fact:
-    query_ips: '[*].value[?assibned_object_id==4]'
-    #    query_ips: '[].{id: value.assigned_object_id,
-    #                    address: value.address,
-    #                    family: value.family.value}'
+    #    query_ips: '[*]'
+    query_ips: '[].{id: value.assigned_object_id,
+                    address: value.address,
+                    family: value.family.value}'
 - name: Build IPs dict
   ansible.builtin.set_fact:
-    dict_ips: "{{ nb_ips_fetched | json_query(query_ips) }}"
-- name: debug IPs
-  debug:
-    var: dict_ips
+    dict_ips: "{{ dict(nb_ips_filtered | json_query(query_ips)|groupby('id')) }}"
+# Assembling Interfaces
+- name: Configure interfaces json query
+  ansible.builtin.set_fact:
+    query_interfaces: '[].{id: value.device.id,
+                           name: value.name,
+                           ips: key }'
+- name: Builds interfaces dict
+  ansible.builtin.set_fact:
+    dict_interfaces: "{{ dict(nb_interfaces_filtered | json_query(query_interfaces)|groupby('id')) }}"
 # Write to file
-#- name: write devices to file
-#  ansible.builtin.template:
-#    src: netbox_devices.jinja2
-#    dest: "{{ nb_devices_destination }}"
+- name: write devices to file
+  ansible.builtin.template:
+    src: netbox_devices.jinja2
+    dest: "{{ nb_devices_destination }}"

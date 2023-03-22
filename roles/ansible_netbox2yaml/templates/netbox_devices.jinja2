@@ -1,39 +1,21 @@
 ---
-{% if nb_devices is defined %}
-netbox_devices:
-{% for device, devvalue in nb_devices.items() %}
-  {{ device }}:
-{% if devvalue.comments is defined %}
-    comments: {{ devvalue.comments }}
-{% endif %}
-{% if devvalue.device_role is defined %}
-    comments: {{ devvalue.device_type }}
-{% endif %}
-{% if devvalue.device_type is defined %}
-    device_type: {{ devvalue.device_type }}
-{% endif %}
-{% if devvalue.id is defined %}
-    id: {{ devvalue.id }}
-{% endif %}
-{% if devvalue.interfaces is defined %}
-{% for interface, ifvalue in devvalue.interfaces.items() %}
-    {{ interface }}:
-{% if ifvalue.description is defined %}
-      description: {{ ifvalue.description }}
-{% endif %}
-{% if ifvalue.dns_name is defined %}
-      dns_name: {{ ifvalue.dns_name }}
-{% endif %}
-{% if ifvalue.id is defined %}
-      id: {{ ifvalue.id }}
-{% endif %}
-{% if ifvalue.ip4 is defined %}
-      ip4: {{ ifvalue.ip4 }}
-{% endif %}
-{% if ifvalue.ip6 is defined %}
-      ip6: {{ ifvalue.ip6 }}
+{% for device in nb_devices_fetched %}
+"{{ device.value.name }}":
+  id: {{ device.key }}
+  comments: "{{ device.value.comment | default("") }}"
+  device_role: "{{ device.value.device_role.display }}"
+  device_type: "{{ device.value.device_type.display }}"
+  primary_ip4: "{{ device.value.primary_ip4.address | default("") }}"
+  primary_ip6: "{{ device.value.primary_ip6.address | default("") }}"
+  serial: "{{ device.value.serial | default("") }}"
+  site: "{{ device.value.site.slug | default("") }}"
+  status: "{{ device.value.status.value | default("") }}"
+  interfaces:
+{% for interface in dict_interfaces[device.key] %}
+    {{ interface.name }}:
+{% if dict_ips[interface.ips] is defined %}
+      ip4: {{ dict_ips[interface.ips]|selectattr('family', 'eq', 4)|map(attribute='address')|list }}
+      ip6: {{ dict_ips[interface.ips]|selectattr('family', 'eq', 6)|map(attribute='address')|list }}
 {% endif %}
 {% endfor %}
-{% endif %}
 {% endfor %}
-{% endif %}
