@@ -10,12 +10,14 @@ nb_devices:
 {% if device.value.comment is defined and device.value.comment != "" %}
     comments: "{{ device.value.comment }}"
 {% endif %}
-    device_role: "{{ device.value.device_role.display }}"
-    device_type: "{{ device.value.device_type.display }}"
+    device_role: "{{ device.value.device_role }}"
+    device_type: "{{ device.value.device_type }}"
     primary_ip4: "{{ device.value.primary_ip4.address | default("") }}"
     primary_ip6: "{{ device.value.primary_ip6.address | default("") }}"
-    serial: "{{ device.value.serial | default("") }}"
-    site: "{{ device.value.site.slug | default("") }}"
+{% if device.value.serial is defined and device.value.serial != "" %}
+    serial: "{{ device.value.serial }}"
+{% endif %}
+    site: "{{ device.value.site | default("") }}"
     status: "{{ device.value.status.value | default("") }}"
     interfaces:
 {% for interface in dict_interfaces[device.key] %}
