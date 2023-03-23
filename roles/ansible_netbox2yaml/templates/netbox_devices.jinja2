@@ -1,21 +1,25 @@
 ---
+{% if nb_devices_fetched is defined %}
+nb_devices:
 {% for device in nb_devices_fetched %}
-"{{ device.value.name }}":
-  id: {{ device.key }}
-  comments: "{{ device.value.comment | default("") }}"
-  device_role: "{{ device.value.device_role.display }}"
-  device_type: "{{ device.value.device_type.display }}"
-  primary_ip4: "{{ device.value.primary_ip4.address | default("") }}"
-  primary_ip6: "{{ device.value.primary_ip6.address | default("") }}"
-  serial: "{{ device.value.serial | default("") }}"
-  site: "{{ device.value.site.slug | default("") }}"
-  status: "{{ device.value.status.value | default("") }}"
-  interfaces:
+  "{{ device.value.name }}":
+    id: {{ device.key }}
+    description: "{{ device.value.description | default("") }}"
+    comments: "{{ device.value.comment | default("") }}"
+    device_role: "{{ device.value.device_role.display }}"
+    device_type: "{{ device.value.device_type.display }}"
+    primary_ip4: "{{ device.value.primary_ip4.address | default("") }}"
+    primary_ip6: "{{ device.value.primary_ip6.address | default("") }}"
+    serial: "{{ device.value.serial | default("") }}"
+    site: "{{ device.value.site.slug | default("") }}"
+    status: "{{ device.value.status.value | default("") }}"
+    interfaces:
 {% for interface in dict_interfaces[device.key] %}
-    {{ interface.name }}:
+      {{ interface.name }}:
 {% if dict_ips[interface.ips] is defined %}
-      ip4: {{ dict_ips[interface.ips]|selectattr('family', 'eq', 4)|map(attribute='address')|list }}
-      ip6: {{ dict_ips[interface.ips]|selectattr('family', 'eq', 6)|map(attribute='address')|list }}
+        ip4: {{ dict_ips[interface.ips]|selectattr('family', 'eq', 4)|map(attribute='address')|list }}
+        ip6: {{ dict_ips[interface.ips]|selectattr('family', 'eq', 6)|map(attribute='address')|list }}
 {% endif %}
 {% endfor %}
 {% endfor %}
+{% endif %}
