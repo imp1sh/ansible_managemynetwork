@@ -8,3 +8,7 @@
   ansible.builtin.include_tasks:
     file: devices.yml
   when: nb_fetch_devices
+- name: Run VMs task
+  ansible.builtin.include_tasks:
+    file: vms.yml
+  when: nb_fetch_vms

@@ -1,17 +1,17 @@
 ---
 # Fetching
-- name: "Fetching all devices"
+- name: "Fetching all vms"
   ansible.builtin.set_fact:
-    nb_devices_fetched: "{{ query('netbox.netbox.nb_lookup', 'devices', api_endpoint=NETBOX_URL, token=NETBOX_TOKEN) }}"
+    nb_vms_fetched: "{{ query('netbox.netbox.nb_lookup', 'virtual-machines', api_endpoint=NETBOX_URL, token=NETBOX_TOKEN) }}"
 - name: "Fetching interfaces"
   ansible.builtin.set_fact:
-    nb_interfaces_fetched: "{{ query('netbox.netbox.nb_lookup', 'interfaces', api_endpoint=NETBOX_URL, token=NETBOX_TOKEN) }}"
+    nb_interfaces_fetched: "{{ query('netbox.netbox.nb_lookup', 'virtualization-interfaces', api_endpoint=NETBOX_URL, token=NETBOX_TOKEN) }}"
 - name: "Fetching IP addresses"
   ansible.builtin.set_fact:
     nb_ips_fetched: "{{ query('netbox.netbox.nb_lookup', 'ip-addresses',  api_filter='assigned_to_interface=True', api_endpoint=NETBOX_URL, token=NETBOX_TOKEN) }}"
-- name: "filter ip addresses for devices only"
+- name: "filter ip addresses for vms only"
   ansible.builtin.set_fact:
-    nb_ips_filtered: "{{ nb_ips_fetched | selectattr('value.assigned_object_type', '==', 'dcim.interface') }}"
+    nb_ips_filtered: "{{ nb_ips_fetched | selectattr('value.assigned_object_type', '==', 'virtualization.vminterface') }}"
 # Assembling IPs
 - name: Configure IP json query
   ansible.builtin.set_fact:
@@ -24,14 +24,14 @@
 # Assembling Interfaces
 - name: Configure interfaces json query
   ansible.builtin.set_fact:
-    query_interfaces: '[].{id: value.device.id,
+    query_interfaces: '[].{id: value.virtual_machine.id,
                            name: value.name,
                            ips: key }'
 - name: Builds interfaces dict
   ansible.builtin.set_fact:
     dict_interfaces: "{{ dict(nb_interfaces_fetched | json_query(query_interfaces)|groupby('id')) }}"
 # Write to file
-- name: write devices to file
+- name: write vms to file
   ansible.builtin.template:
-    src: netbox_devices.jinja2
-    dest: "{{ nb_devices_destination }}"
+    src: netbox_vms.jinja2
+    dest: "{{ nb_vms_destination }}"
