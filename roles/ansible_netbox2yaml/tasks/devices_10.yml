@@ -1,5 +1,0 @@
----
-- name: Trying to find interfaces that belong to current device
-  ansible.builtin.set_fact:
-    current_interfaces:
-  loop: "{{ nb_interfaces_fetched | community.general.json_query([*].value.device.id)}}"
