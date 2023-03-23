@@ -61,14 +61,14 @@ site:           {{ motd_site | default(omit) }}
 IPv6 address:   {{ nb_vms[inventory_hostname]["primary_ip6"] }}
 {% elif nb_devices[inventory_hostname]["primary_ip6"] is defined %}
 IPv6 address:   {{ nb_devices[inventory_hostname]["primary_ip6"] }}
-{% else %}
-IPv6 address:   {{ primary_ip6 | default(omit) }}
+{% elif primary_ip6 is defined %}
+IPv6 address:   {{ primary_ip6 }}
 {% endif %}
 {% if nb_vms[inventory_hostname]["primary_ip4"] is defined %}
 IPv4 address:   {{ nb_vms[inventory_hostname]["primary_ip4"] }}
 {% elif nb_devices[inventory_hostname]["primary_ip4"] is defined %}
 IPv4 address:   {{ nb_devices[inventory_hostname]["primary_ip4"] }}
-{% else %}
-IPv4 address:   {{ primary_ip4 | default(omit) }}
+{% elif primary_ip4 is defined %}
+IPv4 address:   {{ primary_ip4 }}
 {% endif %}
 timezone:       {{ ansible_date_time['tz'] }}
