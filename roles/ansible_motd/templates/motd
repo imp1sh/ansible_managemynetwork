@@ -39,11 +39,36 @@
 /_/ |_/_//_/___/_/_.__/_/\__/ 
                              
 {% endif %}
-This server is restricted for certain people. If you have gained access illegitimately leave now. Contravention will be prosecuted.
+This server is restricted for authorized people. If you have gained access illegitimately, leave now! Contravention will be prosecuted.
 Hostname:       {{ inventory_hostname }}
 OS:             {{ ansible_facts['distribution'] }}
 Version:        {{ ansible_facts['distribution_version'] }}
-site:           {{ motd_site }}
-purpose:        {{ motd_purpose }}
-IP address:     {{ primary_ip6 }}
+{% if nb_vms[inventory_hostname]["description"] is defined %}
+purpose:        {{ nb_vms[inventory_hostname]["description"] }}
+{% elif nb_devices[inventory_hostname]["description"] is defined %}
+purpose:        {{ nb_devices[inventory_hostname]["description"] }}
+{% else %}
+purpose:        {{ motd_purpose | default(omit) }}
+{% endif %}
+{% if nb_vms[inventory_hostname]["site"]["display"] is defined %}
+site:           {{ nb_vms[inventory_hostname]["site"]["display"] }}
+{% elif nb_devices[inventory_hostname]["site"]["display"] is defined %}
+site:           {{ nb_devices[inventory_hostname]["site"]["display"] }}
+{% else %}
+site:           {{ motd_site | default(omit) }}
+{% endif %}
+{% if nb_vms[inventory_hostname]["primary_ip6"] is defined %}
+IPv6 address:   {{ nb_vms[inventory_hostname]["primary_ip6"] }}
+{% elif nb_devices[inventory_hostname]["primary_ip6"] is defined %}
+IPv6 address:   {{ nb_devices[inventory_hostname]["primary_ip6"] }}
+{% else %}
+IPv6 address:   {{ primary_ip6 | default(omit) }}
+{% endif %}
+{% if nb_vms[inventory_hostname]["primary_ip4"] is defined %}
+IPv4 address:   {{ nb_vms[inventory_hostname]["primary_ip4"] }}
+{% elif nb_devices[inventory_hostname]["primary_ip4"] is defined %}
+IPv4 address:   {{ nb_devices[inventory_hostname]["primary_ip4"] }}
+{% else %}
+IPv4 address:   {{ primary_ip4 | default(omit) }}
+{% endif %}
 timezone:       {{ ansible_date_time['tz'] }}
