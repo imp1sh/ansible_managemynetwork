@@ -4,8 +4,12 @@ nb_vms:
 {% for vm in nb_vms_fetched %}
   "{{ vm.value.name }}":
     id: {{ vm.key }}
-    description: "{{ vm.value.description | default("") }}"
-    comments: "{{ vm.value.comment | default("") }}"
+{% if vm.value.description != "" %}
+    description: "{{ vm.value.description }}"
+{% endif %}
+{% if vm.value.comment is defined and vm.value.comment != "" %}
+    comments: "{{ vm.value.comment }}"
+{% endif %}
     vm_role: "{{ vm.value.role.display }}"
     primary_ip4: "{{ vm.value.primary_ip4.address | default("") }}"
     primary_ip6: "{{ vm.value.primary_ip6.address | default("") }}"
