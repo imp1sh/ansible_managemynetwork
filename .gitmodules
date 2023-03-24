@@ -1,0 +1,6 @@
+[submodule "roles/ansible_users/files/zsh-autosuggestions"]
+	path = roles/ansible_users/files/zsh-autosuggestions
+	url = https://github.com/zsh-users/zsh-autosuggestions.git
+[submodule "roles/ansible_users/files/ohmyzsh"]
+	path = roles/ansible_users/files/ohmyzsh
+	url = https://github.com/ohmyzsh/ohmyzsh.git

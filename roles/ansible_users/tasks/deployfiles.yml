@@ -1,0 +1,10 @@
+---
+- name: Deploy current item
+  ansible.builtin.copy:
+    src: "{{ fileitem.src }}"
+    dest: "{{ fileitem.dest }}"
+  when: fileitem.state == "present"
+- name: Remove current item
+  ansible.builtin.file:
+    path: "{{ fileitem.dest }}"
+  when: fileitem.state == "absent"

@@ -25,3 +25,9 @@
   loop: "{{ user.createonhost_bygroup }}"
   loop_control:
     loop_var: groupname
+- name: Deploy files (optional)
+  ansible.builtin.include_tasks: "deployfiles.yml"
+  loop: "{{ user.deployfiles }}"
+  loop_control:
+    loop_var: fileitem
+  when: user.deployfiles is defined
