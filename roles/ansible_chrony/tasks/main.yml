@@ -26,6 +26,7 @@
     state: stopped
     enabled: no
   when: ansible_service_mgr == "systemd"
+  ignore_errors: true
 - name: Enable chrony service
   ansible.builtin.service:
     name: "{{ chronyd_servicename }}"
