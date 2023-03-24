@@ -18,3 +18,8 @@ borgmatic_commandname_borgmatic: "borgmatic"
 borgmatic_file_sshknownhosts: "/etc/ssh/ssh_known_hosts"
 borgmatic_pathcron: "/etc/cron.d"
 borgmatic_pip_package: "py39-pip"
+borgmatic_default_srcdirs:
+  - "/etc"
+  - "/usr/local/etc"
+  - "/usr/home"
+  - "/root"

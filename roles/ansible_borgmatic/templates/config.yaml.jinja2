@@ -1,6 +1,6 @@
 location:
     source_directories:
-{% for directory in borgmatic_srcdirs %}
+{% for directory in borgmatic_srcdirs | default(borgmatic_default_srcdirs) %}
       - {{ directory }}
 {% endfor %}
     repositories:
