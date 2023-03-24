@@ -1,0 +1,10 @@
+---
+# tasks file for ansible_groups
+- name: Iterate over defined groups
+  ansible.builtin.group:
+    name: "{{ group.name }}"
+    gid: "{{ group.gid | default(omit) }}"
+    state: "{{ group.state }}"
+  loop: "{{ system_groups }}"
+  loop_control:
+    loop_var: "group"
