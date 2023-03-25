@@ -1,10 +1,11 @@
 ---
 - name: include OS vars
   include_vars: "{{ ansible_distribution }}.yml"
-- name: "Install postgresql"
-  ansible.builtin.package:
-    name: "{{ psqlserver_packages }}"
-    state: present
+- name: Run package role
+  ansible.builtin.include_role:
+    name: imp1sh.ansible_managemynetwork.ansible_packages
+  vars:
+    packages_installrole: "{{ psqlserver_packages }}"
 - name: "Check if DB is initialized"
   stat:
     path: "{{ psqlserver_datadir }}"
