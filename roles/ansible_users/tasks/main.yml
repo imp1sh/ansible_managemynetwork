@@ -3,7 +3,7 @@
   include_vars: "{{ ansible_distribution }}.yml"
 - name: iterate over the users
   ansible.builtin.include_tasks: "iterateusers.yml"
-  loop: "{{ users }}"
+  loop: "{{ system_users }}"
   loop_control:
     loop_var: user
-  when: users is defined
+  when: system_users is defined
