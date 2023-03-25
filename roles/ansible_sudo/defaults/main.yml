@@ -1,0 +1,29 @@
+---
+# sudo_defaults:
+#  - defaults: env_reset
+#  - name: user1
+#    defaults: requiretty
+# sudo_users:
+#  - name: '%group1'
+#  - name: 'bar'
+#    nopasswd: yes
+#  - name: '%group2'
+#    commands: '/bin/ls'
+#  - name: '%group3'
+#    commands:
+#      - /bin/ls
+#      - /bin/df
+#  - name: '%group4'
+#    hosts: 127.0.0.1
+
+# package name (version)
+sudo_package: sudo
+# list of username or %groupname
+sudo_users: []
+# list of username or %groupname and their defaults
+sudo_defaults: []
+# default sudoers file
+sudo_sudoers_file: ansible
+# path of the sudoers.d directory
+# delete other files in `sudo_sudoers_d_path`
+purge_other_sudoers_files: no
