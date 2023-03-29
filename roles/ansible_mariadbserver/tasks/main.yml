@@ -1,12 +1,16 @@
 ---
-- name: include OS vars
-  include_vars: "{{ ansible_os_family }}.yml"
-- import_tasks: alpine.yml
-  when: ansible_facts['os_family'] == 'Alpine'
-- import_tasks: freebsd.yml
-  when: ansible_facts['os_family'] == 'FreeBSD'
-- import_tasks: debian.yml
-  when: ansible_facts['os_family'] == 'Debian'
+- name: Setting OS variables
+  ansible.builtin.include_vars: "{{lookup('ansible.builtin.first_found', params)}}"
+  vars:
+    params:
+      files:
+        - "{{ ansible_distribution }}.yml"
+        - "{{ ansible_os_family }}.yml"
+        - "default.yml"
+      paths:
+        - "vars"
+- name: Run install tasks
+  ansible.builtin.import_tasks: install.yml
 - name: create databases
   community.mysql.mysql_db:
     name: "{{ mariadb_databases }}"

@@ -1,0 +1,22 @@
+- name: Install mariadb and associated packages
+  ansible.builtin.include_role:
+    name: imp1sh.ansible_managemynetwork.ansible_packages
+  vars:
+    packages_installrole: "{{ mariadbserver_packages }}"
+- name: Install mariadb server configuration
+  ansible.builtin.template:
+    src: mariadb-server.cnf.j2
+    dest: "{{ mariadbserver_etcpath }}/{{ mariadbserver_etcfile }}"
+  notify: restart mariadb
+- name: enable mariadb server
+  ansible.builtin.service:
+    name: "{{ mariadbserver_servicename }}"
+    enabled: yes
+    state: started
+      #- name: Install packages for phpmyadmin
+      #  package:
+      #    name: "{{ mariadbserver_packagesmyadmin }}"
+      #    state: present
+      #- name: include nginx role for phpmyadmin
+      #  include_role:
+      #    name: imp1sh.ansible_managemynetwork.ansible_nginx

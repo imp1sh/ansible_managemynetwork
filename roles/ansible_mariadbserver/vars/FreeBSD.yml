@@ -1,5 +1,7 @@
 ---
-mariadbserver_packages: "mariadb{{ mariadbversion }}-server"
+mariadbserver_packages:
+  - "mariadb{{ mariadbversion }}-server"
+  - "py39-pymysql"
 mariadbserver_packagesmyadmin: "phpMyAdmin5-php{{ phpversion }}"
 mariadbserver_etcpath: "/usr/local/etc/mysql/conf.d"
 mariadbserver_etcfile: "server.cnf"
