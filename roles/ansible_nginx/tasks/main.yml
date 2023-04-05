@@ -1,27 +1,27 @@
 ---
 # tasks file for ansible_nginx
 - name: include OS vars
-  include_vars: "{{ ansible_distribution }}.yml"
+  ansible.builtin.include_vars: "{{ ansible_distribution }}.yml"
 - name: Install components
-  include_tasks: install.yml
+  ansible.builtin.include_tasks: install.yml
 - name: Preparations
-  include_tasks: prepare.yml
+  ansible.builtin.include_tasks: prepare.yml
 - name: Configurations
-  include_tasks: configure.yml
+  ansible.builtin.include_tasks: configure.yml
 - name: Setup nginx vhost items task
-  include_tasks: vhosts.yml
+  ansible.builtin.include_tasks: vhosts.yml
   loop: "{{ nginx_vhosts }}"
   loop_control:
     loop_var: vhostitem
   when: nginx_vhosts is defined
 - name: Setup nginx rproxy items task
-  include_tasks: rproxy-vhosts.yml
+  ansible.builtin.include_tasks: rproxy-vhosts.yml
   loop: "{{ nginx_rproxyitems }}"
   loop_control:
     loop_var: rproxyitem
   when: nginx_rproxyitems is defined
 - name: enable nginx
-  service:
+  ansible.builtin.service:
     name: "{{ nginx_servicename }}"
     enabled: yes
     state: started

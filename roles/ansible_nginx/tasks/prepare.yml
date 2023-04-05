@@ -1,20 +1,20 @@
 ---
 - name: Make sure conf.d directory exists
-  file:
+  ansible.builtin.file:
     path: "{{ nginx_confdir }}/conf.d/"
     state: directory
     owner: "{{ nginx_confowner }}"
     group: "{{ nginx_confgroup }}"
     mode: 0744
 - name: Make sure http.d directory exists
-  file:
+  ansible.builtin.file:
     path: "{{ nginx_confdir }}/http.d/"
     state: directory
     owner: "{{ nginx_confowner }}"
     group: "{{ nginx_confgroup }}"
     mode: 0744
 - name: Make sure cache directory exists
-  file:
+  ansible.builtin.file:
     path: "{{ nginx_cachedir }}"
     state: directory
     owner: "{{ nginx_confowner }}"

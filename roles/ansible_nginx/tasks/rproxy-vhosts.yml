@@ -1,6 +1,6 @@
 ---
 - name: "Installing nginx rproxy http item {{ rproxyitem.name }}"
-  template:
+  ansible.builtin.template:
     src: rproxy_http.conf.j2
     dest: "{{ nginx_confdir }}/http.d/{{ rproxyitem.name }}.conf"
     owner: "{{ nginx_confowner }}"
@@ -24,7 +24,7 @@
     path: "{{ nginx_certpath }}/{{ rproxy_certname }}/privkey.pem"
   register: rproxyitem_privkey
 - name: "Installing nginx rproxy https item {{ rproxyitem.name }} if certs are available"
-  template:
+  ansible.builtin.template:
     src: rproxy_https.conf.j2
     dest: "{{ nginx_confdir }}/http.d/{{ rproxyitem.name }}-tls.conf"
     owner: "{{ nginx_confowner }}"

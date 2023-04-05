@@ -59,11 +59,7 @@ server {
 {% if vhostitem.root is defined %}
         root {{ vhostitem.root }};
 {% else %}
-{% if ansible_os_family == 'FreeBSD' %}
-        root /usr/local/www/{{ vhostitem.fqdn }};
-{% else %}
-        root /var/www/vhosts/{{ vhostitem.fqdn }};
-{% endif %}
+        root {{ nginx_wwwdir }}/vhosts/{{ vhostitem.fqdn }};
 {% endif %}
         location / {
 {% if vhostitem.enablewordpress is defined and vhostitem.enablewordpress %}

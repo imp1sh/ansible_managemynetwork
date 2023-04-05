@@ -1,13 +1,13 @@
 ---
 - name: create vhost root dir
-  file:
+  ansible.builtin.file:
     path: "{{ nginx_wwwdir }}/vhosts/{{ vhostitem.fqdn }}"
     state: directory
     mode: '0750'
     owner: "{{ nginx_user }}"
     group: "{{ nginx_group }}"
 - name: "Install nginx vhost item {{ vhostitem.fqdn }}"
-  template:
+  ansible.builtin.template:
     src: vhost_http.conf.j2
     dest: "{{ nginx_confdir }}/http.d/{{ vhostitem.fqdn }}.conf"
     owner: "{{ nginx_confowner }}"
@@ -32,7 +32,7 @@
     path: "{{ nginx_certpath }}/{{ vhost_certname }}/privkey.pem"
   register: vhostitem_privkey
 - name: "Installing nginx vhost https item {{ vhostitem.fqdn }} if certs are available"
-  template:
+  ansible.builtin.template:
     src: vhost_https.conf.j2
     dest: "{{ nginx_confdir }}/http.d/{{ vhostitem.fqdn }}-tls.conf"
     owner: "{{ nginx_confowner }}"
