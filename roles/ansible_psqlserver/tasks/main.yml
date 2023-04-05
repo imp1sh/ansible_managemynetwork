@@ -29,6 +29,15 @@
     name: "{{ psqlserver_servicename }}"
     enabled: true
     state: started
+- name: "Setup databases"
+  community.general.postgresql_db:
+    name: "{{ item['dbname'] }}"
+    lc_ctype: "{{ item['lc_ctype'] | default(omit) }}"
+    lc_collate: "{{ item['lc_collate'] | default(omit) }}"
+  with_items:
+    - "{{ psqlserver_dbs }}"
+  when: psqlserver_dbs is defined
+  notify: restart postgres
 - name: "Setup pg_hba"
   postgresql_pg_hba:
     dest: "{{ item['dest']}}"
@@ -41,15 +50,6 @@
   with_items:
     - "{{ psqlserver_hba }}"
   when: psqlserver_hba is defined
-  notify: restart postgres
-- name: "Setup databases"
-  community.general.postgresql_db:
-    name: "{{ item['dbname'] }}"
-    lc_ctype: "{{ item['lc_ctype'] | default(omit) }}"
-    lc_collate: "{{ item['lc_collate'] | default(omit) }}"
-  with_items:
-    - "{{ psqlserver_dbs }}"
-  when: psqlserver_dbs is defined
   notify: restart postgres
 - name: "Install postgresql roles"
   postgresql_user:
