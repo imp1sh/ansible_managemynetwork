@@ -13,6 +13,9 @@ borgmatic_package_requirements:
   - xxhash-devel
   - pkgconf
   - python3-pkgconfig
+  - gcc
+  - gcc-c++
+  - redhat-rpm-config
 borgmatic_pathconfig: "/etc/borgmatic"
 borgmatic_pathconfig_owner: "root"
 borgmatic_pathconfig_group: "root"
