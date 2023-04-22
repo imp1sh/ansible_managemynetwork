@@ -1,0 +1,2 @@
+---
+pdns_psql_schemafile: "/usr/share/pdns-backend-pgsql/schema/schema.pgsql.sql"
