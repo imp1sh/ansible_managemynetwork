@@ -14,15 +14,15 @@
 - name: Create containers
   containers.podman.podman_containers:
     containers: "{{ podman_containers }}"
-- name: create openrc init file
-  ansible.builtin.template:
-    src: podman_openrc.jinja2
-    dest: /etc/init.d/podman-{{ item.name }}
-    mode: '0770'
+- name: Create Podman Service units
+  containers.podman.podman_generate_systemd:
+    name: "{{ item.name }}"
+    dest: "/etc/systemd/system"
   loop: "{{ podman_containers }}"
-- name: enable container services
-  ansible.builtin.service:
-    name: "podman-{{ item.name }}"
+- name: Enable systemd units
+  ansible.builtin.systemd:
+    name: "container-{{ item.name }}"
+    daemon_reload: yes
     state: started
     enabled: yes
   loop: "{{ podman_containers }}"
