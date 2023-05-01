@@ -1,4 +1,9 @@
 ---
+- name: make sure deploy path exists
+  ansible.builtin.file:
+    path: "{{ fileitem.dest | ansible.builtin.dirname }}"
+    state: directory
+  when: fileitem.state == "present"
 - name: Deploy current item
   ansible.builtin.copy:
     src: "{{ fileitem.src }}"
