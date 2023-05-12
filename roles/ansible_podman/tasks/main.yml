@@ -14,15 +14,9 @@
 - name: Create containers
   containers.podman.podman_containers:
     containers: "{{ podman_containers }}"
-- name: Create Podman Service units
-  containers.podman.podman_generate_systemd:
-    name: "{{ item.name }}"
-    dest: "/etc/systemd/system"
+- name: systemd tasks
+  ansible.builtin.include_tasks:
+    file: systemd.yml
   loop: "{{ podman_containers }}"
-- name: Enable systemd units
-  ansible.builtin.systemd:
-    name: "container-{{ item.name }}"
-    daemon_reload: yes
-    state: started
-    enabled: yes
-  loop: "{{ podman_containers }}"
+  loop_control:
+    loop_var: podman_container

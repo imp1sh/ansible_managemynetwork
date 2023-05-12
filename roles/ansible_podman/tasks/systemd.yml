@@ -1,0 +1,35 @@
+---
+- name: set systemd state to started
+  ansible.builtin.set_fact:
+    podman_container_systemdstate: "started"
+  when: podman_container.state == "started"
+- name: set systemd autostart to true
+  ansible.builtin.set_fact:
+    podman_container_autostart: true
+  when: podman_container.state == "started"
+- name: set systemd state to stopped
+  ansible.builtin.set_fact:
+    podman_container_systemdstate: "stopped"
+  when: >
+    podman_container.state == "present" or
+    podman_container.state == "stopped" or
+    podman_container.state == "created"
+- name: set systemd autostart to false
+  ansible.builtin.set_fact:
+    podman_container_autostart: false
+  when: >
+    podman_container.state == "present" or
+    podman_container.state == "stopped" or
+    podman_container.state == "created"
+- name: Create Podman Service units
+  containers.podman.podman_generate_systemd:
+    name: "{{ podman_container.name }}"
+    dest: "/etc/systemd/system"
+  when: podman_container.state != "absent"
+- name: Enable systemd units
+  ansible.builtin.systemd:
+    name: "container-{{ podman_container.name }}"
+    daemon_reload: yes
+    state: "{{ podman_container_systemdstate }}"
+    enabled: "{{ podman_container_autostart }}"
+  when: podman_container.state != "absent"
