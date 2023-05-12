@@ -28,13 +28,14 @@ events {
 }
 
 http {
-{% if backenditems is defined %}
-{% for backend in backenditems %}
-        upstream {{ backend['name'] }} {
-{% if backend['algo'] is defined %}
-          {{ backend['algo'] }};
+	# upstream items
+{% if nginx_upstreamitems is defined %}
+{% for upstreamitem in nginx_upstreamitems %}
+        upstream {{ upstreamitem['name'] }} {
+{% if upstreamitem['algo'] is defined %}
+          {{ upstreamitem['algo'] }};
 {% endif %}
-{% for server in backend['servers'] %}
+{% for server in upstreamitem['servers'] %}
           server {{ server['name'] }}{% if server['weight'] is defined %} weight={{ server['weight'] }}{% endif %}{% if server['mode'] is defined %} {{ server['mode'] }}{% endif %};
 {% endfor %}
 {% endfor %}
