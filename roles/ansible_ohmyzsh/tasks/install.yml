@@ -1,0 +1,66 @@
+# code: language=ansible
+---
+- block:
+  - name: Clone oh-my-zsh for users
+    tags:
+      # Suppress warning: [ANSIBLE0006] git used in place of git module
+      # Git module doesn't allow us to set `core.autocrlf=input`.
+      - skip_ansible_lint
+    become: true
+    become_user: '{{ user.name }}'
+    # core.autocrlf=input prevents https://github.com/ohmyzsh/ohmyzsh/issues/4402
+    ansible.builtin.command: 'git clone -c core.autocrlf=input --depth=1 https://github.com/ohmyzsh/ohmyzsh.git .oh-my-zsh'
+    args:
+      chdir: '~{{ user.name }}'
+      creates: '~{{ user.name }}/.oh-my-zsh'
+  - name: Set permissions of oh-my-zsh for users
+    become: true
+    ansible.builtin.file:
+      path: '~{{ user.name }}/.oh-my-zsh'
+      # Prevent the cloned repository from having insecure permissions. Failing to do
+      # so causes compinit() calls to fail with "command not found: compdef" errors
+      # for users with insecure umasks (e.g., "002", allowing group writability).
+      mode: 'go-w'
+      recurse: true
+  - name: Set default shell for users
+    become: true
+    ansible.builtin.user:
+      name: '{{ user.name }}'
+      shell: '{{ oh_my_zsh_zsh_path }}'
+  - name: Install oh-my-zsh auto suggestions
+    ansible.builtin.git:
+      repo: 'https://github.com/zsh-users/zsh-autosuggestions'
+      dest: "~{{ user.name }}/.oh-my-zsh/plugins/zsh-autosuggestions"
+    when: '"zsh-autosuggestions" in user.oh_my_zsh.plugins'
+  - name: Write .zshrc for users
+    ansible.builtin.template:
+      src: zshrc.j2
+      owner: "{{ user.name }}"
+      dest: '~{{ user.name }}/.zshrc'
+      backup: true
+      mode: 'u=rw,go=r'
+    when: >-
+      ((user.oh_my_zsh.install | default(oh_my_zsh_install)) | bool)
+      and ((user.oh_my_zsh.write_zshrc | default(oh_my_zsh_write_zshrc)) | bool)
+  - name: Set environment variables
+    ansible.builtin.template:
+      src: "ENVS.j2"
+      dest: "~{{ user.name }}/.oh-my-zsh/custom/envs.zsh"
+      owner: "{{ user.name }}"
+      mode: "go-w"
+    when: user.envs is defined
+  - name: Install zsh customizations
+    ansible.builtin.copy:
+      src: "{{ custom_item }}"
+      dest: "~{{ user.name }}/.oh-my-zsh/custom/{{ custom_item }}.zsh"
+      owner: "{{ user.name }}"
+      mode: "go-w"
+    loop: "{{ user.oh_my_zsh.customs }}"
+    loop_control:
+      loop_var: custom_item
+    when: user.oh_my_zsh.customs is defined
+  when:
+    - user.oh_my_zsh is defined
+    - "((user.oh_my_zsh | default({})).install | default(oh_my_zsh_install)) | bool"
+
+

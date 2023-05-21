@@ -1,0 +1,28 @@
+# code: language=ansible
+---
+# This is for the boot console only (i.e. not xterm, ssh or docker).
+# The oh-my-zsh prompt appears corrupted unless the console is in UTF-8.
+# If the console-setup file is missing don't create it... assume we're
+# running in an environment without a boot console (e.g. docker).
+- name: Check if console-setup exists
+  ansible.builtin.stat:
+    path: /etc/default/console-setup
+  register: console_setup_file
+
+- name: Install console-setup
+  become: true
+  ansible.builtin.apt:
+    name: console-setup
+    state: present
+  when: console_setup_file.stat.exists
+
+- name: Edit console-setup to utf-8
+  become: true
+  ansible.builtin.lineinfile:
+    dest: /etc/default/console-setup
+    regexp: ^CHARMAP=
+    line: CHARMAP="UTF-8"
+    state: present
+  when: console_setup_file.stat.exists
+  notify:
+    - Run dpkg-reconfigure console-setup

@@ -1,0 +1,38 @@
+---
+galaxy_info:
+  author: Jochen Demmer
+  description: Role for installing and configuring oh-my-zsh.
+  company: Libcom.de
+  license: MIT
+  min_ansible_version: '2.12'
+  platforms:
+    - name: EL
+      versions:
+        - '8'
+    - name: Fedora
+      versions:
+        - '35'
+        - '36'
+        - '37'
+        - '38'
+    - name: opensuse
+      versions:
+        - '15.3'
+    - name: Ubuntu
+      versions:
+        - bionic
+        - focal
+    - name: Debian
+      versions:
+        - stretch
+        - buster
+        - bullseye
+    - name: FreeBSD
+      versions:
+        - '13.0'
+  galaxy_tags:
+    - ohmyzsh
+    - zsh
+    - shell
+    - development
+dependencies: []

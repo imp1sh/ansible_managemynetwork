@@ -1,0 +1,27 @@
+# code: language=ansible
+---
+- name: Setting OS variables
+  ansible.builtin.include_vars: "{{ lookup('ansible.builtin.first_found', params) }}"
+  vars:
+    params:
+      files:
+        - '{{ ansible_facts.os_family }}.yml'
+        - default.yml
+      paths:
+        - vars/os_family
+
+- name: Install dependencies
+  become: "{{ ansible_facts.distribution != 'MacOSX' }}"
+  ansible.builtin.package:
+    name: '{{ oh_my_zsh_dependencies }}'
+    state: present
+
+- name: Install Oh My Zsh
+  ansible.builtin.include_tasks: install.yml
+  loop: "{{ system_users }}"
+  loop_control:
+    loop_var: user
+
+- name: Console setup for Debian family distributions
+  ansible.builtin.include_tasks: debian-console-setup.yml
+  when: ansible_facts.os_family == 'Debian'

@@ -1,0 +1,17 @@
+## SSH autocompltion of hosts from ssh config
+h=()
+if [[ -r ~/.ssh/config ]]; then
+  if [ -d ~/.ssh/conf.d ]; then
+    h=($h ${${${(@M)${(f)"$(cat ~/.ssh/config ~/.ssh/conf.d/*)"}:#Host *}#Host }:#*[*?]*})
+  else
+    h=($h ${${${(@M)${(f)"$(cat ~/.ssh/config)"}:#Host *}#Host }:#*[*?]*})
+  fi
+fi
+if [[ -r ~/.ssh/known_hosts ]]; then
+  h=($h ${${${(f)"$(cat ~/.ssh/known_hosts{,2} || true)"}%%\ *}%%,*}) 2>/dev/null
+fi
+if [[ $#h -gt 0 ]]; then
+  zstyle ':completion:*:ssh:*' hosts $h
+  zstyle ':completion:*:slogin:*' hosts $h
+fi
+

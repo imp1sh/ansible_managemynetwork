@@ -1,0 +1,11 @@
+### Automatic Switch Python Environment
+cd() { builtin cd "$@" &&
+if [ -f $PWD/.python-version ]; then
+    export PYTHONCONFIGDIR=$PWD
+    source /home/${USER}/env/$(cat .python-version)/bin/activate
+elif [ "$PYTHONCONFIGDIR" ]; then
+    if [[ $PWD != *"$PYTHONCONFIGDIR"* ]]; then
+        export PYTHONCONFIGDIR=""
+        deactivate
+    fi
+fi }

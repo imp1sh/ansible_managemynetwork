@@ -1,0 +1,5 @@
+---
+- name: Run dpkg-reconfigure console-setup
+  become: true
+  ansible.builtin.command: >-
+    /usr/sbin/dpkg-reconfigure -f noninteractive console-setup
