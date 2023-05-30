@@ -72,6 +72,7 @@ zstyle ':omz:update' frequency {{ oh_my_zsh.update_frequency | default(oh_my_zsh
 # or set a custom format using the strftime function format specifications,
 # see 'man strftime' for details.
 # HIST_STAMPS="mm/dd/yyyy"
+HIST_STAMPS="{{ oh_my_zsh.hist_stamps | default('dd.mm.yyyy') }}"
 
 # Would you like to use another custom folder than $ZSH/custom?
 # ZSH_CUSTOM=/path/to/new-custom-folder
