@@ -1,2 +1,3 @@
 ---
 packagepip: "python3-pip"
+package_name: "apprise"

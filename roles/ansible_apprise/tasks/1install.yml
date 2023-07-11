@@ -6,6 +6,13 @@
 - name: install apprise via pip
   ansible.builtin.pip:
     name: "{{ packageapprisepip }}"
+  when:
+    - apprise_via_pip
+- name: Install apprise via package manager
+  ansible.builtin.package:
+    name: "{{ package_name }}"
+  when:
+    - not apprise_via_pip
 - name: Get apprise path
   ansible.builtin.command: which apprise
   register: apprisequery
