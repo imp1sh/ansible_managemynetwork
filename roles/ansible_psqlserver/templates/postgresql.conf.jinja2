@@ -20,9 +20,7 @@ external_pid_file = '{{ psqlserver_externalpidfile }}'
 #------------------------------------------------------------------------------
 # CONNECTIONS AND AUTHENTICATION
 #------------------------------------------------------------------------------
-
 # - Connection Settings -
-
 #listen_addresses = 'localhost'		# what IP address(es) to listen on;
 listen_addresses = '{{ psqlserver_listenips | default('localhost', true) }}'
 #port = 5432				# (change requires restart)
@@ -93,9 +91,7 @@ ssl_passphrase_command_supports_reload = {{ psqlserver_passphrasecommandsupports
 #------------------------------------------------------------------------------
 # RESOURCE USAGE (except WAL)
 #------------------------------------------------------------------------------
-
 # - Memory -
-
 #shared_buffers = 128MB			# min 128kB
 shared_buffers = {{ psqlserver_sharedbuffers | default('128MB', true) }}
 #dynamic_shared_memory_type = posix	# the default is the first option
@@ -107,9 +103,135 @@ max_wal_size = {{ psqlserver_maxwalsize | default('1GB', true) }}
 min_wal_size = {{ psqlserver_minwalsize | default('80MB', true) }}
 
 #------------------------------------------------------------------------------
-# REPLICATION
+# REPLICATION SENDING SERVER
 #------------------------------------------------------------------------------
+{% if psqlserver_max_wal_senders is defined %}
+max_wal_senders = {{ psqlserver_max_wal_senders }}
+{% endif %}
+{% if psqlserver_max_replication_slots is defined %}
+max_replication_slots = {{ psqlserver_max_replication_slots }}
+{% endif %}
+{% if psqlserver_wal_keep_size is defined %}
+wal_keep_size = {{ psqlserver_wal_keep_size }}
+{% endif %}
+{% if psqlserver_max_slot_wal_keep_size is defined %}
+max_slot_wal_keep_size = {{ psqlserver_max_slot_wal_keep_size }}
+{% endif %}
+{% if psqlserver_wal_sender_timeout is defined %}
+wal_sender_timeout = {{ psqlserver_wal_sender_timeout }}
+{% endif %}
+{% if psqlserver_track_commit_timestamp is defined %}
+track_commit_timestamp = {{ psqlserver_track_commit_timestamp }}
+{% endif %}
 
+#------------------------------------------------------------------------------
+# REPLICATION PRIMARY SERVER
+#------------------------------------------------------------------------------
+{% if psqlserver_synchronous_standby_names is defined %}
+synchronous_standby_names = {{ psqlserver_synchronous_standby_names }}
+{% endif %}
+{% if psqlserver_vacuum_defer_cleanup_age is defined %}
+vacuum_defer_cleanup_age = {{ psqlserver_vacuum_defer_cleanup_age }}
+{% endif %}
+
+#------------------------------------------------------------------------------
+# REPLICATION STANDBY SERVER
+#------------------------------------------------------------------------------
+{% if psqlserver_primary_conninfo is defined %}
+primary_conninfo = {{ psqlserver_primary_conninfo }}
+{% endif %}
+{% if psqlserver_primary_slot_name is defined %}
+primary_slot_name = {{ psqlserver_primary_slot_name }}
+{% endif %}
+{% if psqlserver_promote_trigger_file is defined %}
+promote_trigger_file = {{ psqlserver_promote_trigger_file }}
+{% endif %}
+{% if psqlserver_hot_standby is defined %}
+hot_standby = {{ psqlserver_hot_standby }}
+{% endif %}
+{% if psqlserver_max_standby_archive_delay is defined %}
+max_standby_archive_delay = {{ psqlserver_max_standby_archive_delay }}
+{% endif %}
+{% if psqlserver_max_standby_streaming_delay is defined %}
+max_standby_streaming_delay = {{ psqlserver_max_standby_streaming_delay }}
+{% endif %}
+{% if psqlserver_wal_receiver_create_temp_slot is defined %}
+wal_receiver_create_temp_slot = {{ psqlserver_wal_receiver_create_temp_slot }}
+{% endif %}
+{% if psqlserver_wal_receiver_status_interval is defined %}
+wal_receiver_status_interval = {{ psqlserver_wal_receiver_status_interval }}
+{% endif %}
+{% if psqlserver_hot_standby_feedback is defined %}
+hot_standby_feedback = {{ psqlserver_hot_standby_feedback }}
+{% endif %}
+{% if psqlserver_wal_receiver_timeout is defined %}
+wal_receiver_timeout = {{ psqlserver_wal_receiver_timeout }}
+{% endif %}
+{% if psqlserver_wal_retrieve_retry_interval is defined %}
+wal_retrieve_retry_interval = {{ psqlserver_wal_retrieve_retry_interval }}
+{% endif %}
+{% if psqlserver_recovery_min_apply_delay is defined %}
+recovery_min_apply_delay = {{ psqlserver_recovery_min_apply_delay }}
+{% endif %}
+
+#------------------------------------------------------------------------------
+# REPLICATION SUBSCRIBERS
+#------------------------------------------------------------------------------
+{% if psqlserver_max_logical_replication_workers is defined %}
+max_logical_replication_workers = {{ psqlserver_max_logical_replication_workers }}
+{% endif %}
+{% if psqlserver_max_sync_workers_per_subscription is defined %}
+max_sync_workers_per_subscription = {{ psqlserver_max_sync_workers_per_subscription }}
+{% endif %}
+
+#------------------------------------------------------------------------------
+# WAL
+#------------------------------------------------------------------------------
+{% if psqlserver_wal_level is defined %}
+wal_level = {{ psqlserver_wal_level }}
+{% endif %}
+{% if psqlserver_fsync is defined %}
+fsync = {{ psqlserver_fsync }}
+{% endif %}
+{% if psqlserver_synchronous_commit is defined %}
+synchronous_commit = {{ psqlserver_synchronous_commit }}
+{% endif %}
+{% if psqlserver_wal_sync_method is defined %}
+wal_sync_method = {{ psqlserver_wal_sync_method }}
+{% endif %}
+{% if psqlserver_full_page_writes is defined %}
+full_page_writes = {{ psqlserver_full_page_writes }}
+{% endif %}
+{% if psqlserver_wal_log_hints is defined %}
+wal_log_hints = {{ psqlserver_wal_log_hints }}
+{% endif %}
+{% if psqlserver_wal_compression is defined %}
+wal_compression = {{ psqlserver_wal_compression }}
+{% endif %}
+{% if psqlserver_wal_init_zero is defined %}
+wal_init_zero = {{ psqlserver_wal_init_zero }}
+{% endif %}
+{% if psqlserver_wal_recycle is defined %}
+wal_recycle = {{ psqlserver_wal_recycle }}
+{% endif %}
+{% if psqlserver_wal_buffers is defined %}
+wal_buffers = {{ psqlserver_wal_buffers }}
+{% endif %}
+{% if psqlserver_wal_writer_delay is defined %}
+wal_writer_delay = {{ psqlserver_wal_writer_delay }}
+{% endif %}
+{% if psqlserver_wal_writer_flush_after is defined %}
+wal_writer_flush_after = {{ psqlserver_wal_writer_flush_after }}
+{% endif %}
+{% if psqlserver_wal_skip_threshold is defined %}
+wal_skip_threshold = {{ psqlserver_wal_skip_threshold }}
+{% endif %}
+{% if psqlserver_commit_delay is defined %}
+commit_delay = {{ psqlserver_commit_delay }}
+{% endif %}
+{% if psqlserver_commit_siblings is defined %}
+commit_siblings = {{ psqlserver_commit_siblings }}
+{% endif %}
 
 #------------------------------------------------------------------------------
 # QUERY TUNING
@@ -119,7 +241,6 @@ min_wal_size = {{ psqlserver_minwalsize | default('80MB', true) }}
 #------------------------------------------------------------------------------
 # REPORTING AND LOGGING
 #------------------------------------------------------------------------------
-
 # - Where to Log -
 #log_destination = 'syslog'
 {% if psqlserver_logdestination is defined %}
@@ -151,7 +272,6 @@ update_process_title = {{ psqlserver_updateprocesstitle }}
 #------------------------------------------------------------------------------
 # STATISTICS
 #------------------------------------------------------------------------------
-
 {% if psqlserver_statstempdir is defined %}
 stats_temp_directory = '{{ psqlserver_statstempdir }}'
 {% endif %}
@@ -160,7 +280,6 @@ stats_temp_directory = '{{ psqlserver_statstempdir }}'
 # CLIENT CONNECTION DEFAULTS
 #------------------------------------------------------------------------------
 # - Locale and Formatting -
-
 datestyle = '{{ psqlserver_datestyle | default('iso, mdy') }}'
 {% if psqlserver_timezone is defined %}
 timezone = '{{ psqlserver_timezone }}'

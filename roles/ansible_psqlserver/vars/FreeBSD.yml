@@ -1,16 +1,17 @@
 ---
 psqlserver_packages:
-  - "postgresql13-server"
-  - "postgresql13-client"
-  - "py38-psycopg2"
+  - "postgresql15-server"
+  - "postgresql15-client"
+    # need to install from ports because package will want postgres13
+    #  - "py39-psycopg2"
 psqlserver_initbinpath: "/usr/local/etc/rc.d/postgresql"
-psqlserver_hbafile: "/var/db/postgres/data13/pg_hba.conf"
+psqlserver_hbafile: "/var/db/postgres/data15/pg_hba.conf"
 psqlserver_configtemplate: "postgresql.conf.jinja2"
-psqlserver_configpath: "/var/db/postgres/data13"
+psqlserver_configpath: "/var/db/postgres/data15"
 psqlserver_configname: "postgresql.conf"
 psqlserver_owner: "postgres"
 psqlserver_group: "postgres"
 psqlserver_servicename: "postgresql"
-psqlserver_datadir: "/var/db/postgres/data13"
+psqlserver_datadir: "/var/db/postgres/data15"
 psqlserver_logdestination: "syslog"
 psqlserver_updateprocesstitle: "off"
