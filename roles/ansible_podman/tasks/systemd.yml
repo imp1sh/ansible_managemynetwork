@@ -21,15 +21,27 @@
     podman_container.state == "present" or
     podman_container.state == "stopped" or
     podman_container.state == "created"
-- name: Create Podman Service units
+- name: Create Podman Service unit
   containers.podman.podman_generate_systemd:
     name: "{{ podman_container.name }}"
     dest: "/etc/systemd/system"
   when: podman_container.state != "absent"
-- name: Enable systemd units
+- name: Enable systemd unit
   ansible.builtin.systemd:
     name: "container-{{ podman_container.name }}"
     daemon_reload: yes
-    state: "{{ podman_container_systemdstate }}"
-    enabled: "{{ podman_container_autostart }}"
+    state: "restarted"
+    enabled: "true"
   when: podman_container.state != "absent"
+- name: Disable systemd unit
+  ansible.builtin.systemd:
+    name: "container-{{ podman_container.name }}"
+    daemon_reload: yes
+    state: "stopped"
+    enabled: "false"
+  when: podman_container.state == "absent"
+- name: Delete systemd unit
+  ansible.builtin.file:
+    path: "/etc/systemd/system/container-{{ podman_container.name }}.service"
+    state: absent
+  when: podman_container.state == "absent"
