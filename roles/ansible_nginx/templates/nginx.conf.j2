@@ -28,6 +28,9 @@ events {
 }
 
 http {
+{% if nginx_server_names_hash_bucket_size is defined %}
+	server_names_hash_bucket_size {{ nginx_server_names_hash_bucket_size }}
+{% endif %}
 	# upstream items
 {% if nginx_upstreamitems is defined %}
 {% for upstreamitem in nginx_upstreamitems %}
@@ -38,8 +41,8 @@ http {
 {% for server in upstreamitem['servers'] %}
           server {{ server['name'] }}{% if server['weight'] is defined %} weight={{ server['weight'] }}{% endif %}{% if server['mode'] is defined %} {{ server['mode'] }}{% endif %};
 {% endfor %}
-{% endfor %}
         }
+{% endfor %}
 {% endif %}
         # proxy cache options
 {% if nginx_cachedir is defined %}

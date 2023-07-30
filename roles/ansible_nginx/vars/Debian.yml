@@ -9,11 +9,11 @@ nginx_errorlog: "/var/log/nginx/error.log warn"
 nginx_packages: "nginx-full"
 nginx_group: "www-data"
 nginx_passlib_packagename: "python3-passlib"
-nginx_php_fpmconfdir: "/etc/php/7.4/fpm/pool.d"
+nginx_php_fpmconfdir: "/etc/php/8.2/fpm/pool.d"
 nginx_php_fpmgroup: "www-data"
 nginx_php_fpmlistengroup: "www-data"
 nginx_php_fpmlistenowner: "www-data"
-nginx_php_fpmservicename: "php7.4-fpm"
+nginx_php_fpmservicename: "php8.2-fpm"
 nginx_php_fpmsocketpath: "/var/run/php-fpm.sock"
 nginx_php_fpmuser: "www-data"
 nginx_php_packages:
@@ -21,7 +21,6 @@ nginx_php_packages:
   - php{{ nginx_php_versiondebian }}-fpm
   - php{{ nginx_php_versiondebian }}-soap
   - php{{ nginx_php_versiondebian }}-gmp
-  - php{{ nginx_php_versiondebian }}-json
   - php{{ nginx_php_versiondebian }}-zip
   - php{{ nginx_php_versiondebian }}-sqlite3
   - php-apcu

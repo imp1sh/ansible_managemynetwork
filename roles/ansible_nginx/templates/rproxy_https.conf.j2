@@ -24,7 +24,7 @@ server {
     add_header X-XSS-Protection "1; mode=block";
 {% if rproxyitem.addheaders is defined %}
 {% for header in rproxyitem.addheaders %}
-   add_header {{ header }};
+    add_header {{ header }};
 {% endfor %}
 {% endif %}
 {% if rproxyitem.rproxyaltfqdn is defined %}
@@ -51,7 +51,7 @@ server {
     error_log /var/log/nginx/{{ rproxyitem.name }}-ssl_error.log error;
     location / {
             client_max_body_size 256M;
-            proxy_buffering on;
+            proxy_buffering {{ rproxyitem.proxybuffering | default('on', true) }};
             proxy_buffers 4 512k;
             proxy_busy_buffers_size 512k;
             proxy_buffer_size 512k;
@@ -66,14 +66,34 @@ server {
             proxy_set_header X-Forward-For $proxy_add_x_forwarded_for;
 	    proxy_set_header X-Forwarded-Proto $scheme;
             proxy_set_header Host $host;
+{% if rproxyitem.setheaders is defined %}
+{% for setheaderitem in rproxyitem.setheaders %}
+            proxy_set_header {{ setheaderitem }};
+{% endfor %}
+{% endif %}
+{% if rproxyitem.hideheaders is defined %}
+{% for hideheaderitem in rproxyitem.hideheaders %}
+            proxy_hide_header {{ hideheaderitem }};
+{% endfor %}
+{% endif %}
+
             proxy_pass {{ rproxyitem.rproxytarget }};
 	    add_header X-Frame-Options "SAMEORIGIN";
+{% if rproxyitem.addheaders is defined %}
+{% for addheaderitem in rproxyitem.addheaders %}
+            add_header {{ addheaderitem }};
+{% endfor %}
+{% endif %}
+{% if rproxyitem.httpversion is defined %}
+            proxy_http_version {{ rproxyitem.httpversion }};
+{% endif %}
+
     }
 {% if rproxyitem.additionallocations is defined %}
 {% for locationitem in rproxyitem.additionallocations %}
 location {{ locationitem.location }} {
 {% for locationitemelement in locationitem.options %}
-  {{ locationitemelement }}
+  {{ locationitemelement }};
 {% endfor %}
 }
 {% endfor %}
