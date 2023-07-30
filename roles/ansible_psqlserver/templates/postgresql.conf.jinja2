@@ -99,8 +99,8 @@ dynamic_shared_memory_type = {{ psqlserver_sharedmemorytype | default('posix', t
 # - Checkpoints -
 
 #checkpoint_timeout = 5min		# range 30s-1d
-max_wal_size = {{ psqlserver_maxwalsize | default('1GB', true) }}
-min_wal_size = {{ psqlserver_minwalsize | default('80MB', true) }}
+max_wal_size = {{ psqlserver_max_wal_size | default('1GB', true) }}
+min_wal_size = {{ psqlserver_min_wal_size | default('80MB', true) }}
 
 #------------------------------------------------------------------------------
 # REPLICATION SENDING SERVER
