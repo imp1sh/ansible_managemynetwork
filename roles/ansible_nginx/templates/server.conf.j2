@@ -1,0 +1,107 @@
+# {{ serveritem.name }}
+# {{ serveritem.comment }}
+server {
+{% if ( serveritem_fullchain is defined and serveritem_privkey is defined ) and ( serveritem_fullchain.stat.exists and serveritem_privkey.stat.exists ) %}
+    listen      [::]:443 ssl;
+    listen      443 ssl;
+    ssl_certificate {{ nginx_certpath }}/{{ server_certname }}/fullchain.pem;
+    ssl_certificate_key {{ nginx_certpath }}/{{ server_certname }}/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+{% if serveritem.cipher is defined %}
+    ssl_ciphers {{ serveritem.cipher }};
+{% else %}
+    ssl_ciphers {{ nginx_servercipher }};
+{% endif %}
+    ssl_ecdh_curve secp384r1;
+    ssl_session_timeout 10m;
+    #ssl_session_cache shared:SSL:10m;
+    ssl_session_tickets off;
+    ssl_stapling {{ serveritem.sslstapling | default('on', true) }};
+    ssl_stapling_verify {{ serveritem.sslstaplingverify | default('on', true) }};
+    add_header Strict-Transport-Security "max-age=63072000; includeSubDomains; preload";
+    access_log /var/log/nginx/{{ serveritem.name }}-tls_access.log;
+    error_log /var/log/nginx/{{ serveritem.name }}-tls_error.log error;
+{% else %}
+    listen      [::]:80;
+    listen      80;
+    access_log /var/log/nginx/{{ serveritem.name }}_access.log;
+    error_log /var/log/nginx/{{ serveritem.name }}_error.log error;
+{% endif %}
+    add_header X-Frame-Options DENY;
+    add_header X-Content-Type-Options nosniff;
+    add_header X-XSS-Protection "1; mode=block";
+{% if serveritem.addheaders is defined %}
+{% for header in serveritem.addheaders %}
+    add_header {{ header }};
+{% endfor %}
+{% endif %}
+{% if serveritem.serveraltfqdn is defined %}
+    server_name {{ serveritem.name }} {{ serveritem.serveraltfqdn }};
+{% else %}
+    server_name {{ serveritem.name }};
+{% endif %}
+{% if serveritem.redirect is defined %}
+    return 301 {{ serveritem.redirect }};
+{% endif %}
+{% if serveritem.authfile is defined %}
+    auth_basic "Restricted Access";
+    auth_basic_user_file "{{ serveritem.authfile }}";
+{% endif %}
+{% if serveritem.clientmaxbodysize is defined %}
+    client_max_body_size {{ serveritem.clientmaxbodysize }};
+{% else %}
+    client_max_body_size {{ nginx_clientmaxbodysize }};
+{% endif %}
+{% if serveritem.proxyrequestbuffering is defined %}
+    proxy_request_buffering {{ serveritem.proxyrequestbuffering }};
+{% endif %}
+    location / {
+            proxy_buffering {{ serveritem.proxybuffering | default('on', true) }};
+            proxy_buffers 4 512k;
+            proxy_busy_buffers_size 512k;
+            proxy_buffer_size 512k;
+{% if serveritem.enablecache is sameas true %}
+            proxy_cache STATIC;
+            proxy_cache_valid 200 1d;
+            proxy_cache_use_stale  error timeout invalid_header updating http_500 http_502 http_503 http_504;
+{% endif %}
+            proxy_redirect off;
+            proxy_set_header X-Real-IP $remote_addr;
+            #proxy_set_header X-Forward-For $remote_addr;
+            proxy_set_header X-Forward-For $proxy_add_x_forwarded_for;
+	    proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_set_header Host $host;
+{% if serveritem.setheaders is defined %}
+{% for setheaderitem in serveritem.setheaders %}
+            proxy_set_header {{ setheaderitem }};
+{% endfor %}
+{% endif %}
+{% if serveritem.hideheaders is defined %}
+{% for hideheaderitem in serveritem.hideheaders %}
+            proxy_hide_header {{ hideheaderitem }};
+{% endfor %}
+{% endif %}
+{% if serveritem.rproxytarget is defined %}
+            proxy_pass {{ serveritem.rproxytarget }};
+{% endif %}
+	    add_header X-Frame-Options "SAMEORIGIN";
+{% if serveritem.addheaders is defined %}
+{% for addheaderitem in serveritem.addheaders %}
+            add_header {{ addheaderitem }};
+{% endfor %}
+{% endif %}
+{% if serveritem.httpversion is defined %}
+            proxy_http_version {{ serveritem.httpversion }};
+{% endif %}
+
+    }
+{% if serveritem.additionallocations is defined %}
+{% for locationitem in serveritem.additionallocations %}
+location {{ locationitem.location }} {
+{% for locationitemelement in locationitem.options %}
+  {{ locationitemelement }};
+{% endfor %}
+}
+{% endfor %}
+{% endif %}
+}
