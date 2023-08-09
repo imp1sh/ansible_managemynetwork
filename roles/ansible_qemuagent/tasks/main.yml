@@ -1,8 +1,15 @@
 ---
 # tasks file for qemuagent
+- name: include OS vars
+  include_vars: "{{ ansible_distribution }}.yml"
+- name: set fact for installation role
+  ansible.builtin.set_fact:
+    packages_installrole: "{{ packagename_qemuagent }}"
+- name: Install qemu agent
+  ansible.builtin.include_role:
+    name: imp1sh.ansible_managemynetwork.ansible_packages
 - name: enable qemu agent
   service:
     name: qemu-guest-agent
     state: started
     enabled: true
-  when: ansible_facts['os_family'] == 'Alpine'
