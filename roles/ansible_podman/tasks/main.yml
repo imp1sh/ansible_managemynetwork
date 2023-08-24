@@ -8,7 +8,7 @@
   loop: "{{ podman_networks }}"
 - name: ensure podman container directories
   ansible.builtin.file:
-    path: "{{ item.1 | split(':') | first }}"
+    path: "{{ item.1 | split(':') | first | ansible.builtin.dirname }}"
     state: directory
   loop: "{{ podman_containers | subelements('volume', 'skip_missing=True') }}"
 - name: Create containers
