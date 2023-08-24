@@ -1,0 +1,44 @@
+---
+- name: create server root dir
+  ansible.builtin.file:
+    path: "{{ nginx_wwwdir }}/vhosts/{{ serveritem.fqdn }}"
+    state: directory
+    mode: '0750'
+    owner: "{{ nginx_user }}"
+    group: "{{ nginx_group }}"
+- name: "Install nginx server item {{ serveritem.fqdn }}"
+  ansible.builtin.template:
+    src: server.conf.j2
+    dest: "{{ nginx_confdir }}/http.d/{{ serveritem.fqdn }}.conf"
+    owner: "{{ nginx_confowner }}"
+    group: "{{ nginx_confgroup }}"
+    mode: '0744'
+  notify:
+    - reload nginx
+- name: "Use manually defined cert"
+  ansible.builtin.set_fact:
+    server_certname: "{{ serveritem.usecert }}"
+  when: serveritem.usecert is defined
+- name: "Use server main name as certname"
+  ansible.builtin.set_fact:
+    server_certname: "{{ serveritem.fqdn }}"
+  when: serveritem.usecert is not defined
+- name: "Check if server item has fullchain.pem"
+  ansible.builtin.stat:
+    path: "{{ nginx_certpath }}/{{ server_certname }}/fullchain.pem"
+  register: serveritem_fullchain
+- name: "Check if server item has privkey.pem"
+  ansible.builtin.stat:
+    path: "{{ nginx_certpath }}/{{ server_certname }}/privkey.pem"
+  register: serveritem_privkey
+- name: "Installing nginx server https item {{ serveritem.fqdn }} if certs are available"
+  ansible.builtin.template:
+    src: server.conf.j2
+    dest: "{{ nginx_confdir }}/http.d/{{ serveritem.fqdn }}-tls.conf"
+    owner: "{{ nginx_confowner }}"
+    group: "{{ nginx_confgroup }}"
+  when:
+    - serveritem_fullchain.stat.exists
+    - serveritem_privkey.stat.exists
+  notify:
+    - reload nginx

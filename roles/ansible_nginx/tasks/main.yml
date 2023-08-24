@@ -8,18 +8,12 @@
   ansible.builtin.include_tasks: prepare.yml
 - name: Configurations
   ansible.builtin.include_tasks: configure.yml
-- name: Setup nginx vhost items task
-  ansible.builtin.include_tasks: vhosts.yml
-  loop: "{{ nginx_vhosts }}"
+- name: Setup nginx server items task
+  ansible.builtin.include_tasks: servers.yml
+  loop: "{{ nginx_servers }}"
   loop_control:
-    loop_var: vhostitem
-  when: nginx_vhosts is defined
-- name: Setup nginx rproxy items task
-  ansible.builtin.include_tasks: rproxy-vhosts.yml
-  loop: "{{ nginx_rproxyitems }}"
-  loop_control:
-    loop_var: rproxyitem
-  when: nginx_rproxyitems is defined
+    loop_var: serveritem
+  when: nginx_servers is defined
 - name: enable nginx
   ansible.builtin.service:
     name: "{{ nginx_servicename }}"
