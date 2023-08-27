@@ -285,6 +285,10 @@ datestyle = '{{ psqlserver_datestyle | default('iso, mdy') }}'
 timezone = '{{ psqlserver_timezone }}'
 {% endif %}
 
+{% if psqlserver_default_transaction_read_only is defined %}
+default_transaction_read_only = '{{ psqlserver_default_transaction_read_only }}'
+{% endif %}
+
 # These settings are initialized by initdb, but they can be changed.
 lc_messages = '{{ psqlserver_lcmessages | default('C') }}'			# locale for system error message
 					# strings
