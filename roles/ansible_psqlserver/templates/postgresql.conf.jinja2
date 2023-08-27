@@ -27,7 +27,7 @@ listen_addresses = '{{ psqlserver_listenips | default('localhost', true) }}'
 {% if psqlserver_port is defined %}
 port = {{ psqlserver_port }}
 {% endif %}
-max_connections = {{ psqlserver_maxconnections | default(100, true) }}
+max_connections = {{ psqlserver_max_connections | default(100, true) }}
 #unix_socket_directories = '/tmp'	# comma-separated list of directories
 {% if psqlserver_unixsocketdirectories is defined %}
 unix_socket_directories = '{{ psqlserver_unixsocketdirectories }}'
