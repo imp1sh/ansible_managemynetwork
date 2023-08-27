@@ -13,6 +13,9 @@
 # allow-dnsupdate-from	A global setting to allow DNS updates from these IP ranges.
 #
 # allow-dnsupdate-from=127.0.0.0/8,::1
+{% if pdns_allow-dnsupdate-from is defined %}
+allow-dnsupdate-from={{ pdns_allow-dnsupdate-from }}
+{% endif %}
 
 #################################
 # allow-notify-from	Allow AXFR NOTIFY from these IP ranges. If empty, drop all incoming notifies.
