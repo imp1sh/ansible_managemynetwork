@@ -4,6 +4,7 @@ psqlserver_packages:
   - "postgresql"
   - "postgresql-client"
   - "python3-psycopg2"
+  - "postgresql-contrib"
 psqlserver_configtemplate: "postgresql.conf.jinja2"
 psqlserver_configpath: "/etc/postgresql/{{ psqlserver_version }}/main"
 psqlserver_configname: "postgresql.conf"

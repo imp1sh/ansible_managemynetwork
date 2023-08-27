@@ -2,6 +2,7 @@
 psqlserver_packages:
   - "postgresql15-server"
   - "postgresql15-client"
+  - "postgresql15-contrib"
     # need to install from ports because package will want postgres13
     #  - "py39-psycopg2"
 psqlserver_initbinpath: "/usr/local/etc/rc.d/postgresql"
