@@ -12,6 +12,7 @@
     group: "{{ pdnssetgid }}"
     mode: 0640
     backup: yes
+  notify: restart powerdns
 #- name: create pdns db
 #  command: "psql -c 'CREATE DATABASE pdns;'
 #  become: yes
