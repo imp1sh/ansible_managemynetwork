@@ -1,0 +1,14 @@
+---
+# tasks file for ansible_nsupdate_bash
+- name: Deploy nsupdate_bash script
+  ansible.builtin.get_url:
+    url: "https://gitlab.com/junialter/nsupdate_bash/-/raw/main/nsupdate_bash.sh"
+    dest: "{{ nsupdate_bash_scriptpath }}"
+    mode: 0755
+
+- name: "Iterate over the cronjob items"
+  ansible.builtin.include_tasks:
+    file: cronjobitem.yml
+  loop: "{{ nsupdate_bash_cronjobs }}"
+  loop_control:
+    loop_var: cronjobitem

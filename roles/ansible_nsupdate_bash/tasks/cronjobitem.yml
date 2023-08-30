@@ -1,0 +1,14 @@
+---
+- name: "Deploy cronjob keyfile"
+  ansible.builtin.template:
+    src: keyfile.j2
+    dest: "{{ nsupdate_bash_keypath }}/{{ cronjobitem.keyname }}.key"
+
+- name: "Deyploy cronjob"
+  ansible.builtin.cron:
+    name: "{{ cronjobitem.hostname }}"
+    user: "root"
+    state: "{{ cronjobitem.state }}"
+    cron_file: "nsupdate_bash_{{ cronjobitem.hostname | replace('.','_')}}"
+    minute: "*/{{ cronjobitem.updateinterval }}"
+    job: "{{ nsupdate_bash_scriptpath }} -s {{ cronjobitem.server }} -h {{ cronjobitem.hostname }} -z {{ cronjobitem.zone }} -k {{ nsupdate_bash_keypath }}/{{ cronjobitem.keyname }}.key{% if cronjobitem.ttl is defined %} -t {{ cronjobitem.ttl }}{% endif %}{% if cronjobitem.timeout is defined %} -o {{ cronjobitem.timeout }}{% endif %}{% if cronjobitem.grepstring is defined %} -g {{ cronjobitem.grepstring }}{% endif %}"

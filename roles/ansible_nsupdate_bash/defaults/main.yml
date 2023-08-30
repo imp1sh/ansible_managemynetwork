@@ -1,0 +1,4 @@
+---
+# defaults file for ansible_nsupdate_bash
+nsupdate_bash_keypath: "/usr/local/etc"
+nsupdate_bash_scriptpath: "/usr/local/bin/nsupdate_bash.sh"
