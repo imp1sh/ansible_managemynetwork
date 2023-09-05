@@ -13,4 +13,3 @@ BSD
 Author Information
 ------------------
 Jochen Demmer
-jochen@winteltosh.de
