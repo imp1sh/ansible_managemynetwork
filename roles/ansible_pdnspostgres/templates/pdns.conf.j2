@@ -21,6 +21,9 @@ ignore-unknown-settings={{ pdns_ignore_unknown_settings }}
 #################################
 # allow-dnsupdate-from	A global setting to allow DNS updates from these IP ranges.
 #
+{% if pdns_allow_dnsupdate_from is defined %}
+allow-dnsupdate-from={{ pdns_allow_dnsupdate_from }}
+{% endif %}
 
 #################################
 # allow-notify-from	Allow AXFR NOTIFY from these IP ranges. If empty, drop all incoming notifies.

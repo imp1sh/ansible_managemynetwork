@@ -91,9 +91,9 @@ server {
     }
 {% if rproxyitem.additionallocations is defined %}
 {% for locationitem in rproxyitem.additionallocations %}
-location {{ locationitem.location }} {
+    location {{ locationitem.location }} {
 {% for locationitemelement in locationitem.options %}
-  {{ locationitemelement }};
+      {{ locationitemelement }};
 {% endfor %}
 }
 {% endfor %}
