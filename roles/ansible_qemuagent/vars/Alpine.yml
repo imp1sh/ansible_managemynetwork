@@ -1,0 +1,3 @@
+---
+packagename_qemuagent: "qemu-guest-agent"
+servicename_qemuagent: "qemu-guest-agent"
