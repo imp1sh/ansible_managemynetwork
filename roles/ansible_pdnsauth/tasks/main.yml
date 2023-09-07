@@ -13,6 +13,8 @@
     mode: 0640
     backup: yes
   notify: restart powerdns
+# Move all the pdns tasks to the pdns role
+# and call it from here!!!!!
 #- name: create pdns db
 #  command: "psql -c 'CREATE DATABASE pdns;'
 #  become: yes

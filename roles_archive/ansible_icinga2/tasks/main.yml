@@ -2,14 +2,13 @@
 - name: include OS vars
   include_vars: "{{ ansible_os_family }}.yml"
 - name: Installation
-  import_tasks: installation.yml
+  import_tasks: "installation.yml"
 - name: Configuration
-  import_tasks: configuration.yml
+  import_tasks: "configuration.yml"
 - name: Certificates
-  import_tasks: certificates.yml
+  import_tasks: "certificates.yml"
 - name: enable icinga2 service
   service:
     name: icinga2
     state: started
     enabled: yes
-

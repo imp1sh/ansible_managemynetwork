@@ -1,8 +1,5 @@
 ---
 # tasks file for ansible_hostname
-- name: debug
-  debug:
-    var: inventory_hostname
 - name: set hostname with ansible builtin
   ansible.builtin.hostname:
     name: "{{ inventory_hostname }}"

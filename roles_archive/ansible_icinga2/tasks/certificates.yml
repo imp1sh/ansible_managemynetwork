@@ -10,7 +10,7 @@
 - name: check if the system already has a host certificate
   stat:
     path: "/var/lib/icinga2/certs/{{ inventory_hostname }}.crt"
-  register: certificatecheck
+      #register: certificatecheck
   register: check_certificatehost
 - name: check for ticket
   stat:
@@ -20,7 +20,7 @@
     - icinga2_signingmaster != inventory_hostname
 # Signing Master Actions
 - name: create csr
-  command: icinga2 pki new-cert --cn {{ inventory_hostname }} --key /var/lib/icinga2/certs/{{ inventory_hostname }}.key --csr /var/lib/icinga2/certs/{{ inventory_hostname }}.csr --cert /var/lib/icinga2/certs/{{ inventory_hostname }}.crt 
+  command: icinga2 pki new-cert --cn {{ inventory_hostname }} --key /var/lib/icinga2/certs/{{ inventory_hostname }}.key --csr /var/lib/icinga2/certs/{{ inventory_hostname }}.csr --cert /var/lib/icinga2/certs/{{ inventory_hostname }}.crt
   when:
     ((check_certificatehost.stat.exists == false) and (icinga2_signingmaster == inventory_hostname)) or
     (icinga2_forcerecert)
@@ -116,7 +116,7 @@
     openssl x509 -in /var/lib/icinga2/certs/{{ inventory_hostname }}.crt -fingerprint -sha256 -noout | cut -d '=' -f 2
   args:
     executable: "{{ bash_path }}"
-  register: icinga2_client_certificate_check 
+  register: icinga2_client_certificate_check
     #- name: debug cert check output
     #  debug:
     #    msg: "{{ icinga2_client_certificate_check }}"
