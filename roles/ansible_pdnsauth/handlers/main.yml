@@ -1,5 +1,5 @@
 ---
 - name: restart powerdns
-  service:
+  ansible.builtin.service:
     name: pdns
     state: restarted

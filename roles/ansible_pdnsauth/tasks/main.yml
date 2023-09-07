@@ -3,7 +3,12 @@
   ansible.builtin.include_role:
     name: imp1sh.ansible_managemynetwork.ansible_packages
   vars:
-    packages_installrole: ['pdns-server', 'pdns-tools', 'pdns-backend-pgsql', 'postgresql', 'postgresql-client']
+    packages_installrole:
+      - 'pdns-server'
+      - 'pdns-tools'
+      - 'pdns-backend-pgsql'
+      - 'postgresql'
+      - 'postgresql-client'
 - name: Deploy pdns config file
   ansible.builtin.template:
     src: pdns.conf.j2
@@ -11,23 +16,23 @@
     owner: "{{ pdnssetuid }}"
     group: "{{ pdnssetgid }}"
     mode: 0640
-    backup: yes
+    backup: true
   notify: restart powerdns
 # Move all the pdns tasks to the pdns role
 # and call it from here!!!!!
-#- name: create pdns db
+# - name: create pdns db
 #  command: "psql -c 'CREATE DATABASE pdns;'
 #  become: yes
 #  become_user: postgres
 - name: Enable PostgreSQL Service
   ansible.builtin.service:
     name: postgresql
-    enabled: yes
+    enabled: true
     state: started
 - name: Enable pdns Service
   ansible.builtin.service:
     name: pdns
-    enabled: yes
+    enabled: true
 - name: create pgsql backup directory in /opt/pg_dump
   ansible.builtin.file:
     path: /opt/pg_dump
@@ -41,4 +46,3 @@
     minute: 0
     hour: 0
     job: sudo -u postgres /usr/bin/pg_dump pdns > /opt/pg_dump/pdns_backup.sql
-

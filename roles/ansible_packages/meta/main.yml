@@ -3,30 +3,6 @@ galaxy_info:
   role_name: ansible_packages
   author: Jochen Demmer
   description: Removes or installs packages, either on a scale of host, group or role.
-galaxy_info:
-  role_name: packages
-  author: imp1sh
-  description: A way of adding all your favourite applications for the different distributions. Additionally add packages that should only be on specific hosts.
-galaxy_info:
-  role_name: packages
----
-galaxy_info:
-  role_name: ansible_packages
-galaxy_info:
-  role_name: packages
----
-galaxy_info:
-  role_name: ansible_packages
-  author: Jochen Demmer
-  description: Removes or installs packages, either on a scale of host, group or role.
-  company: libcom.de
-galaxy_info:
-  role_name: packages
----
-galaxy_info:
-  role_name: ansible_packages
-  author: Jochen Demmer
-  description: Removes or installs packages, either on a scale of host, group or role.
   company: libcom.de
   issue_tracker_url: https://github.com/imp1sh/ansible_managemynetwork/issues
   license: BSD-3-Clause

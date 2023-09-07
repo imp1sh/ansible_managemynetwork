@@ -1,8 +1,8 @@
 ---
 galaxy_info:
-  role_name: ansible_nginx
+  role_name: ansible_dehydrated
   author: Jochen Demmer
-  description: Configures nginx webserver
+  description: Configures dehydrated for letsencrypt
   company: libcom.de
   issue_tracker_url: https://github.com/imp1sh/ansible_managemynetwork/issues
   license: BSD-3-Clause
@@ -12,5 +12,5 @@ galaxy_info:
       versions:
         - "bookworm"
         - "bullseye"
-  galaxy_tags: [nginx, webserver, reverseproxy, php, fpm]
+  galaxy_tags: [dehydrated, letsencrypt, acme, certbot]
 dependencies: []
