@@ -1,6 +1,6 @@
 - name: iterate over the keys
   ansible.builtin.include_tasks: "iteratekeys.yml"
-  loop: "{{ lookup('ansible.builtin.dict', system_sshkeys) }}"
+  loop: "{{ lookup('ansible.builtin.dict', system_sshkeys, wantlist=True) }}"
   loop_control:
     loop_var: sshkey
   when: system_sshkeys is defined
