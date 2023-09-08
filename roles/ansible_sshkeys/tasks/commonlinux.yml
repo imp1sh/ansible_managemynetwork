@@ -1,26 +1,6 @@
-- name: Make sure ssh dir exists
-  ansible.builtin.file:
-    path: "/home/{{ item.user }}/.ssh"
-    state: directory
-    owner: "{{ item.user }}"
-    mode: 0700
-  loop: "{{ sshkeys }}"
-  when: sshkeys is defined
-- name: "Installing ssh keys"
-  authorized_key:
-    user: "{{ item.user }}"
-    key: "{{ item.key }}"
-    state: present
-  when:
-    - sshkeys is defined
-    - item['state'] != 'absent'
-  loop: "{{ sshkeys }}"
-- name: "Removing ssh keys"
-  authorized_key:
-    user: "{{ item.user }}"
-    key: "{{ item.key }}"
-    state: absent
-  when:
-    - sshkeys is defined
-    - item['state'] == 'absent'
-  loop: "{{ sshkeys }}"
+- name: iterate over the keys
+  ansible.builtin.include_tasks: "iteratekeys.yml"
+  loop: "{{ lookup('ansible.builtin.dict', system_sshkeys) }}"
+  loop_control:
+    loop_var: sshkey
+  when: system_sshkeys is defined
