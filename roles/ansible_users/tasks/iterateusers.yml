@@ -1,33 +1,61 @@
 ---
-- name: Showing current user
-  debug:
+- name: Checking the following user
+  ansible.builtin.debug:
     var: user.name
-- name: Set fact for package install
+
+- name: Set isingroup and isinlist initially to False
   ansible.builtin.set_fact:
-    packages_installrole: "{{ shellpackages[user.shell] }}"
-  when: user.shell is defined
-- name: Install package for shell
-  ansible.builtin.include_role:
-    name: imp1sh.ansible_managemynetwork.ansible_packages
-  when: user.shell is defined
-- name: set users shell for this OS
-  set_fact:
-    usershell: "{{ shells[user.shell] }}"
-  when: user.shell is defined
-- name: check if the host is in the list
-  ansible.builtin.include_tasks: "justdoit.yml"
+    isingroup: False
+    isinlist: False
+
+# Check for group based assignments
+- name: check if subelement exists
+  ansible.builtin.set_fact:
+    elementcheck_group: "{{ system_users_create_on_hostgroups[user.name] is defined }}"
+
+- name: check if host is in group
+  ansible.builtin.set_fact:
+    isingroup: True
   when:
-    - user.createonhosts is defined
-    - inventory_hostname in user.createonhosts
-- name: check if the group associates with host
-  ansible.builtin.include_tasks: "checkgroup.yml"
-  when: user.createonhost_bygroup is defined
-  loop: "{{ user.createonhost_bygroup }}"
-  loop_control:
-    loop_var: groupname
-- name: Deploy files (optional)
-  ansible.builtin.include_tasks: "deployfiles.yml"
-  loop: "{{ user.deployfiles }}"
-  loop_control:
-    loop_var: fileitem
-  when: user.deployfiles is defined
+    - elementcheck_group
+    - system_users_create_on_hostgroups[user.name] | intersect(group_names) | length > 0
+
+# Check for individual host assigments
+- name: check if subelement exists in individual list
+  ansible.builtin.set_fact:
+    elementcheck_individual: "{{ system_users_create_on_hosts[user.name] is defined }}"
+
+- name: Check if user is in hostlist
+  ansible.builtin.set_fact:
+    isinlist: "{{ inventory_hostname in system_users_create_on_hosts[user.name] }}"
+  when: elementcheck_individual
+
+- name: Block task if user shall be created on this very host
+  block:
+    - name: The user will be installed
+      ansible.builtin.debug:
+        var: user.name
+    - name: Set fact for package install
+      ansible.builtin.set_fact:
+        packages_installrole: "{{ shellpackages[user.shell] }}"
+      when:
+        - user.shell is defined
+    - name: Install package for shell
+      ansible.builtin.include_role:
+        name: imp1sh.ansible_managemynetwork.ansible_packages
+      when:
+        user.shell is defined
+    - name: set users shell for this OS
+      set_fact:
+        usershell: "{{ shells[user.shell] }}"
+      when: user.shell is defined
+    - name: Deploy files (optional)
+      ansible.builtin.include_tasks: "deployfiles.yml"
+      loop: "{{ user.deployfiles }}"
+      loop_control:
+        loop_var: fileitem
+      when:
+        - user.deployfiles is defined
+    - name: Create user
+      ansible.builtin.include_tasks: justdoit.yml
+  when: (isinlist) or (isingroup)
