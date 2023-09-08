@@ -2,8 +2,8 @@ galaxy_info:
   role_name: sshkeys
   author: imp1sh
   description: Install ssh keys for specific users.
-  license: license (BSD, MIT)
-  min_ansible_version: 2.0
+  license: license (BSD)
+  min_ansible_version: 2.9
   platforms:
   - name: Alpine
     versions:
@@ -14,12 +14,14 @@ galaxy_info:
     - 6
     - 7
     - 8
+    - 9
   - name: Debian
     versions:
     - "Wheezy"
     - "Jessie"
     - "Stretch"
     - "Buster"
+    - "Bookworm"
   - name: FreeBSD
     versions:
     - all
@@ -29,9 +31,6 @@ galaxy_info:
     - xenial
     - bionic
     - focal
-  - name: OpenWrt
-    versions:
-    - all
   galaxy_tags:
   - ssh
   - sshkey
