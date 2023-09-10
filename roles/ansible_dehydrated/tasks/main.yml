@@ -1,13 +1,23 @@
 ---
-- name: include OS vars
-  include_vars: "{{ ansible_os_family }}.yml"
+- name: Setting OS variables
+  ansible.builtin.include_vars: "{{lookup('ansible.builtin.first_found', params)}}"
+  vars:
+    params:
+      files:
+        - "{{ ansible_distribution }}.yml"
+        - "{{ ansible_os_family }}.yml"
+        - "default.yml"
+      paths:
+        - "vars"
 # Installations
-- name: Install needed packages
-  package:
-    name: "{{ dehydrated_packages }}"
-    state: present
+- name: Set package name for calling packages role
+  ansible.builtin.set_fact:
+    packages_installrole: "{{ dehydrated_packages }}"
+- name: install required packages
+  ansible.builtin.include_role:
+    name: imp1sh.ansible_managemynetwork.ansible_packages
 - name: Alpine install dehydrated manually from git
-  get_url:
+  ansible.builtin.get_url:
     url: https://raw.githubusercontent.com/dehydrated-io/dehydrated/master/dehydrated
     dest: "{{ dehydrated_binpath }}"
     owner: root
@@ -77,7 +87,7 @@
     group: "{{ dehydrated_group }}"
 # deploy files and jobs
 - name: Install dehydrated config
-  template:
+  ansible.builtin.template:
     src: dehydratedconfig
     dest: "{{ dehydrated_confdir }}/config"
     owner: "{{ dehydrated_user }}"
@@ -109,9 +119,9 @@
     - dehydrated cron
 # Accept terms and cron
 - name: Run dehydrated to accept terms
-  command: "{{ dehydrated_binpath }} --register --accept-terms"
+  ansible.builtin.command: "{{ dehydrated_binpath }} --register --accept-terms"
 - name: Setup dehydrated cronjob
-  cron:
+  ansible.builtin.cron:
     name: renew certificates dehydrated
     minute: "0"
     hour: "12"
