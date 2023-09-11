@@ -1,4 +1,13 @@
 ---
+- name: Assert user XOR group
+  ansible.builtin.assert:
+    that:
+      - ( sudoitem.user is defined and sudoitem.group is not defined ) or ( sudoitem.user is not defined and sudoitem.group is defined)
+    fail_msg: "Only user OR group may be defined at a time"
+  loop: "{{ sudo_sudoers }}"
+  loop_control:
+    loop_var: sudoitem
+  when: sudo_sudoers is defined
 - name: enroll sudoers files
   community.general.sudoers:
     name: "{{ sudoitem.name }}"
@@ -10,7 +19,7 @@
     setenv: "{{ sudoitem.setenv | default(omit) }}"
     state: "{{ sudoitem.state | default('present') }}"
     sudoers_path: "{{ sudoitem.sudoers_path | default(omit) }}"
-    user: "{{ sudoitem.user }}"
+    user: "{{ sudoitem.user | default(omit)}}"
     validation: "{{ sudoitem.validation | default(omit) }}"
   loop: "{{ sudo_sudoers }}"
   loop_control:
