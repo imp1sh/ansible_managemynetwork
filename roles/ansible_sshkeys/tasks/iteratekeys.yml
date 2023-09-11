@@ -13,10 +13,6 @@
   ansible.builtin.set_fact:
     system_sshkeys_elementcheck_group: "{{ system_sshkeys_deploy_on_hostgroups[sshkey.key] is defined }}"
 
-      #- name: debug
-      #  debug:
-      #    var: system_sshkeys_deploy_on_hostgroups[sshkey.key]['hostgroups']
-
 - name: check if key is in group
   ansible.builtin.set_fact:
     system_sshkeys_isingroup: True
