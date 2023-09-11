@@ -1,22 +1,27 @@
 ---
-
-- import_tasks: vars.yml
-  tags:
-    - system
-    - sudo
-    - vars
-    - sudo-vars
-
-- import_tasks: install.yml
-  tags:
-    - system
-    - sudo
-    - install
-    - sudo-install
-
-- import_tasks: config.yml
-  tags:
-    - system
-    - sudo
-    - config
-    - sudo-config
+# Loading OS vars
+- name: Setting OS variables 
+  ansible.builtin.include_vars: "{{lookup('ansible.builtin.first_found', params)}}"
+  vars:
+    params:
+      files:
+        - "{{ ansible_distribution }}.yml"
+        - "{{ ansible_os_family }}.yml"
+        - "default.yml"
+      paths:
+        - "vars"
+# Install packages
+- name: Set package name for calling packages role
+  ansible.builtin.set_fact:
+    packages_installrole: "{{ sudo_packages }}"
+- name: install required packages
+  ansible.builtin.include_role:
+    name: imp1sh.ansible_managemynetwork.ansible_packages
+# Merge sudo rules
+- name: Prepare sudoers dict
+  ansible.builtin.include_tasks:
+    file: 1prepare.yml
+# Deploy sudoers
+- name: Deploy sudoers
+  ansible.builtin.include_tasks:
+    file: 2justdoit.yml

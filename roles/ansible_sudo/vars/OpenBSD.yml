@@ -1,5 +1,0 @@
----
-sudo_pkg_mgr_opts: ''
-sudo_sudoers_group: wheel
-sudo_visudo: '/usr/local/sbin/visudo'
-sudo_sudoers_d_path: /etc/sudoers.d

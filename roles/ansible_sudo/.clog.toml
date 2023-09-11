@@ -1,4 +1,0 @@
-[clog]
-changelog = "CHANGELOG.md"
-repository = "https://github.com/weareinteractive/ansible-sudo"
-from-latest-tag = true
