@@ -21,14 +21,18 @@
     - system_users_create_on_hostgroups[user.name] | intersect(group_names) | length > 0
 
 # Check for individual host assigments
-- name: check if subelement exists in individual list
-  ansible.builtin.set_fact:
-    elementcheck_individual: "{{ system_users_create_on_hosts[user.name] is defined }}"
+- name: individual host assignment check
+  block:
+    - name: check if subelement exists in individual list
+      ansible.builtin.set_fact:
+        elementcheck_individual: "{{ system_users_create_on_hosts[user.name] is defined }}"
 
-- name: Check if user is in hostlist
-  ansible.builtin.set_fact:
-    system_users_isinlist: "{{ inventory_hostname in system_users_create_on_hosts[user.name] }}"
-  when: elementcheck_individual
+    - name: Check if user is in hostlist
+      ansible.builtin.set_fact:
+        system_users_isinlist: "{{ inventory_hostname in system_users_create_on_hosts[user.name] }}"
+      when: elementcheck_individual
+  when: not system_users_isingroup
+  # user will be added when group assignment found. no second acknowledge necessary
 
 - name: Block task if user shall be created on this very host
   block:
