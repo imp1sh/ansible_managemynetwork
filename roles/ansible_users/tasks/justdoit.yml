@@ -23,7 +23,7 @@
     remove: "{{ user.value.remove | default('false') }}"
     role: "{{ user.value.role | default(omit) }}"
     seuser: "{{ user.value.seuser | default(omit) }}"
-    shell: "{{ user.value.shell | default(omit) }}"
+    shell: "{{ usershell | default(omit) }}"
     skeleton: "{{ user.value.skeleton | default(omit) }}"
     ssh_key_bits: "{{ user.value.ssh_key_bits | default(omit) }}"
     ssh_key_comment: "{{ user.value.ssh_key_comment | default(omit) }}"
