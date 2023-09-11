@@ -3,10 +3,10 @@
   ansible.builtin.debug:
     var: user.name
 
-- name: Set isingroup and isinlist initially to False
+- name: Set system_users_isingroup and system_users_isinlist initially to False
   ansible.builtin.set_fact:
-    isingroup: False
-    isinlist: False
+    system_users_isingroup: False
+    system_users_isinlist: False
 
 # Check for group based assignments
 - name: check if subelement exists
@@ -15,7 +15,7 @@
 
 - name: check if host is in group
   ansible.builtin.set_fact:
-    isingroup: True
+    system_users_isingroup: True
   when:
     - elementcheck_group
     - system_users_create_on_hostgroups[user.name] | intersect(group_names) | length > 0
@@ -27,7 +27,7 @@
 
 - name: Check if user is in hostlist
   ansible.builtin.set_fact:
-    isinlist: "{{ inventory_hostname in system_users_create_on_hosts[user.name] }}"
+    system_users_isinlist: "{{ inventory_hostname in system_users_create_on_hosts[user.name] }}"
   when: elementcheck_individual
 
 - name: Block task if user shall be created on this very host
@@ -58,4 +58,4 @@
         - user.deployfiles is defined
     - name: Create user
       ansible.builtin.include_tasks: justdoit.yml
-  when: (isinlist) or (isingroup)
+  when: (system_users_isinlist) or (system_users_isingroup)
