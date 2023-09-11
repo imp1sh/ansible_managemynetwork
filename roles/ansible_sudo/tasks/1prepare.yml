@@ -1,0 +1,13 @@
+---
+# Prepare first phase
+- name: Merge sudoers from all groups this host is a member of
+  ansible.builtin.set_fact:
+    sudo_sudoers_mergedgroup: "{{ sudo_sudoers_group.keys() | list | intersect(group_names) | map('extract', sudo_sudoers_group) | list | flatten }}"
+  when: sudo_sudoers_group is defined
+- name: combine lists into sudo_sudoers var
+  ansible.builtin.set_fact:
+    sudo_sudoers: "{{ [sudo_sudoers_mergedgroup, sudo_sudoers_host, sudo_sudoers_role] | select('defined') | flatten | unique }}"
+- name: debug
+  debug:
+    var: sudo_sudoers
+

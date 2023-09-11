@@ -1,0 +1,18 @@
+---
+- name: enroll sudoers files
+  community.general.sudoers:
+    name: "{{ sudoitem.name }}"
+    commands: "{{ sudoitem.commands }}"
+    group: "{{ sudoitem.group | default(omit) }}"
+    host: "{{ sudoitem.host | default(omit) }}"
+    nopasswd: "{{ sudoitem.nopasswd | default(omit) }}"
+    runas: "{{ sudoitem.runas | default(omit) }}"
+    setenv: "{{ sudoitem.setenv | default(omit) }}"
+    state: "{{ sudoitem.state | default('present') }}"
+    sudoers_path: "{{ sudoitem.sudoers_path | default(omit) }}"
+    user: "{{ sudoitem.user }}"
+    validation: "{{ sudoitem.validation | default(omit) }}"
+  loop: "{{ sudo_sudoers }}"
+  loop_control:
+    loop_var: sudoitem
+  when: sudo_sudoers is defined
