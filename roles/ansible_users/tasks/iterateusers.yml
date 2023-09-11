@@ -1,7 +1,7 @@
 ---
 - name: Checking the following user
   ansible.builtin.debug:
-    var: user.name
+    var: user.key
 
 - name: Set system_users_isingroup and system_users_isinlist initially to False
   ansible.builtin.set_fact:
@@ -11,25 +11,25 @@
 # Check for group based assignments
 - name: check if subelement exists
   ansible.builtin.set_fact:
-    elementcheck_group: "{{ system_users_create_on_hostgroups[user.name] is defined }}"
+    elementcheck_group: "{{ system_users_create_on_hostgroups[user.key] is defined }}"
 
 - name: check if host is in group
   ansible.builtin.set_fact:
     system_users_isingroup: True
   when:
     - elementcheck_group
-    - system_users_create_on_hostgroups[user.name] | intersect(group_names) | length > 0
+    - system_users_create_on_hostgroups[user.key] | intersect(group_names) | length > 0
 
 # Check for individual host assigments
 - name: individual host assignment check
   block:
     - name: check if subelement exists in individual list
       ansible.builtin.set_fact:
-        elementcheck_individual: "{{ system_users_create_on_hosts[user.name] is defined }}"
+        elementcheck_individual: "{{ system_users_create_on_hosts[user.key] is defined }}"
 
     - name: Check if user is in hostlist
       ansible.builtin.set_fact:
-        system_users_isinlist: "{{ inventory_hostname in system_users_create_on_hosts[user.name] }}"
+        system_users_isinlist: "{{ inventory_hostname in system_users_create_on_hosts[user.key] }}"
       when: elementcheck_individual
   when: not system_users_isingroup
   # user will be added when group assignment found. no second acknowledge necessary
@@ -38,28 +38,28 @@
   block:
     - name: The user will be installed
       ansible.builtin.debug:
-        var: user.name
+        var: user.key
     - name: Set fact for package install
       ansible.builtin.set_fact:
-        packages_installrole: "{{ shellpackages[user.shell] }}"
+        packages_installrole: "{{ shellpackages[user.value.shell] }}"
       when:
-        - user.shell is defined
+        - user.value.shell is defined
     - name: Install package for shell
       ansible.builtin.include_role:
         name: imp1sh.ansible_managemynetwork.ansible_packages
       when:
-        user.shell is defined
+        user.value.shell is defined
     - name: set users shell for this OS
       set_fact:
-        usershell: "{{ shells[user.shell] }}"
-      when: user.shell is defined
+        usershell: "{{ shells[user.value.shell] }}"
+      when: user.value.shell is defined
     - name: Deploy files (optional)
       ansible.builtin.include_tasks: "deployfiles.yml"
-      loop: "{{ user.deployfiles }}"
+      loop: "{{ user.value.deployfiles }}"
       loop_control:
         loop_var: fileitem
       when:
-        - user.deployfiles is defined
+        - user.value.deployfiles is defined
     - name: Create user
       ansible.builtin.include_tasks: justdoit.yml
   when: (system_users_isinlist) or (system_users_isingroup)
