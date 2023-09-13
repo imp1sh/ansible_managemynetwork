@@ -8,7 +8,7 @@ borgmatic_package_requirements:
   - "liblz4"
   - "zstd"
   - "xxhash"
-borgmatic_pathconfig: "/root/.config/borgmatic"
+borgmatic_pathconfig: "/usr/local/etc/borgmatic"
 borgmatic_pathconfig_owner: "root"
 borgmatic_pathconfig_group: "wheel"
 borgmatic_fileconfig: "config.yaml"
