@@ -1,5 +1,22 @@
 ---
 # tasks file for ansible_podman
+- name: Setting OS variables
+  ansible.builtin.include_vars: "{{lookup('ansible.builtin.first_found', params)}}"
+  vars:
+    params:
+      files:
+        - "{{ ansible_distribution }}.yml"
+        - "{{ ansible_os_family }}.yml"
+        - "default.yml"
+      paths:
+        - "vars"
+# Installations
+- name: Set package name for calling packages role
+  ansible.builtin.set_fact:
+    packages_installrole: "{{ podman_packages }}"
+- name: install required packages
+  ansible.builtin.include_role:
+    name: imp1sh.ansible_managemynetwork.ansible_packages
 - name: Create networks
   containers.podman.podman_network:
     name: "{{ item.name }}"
