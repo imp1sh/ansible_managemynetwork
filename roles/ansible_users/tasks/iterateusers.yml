@@ -53,6 +53,8 @@
       set_fact:
         usershell: "{{ shells[user.value.shell] }}"
       when: user.value.shell is defined
+    - name: Create user
+      ansible.builtin.include_tasks: justdoit.yml
     - name: Deploy files (optional)
       ansible.builtin.include_tasks: "deployfiles.yml"
       loop: "{{ user.value.deployfiles }}"
@@ -60,6 +62,4 @@
         loop_var: fileitem
       when:
         - user.value.deployfiles is defined
-    - name: Create user
-      ansible.builtin.include_tasks: justdoit.yml
   when: (system_users_isinlist) or (system_users_isingroup)

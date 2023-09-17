@@ -1,10 +1,14 @@
 ---
 - name: make sure deploy path exists
+  become: true
+  become_user: '{{ user.key }}'
   ansible.builtin.file:
     path: "{{ fileitem.dest | ansible.builtin.dirname }}"
     state: directory
   when: fileitem.state == "present"
 - name: Deploy current item
+  become: true
+  become_user: '{{ user.key }}'
   ansible.builtin.copy:
     src: "{{ fileitem.src }}"
     dest: "{{ fileitem.dest }}"
