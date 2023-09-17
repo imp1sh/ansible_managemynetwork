@@ -18,7 +18,7 @@
 
 - name: Install Oh My Zsh
   ansible.builtin.include_tasks: install.yml
-  loop: "{{ system_users }}"
+  loop: "{{ system_users | dict2items }}"
   loop_control:
     loop_var: user
 
