@@ -1,8 +1,8 @@
 ---
 galaxy_info:
-  role_name: ansible_packages
+  role_name: ansible_users
   author: Jochen Demmer
-  description: Installs or removes packages.
+  description: Handles users for posix systems
   company: libcom.de
   issue_tracker_url: https://github.com/imp1sh/ansible_managemynetwork/issues
   license: BSD-3-Clause
@@ -10,9 +10,6 @@ galaxy_info:
   platforms:
     - name: Debian
     - name: Ubuntu
-    - name: Arch
-    - name: Manjaro
     - name: FreeBSD
-    - name: Alpine
-  galaxy_tags: [packages, dnf, apt, yum, apk, pkg]
+  galaxy_tags: [user, users, posix]
 dependencies: []
