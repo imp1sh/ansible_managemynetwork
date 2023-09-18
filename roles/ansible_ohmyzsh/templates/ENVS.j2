@@ -1,3 +1,3 @@
-{% for env_item in user.envs %}
+{% for env_item in user.value.envs %}
 export {{ env_item.key }}={{ env_item.value }}
 {% endfor %}
