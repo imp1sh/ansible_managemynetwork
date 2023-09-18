@@ -1,38 +1,16 @@
 ---
 galaxy_info:
+  role_name: ansible_ohmyzsh
   author: Jochen Demmer
-  description: Role for installing and configuring oh-my-zsh.
-  company: Libcom.de
-  license: MIT
-  min_ansible_version: '2.12'
+  description: Installs and configures oh-my-zsh
+  company: libcom.de
+  issue_tracker_url: https://github.com/imp1sh/ansible_managemynetwork/issues
+  license: BSD-3-Clause
+  min_ansible_version: "2.9"
   platforms:
-    - name: EL
-      versions:
-        - '8'
-    - name: Fedora
-      versions:
-        - '35'
-        - '36'
-        - '37'
-        - '38'
-    - name: opensuse
-      versions:
-        - '15.3'
-    - name: Ubuntu
-      versions:
-        - bionic
-        - focal
     - name: Debian
       versions:
-        - stretch
-        - buster
-        - bullseye
-    - name: FreeBSD
-      versions:
-        - '13.0'
-  galaxy_tags:
-    - ohmyzsh
-    - zsh
-    - shell
-    - development
+        - "bookworm"
+        - "bullseye"
+  galaxy_tags: [zsh, ohmyzsh, oh-my-zsh]
 dependencies: []

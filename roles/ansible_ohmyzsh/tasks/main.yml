@@ -8,13 +8,14 @@
         - '{{ ansible_facts.os_family }}.yml'
         - default.yml
       paths:
-        - vars/os_family
+        - vars
 
-- name: Install dependencies
-  become: "{{ ansible_facts.distribution != 'MacOSX' }}"
-  ansible.builtin.package:
-    name: '{{ oh_my_zsh_dependencies }}'
-    state: present
+- name: Set package name for calling packages role
+  ansible.builtin.set_fact:
+    packages_installrole: "{{ oh_my_zsh_dependencies }}"
+- name: install required packages
+  ansible.builtin.include_role:
+    name: imp1sh.ansible_managemynetwork.ansible_packages
 
 - name: Install Oh My Zsh
   ansible.builtin.include_tasks: install.yml

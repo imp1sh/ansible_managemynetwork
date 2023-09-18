@@ -30,6 +30,7 @@
     ansible.builtin.user:
       name: '{{ user.key }}'
       shell: '{{ oh_my_zsh_zsh_path }}'
+    when: user.value.shell == "zsh"
   - name: Install oh-my-zsh auto suggestions
     ansible.builtin.git:
       repo: 'https://github.com/zsh-users/zsh-autosuggestions'
