@@ -1,0 +1,10 @@
+---
+- name: handling group
+  ansible.builtin.group:
+    name: "{{ group.key }}"
+    state: "{{ group.state | default('present') }}"
+    force: "{{ group.force | default(omit) }}"
+    gid: "{{ group.gid | default(omit) }}"
+    local: "{{ group.local | default(omit) }}"
+    non_unique: "{{ group.non_unique | default(omit) }}"
+    system: "{{ group.system | default(omit) }}"

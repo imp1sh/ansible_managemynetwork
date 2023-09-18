@@ -1,10 +1,12 @@
 ---
 # tasks file for ansible_groups
 - name: Iterate over defined groups
-  ansible.builtin.group:
-    name: "{{ group.name }}"
-    gid: "{{ group.gid | default(omit) }}"
-    state: "{{ group.state }}"
-  loop: "{{ system_groups }}"
+  ansible.builtin.include_tasks: iterategroups.yml
+  loop: "{{ system_groups | dict2items }}"
   loop_control:
     loop_var: "group"
+  when: system_groups is defined
+    #  ansible.builtin.group:
+    #    name: "{{ group.name }}"
+    #    gid: "{{ group.gid | default(omit) }}"
+    #    state: "{{ group.state }}"

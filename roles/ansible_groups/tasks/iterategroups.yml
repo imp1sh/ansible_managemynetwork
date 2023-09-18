@@ -1,0 +1,45 @@
+---
+- name: Checking the following group
+  ansible.builtin.debug:
+    var: group.key
+
+- name: Set system_groups_isingroup and system_groups_isinlist initially to False
+  ansible.builtin.set_fact:
+    system_groups_isingroup: False
+    system_groups_isinlist: False
+
+# Check for group based assignments
+- name: check if subelement exists
+  ansible.builtin.set_fact:
+    system_groups_elementcheck_group: "{{ system_groups_create_on_hostgroups[group.key] is defined }}"
+
+- name: check if host is in group
+  ansible.builtin.set_fact:
+    system_groups_isingroup: True
+  when:
+    - system_groups_elementcheck_group
+    - system_groups_create_on_hostgroups[group.key] | intersect(group_names) | length > 0
+
+# Check for individual host assigments
+- name: individual host assignment check
+  block:
+    - name: check if subelement exists in individual list
+      ansible.builtin.set_fact:
+        system_groups_elementcheck_individual: "{{ system_groups_create_on_hosts[group.key] is defined }}"
+
+    - name: Check if group is in hostlist
+      ansible.builtin.set_fact:
+        system_groups_isinlist: "{{ inventory_hostname in system_groups_create_on_hosts[group.key] }}"
+      when: system_groups_elementcheck_individual
+  when: not system_groups_isingroup
+  # group will be added when group assignment found. no second acknowledge necessary
+
+- name: Block task if group shall be created on this very host
+  block:
+    - name: The group will be installed
+      ansible.builtin.debug:
+        var: group.key
+    - name: Create group
+      ansible.builtin.include_tasks: justdoit.yml
+  when: (system_groups_isinlist) or (system_groups_isingroup)
+
