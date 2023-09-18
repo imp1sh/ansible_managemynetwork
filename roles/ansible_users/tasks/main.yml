@@ -1,7 +1,15 @@
 ---
-- name: include OS vars
-  include_vars: "{{ ansible_distribution }}.yml"
-- name: iterate over the users
+- name: Setting OS variables
+  ansible.builtin.include_vars: "{{lookup('ansible.builtin.first_found', params)}}"
+  vars:
+    params:
+      files:
+        - "{{ ansible_distribution }}.yml"
+        - "{{ ansible_os_family }}.yml"
+        - "default.yml"
+      paths:
+        - "vars"
+ name: iterate over the users
   ansible.builtin.include_tasks: "iterateusers.yml"
   loop: "{{ system_users | dict2items }}"
   loop_control:
