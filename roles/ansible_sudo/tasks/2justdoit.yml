@@ -14,7 +14,7 @@
     commands: "{{ sudoitem.commands }}"
     group: "{{ sudoitem.group | default(omit) }}"
     host: "{{ sudoitem.host | default(omit) }}"
-    nopasswd: "{{ sudoitem.nopasswd | default(omit) }}"
+    nopassword: "{{ sudoitem.nopassword | default(omit) }}"
     runas: "{{ sudoitem.runas | default(omit) }}"
     setenv: "{{ sudoitem.setenv | default(omit) }}"
     state: "{{ sudoitem.state | default('present') }}"
