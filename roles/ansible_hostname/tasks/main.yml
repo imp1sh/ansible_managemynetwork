@@ -1,15 +1,15 @@
 ---
-# tasks file for ansible_hostname
+# tasks file for inventory_hostname
 - name: set hostname with ansible builtin
   ansible.builtin.hostname:
-    name: "{{ inventory_hostname }}"
+    name: "{{ system_hostname | default(inventory_hostname) }}"
   when: ansible_os_family != "FreeBSD"
 - name: FreeBSD set hostname for the current session
-  ansible.builtin.command: "hostname {{ inventory_hostname }}"
+  ansible.builtin.command: "hostname {{ system_hostname | default(inventory_hostname) }}"
   when: ansible_os_family == "FreeBSD"
 - name: FreeBSD replace localhost.my.domain from /etc/hosts with inventory hostname
   ansible.builtin.replace:
     path: /etc/hosts
     regexp: 'localhost.my.domain'
-    replace: "{{ inventory_hostname }}"
+    replace: "{{ system_hostname | default(inventory_hostname) }}"
   when: ansible_os_family == "FreeBSD"

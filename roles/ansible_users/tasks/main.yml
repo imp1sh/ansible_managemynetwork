@@ -9,7 +9,7 @@
         - "default.yml"
       paths:
         - "vars"
- name: iterate over the users
+- name: iterate over the users
   ansible.builtin.include_tasks: "iterateusers.yml"
   loop: "{{ system_users | dict2items }}"
   loop_control:
