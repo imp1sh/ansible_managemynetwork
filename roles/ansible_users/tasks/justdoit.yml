@@ -1,5 +1,5 @@
 ---
-- name: handling user
+- name: handling user {{ user.key }}
   ansible.builtin.user:
     append: "{{ user.value.append | default(omit) }}"
     authorization: "{{ user.value.authorization | default(omit, true) }}"
@@ -9,7 +9,7 @@
     force: "{{ user.value.force | default('false', true) }}"
     generate_ssh_key: "{{ user.value.generate_ssh_key | default('false', true) }}"
     group: "{{ user.value.group | default(omit, true) }}"
-    groups: "{{ user['groups_byhostname'][inventory_hostname] | default(omit) }}"
+    groups: "{{ user.value['groups_byhostname'][inventory_hostname] | default(omit) }}"
     home: "{{ user.value.home | default(omit, true) }}"
     local: "{{ user.value.local | default(omit, true) }}"
     login_class: "{{ user.value.login_class | default(omit) }}"
