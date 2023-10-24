@@ -14,4 +14,13 @@
 - name: Updating cache RedHat based OS
   ansible.builtin.dnf:
     update_cache: true
-  when: (ansible_os_family == "RedHat") 
+  when:
+    - ansible_os_family == "RedHat"
+    - ( ansible_distribution_version | float | round(0, 'floor') | int ) > 7
+- name: Updating cache RedHat based OS (yum legacy)
+  ansible.builtin.yum:
+    update_cache: true
+    use_backend: "yum"
+  when:
+    - ansible_os_family == "RedHat"
+    - ( ansible_distribution_version | float | round(0, 'floor') | int ) < 8
