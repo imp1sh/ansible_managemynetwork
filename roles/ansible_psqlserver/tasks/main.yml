@@ -6,6 +6,19 @@
     name: imp1sh.ansible_managemynetwork.ansible_packages
   vars:
     packages_installrole: "{{ psqlserver_packages }}"
+- name: "Setup pg_hba"
+  postgresql_pg_hba:
+    dest: "{{ item['dest']}}"
+    contype: "{{ item['contype'] }}"
+    users: "{{ item['users'] }}"
+    source: "{{ item['source'] | default(omit) }}"
+    databases: "{{ item['databases'] }}"
+    method: "{{ item['method'] }}"
+    state: "{{ item['state'] }}"
+  with_items:
+    - "{{ psqlserver_hba }}"
+  when: psqlserver_hba is defined
+  notify: restart postgres
 - name: "Check if DB is initialized"
   stat:
     path: "{{ psqlserver_datadir }}"
@@ -37,19 +50,6 @@
   with_items:
     - "{{ psqlserver_dbs }}"
   when: psqlserver_dbs is defined
-  notify: restart postgres
-- name: "Setup pg_hba"
-  postgresql_pg_hba:
-    dest: "{{ item['dest']}}"
-    contype: "{{ item['contype'] }}"
-    users: "{{ item['users'] }}"
-    source: "{{ item['source'] | default(omit) }}"
-    databases: "{{ item['databases'] }}"
-    method: "{{ item['method'] }}"
-    state: "{{ item['state'] }}"
-  with_items:
-    - "{{ psqlserver_hba }}"
-  when: psqlserver_hba is defined
   notify: restart postgres
 - name: "Install postgresql roles"
   postgresql_user:
