@@ -1,12 +1,12 @@
 ---
 - name: "Make sure ssh dir exists"
   ansible.builtin.file:
-    path: "{{ path_home }}/{{ system_sshkeys_destinationuser }}/.ssh"
+    path: "{{ path_home }}/{{ destinationuser }}/.ssh"
     state: directory
-    owner: "{{ system_sshkeys_destinationuser }}"
+    owner: "{{ destinationuser }}"
     mode: 0700
 - name: "Installing ssh keys"
   authorized_key:
-    user: "{{ system_sshkeys_destinationuser }}"
+    user: "{{ destinationuser }}"
     key: "{{ sshkey.value.type }} {{ sshkey.value.key }} {{ sshkey.key }}"
     state: "{{ sshkey.value.state }}"

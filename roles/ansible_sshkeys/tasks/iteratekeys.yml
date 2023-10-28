@@ -22,7 +22,7 @@
 
 - name: Get destination username from group assignment
   ansible.builtin.set_fact:
-    system_sshkeys_destinationuser: "{{ system_sshkeys_deploy_on_hostgroups[sshkey.key]['user'] }}"
+    system_sshkeys_destinationusers: "{{ system_sshkeys_deploy_on_hostgroups[sshkey.key]['users'] }}"
   when: system_sshkeys_isingroup
 
 # Check for individual host assigments
@@ -39,7 +39,7 @@
     
     - name: Get destination username from individual assignment
       ansible.builtin.set_fact:
-        system_sshkeys_destinationuser: "{{ system_sshkeys_deploy_on_hosts[sshkey.key]['user'] }}"
+        system_sshkeys_destinationusers: "{{ system_sshkeys_deploy_on_hosts[sshkey.key]['users'] }}"
       when: system_sshkeys_isinlist
   when: not system_sshkeys_isingroup
 
@@ -50,4 +50,7 @@
         var: sshkey.key
     - name: Deploy key
       ansible.builtin.include_tasks: justdoit.yml
+      loop: "{{ system_sshkeys_destinationusers }}"
+      loop_control:
+        loop_var: destinationuser
   when: (system_sshkeys_isinlist) or (system_sshkeys_isingroup)
