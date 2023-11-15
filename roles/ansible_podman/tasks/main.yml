@@ -17,6 +17,11 @@
 - name: install required packages
   ansible.builtin.include_role:
     name: imp1sh.ansible_managemynetwork.ansible_packages
+  when: ansible_distribution != "OpenWrt"
+- name: install packages OpenWrt
+  community.general.opkg:
+    name: "{{ packages_installrole }}"
+    state: present
 - name: Create networks
   containers.podman.podman_network:
     name: "{{ item.name }}"
@@ -34,6 +39,14 @@
 - name: systemd tasks
   ansible.builtin.include_tasks:
     file: systemd.yml
+  when: ansible_distribution != "OpenWrt"
+  loop: "{{ podman_containers }}"
+  loop_control:
+    loop_var: podman_container
+- name: procd tasks
+  ansible.builtin.include_tasks:
+    file: procd.yml
+  when: ansible_distribution == "OpenWrt"
   loop: "{{ podman_containers }}"
   loop_control:
     loop_var: podman_container

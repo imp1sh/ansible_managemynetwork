@@ -1,0 +1,9 @@
+---
+- name: deploy procd init script container {{ podman_container.name }}
+  ansible.builtin.template:
+    src: "procd.jinja2"
+    dest: "/etc/init.d/container_{{ podman_container.name }}"
+    mode: 0740
+- name: enable procd item
+  ansible.builtin.command: "/etc/init.d/container_{{ podman_container.name }} enable"
+  when: podman_container.state == "started"

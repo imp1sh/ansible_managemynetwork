@@ -1,0 +1,9 @@
+---
+podman_packages:
+  - "podman"
+  - "conmon"
+  - "aardvark-dns"
+  - "netavark"
+  - "oci-runtime-tool"
+  - "oci-runtime-tests"
+  - "crun"
