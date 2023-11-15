@@ -1,0 +1,62 @@
+{% macro loggingswitch(nftableslogging) %}
+{% if nftableslogging %}
+      log
+{%- endif %}
+{% endmacro %}
+
+{% macro dropswitch(nftablespolicy) %}
+{% if nftablespolicy == 'drop' %}
+      policy drop
+{%- endif %}
+{% endmacro %}
+
+{% macro rejectswitch(nftablespolicy) %}
+{% if nftablespolicy != 'drop' %}
+      reject with icmpx type port-unreachable
+{%- endif %}
+{% endmacro %}
+
+{% macro create_input_rule(singlerule) %}
+{% if singlerule['proto'] is defined and (singlerule['sport'] is defined or singlerule['dport'] is defined) %}
+      {% if singlerule['proto'] == 'tcpudp' %}meta l4proto { tcp, udp } {% else %}{{ singlerule['proto'] }} {% endif -%}
+      {% if singlerule['dport'] is defined %}{% if singlerule['proto'] == 'tcpudp' %}th {% endif %}dport {{ singlerule['dport'] }} {% endif -%}
+      {% if singlerule['sport'] is defined %}{% if singlerule['proto'] == 'tcpudp' %}th {% endif %}sport {{ singlerule['sport'] }} {% endif -%}
+      {% if singlerule['saddr'] is defined and singlerule['family'] == 6 %}ip6 saddr {{ singlerule['saddr'] }} {% endif -%}
+      {% if singlerule['daddr'] is defined and singlerule['family'] == 6 %}ip6 daddr {{ singlerule['daddr'] }} {% endif -%}
+      {% if singlerule['saddr'] is defined and singlerule['family'] == 4 %}ip saddr {{ singlerule['saddr'] }} {% endif -%}
+      {% if singlerule['daddr'] is defined and singlerule['family'] == 4 %}ip daddr {{ singlerule['daddr'] }} {% endif -%}
+      {% if singlerule['family'] == 46 and singlerule['saddr'] is not defined and singlerule['daddr'] is not defined -%}
+      meta protocol {ip, ip6} {% elif singlerule['family'] == 4 and singlerule['saddr'] is not defined and singlerule['daddr'] is not defined -%}
+      meta protocol {ip} {% elif singlerule['family'] == 6 and singlerule['saddr'] is not defined and singlerule['daddr'] is not defined -%}
+      meta protocol {ip6} {% endif -%}
+{% elif singlerule['proto'] is defined and singlerule['sport'] is not defined and singlerule['dport'] is not defined and singlerule['saddr'] is not defined and singlerule['daddr'] is not defined %}
+      {% if singlerule['proto'] == 'tcpudp' %}meta l4proto { tcp, udp } {% else %}meta l4proto { {{ singlerule['proto'] }} }{% endif %}{% if singlerule['family'] == 4 %}meta protocol {ip} {% elif singlerule['family'] == 6 %}meta protocol {ip6} {% elif singlerule['family'] == 46 %}meta protocol {ip, ip6} {% endif %}
+{% else %}
+      {% if singlerule['saddr'] is defined and singlerule['family'] == 6 %}ip6 saddr {{ singlerule['saddr'] }} {% endif -%}
+      {% if singlerule['daddr'] is defined and singlerule['family'] == 6 %}ip6 daddr {{ singlerule['daddr'] }} {% endif -%}
+      {% if singlerule['saddr'] is defined and singlerule['family'] == 4 %}ip saddr {{ singlerule['saddr'] }} {% endif -%}
+      {% if singlerule['daddr'] is defined and singlerule['family'] == 4 %}ip daddr {{ singlerule['daddr'] }} {% endif -%}
+{%- endif %}
+accept comment "{{ singlerule['comment']|default('unspecified', true) }}"
+{% endmacro %}
+
+{% macro create_forward_rule(singlerule) %}
+{% if singlerule['proto'] is defined and (singlerule['sport'] is defined or singlerule['dport'] is defined)  %}
+      iifname "{{ singlerule['inif'] }}" {% if singlerule['outif'] is defined -%}oifname "{{ singlerule['outif'] }}" {% endif -%}
+      {% if singlerule['saddr'] is defined and singlerule['family'] == 6 %}ip6 saddr {{ singlerule['saddr'] }} {% elif singlerule['saddr'] is defined and singlerule['family'] == 4 -%}
+      ip saddr {{ singlerule['saddr'] }} {% endif -%}
+      {% if singlerule['daddr'] is defined and singlerule['family'] == 6 %}ip6 daddr {{ singlerule['daddr'] }} {% elif singlerule['daddr'] is defined and singlerule['family'] == 4 -%}
+      ip daddr {{ singlerule['daddr'] }} {% endif -%}
+      {% if singlerule['proto'] == 'tcpudp' -%}meta l4proto { tcp, udp} {% else %}{{ singlerule['proto'] }} {% endif -%}
+      {% if singlerule['sport'] is defined -%}{% if singlerule['proto'] == 'tcpudp' %}th {% endif %}sport {{ singlerule['sport'] }} {% endif -%}
+      {% if singlerule['dport'] is defined -%}{% if singlerule['proto'] == 'tcpudp' %}th {% endif %}dport {{ singlerule['dport'] }} {% endif -%}
+      accept comment "{{ singlerule['comment']|default('unspecified', true) }}"
+{% else %}
+      iifname "{{ singlerule['inif'] }}" {% if singlerule['outif'] is defined -%}oifname "{{ singlerule['outif'] }}" {% endif -%}
+      {% if singlerule['saddr'] is defined and singlerule['family'] == 6 %}ip6 saddr {{ singlerule['saddr'] }} {% endif -%}
+      {% if singlerule['daddr'] is defined and singlerule['family'] == 6 %}ip6 daddr {{ singlerule['daddr'] }} {% endif -%}
+      {% if singlerule['saddr'] is defined and singlerule['family'] == 4 %}ip saddr {{ singlerule['saddr'] }} {% endif -%}
+      {% if singlerule['daddr'] is defined and singlerule['family'] == 4 %}ip daddr {{ singlerule['daddr'] }} {% endif -%}
+      accept comment "{{ singlerule['comment']|default('unspecified', true) }}"
+{% endif %}
+{% endmacro %}

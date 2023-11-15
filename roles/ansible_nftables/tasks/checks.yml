@@ -1,0 +1,41 @@
+---
+# Configuration Sanity checks
+- name: check selected nftables mode
+  assert:
+    that: nftablesmode == "firewall" or nftablesmode == "workstation" or nftablesmode == "server"
+    fail_msg: "Selected nftablesmode is wrong. You need to choose between either firewall, workstation or server"
+    success_msg: "Selected nftablesmode is {{ nftablesmode }}"
+    quiet: yes
+  when: ansible_facts['os_family'] == 'Alpine' or ansible_facts['os_family'] == 'Debian' or ansible_facts['os_family'] == 'RedHat'
+- name: check nftables policy
+  assert:
+    that: nftablespolicy is defined
+    fail_msg: "You need to define a default nftables policy in nftablespolicy. Choose between drop or reject."
+    success_msg: "Selected nftables policy {{ nftablespolicy }}"
+    quiet: yes
+  when: ansible_facts['os_family'] == 'Alpine' or ansible_facts['os_family'] == 'Debian' or ansible_facts['os_family'] == 'RedHat'
+- name: check if logging variable is defined
+  assert:
+    that: nftableslogging|bool
+    fail_msg: "You need to enable or disable logging explicitly. Set the variable nftableslogging either to true or false."
+    success_msg: "nftables logging is set to {{ nftableslogging }}"
+    quiet: yes
+  when: ansible_facts['os_family'] == 'Alpine' or ansible_facts['os_family'] == 'Debian' or ansible_facts['os_family'] == 'RedHat'
+- name: check nftablesopenhost variable for ip family settings
+  assert:
+    that:
+      - item.family == 6 or item.family == 4 or item.family == 46
+    fail_msg: "Chosen family is wrong, you need to choose from 4 (IPv6), 6 (IPv6) or 46 (Dual Stack)"
+    quiet: yes
+  loop: "{{  nftablesopenhost }}"
+  when: (nftablesopenhost is defined) and
+        (ansible_facts['os_family'] == 'Alpine' or ansible_facts['os_family'] == 'Debian' or ansible_facts['os_family'] == 'RedHat')
+# dunno how to do this... how can I check proto only for those list entries that consist of a proto attribute
+#- name: check nftablesopenhost variable for protocol settings
+#  assert:
+#    that:
+#      - item.proto == 'tcp'  or item.proto == 'udp' or item.proto == 'tcpudp'
+#    fail_msg: "Chosen protocol is invalid. Choose between tcp, udp or tcpudp."
+#    quiet: yes
+#  loop: "{{  nftablesopenhost }}"
+#  when: nftablesopenhost is defined

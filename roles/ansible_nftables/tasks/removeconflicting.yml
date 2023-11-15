@@ -1,0 +1,6 @@
+---
+- name: Remove conflicting software packages
+  package:
+    name: "{{ packages_conflicting }}"
+    state: absent
+  when: packages_conflicting is defined

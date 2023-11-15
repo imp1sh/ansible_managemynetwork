@@ -1,0 +1,41 @@
+# import OS variables
+- name: include OS vars
+  include_vars: "{{ ansible_os_family }}.yml"
+
+# Configuration Sanity checks
+- name: Include checks
+  import_tasks: checks.yml
+
+# Assemble group based firewall rules
+- name: merge group firewall rules from different groups
+  import_tasks: merge.yml
+
+# Remove conflicting software
+- name: Remove conflicting Software
+  import_tasks: removeconflicting.yml
+
+# Install nftables
+- name: Install nftables
+  import_tasks: installnftables.yml
+
+    # currently no os specific parts on Alpine and Debian
+    #- name: Include alpine dependant
+    #  import_tasks: alpine.yml
+    #  when: ansible_facts['os_family'] == 'Alpine'
+    #- name: Include debian dependant
+    #  import_tasks: debian.yml
+    #  when: ansible_facts['os_family'] == 'Debian'
+- name: Include RedHat dependant
+  import_tasks: redhat.yml
+  when: ansible_facts['os_family'] == 'RedHat'
+
+# setup rules (main part)
+- name: Install nftables rules
+  import_tasks: installrules.yml
+
+# Activate nftables itself
+- name: Enable nftables service
+  service:
+    name: "{{ servicename_nftables }}"
+    state: started
+    enabled: yes

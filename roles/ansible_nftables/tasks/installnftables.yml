@@ -1,0 +1,5 @@
+---
+- name: Install nftables
+  package:
+    name: "{{ packagename_nftables }}"
+    state: present

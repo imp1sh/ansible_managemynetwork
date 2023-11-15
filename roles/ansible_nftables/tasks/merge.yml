@@ -1,0 +1,14 @@
+---
+- name: merge group firewall rules from different groups
+  set_fact:
+      nftablesmergedgroup: "{{ nftablesopengroup.keys() | list | intersect(group_names) | map('extract', nftablesopengroup) | list | flatten }}"
+  when: nftablesopengroup is defined
+- name: check nftablesmergedgroup variable
+  assert:
+    that:
+      - item.family == 6 or item.family == 4 or item.family == 46
+    fail_msg: "Chosen family is wrong, you need to choose from 4 (IPv6), 6 (IPv6) or 46 (Dual Stack)"
+    quiet: yes
+  loop: "{{  nftablesmergedgroup }}"
+  when: nftablesopengroup is defined
+

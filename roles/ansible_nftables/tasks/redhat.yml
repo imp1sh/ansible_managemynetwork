@@ -1,0 +1,4 @@
+- name: enable nftables main include
+  template:
+    src: redhatsysconfignftables.j2
+    dest: /etc/sysconfig/nftables.conf

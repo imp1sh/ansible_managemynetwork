@@ -1,0 +1,27 @@
+galaxy_info:
+  role_name: nftables
+  author: imp1sh
+  description: configures nftables plain without the need of wrappers. firewall/workstation/server mode. Best nftables role out there.
+  license: license (BSD, MIT)
+  min_ansible_version: 2.0
+  platforms:
+  - name: Alpine
+    versions:
+    - all
+  - name: Debian
+    versions:
+    - Jessie
+    - Stretch
+    - Buster
+  - name: EL
+    versions:
+    - 8
+  galaxy_tags:
+  - nftables
+  - firewall
+  - filter
+  - packetfilter
+  - router
+  - stateful
+
+dependencies: []

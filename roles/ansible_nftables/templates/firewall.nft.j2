@@ -1,0 +1,126 @@
+{% import "functions.nft.j2" as functions with context %}
+#!/usr/sbin/nft -f
+# Deployed by Ansible
+flush ruleset
+table ip nat {
+    chain prerouting {
+      type nat hook prerouting priority 0; policy accept;
+{% if nftables_dnat is defined %}
+      # DNAT entries
+{% for dnatrule in nftables_dnat %}
+      meta iif {{ dnatrule['inif'] }} {% if dnatrule['proto'] == 'tcpudp' %}meta l4proto {tcp, udp} th dport { {{ dnatrule['dport'] }} } {% else %}{{ dnatrule['proto'] }} dport { {{ dnatrule['dport'] }} } {% endif %}dnat {{ dnatrule['ip'] }} comment "{{ dnatrule['comment'] }}"
+{% endfor %}
+{% endif %}
+    }
+    chain postrouting {
+      type nat hook postrouting priority 100; policy accept;
+{% for masqentity in nftables_masks %}
+      oifname "{{ masqentity['upif'] }}" masquerade
+{% endfor %}
+    }
+}
+
+table inet filter {
+    chain input {
+      type filter hook input priority 0
+{{ functions.dropswitch(nftablespolicy) }}
+      iif lo accept comment "Accept any localhost traffic"
+      ct state invalid drop comment "Drop invalid connections"
+      ct state established,related accept comment "Accept traffic originated from us"
+
+      ip6 nexthdr icmpv6 icmpv6 type { echo-request, destination-unreachable, packet-too-big, time-exceeded, parameter-problem, mld-listener-query, mld-listener-report, mld-listener-reduction, nd-router-solicit, nd-router-advert, nd-neighbor-solicit, nd-neighbor-advert, ind-neighbor-solicit, ind-neighbor-advert, mld2-listener-report } accept comment "Accept ICMPv6"
+      ip protocol icmp icmp type { echo-request, destination-unreachable, router-solicitation, router-advertisement, time-exceeded, parameter-problem } accept comment "Accept ICMP"
+      ip protocol igmp accept comment "Accept IGMP"
+      # anti ansible lockout rules
+      # ipv6 ansible ip is mandatory
+      tcp dport ssh ip6 saddr {{ ansibleip6 | ipaddr('address') }} accept comment "Anti ansible lockout rule"
+{% if ansibleip is defined %}
+      tcp dport ssh ip saddr {{ ansibleip | ipaddr('address') }} accept comment "Anti ansible lockout rule IPv4"
+{% endif %}
+      # individual rules that work globally without looking at the interface the traffic is coming in on
+{% if nftablesopenhost is defined %}
+{% for inputrule in nftablesopenhost %}
+{% if inputrule['inif'] is not defined  %}
+{{ functions.create_input_rule(inputrule) }}
+{%- endif %}
+{% endfor %}
+{% endif %}
+{% if nftablesmergedgroup is defined %}
+{% for inputrule in nftablesmergedgroup %}
+{% if inputrule.inif is not defined  %}
+{{ functions.create_input_rule(inputrule) }}
+{%- endif %}
+{% endfor %}
+{% endif %}
+      # individual interface input jump points
+{% for interface in ansible_interfaces %}
+{% if interface != 'lo' %}
+      iifname {{ interface }} jump input_{{ interface }}
+{% endif %}
+{% endfor %}
+{{ functions.loggingswitch(nftableslogging) }}
+{{ functions.rejectswitch(nftablespolicy) }}
+    }
+
+    chain forward {
+      type filter hook forward priority 0
+{{ functions.dropswitch(nftablespolicy) }}
+      # allows packets from lan to wan and other direction statefully (ct = connection tracking)
+{% for interface in nftables_masks %}
+      iifname "{{ interface.downif }}" oifname "{{ interface.upif }}" accept
+      iifname "{{ interface.upif }}" oifname "{{ interface.downif }}" ct state related,established accept
+{% endfor %}
+{% if nftables_forward is defined %}
+{% for forwardrule in nftables_forward %}
+{{ functions.create_forward_rule(forwardrule) }}
+{% endfor %}
+{%- endif %}
+{% if nftables_dnat is defined %}
+{% for dnatrule in nftables_dnat %}
+{{ functions.create_forward_rule(dnatrule) }}
+{% endfor %}
+{% endif %}
+{{ functions.loggingswitch(nftableslogging) }}
+{{ functions.rejectswitch(nftablespolicy) }}
+    }
+
+    chain output {
+      type filter hook output priority 0
+      # Accept every outbound connection
+      policy accept
+    }
+
+# individual interface chains
+{% for interface in ansible_interfaces %}
+{% if interface != 'lo' %}
+    chain input_{{ interface }} {
+      ct state established,related accept comment "Accept traffic originated from us"
+{% if nftablesopenhost is defined %}
+{% for inputrule in nftablesopenhost %}
+{% if inputrule['inif'] is defined and inputrule['inif'] == interface %}
+{{ functions.create_input_rule(inputrule) }}
+{% endif %}
+{% endfor %}
+{% endif %}
+{% if nftablesmergedgroup is defined %}
+{% for inputrule in nftablesmergedgroup %}
+{% if inputrule['inif'] is defined and inputrule['inif'] == interface %}
+{{ functions.create_input_rule(inputrule) }}
+{% endif %}
+{% endfor %}
+{% endif %}
+{% if nftables_dnat is defined %}
+      # Rules auto generated from dnat definitions
+{{ functions.dropswitch(nftablespolicy) }}
+{% for dnatrule in nftables_dnat %}
+{% if dnatrule['inif'] == interface %}
+      {% if dnatrule['proto'] == 'tcpudp' %}meta l4proto { tcp, udp } th dport {% else %}{{ dnatrule['proto'] }} dport {% endif %}{{ dnatrule['dport'] }} meta protocol ip accept comment "{{ dnatrule['comment'] }}"
+{% endif %}
+{% endfor %}
+{% endif %}
+{{ functions.loggingswitch(nftableslogging) }}
+{{ functions.rejectswitch(nftablespolicy) }}
+    }
+{% endif %}
+{% endfor %}
+}

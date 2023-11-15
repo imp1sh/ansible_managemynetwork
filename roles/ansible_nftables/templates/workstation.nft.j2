@@ -1,0 +1,92 @@
+{% import "functions.nft.j2" as functions with context %} 
+#!/usr/sbin/nft -f
+# Deployed by Ansible
+
+flush ruleset
+
+table inet filter {
+    chain input {
+      type filter hook input priority 0
+{{ functions.dropswitch(nftablespolicy) }}
+      iif lo accept comment "Accept any localhost traffic"
+      ct state invalid drop comment "Drop invalid connections"
+      ct state established,related accept comment "Accept traffic originated from us"
+
+      ip6 nexthdr icmpv6 icmpv6 type { destination-unreachable, packet-too-big, time-exceeded, parameter-problem, mld-listener-query, mld-listener-report, mld-listener-reduction, nd-router-solicit, nd-router-advert, nd-neighbor-solicit, nd-neighbor-advert, ind-neighbor-solicit, ind-neighbor-advert, mld2-listener-report } accept comment "Accept ICMPv6"
+      ip protocol icmp icmp type { destination-unreachable, router-solicitation, router-advertisement, time-exceeded, parameter-problem } accept comment "Accept ICMP"
+      ip protocol igmp accept comment "Accept IGMP"
+      udp dport mdns ip6 daddr ff02::fb accept comment "Accept mDNS"
+      udp dport mdns ip daddr 224.0.0.251 accept comment "Accept mDNS"
+      udp sport 1900 udp dport >= 1024 ip6 saddr { fd00::/8, fe80::/10 } meta pkttype unicast limit rate 4/second burst 20 packets accept comment "Accept UPnP IGD port mapping reply"
+      udp sport 1900 udp dport >= 1024 ip saddr { 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, 169.254.0.0/16 } meta pkttype unicast limit rate 4/second burst 20 packets accept comment "Accept UPnP IGD port mapping reply"
+      udp sport netbios-ns udp dport >= 1024 meta pkttype unicast ip6 saddr { fd00::/8, fe80::/10 } accept comment "Accept Samba Workgroup browsing replies"
+      udp sport netbios-ns udp dport >= 1024 meta pkttype unicast ip saddr { 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, 169.254.0.0/16 } accept comment "Accept Samba Workgroup browsing replies"
+      counter comment "Count any other traffic"
+      # individual rules
+{% if nftablesopenhost is defined %}
+{% for rule in nftablesopenhost %}
+{{ functions.create_input_rule(rule) }}
+{% endfor %}
+{% endif %}
+{% if nftablesmergedgroup is defined %}
+{% for rule in nftablesmergedgroup %}
+{{ functions.create_input_rule(rule) }}
+{% endfor %}
+{% endif %}
+      # individual interface input jump points
+{% for interface in ansible_interfaces %}
+{% if interface != 'lo' %}
+      iifname {{ interface }} jump input_{{ interface }}
+{% endif %}
+{% endfor %}
+{{ functions.rejectswitch(nftablespolicy) }}
+{{ functions.loggingswitch(nftableslogging) }}
+    }
+
+    chain forward {
+      type filter hook forward priority 0
+      # Drop everything forwarded to us. We do not forward. That is routers job.
+      policy drop
+    }
+
+    chain output {
+      type filter hook output priority 0
+      # Accept every outbound connection
+      policy accept
+    }
+
+    # individual interface chains
+{% for interface in ansible_interfaces %}
+{% if interface != 'lo' %}
+    chain input_{{ interface }} {
+      ct state established,related accept comment "Accept traffic originated from us"
+{{ functions.dropswitch(nftablespolicy) }}
+{% if nftablesopenhost is defined %}
+{% for inputrule in nftablesopenhost %}
+{% if inputrule['inif'] is defined and inputrule['inif'] == interface %}
+{{ functions.create_input_rule(inputrule) }}
+{% endif %}
+{% endfor %}
+{% endif %}
+{% if nftablesgroupmerged is defined %}
+{% for inputrule in nftablesgroupmerged %}
+{% if inputrule['inif'] is defined and inputrule['inif'] == interface %}
+{{ functions.create_input_rule(inputrule) }}
+{% endif %}
+{% endfor %}
+{% endif %}
+
+{% if nftables_dnat is defined %}
+      # Rules auto generated from dnat definitions
+{% for dnatrule in nftables_dnat %}
+{% if dnatrule['inif'] == interface %}
+      {{ dnatrule['proto'] }} dport {{ dnatrule['dport'] }} meta protocol ip accept comment "{{ dnatrule['comment'] }}"
+{% endif %}
+{% endfor %}
+{% endif %}
+{{ functions.loggingswitch(nftableslogging) }}
+{{ functions.rejectswitch(nftablespolicy) }}
+    }
+{% endif %}
+{% endfor %}
+}

@@ -1,0 +1,5 @@
+---
+# defaults file for ansible_nftables
+templatename_rules_firewall: "firewall.nft.j2"
+templatename_rules_workstation: "workstation.nft.j2"
+templatename_rules_server: "server.nft.j2"

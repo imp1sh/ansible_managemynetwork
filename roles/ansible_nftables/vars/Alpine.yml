@@ -1,0 +1,7 @@
+---
+packagename_nftables: "nftables"
+filepath_nftablesrules: "/etc/nftables.nft"
+binpath_nft: "/usr/sbin/nft"
+ownername_nftablesrules: "root"
+groupname_nftablesrules: "root"
+servicename_nftables: "nftables"
