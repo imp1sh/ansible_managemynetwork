@@ -22,6 +22,7 @@
   community.general.opkg:
     name: "{{ packages_installrole }}"
     state: present
+  when: ansible_distribution == "OpenWrt"
 - name: Create networks
   containers.podman.podman_network:
     name: "{{ item.name }}"
