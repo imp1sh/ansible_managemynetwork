@@ -35,6 +35,8 @@
     ansible.builtin.git:
       repo: 'https://github.com/zsh-users/zsh-autosuggestions'
       dest: "~{{ user.key }}/.oh-my-zsh/plugins/zsh-autosuggestions"
+    become: true
+    become_user: '{{ user.key }}'
     when: '"zsh-autosuggestions" in user.value.oh_my_zsh.plugins'
   - name: Write .zshrc for users
     ansible.builtin.template:
