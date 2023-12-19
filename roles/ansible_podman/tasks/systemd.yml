@@ -25,6 +25,7 @@
   containers.podman.podman_generate_systemd:
     name: "{{ podman_container.name }}"
     dest: "/etc/systemd/system"
+    restart_policy: always
   when: podman_container.state != "absent"
 - name: Enable systemd unit
   ansible.builtin.systemd:
