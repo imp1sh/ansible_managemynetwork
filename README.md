@@ -86,7 +86,7 @@ To install the collection you can use the `ansible-galaxy` command or you clone 
 The preferred method is to install via
 
 ```
-ansible-galaxy collection install imp1sh.ansible_openwrt
+ansible-galaxy collection install imp1sh.ansible_managemynetwork
 ```
 
 If you prefer to use the development version use: 
@@ -113,12 +113,12 @@ Use the roles in a playbook by referencing the roles you need, for example:
 ---
 - hosts: manacdev
   roles:
-  - imp1sh.ansible_openwrt.ansible_openwrtsystem
-  - imp1sh.ansible_openwrt.ansible_openwrtdropbear
-  - imp1sh.ansible_openwrt.ansible_openwrtservices
-  - imp1sh.ansible_openwrt.ansible_openwrtnetwork
-  - imp1sh.ansible_openwrt.ansible_openwrtfirewall
-  - imp1sh.ansible_openwrt.ansible_openwrtdhcp
+  - imp1sh.ansible_managemynetwork.ansible_openwrtsystem
+  - imp1sh.ansible_managemynetwork.ansible_openwrtdropbear
+  - imp1sh.ansible_managemynetwork.ansible_openwrtservices
+  - imp1sh.ansible_managemynetwork.ansible_openwrtnetwork
+  - imp1sh.ansible_managemynetwork.ansible_openwrtfirewall
+  - imp1sh.ansible_managemynetwork.ansible_openwrtdhcp
  ```
 
 
@@ -175,41 +175,41 @@ openwrt_packagesinstallgroup:
 Variable names are constructed by using the role name which is at the same time the uci section name. The wildcard part (\*) is the subsection within uci for example:
 `openwrt_system_hostname`
 
-Role: imp1sh.ansible_openwrt.ansible_openwrt**system**
+Role: imp1sh.ansible_managemynetwork.ansible_openwrt**system**
 Variables: `openwrt_system_*`
 
-Role: imp1sh.ansible_openwrt.ansible_openwrt**dropbear**
+Role: imp1sh.ansible_managemynetwork.ansible_openwrt**dropbear**
 Variables: `openwrt_dropbear_*`
 
-Role: imp1sh.ansible_openwrt.ansible_openwrt**services**
+Role: imp1sh.ansible_managemynetwork.ansible_openwrt**services**
 Variables: `openwrt_services_*`
 
-Role: imp1sh.ansible_openwrt.ansible_openwrt**network**
+Role: imp1sh.ansible_managemynetwork.ansible_openwrt**network**
 Variables: `openwrt_network_*`
 
-Role: imp1sh.ansible_openwrt.ansible_openwrt**firewall**
+Role: imp1sh.ansible_managemynetwork.ansible_openwrt**firewall**
 Variables: `openwrt_firewall_*`
 
-Role: imp1sh.ansible_openwrt.ansible_openwrt**dhcp**
+Role: imp1sh.ansible_managemynetwork.ansible_openwrt**dhcp**
 Variables: `openwrt_dhcp_*`
 
-Role: imp1sh.ansible_openwrt.ansible_openwrt**packages**
+Role: imp1sh.ansible_managemynetwork.ansible_openwrt**packages**
 Variables: `òpenwrt_packages_*`
 
-Role: imp1sh.ansible_openwrt.ansible_openwrt**restic**
+Role: imp1sh.ansible_managemynetwork.ansible_openwrt**restic**
 Variables: `openwrt_restic_*`
 
-Role: imp1sh.ansible_openwrt.ansible_openwrt**dhcp**
+Role: imp1sh.ansible_managemynetwork.ansible_openwrt**dhcp**
 Variables: `openwrt_dhcp_*`
 
-Role: imp1sh.ansible_openwrt.ansible_openwrt**acme**
+Role: imp1sh.ansible_managemynetwork.ansible_openwrt**acme**
 Variables: `openwrt_acme_*`
 
 ## Roles of this collection
 
 Each role has a specific purpose. You can use them seperately to control specific uci sections. It is desirably though to control the system as a whole with Ansible. If you do, neither make changes manually by command line nor via the webinterface. Changes will be overwritten by Ansible.
 
-If my collection lacks a feature or you find a bug, open an [issue](https://github.com/imp1sh/ansible_openwrt/issues) in the git bugtracker.
+If my collection lacks a feature or you find a bug, open an [issue](https://github.com/imp1sh/ansible_managemynetwork/issues) in the git bugtracker.
 
   - [:leftwards_arrow_with_hook: imp1sh.ansible_managemynetwork.ansible_openwrtacme](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_openwrtacme/README.md)
   - [:leftwards_arrow_with_hook: imp1sh.ansible_managemynetwork.ansible_openwrtbabeld](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_openwrtbabeld/README.md)
