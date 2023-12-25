@@ -48,8 +48,8 @@ For a more detailed documentation look at the official [firewall docs of OpenWrt
 
 In contrast to a factory OpenWrt firmware this role ships with more default zones.
 
-| Description | Default  <br>Zonename | Default  <br>masq | Default  <br>logging |
-| --- | --- | --- | --- | --- | --- |
+| Description | Default Zonename | Default masq | Default logging |
+| --- | --- | --- | --- |
 | Internet Uplink | **WAN** |  1   | 1   |
 | Connecting to neighbours | **NEIGHBOURS** |  0   | 1   |
 | Guests, e.g. Guest Wifi| **GUESTS** | 0   | 1   | 
