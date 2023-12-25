@@ -1,0 +1,88 @@
+config general
+        option ipv6_subtrees 'true'
+        option ubus_bindings 'true'
+        option random_id 'true'
+        option local_port '33123'
+
+{% if openwrt_babeld_interfaces is defined %}
+{% for interface in openwrt_babeld_interfaces %}
+config interface
+        option ifname "{{ interface['name'] }}"
+{% if interface['type'] is defined %}
+	option type "{{ interface['type'] }}"
+{% endif %}
+{% if interface['max_rtt_penalty'] is defined %}
+	option max_rtt_penalty "{{ interface['max_rtt_penalty'] }}"
+{% endif %}
+
+{% endfor %}
+{% endif %}
+
+{% if openwrt_babeld_filter is defined %}
+{% for filter in openwrt_babeld_filter %}
+config filter
+{% if  filter.type is defined %}
+        option type "{{ filter.type }}"
+{% endif %}
+{% if filter.action is defined %}
+	option action "{{ filter.action }}"
+{% endif %}
+{% if filter.ip is defined %}
+	option ip "{{ filter.ip }}"
+{% endif %}
+{% if filter.eq is defined %}
+	option eq "{{ filter.eq }}"
+{% endif %}
+{% if filter.le is defined %}
+	option le "{{ filter.le }}"
+{% endif %}
+{% if filter.ge is defined %}
+	option ge "{{ filter.ge }}"
+{% endif %}
+{% if filter.src_ip is defined %}
+	option src-ip "{{ filter.src_ip }}"
+{% endif %}
+{% if filter.src_eq is defined %}
+	option src-eq "{{ filter.src_eq }}"
+{% endif %}
+{% if filter.src_le is defined %}
+	option src-le "{{ filter.src_le }}"
+{% endif %}
+{% if filter.src_ge is defined %}
+	option src-ge "{{ filter.src_ge }}"
+{% endif %}
+{% if filter.neigh is defined %}
+	option neigh "{{ filter.neigh }}"
+{% endif %}
+{% if filter.id is defined %}
+	option id "{{ filter.id }}"
+{% endif %}
+{% if filter.proto is defined %}
+	option proto "{{ filter.proto }}"
+{% endif %}
+{% if filter.local is defined %}
+	option local "{{ filter.local }}"
+{% endif %}
+{% if filter.if is defined %}
+	option if "{{ filter.if }}"
+{% endif %}
+{% if filter.allow is defined %}
+	option allow "{{ filter.allow }}"
+{% endif %}
+{% if filter.deny is defined %}
+	option deny "{{ filter.deny }}"
+{% endif %}
+{% if filter.metric is defined %}
+	option metric "{{ filter.metric }}"
+{% endif %}
+{% if filter.src_prefix is defined %}
+	option src-prefix "{{ filter.src_prefix }}"
+{% endif %}
+{% if filter.src_table is defined %}
+	option src-table "{{ filter.src_table }}"
+{% endif %}
+{% if filter.pref_src is defined %}
+	option pref-src "{{ filter.pref_src }}"
+{% endif %}
+{% endfor %}
+{% endif %}

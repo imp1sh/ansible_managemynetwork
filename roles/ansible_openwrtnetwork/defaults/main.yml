@@ -1,0 +1,11 @@
+---
+# defaults file for ansible_openwrtnetwork
+openwrt_network_deployroot: "/"
+openwrt_network_deploypath: "{{ openwrt_network_deployroot }}etc/config"
+openwrt_network_deployfile: "network"
+openwrt_network_interfacesdefault:
+  loopback:
+    device: "lo"
+    proto: "static"
+    ipaddr:
+      - "127.0.0.1/8"

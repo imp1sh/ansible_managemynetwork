@@ -1,0 +1,24 @@
+---
+# tasks file for ansible_openwrttinyproxy
+- name: Deploy tinyproxy config
+  ansible.builtin.template:
+    src: tinyproxy.j2
+    dest: "{{ openwrt_tinyproxy_deploypath }}/{{ openwrt_tinyproxy_deployfile }}"
+  notify: restart tinyproxy
+- name: Deploy tinyproxy filter file
+  ansible.builtin.template:
+    src: filter.j2
+    dest: "{{ openwrt_tinyproxy_deployroot }}etc/config/{{ openwrt_tinyproxy_filterfile }}"
+  when: openwrt_tinyproxy_filters is defined
+  notify: restart tinyproxy
+- name: Initialize openwrt_packages_installimagebuilder
+  ansible.builtin.set_fact:
+    openwrt_packages_installimagebuilder: []
+  when:
+    - openwrt_packages_installimagebuilder is not defined
+    - openwrt_tinyproxy_runimagebuilder | default(false)
+- name: Merge role packages into openwrt_packages_installimagebuilder
+  ansible.builtin.set_fact:
+    openwrt_packages_installimagebuilder: "{{ openwrt_packages_installimagebuilder + openwrt_packages_installrole }}"
+  when: openwrt_tinyproxy_runimagebuilder | default(false)
+

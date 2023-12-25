@@ -1,0 +1,31 @@
+---
+# tasks file for ansible_openwrtnetwork
+- name: merge interfaces from group and host definitions
+  include_tasks: merge.yml
+# Wireguard
+- name: make sure wireguard management dir exists
+  ansible.builtin.file:
+    path: "{{ openwrt_network_wg_keypath }}"
+    state: directory
+    mode: 0700
+  when: openwrt_network_wg_keypath is defined
+  delegate_to: 127.0.0.1
+  become: false
+- name: run wg server tasks
+  include_tasks: wg_server.yml
+  loop: "{{ openwrt_network_interfaces | dict2items }}"
+- name: run wg peers tasks
+  include_tasks: wg_client.yml
+  loop: "{{ openwrt_network_wireguardpeers | dict2items }}"
+  when: openwrt_network_wireguardpeers is defined
+- name: Make sure network deploypath exists
+  ansible.builtin.file:
+    path: "{{ openwrt_network_deploypath }}"
+    state: directory
+# Main Network Deployment Tasks
+- name: Deploy Network configuration
+  ansible.builtin.template:
+    src: network.jinja2
+    dest: "{{ openwrt_network_deploypath }}/{{ openwrt_network_deployfile }}"
+    mode: 0600
+  notify: restart network

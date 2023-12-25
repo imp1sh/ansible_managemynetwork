@@ -1,0 +1,52 @@
+{% import "functions.jinja2" as functions with context %}
+# Configuration distributed by Ansible
+# Default interfaces
+{{ functions.create_interfaces(openwrt_network_interfacesdefault) }}
+# Global configuration
+config globals "globals"
+{% if openwrt_network_globals_ula is defined %}
+        option ula_prefix "{{ openwrt_network_globals_ula }}"
+{% endif %}
+{% if openwrt_network_globals_packet_steering is defined %}
+	option packet_steering "{{ openwrt_network_globals_packet_steering }}"
+{% endif %}
+
+# Devices
+{% if openwrt_network_devices is defined %}
+{{ functions.create_devices(openwrt_network_devices) }}
+{% endif %}
+
+# bridge_vlan devices
+{% if openwrt_network_bridge_vlan is defined %}
+{{ functions.create_bridge_vlan(openwrt_network_bridge_vlan) }}
+{% endif %}
+
+# Interfaces
+{% if openwrt_network_interfaces is defined %}
+{{ functions.create_interfaces(openwrt_network_interfaces) }}
+{% endif %}
+
+# Wireguard peers
+{% if openwrt_network_wireguardpeers is defined %}
+{{ functions.create_wireguardpeers(openwrt_network_wireguardpeers) }}
+{% endif %}
+
+# Static routes
+# IPv4
+{% if openwrt_network_staticroutes4 is defined %}
+{{ functions.create_staticroutes4(openwrt_network_staticroutes4) }}
+{% endif %}
+# IPv6
+{% if openwrt_network_staticroutes6 is defined %}
+{{ functions.create_staticroutes6(openwrt_network_staticroutes6) }}
+{% endif %}
+
+{% if openwrt_network_rules4 is defined %}
+# IPv4 rules
+{{ functions.create_rules4(openwrt_network_rules4) }}
+{% endif %}
+
+{% if openwrt_network_rules6 is defined %}
+# IPv6 rules
+{{ functions.create_rules6(openwrt_network_rules6) }}
+{% endif %}

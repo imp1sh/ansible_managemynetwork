@@ -1,0 +1,227 @@
+---
+# defaults file for ansible_openwrtfirewall
+# global parameters
+openwrt_firewall_deployroot: "/"
+openwrt_firewall_deploypath: "{{ openwrt_firewall_deployroot }}etc/config"
+openwrt_firewall_deployfile: "firewall"
+openwrt_firewall_setdefaultzones: true
+openwrt_firewall_default_forward: "REJECT"
+openwrt_firewall_default_input: "ACCEPT"
+openwrt_firewall_default_output: "ACCEPT"
+openwrt_firewall_default_synflood_protect: 1
+openwrt_firewall_default_flow_offloading: 0
+openwrt_firewall_default_flow_offloading_hw: 0
+openwrt_firewall_default_drop_invalid: 1
+# default forwardings
+openwrt_firewall_forwardingsdefault:
+  - src: "LAN"
+    dest: "WAN"
+# default policies for the default zones
+openwrt_firewall_zonesdefault:
+  WAN:
+    forward: "REJECT"
+    input: "REJECT"
+    output: "ACCEPT"
+    log: 1
+    masq: 1
+    mtu_fix: 1
+  NEIGHBOURS:
+    forward: "ACCEPT"
+    input: "REJECT"
+    output: "ACCEPT"
+    log: 1
+  GUESTS:
+    forward: "ACCEPT"
+    input: "REJECT"
+    output: "ACCEPT"
+    log: 1
+  LAN:
+    forward: "ACCEPT"
+    input: "ACCEPT"
+    output: "ACCEPT"
+    log: 1
+  DMZ:
+    forward: "REJECT"
+    input: "REJECT"
+    output: "ACCEPT"
+    log: 1
+  MGMT:
+    forward: "REJECT"
+    input: "REJECT"
+    output: "ACCEPT"
+    log: 1
+# default rules
+openwrt_firewall_rulesdefault:
+  "Allow-Ping WAN to firewall":
+    family: "ipv4"
+    icmp_type:
+      - "echo-request"
+    proto:
+      - "icmp"
+    src: "WAN"
+    target: "ACCEPT"
+  "Allow-IGMP WAN to firewall":
+    family: "ipv4"
+    proto:
+      - "igmp"
+    src: "WAN"
+    target: "ACCEPT"
+  "DHCPv4 NEIGHBOURS":
+    dest_port: 67
+    family: "ipv4"
+    proto:
+      - "udp"
+    src: "NEIGHBOURS"
+    target: "ACCEPT"
+  "DHCPv4 GUESTS":
+    dest_port: 67
+    family: "ipv4"
+    proto:
+      - "udp"
+    src: "GUESTS"
+    target: "ACCEPT"
+  "DHCPv4 LAN":
+    dest_port: 67
+    family: "ipv4"
+    proto:
+      - "udp"
+    src: "LAN"
+    target: "ACCEPT"
+  "DHCPv4 MGMT":
+    dest_port: 67
+    family: "ipv4"
+    proto:
+      - "udp"
+    src: "MGMT"
+    target: "ACCEPT"
+  "DHCPv4 DMZ":
+    dest_port: 67
+    family: "ipv4"
+    proto:
+      - "udp"
+    src: "DMZ"
+    target: "ACCEPT"
+  "DHCPv6 MGMT":
+    dest_port: 547
+    family: "ipv6"
+    proto:
+      - "udp"
+    src_ip:
+      - "fe80::/10"
+    src: "MGMT"
+    target: "ACCEPT"
+  "DHCPv6 GUESTS":
+    dest_port: 547
+    family: "ipv6"
+    proto:
+      - "udp"
+    src_ip:
+      - "fe80::/10"
+    src: "GUESTS"
+    target: "ACCEPT"
+  "DHCPv6 LAN":
+    dest_port: 547
+    family: "ipv6"
+    proto:
+      - "udp"
+    src_ip:
+      - "fe80::/10"
+    src: "LAN"
+    target: "ACCEPT"
+  "DHCPv6 DMZ":
+    dest_port: 547
+    family: "ipv6"
+    proto:
+      - "udp"
+    src_ip:
+      - "fe80::/10"
+    src: "DMZ"
+    target: "ACCEPT"
+  "DHCPv6 NEIGHBOURS":
+    dest_port: 547
+    family: "ipv6"
+    proto:
+      - "udp"
+    src_ip:
+      - "fe80::/10"
+    src: "NEIGHBOURS"
+    target: "ACCEPT"
+  "Allow-DHCPv6 WAN":
+    dest_ip:
+      - "fc00::/6"
+    dest_port: 546
+    family: "ipv6"
+    proto:
+      - "udp"
+    src: "WAN"
+    src_ip:
+      - "fc00::/6"
+    target: "ACCEPT"
+  "Allow-MLD WAN":
+    family: "ipv6"
+    icmp_type:
+      - "130/0"
+      - "131/0"
+      - "132/0"
+      - "143/0"
+    proto:
+      - "icmp"
+    src: "WAN"
+    src_ip:
+      - "fe80::/10"
+    target: "ACCEPT"
+  "Allow-ICMPv6-Input":
+    family: "ipv6"
+    icmp_type:
+        - "echo-request"
+        - "echo-reply"
+        - "destination-unreachable"
+        - "packet-too-big"
+        - "time-exceeded"
+        - "bad-header"
+        - "unknown-header-type"
+        - "router-solicitation"
+        - "neighbour-solicitation"
+        - "router-advertisement"
+        - "neighbour-advertisement"
+    limit: "1000/sec"
+    proto:
+      - "icmp"
+    src: "*"
+    target: "ACCEPT"
+  "Allow-ICMPv6-Forward any to any":
+    family: "ipv6"
+    icmp_type:
+      - "destination-unreachable"
+      - "packet-too-big"
+      - "time-exceeded"
+      - "parameter-problem"
+      - "echo-request"
+      - "echo-reply"
+    limit: "1000/sec"
+    proto:
+      - "icmp"
+    src: "*"
+    dest: "*"
+    target: "ACCEPT"
+  "Allow-IPSec-ESP LAN":
+    dest: "LAN"
+    proto:
+      - "esp"
+    src: "WAN"
+    target: "ACCEPT"
+  "Allow-ISAKMP WAN":
+    dest: "LAN"
+    proto:
+      - "udp"
+    dest_port: 500
+    src: "WAN"
+    target: "ACCEPT"
+  "Support-UDP-Traceroute WAN":
+    dest_port: "33434-33689"
+    family: "ipv4"
+    proto:
+      - "udp"
+    src: "WAN"
+    target: "REJECT"
+    enabled: "0"

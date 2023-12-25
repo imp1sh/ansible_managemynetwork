@@ -1,0 +1,40 @@
+---
+# tasks file for ansible_openwrtservices
+# todo
+# missing routine for enable as well as for disabling services in imagebuilder...
+# it's only adding or removing a link, but I need the exact link name it would have been used
+# in a real openwrt device, otherwise there could be conflicts
+- name: make sure deploypath config exists
+  ansible.builtin.file:
+    path: "{{ openwrt_services_deploypath }}"
+    state: directory
+- name: Enable Serices
+  ansible.builtin.command: /etc/init.d/{{ item }} enable
+  loop: "{{ openwrt_services_enabled }}"
+  when:
+    - openwrt_services_enabled is defined
+    - not openwrt_services_runimagebuilder | default(false)
+- name: Start Services
+  ansible.builtin.command: /etc/init.d/{{ item }} start
+  loop: "{{ openwrt_services_enabled }}"
+  when:
+    - openwrt_services_enabled is defined
+    - not openwrt_services_runimagebuilder | default(false)
+- name: Disable Services
+  ansible.builtin.command: /etc/init.d/{{ item }} disable
+  loop: "{{ openwrt_services_disabled }}"
+  when:
+    - openwrt_services_disabled is defined
+    - not openwrt_services_runimagebuilder | default(false)
+- name: Stop Services
+  ansible.builtin.command: /etc/init.d/{{ item }} stop
+  loop: "{{ openwrt_services_disabled }}"
+  when:
+    - openwrt_services_disabled is defined
+    - not openwrt_services_runimagebuilder | default(false)
+- name: Setup Start Scripts in /etc/rc.local
+  ansible.builtin.template:
+    src: rc.local.jinja2
+    dest: "{{ openwrt_services_deploypath }}/{{ openwrt_services_deployfile }}"
+    mode: 0600
+  when: openwrt_scriptlinesafterboot is defined

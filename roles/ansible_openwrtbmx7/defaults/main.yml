@@ -1,0 +1,5 @@
+---
+# defaults file for ansible_openwrtbmx7
+openwrt_bmx7_deployroot: "/"
+openwrt_bmx7_deploypath: "{{ openwrt_bmx7_deployroot }}etc/config"
+openwrt_bmx7_deployfile: "bmx7"

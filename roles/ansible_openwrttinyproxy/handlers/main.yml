@@ -1,0 +1,8 @@
+---
+# handlers file for ansible_openwrttinyproxy
+- name: restart tinyproxy
+  ansible.builtin.service:
+    name: "tinyproxy"
+    state: restarted
+  when:
+    not openwrt_tinyproxy_runimagebuilder | default(false)

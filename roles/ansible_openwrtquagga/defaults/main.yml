@@ -1,0 +1,8 @@
+---
+# defaults file for ansible_openwrtquagga
+openwrt_quagga_enablebgp: false
+openwrt_quagga_enableospf: false
+openwrt_quagga_enableospf6: false
+openwrt_quagga_enableisis: false
+openwrt_quagga_enablerip: false
+openwrt_quagga_enableripng: false

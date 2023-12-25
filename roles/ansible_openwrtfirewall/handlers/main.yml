@@ -1,0 +1,14 @@
+---
+# handlers file for ansible_openwrtfirewall
+- name: reload firewall
+  ansible.builtin.service:
+    name: firewall
+    state: reloaded
+  when:
+    not openwrt_firewall_runimagebuilder | default(false)
+- name: restart firewall
+  ansible.builtin.service:
+    name: firewall
+    state: restarted
+  when:
+    not openwrt_firewall_runimagebuilder | default(false)

@@ -1,0 +1,225 @@
+- name: display current wireguard peer
+  ansible.builtin.debug:
+    msg: "We are iterating on peer {{ item.key }}"
+- name: make sure key directory for interface exists
+  ansible.builtin.file:
+    path: "{{ openwrt_network_wg_keypath }}/{{ item.value.interface }}"
+    state: directory
+    mode: 0700
+  delegate_to: 127.0.0.1
+  become: false
+  when:
+    - item.value.managekeys
+# Generate Private Key
+- name: generate private key if not there
+  ansible.builtin.command: wg genkey
+  args:
+    chdir: "{{ openwrt_network_wg_keypath }}/{{ item.value.interface }}"
+    creates: "{{ openwrt_network_wg_keypath }}/{{ item.value.interface }}/{{ item.key }}_private.key"
+  register: client_privatekey
+  delegate_to: 127.0.0.1
+  become: false
+  when:
+    - item.value.managekeys
+- name: save private key to file if changed
+  ansible.builtin.copy:
+    content: "{{ client_privatekey.stdout }}"
+    dest: "{{ openwrt_network_wg_keypath }}/{{ item.value.interface }}/{{ item.key }}_private.key"
+  delegate_to: 127.0.0.1
+  become: false
+  when:
+    - client_privatekey.changed
+    - item.value.managekeys
+- name: set strict private key permissions
+  ansible.builtin.file:
+    path: "{{ openwrt_network_wg_keypath }}/{{ item.value.interface }}/{{ item.key }}_private.key"
+    mode: '0600'
+  delegate_to: 127.0.0.1
+  become: false
+  when:
+    - item.value.managekeys
+- name: read private key from file
+  ansible.builtin.slurp:
+    src: "{{ openwrt_network_wg_keypath }}/{{ item.value.interface }}/{{ item.key }}_private.key"
+  register: client_privatekey_data
+  become: false
+  delegate_to: 127.0.0.1
+  when:
+    - item.value.managekeys
+- name: private key decode base64
+  ansible.builtin.set_fact:
+    client_privatekey_data_decoded: "{{ client_privatekey_data.content | b64decode | trim }}"
+  when:
+    - item.value.managekeys
+- name: insert private key into dict base64
+  ansible.builtin.set_fact:
+    openwrt_network_wireguardpeers: "{{ openwrt_network_wireguardpeers | combine({ item.key: {'private_key': client_privatekey_data_decoded } }, recursive=True) }}"
+  when:
+    - item.value.managekeys
+# Generate Public Key
+- name: generate public key
+  ansible.builtin.command: wg pubkey
+  args:
+    chdir: "{{ openwrt_network_wg_keypath }}/{{ item.value.interface }}"
+    stdin: "{{ client_privatekey_data_decoded }}"
+    creates: "{{ openwrt_network_wg_keypath }}/{{ item.value.interface }}/{{ item.key }}_public.key"
+  register: client_publickey
+  delegate_to: 127.0.0.1
+  become: false
+  when:
+    - item.value.managekeys
+- name: write public key to file
+  ansible.builtin.copy:
+    content: "{{ client_publickey.stdout }}"
+    dest: "{{ openwrt_network_wg_keypath }}/{{ item.value.interface }}/{{ item.key }}_public.key"
+  delegate_to: 127.0.0.1
+  become: false
+  when:
+    - client_publickey.changed
+    - item.value.managekeys
+- name: read public key from file
+  ansible.builtin.slurp:
+    src: "{{ openwrt_network_wg_keypath }}/{{ item.value.interface }}/{{ item.key }}_public.key"
+  register: client_publickey_data
+  become: false
+  delegate_to: 127.0.0.1
+  when:
+    - item.value.managekeys
+- name: insert public key into dict base64
+  ansible.builtin.set_fact:
+    openwrt_network_wireguardpeers: "{{ openwrt_network_wireguardpeers | combine({ item.key: {'public_key': client_publickey_data.content|b64decode|trim } }, recursive=True) }}"
+  delegate_to: 127.0.0.1
+  when:
+    - item.value.managekeys
+# Getting public key from server
+- name: getting public key from corresponding server
+  ansible.builtin.slurp:
+    src: "{{ openwrt_network_wg_keypath }}/{{ item.value.interface }}/{{ item.value.remote_peer }}_public.key"
+  register: server_publickey_data
+  become: false
+  delegate_to: 127.0.0.1
+  when:
+    - item.value.managekeys
+- name: server public key decode base64
+  ansible.builtin.set_fact:
+    server_publickey_data_decoded: "{{ server_publickey_data.content | b64decode | trim }}"
+  when:
+    - item.value.managekeys
+- name: insert servers public key into dict base64
+  ansible.builtin.set_fact:
+    openwrt_network_wireguardpeers: "{{ openwrt_network_wireguardpeers | combine({ item.key: {'server_public_key': server_publickey_data_decoded } }, recursive=True) }}"
+  delegate_to: 127.0.0.1
+  become: false
+  when:
+    - item.value.managekeys
+# PSK
+# S2S PSK
+- name: generate psk for S2S
+  ansible.builtin.command: wg genpsk
+  args: 
+    chdir: "{{ openwrt_network_wg_keypath }}/{{ item.value.interface }}"
+    creates: "{{ openwrt_network_wg_keypath }}/{{ item.value.interface }}/S2S.psk"
+  register: s2s_psk
+  delegate_to: 127.0.0.1
+  become: false
+  when:
+    - item.value.managekeys
+    - item.value.setpsk
+    - item.value.s2s is defined
+    - item.value.s2s
+- name: write psk for S2S to file
+  ansible.builtin.copy:
+    content: "{{ s2s_psk.stdout }}"
+    dest: "{{ openwrt_network_wg_keypath }}/{{ item.value.interface }}/S2S.psk"
+  delegate_to: 127.0.0.1
+  become: false
+  when:
+    - item.value.managekeys
+    - item.value.setpsk
+    - s2s_psk.changed
+    - item.value.s2s is defined
+    - item.value.s2s
+- name: read s2s psk from file
+  ansible.builtin.slurp:
+    src: "{{ openwrt_network_wg_keypath }}/{{ item.value.interface }}/S2S.psk"
+  register: s2s_psk_data
+  delegate_to: 127.0.0.1
+  become: false
+  when:
+    - item.value.managekeys
+    - item.value.setpsk
+    - item.value.s2s is defined
+    - item.value.s2s
+- name: decode s2s psk base64
+  ansible.builtin.set_fact:
+    s2s_psk_decoded: "{{ s2s_psk_data.content | b64decode | trim }}"
+  when:
+    - item.value.managekeys
+    - item.value.setpsk
+    - item.value.s2s is defined
+    - item.value.s2s
+- name: insert s2s psk into dict
+  ansible.builtin.set_fact:
+    openwrt_network_wireguardpeers: "{{ openwrt_network_wireguardpeers | combine({ item.key: {'preshared_key': s2s_psk_decoded } }, recursive=True) }}"
+  when:
+    - item.value.managekeys
+    - item.value.setpsk
+    - item.value.s2s is defined
+    - item.value.s2s
+# Roadwarrior PSK
+- name: generate psk if enabled
+  ansible.builtin.command: wg genpsk
+  args:
+    chdir: "{{ openwrt_network_wg_keypath }}/{{ item.value.interface }}"
+    creates: "{{ openwrt_network_wg_keypath }}/{{ item.value.interface }}/{{ item.key }}.psk"
+  register: client_psk
+  delegate_to: 127.0.0.1
+  become: false
+  when:
+    - item.value.managekeys
+    - item.value.setpsk
+    - (item.value.s2s is not defined) or ( item.value.s2s is defined and not item.value.s2s )
+- name: write psk to file
+  ansible.builtin.copy:
+    content: "{{ client_psk.stdout }}"
+    dest: "{{ openwrt_network_wg_keypath }}/{{ item.value.interface }}/{{ item.key }}.psk"
+  delegate_to: 127.0.0.1
+  become: false
+  when:
+    - item.value.managekeys
+    - item.value.setpsk
+    - client_psk.changed
+    - (item.value.s2s is not defined) or ( item.value.s2s is defined and not item.value.s2s )
+- name: read psk from file
+  ansible.builtin.slurp:
+    src: "{{ openwrt_network_wg_keypath }}/{{ item.value.interface }}/{{ item.key }}.psk"
+  register: client_psk_data
+  delegate_to: 127.0.0.1
+  become: false
+  when:
+    - item.value.managekeys
+    - item.value.setpsk
+    - (item.value.s2s is not defined) or ( item.value.s2s is defined and not item.value.s2s )
+- name: decode psk base64
+  ansible.builtin.set_fact:
+    client_psk_decoded: "{{ client_psk_data.content | b64decode | trim }}"
+  when:
+    - item.value.managekeys
+    - item.value.setpsk
+    - (item.value.s2s is not defined) or ( item.value.s2s is defined and not item.value.s2s )
+- name: insert psk into dict
+  ansible.builtin.set_fact:
+    openwrt_network_wireguardpeers: "{{ openwrt_network_wireguardpeers | combine({ item.key: {'preshared_key': client_psk_decoded } }, recursive=True) }}"
+  when:
+    - item.value.managekeys
+    - item.value.setpsk
+    - (item.value.s2s is not defined) or ( item.value.s2s is defined and not item.value.s2s )
+- name: generate client config
+  ansible.builtin.template:
+    src: "clientconfig.jinja2"
+    dest: "{{ openwrt_network_wg_keypath }}/{{ item.value.interface }}/{{ item.key }}.conf"
+  delegate_to: 127.0.0.1
+  become: false
+  when:
+    - item.value.generateclientconfig is defined
+    - item.value.generateclientconfig

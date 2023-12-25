@@ -1,0 +1,8 @@
+---
+# defaults file for ansible_openwrtprometheus_node_exporter_lua
+openwrtprometheus_node_exporter_lua_deployroot: "/"
+openwrtprometheus_node_exporter_lua_deploypath: "{{ openwrtprometheus_node_exporter_lua_deployroot }}etc/config"
+openwrtprometheus_node_exporter_lua_deployfile: "prometheus-node-exporter-lua"
+openwrtprometheus_node_exporter_lua_deploypath_initlink: "{{ openwrtprometheus_node_exporter_lua_deployroot }}etc/rc.d"
+openwrtprometheus_node_exporter_lua_deployfile_initlink: "S60prometheus-node-exporter-lua"
+openwrtprometheus_node_exporter_lua_servicename: "prometheus-node-exporter-lua"

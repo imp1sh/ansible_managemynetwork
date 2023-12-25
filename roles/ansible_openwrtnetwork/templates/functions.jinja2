@@ -1,0 +1,468 @@
+{% macro create_staticroutes4(allroutes4) %}
+{% for route4 in allroutes4 %}
+config route
+	option target "{{ route4['target'] }}"
+	option gateway "{{ route4['gateway'] }}"
+	option interface "{{ route4['interface'] }}"
+{% endfor %}
+{% endmacro %}
+
+{% macro create_staticroutes6(allroutes6) %}
+{% for route6 in allroutes6 %}
+config route6
+	option target "{{ route6['target'] }}"
+	option gateway "{{ route6['gateway'] }}"
+	option interface "{{ route6['interface'] }}"
+{% endfor %}
+{% endmacro %}
+
+{% macro create_wireguardpeers(allpeers) %}
+{% for key, value in allpeers.items() %}
+config wireguard_{{ value['interface'] }}
+	option description "{{ key }}"
+	option public_key "{{ value['public_key'] }}"
+{% if value['preshared_key'] is defined %}
+	option preshared_key "{{ value['preshared_key'] }}"
+{% endif %}
+{% if value['allowed_ips'] is defined %}
+{% for allowedip in value['allowed_ips'] %}
+	list allowed_ips "{{ allowedip }}"
+{% endfor %}
+{% endif %}
+{% if value['route_allowed_ips'] is defined %}
+	option route_allowed_ips "{{ value['route_allowed_ips'] }}"
+{% endif %}
+{% if value['endpoint_host'] is defined %}
+	option endpoint_host "{{ value['endpoint_host'] }}"
+{% endif %}
+{% if value['endpoint_port'] is defined %}
+	option endpoint_port "{{ value['endpoint_port'] }}"
+{% endif %}
+{% if value['persistent_keepalive'] is defined %}
+	option persistent_keepalive "{{ value['persistent_keepalive'] }}"
+{% endif %}
+{% endfor %}
+{% endmacro %}
+
+{% macro create_bridge_vlan(allbrvlan) %}
+{% for bridgevlan in allbrvlan %}
+config bridge-vlan
+	option device "{{ bridgevlan.device }}"
+	option vlan "{{ bridgevlan.vlan }}"
+{% if bridgevlan.vlaninfo is defined %}
+	# Vlan Description: {{ bridgevlan.vlaninfo }}
+{% endif %}
+{% if bridgevlan.ports is defined %}
+{% for port in bridgevlan.ports %}
+	list ports "{{ port }}"
+{% endfor %}
+{% endif %}
+{% endfor %}
+{% endmacro %}
+
+{% macro create_devices(alldevices) %}
+{% for key, value in alldevices.items() %}
+config device
+{% if value.type is defined %}
+{% if value.type == "8021q" %}
+        # VLAN Interface
+	option name "{{ key }}"
+	option ifname "{{ value.ifname }}"
+	option type "{{ value.type }}"
+	option vid "{{ value.vid }}"
+{% if value.vlaninfo is defined %}
+	# Vlan Description: "{{ value.vlaninfo }}"
+{% endif %}
+{% endif %}
+{% if value.type == "bridge" %}
+        # Bridge specific configuration
+        option name "{{ key }}"
+        option type "{{ value.type }}"
+{% if value.vlan_filtering is defined %}
+	option vlan_filtering "{{ value.vlan_filtering }}"
+{% endif %}
+{% if value.igmp_snooping is defined %}
+	option igmp_snooping "{{ value.igmp_snooping }}"
+{% endif %}
+{% if value.multicast_querier is defined %}
+	option multicast_querier "{{ value.multicast_querier }}"
+{% endif %}
+{% if value.query_interval is defined %}
+	option query_interval "{{ value.query_interval }}"
+{% endif %}
+{% if value.query_response_interval is defined %}
+	option query_response_interval "{{ value.query_response_interval }}"
+{% endif %}
+{% if value.last_member_interval is defined %}
+	option last_member_interval "{{ value.last_member_interval }}"
+{% endif %}
+{% if value.hash_max is defined %}
+	option hash_max "{{ value.hash_max }}"
+{% endif %}
+{% if value.robustness is defined %}
+	option robustness "{{ value.robustness }}"
+{% endif %}
+{% if value.stp is defined %}
+	option stp "{{ value.stp }}"
+{% endif %}
+{% if value.forward_delay is defined %}
+	option forward_delay "{{ value.forward_delay }}"
+{% endif %}
+{% if value.hello_time is defined %}
+	option hello_time "{{ value.hello_time }}"
+{% endif %}
+{% if value.priority is defined %}
+	option priority "{{ value.priority }}"
+{% endif %}
+{% if value.ageing_time is defined %}
+	option ageing_time "{{ value.ageing_time }}"
+{% endif %}
+{% if value.max_age is defined %}
+	option max_age "{{ value.max_age }}"
+{% endif %}
+{% if value.bridge_empty is defined %}
+	option bridge_empty "{{ value.bridge_empty }}"
+{% endif %}
+{% for port in value.ports %}
+        list ports "{{ port }}"
+{% endfor %}
+{% endif %}
+{% else %}
+        option name "{{ key }}"
+{% endif %}
+{% if value.mtu is defined %}
+        option mtu "{{ value.mtu }}"
+{% endif %}
+{% if value.mtu6 is defined %}
+        option mtu6 "{{ value.mtu6 }}"
+{% endif %}
+{% if value.txqueuelen is defined %}
+        option txqueuelen "{{ value.txqueuelen }}"
+{% endif %}
+{% if value.macaddr is defined %}
+        option macaddr "{{ value.macaddr }}"
+{% endif %}
+{% if value.dadtransmits is defined %}
+        option dadtransmits "{{ value.dadtransmits }}"
+{% endif %}
+{% if value.promisc is defined %}
+        option promisc "{{ value.promisc }}"
+{% endif %}
+{% if value.rpfilter is defined %}
+        option rpfilter "{{ value.rpfilter }}"
+{% endif %}
+{% if value.acceptlocal is defined %}
+        option acceptlocal "{{ value.acceptlocal }}"
+{% endif %}
+{% if value.sendredirects is defined %}
+        option sendredirects "{{ value.sendredirects }}"
+{% endif %}
+{% if value.neighreachabletime is defined %}
+        option neighreachabletime "{{ value.neighreachabletime }}"
+{% endif %}
+{% if value.neighgcstaletime is defined %}
+        option neighgcstaletime "{{ value.neighgcstaletime }}"
+{% endif %}
+{% if value.neighlocktime is defined %}
+        option neighlocktime "{{ value.neighlocktime }}"
+{% endif %}
+{% if value.multicast is defined %}
+	option multicast "{{ value.multicast }}"
+{% endif %}
+{% if value.igmpversion is defined %}
+	option igmpversion "{{ value.igmpversion }}"
+{% endif %}
+{% if value.mldversion is defined %}
+	option mldversion "{{ value.mldversion }}"
+{% endif %}
+{% endfor %}
+{% endmacro %}
+
+{% macro create_interfaces(allinterfaces) %}
+{% for key, value in allinterfaces.items() %}
+config interface "{{ key }}"
+{% if value['auto'] is defined %}
+        option auto "{{ value['auto'] }}"
+{% endif %}
+{% if value['device'] is defined %}
+        option device "{{ value['device'] }}"
+{% endif %}
+        option proto "{{ value['proto'] }}"
+{% if value['mtu'] is defined %}
+        option mtu "{{ value['mtu'] }}"
+{% endif %}
+{% if value['ipv6'] is defined %}
+        option ipv6 "{{ value['ipv6'] }}"
+{% endif %}
+{% if value['force_link'] is defined %}
+        option force_link "{{ value['force_link'] }}"
+{% endif %}
+{% if value['disabled'] is defined %}
+        option disabled "{{ value['disabled'] }}"
+{% endif %}
+{% if value['ip4table'] is defined %}
+        option ip4table "{{ value['ip4table'] }}"
+{% endif %}
+{% if value['ip6table'] is defined %}
+        option ip6table "{{ value['ip6table'] }}"
+{% endif %}
+{% if value['proto'] == "wireguard" %}
+	option private_key "{{ value['wg_private_key'] }}"
+{% if value['wg_listen_port'] is defined %}
+	option listen_port "{{ value['wg_listen_port'] }}"
+{% endif %}
+{% if value['wg_addresses'] is defined %}
+{% for wglistenaddress in value['wg_addresses'] %}
+	list addresses "{{ wglistenaddress }}"
+{% endfor %}
+{% endif %}
+{% if value['wg_peerdns'] is defined %}
+	option peerdns "{{ value['wg_peerdns'] }}"
+{% endif %}
+{% if value['wg_nohostroute'] is defined %}
+	option nohostroute "{{ value['wg_nohostroute'] }}"
+{% endif %}
+{% endif %}
+{% if value['proto'] == "dhcp" %}
+        # DHCP client config
+{% endif %}
+{% if value['proto'] == "dhcpv6" %}
+        # DHCPv6 client config
+{% if value['reqaddress'] is defined %}
+        option reqaddress "{{ value['reqaddress'] }}"
+{% endif %}
+{% if value['reqprefix'] is defined %}
+        option reqprefix "{{ value['reqprefix'] }}"
+{% endif %}
+{% if value['clientid'] is defined %}
+	option clientid "{{ value['clientid'] }}"
+{% endif %}
+{% if value['ifaceid'] is defined %}
+	option ifaceid "{{ value['ifaceid'] }}"
+{% endif %}
+{% if value['dns'] is defined %}
+{% for dns in value['dns'] %}
+	list dns "{{ dns }}"
+{% endfor %}
+{% endif %}
+{% if value['peerdns'] is defined %}
+	option peerdns "{{ value['peerdns'] }}"
+{% endif %}
+{% if value['defaultroute'] is defined %}
+	option defaultroute "{{ value['defaultroute'] }}"
+{% endif %}
+{% if value['reqopts'] is defined %}
+{% for reqopt in value['reqopts'] %}
+	list reqopts "{{ value['reqopts'] }}"
+{% endfor %}
+{% endif %}
+{% if value['defaultreqopts'] is defined %}
+	option defaultreqopts "{{ value['defaultreqopts'] }}"
+{% endif %}
+{% if value['noslaaconly'] is defined %}
+	option noslaaconly "{{ value['noslaaconly'] }}"
+{% endif %}
+{% if value['forceprefix'] is defined %}
+	option forceprefix "{{ value['forceprefix'] }}"
+{% endif %}
+{% if value['norelease'] is defined %}
+	option norelease "{{ value['norelease'] }}"
+{% endif %}
+{% if value['ip6prefix'] is defined %}
+	option ip6prefix "{{ value['ip6prefix'] }}"
+{% endif %}
+{% if value['iface_dslite'] is defined %}
+	option iface_dslite "{{ value['iface_dslite'] }}"
+{% endif %}
+{% if value['zone_dslite'] is defined %}
+	option zone_dslite "{{ value['zone_dslite'] }}"
+{% endif %}
+{% if value['iface_map'] is defined %}
+	option iface_map "{{ value['iface_map'] }}"
+{% endif %}
+{% if value['zone_map'] is defined %}
+	option zone_map "{{ value['zone_map'] }}"
+{% endif %}
+{% if value['iface_464xlat'] is defined %}
+	option iface_464xlat "{{ value['iface_464xlat'] }}"
+{% endif %}
+{% if value['zone_464xlat'] is defined %}
+	option zone_464xlat "{{ value['zone_464xlat'] }}"
+{% endif %}
+{% if value['zone'] is defined %}
+	option zone "{{ value['zone'] }}"
+{% endif %}
+{% if value['sourcefilter'] is defined %}
+	option sourcefilter "{{ value['sourcefilter'] }}"
+{% endif %}
+{% if value['vendorclass'] is defined %}
+	option vendorclass "{{ value['vendorclass'] }}"
+{% endif %}
+{% if value['userclass'] is defined %}
+	option userclass "{{ value['userclass'] }}"
+{% endif %}
+{% if value['delegate'] is defined %}
+	option delegate "{{ value['delegate'] }}"
+{% endif %}
+{% if value['soltimeout'] is defined %}
+	option soltimeout "{{ value['soltimeout'] }}"
+{% endif %}
+{% if value['fakeroute'] is defined %}
+	option fakeroute "{{ value['fakeroute'] }}"
+{% endif %}
+{% if value['ra_holdoff'] is defined %}
+	option ra_holdoff "{{ value['ra_holdoff'] }}"
+{% endif %}
+{% endif %}
+{% if value['proto'] == "static" %}
+        # Static config
+{% if value['gateway'] is defined %}
+        option gateway "{{ value['gateway'] }}"
+{% endif %}
+{% if value['ipaddr'] is defined %}
+{% for singleip in value['ipaddr'] %}
+	list ipaddr "{{ singleip }}"
+{% endfor %}
+{% endif %}
+{% if value['ip6assign'] is defined %}
+	option ip6assign "{{ value['ip6assign'] }}"
+{% endif %}
+{% if value['ip6hint'] is defined %}
+	option ip6hint "{{ value['ip6hint'] }}"
+{% endif %}
+{% if value['ip6addr'] is defined %}
+{% for singleaddr in value['ip6addr'] %}
+        list ip6addr "{{ singleaddr }}"
+{% endfor %}
+{% endif %}
+{% if value['ip6ifaceid'] is defined %}
+	option ip6ifaceid "{{ value['ip6ifaceid'] }}"
+{% endif %}
+{% if value['ip6gw'] is defined %}
+        option ip6gw "{{ value['ip6gw'] }}"
+{% endif %}
+{% if value['ip6prefix'] is defined %}
+        option ip6prefix "{{ value['ip6prefix'] }}"
+{% endif %}
+{% if value['ip6class'] is defined %}
+{% for ip6class in value['ip6class'] %}
+        list ip6class "{{ ip6class }}"
+{% endfor %}
+{% endif %}
+{% if value.dnssearch is defined %}
+{% for dnssearch in value.dnssearch %}
+        list dns_search "{{ dnssearch }}"
+{% endfor %}
+{% endif %}
+{% if value.dns is defined %}
+{% for resolver in value.dns %}
+        list dns "{{ resolver }}"
+{% endfor %}
+{% endif %}
+{% if value['dns_metric'] is defined %}
+	option dns_metric "{{ value['dns_metric'] }}"
+{% endif %}
+{% if value['metric'] is defined %}
+	option metric "{{ value['metric'] }}"
+{% endif %}
+{% endif %}
+{% if value['proto'] == "none" %}
+        # Unmanaged config
+{% endif %}
+{% if value['proto'] == "ppp" %}
+        # PPP config
+{% if value['ipv6'] is not defined %}
+        option ipv6 "auto"
+{% endif %}
+{% if value['device'] is defined %}
+        option device "{{ value['device'] }}"
+{% endif %}
+{% if value['username'] is defined %}
+        option username "{{ value['username'] }}"
+{% endif %}
+{% if value['password'] is defined %}
+        option password "{{ value['password'] }}"
+{% endif %}
+{% endif %}
+{% if value['proto'] == "pppoe" %}
+        # PPPoE config
+{% if value['ipv6'] is not defined %}
+        option ipv6 "auto"
+{% endif %}
+{% if value['username'] is defined %}
+        option username "{{ value['username'] }}"
+{% endif %}
+{% if value['password'] is defined %}
+        option password "{{ value['password'] }}"
+{% endif %}
+{% if value['ac'] is defined %}
+        option ac "{{ value['ac'] }}"
+{% endif %}
+{% if value['service'] is defined %}
+        option service "{{ value['service'] }}"
+{% endif %}
+{% endif %}
+{% endfor %}
+{% endmacro %}
+
+
+{% macro create_rules(rules, family) %}
+{% for key, value in rules.items() %}
+{% if family == 4 %}
+config rule '{{ key }}'
+{% elif family == 6 %}
+config rule6 '{{ key }}'
+{% endif %}
+
+{% if value['in'] is defined %}
+        option in "{{ value['in'] }}"
+{% endif %}
+{% if value['out'] is defined %}
+        option out "{{ value['out'] }}"
+{% endif %}
+{% if value['src'] is defined %}
+        option src "{{ value['src'] }}"
+{% endif %}
+{% if value['dest'] is defined %}
+        option dest "{{ value['dest'] }}"
+{% endif %}
+{% if value['tos'] is defined %}
+        option tos "{{ value['tos'] }}"
+{% endif %}
+{% if value['mark'] is defined %}
+        option mark "{{ value['mark'] }}"
+{% endif %}
+{% if value['uidrange'] is defined %}
+        option uidrange "{{ value['uidrange'] }}"
+{% endif %}
+{% if value['suppress_prefixlength'] is defined %}
+        option suppress_prefixlength "{{ value['suppress_prefixlength'] }}"
+{% endif %}
+{% if value['invert'] is defined %}
+        option invert "{{ value['invert'] }}"
+{% endif %}
+{% if value['priority'] is defined %}
+        option priority "{{ value['priority'] }}"
+{% endif %}
+{% if value['lookup'] is defined %}
+        option lookup "{{ value['lookup'] }}"
+{% endif %}
+{% if value['goto'] is defined %}
+        option goto "{{ value['goto'] }}"
+{% endif %}
+{% if value['action'] is defined %}
+        option action "{{ value['action'] }}"
+{% endif %}
+{% if value['disabled'] is defined %}
+        option disabled "{{ value['disabled'] }}"
+{% endif %}
+{% endfor %}
+{% endmacro %}
+
+{% macro create_rules4(allrules4) %}
+{{ create_rules(allrules4, 4)}}
+{% endmacro %}
+
+{% macro create_rules6(allrules6) %}
+{{ create_rules(allrules6, 6)}}
+{% endmacro %}

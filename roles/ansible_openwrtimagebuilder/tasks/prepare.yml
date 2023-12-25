@@ -1,0 +1,57 @@
+---
+# todo, install packages necessary for imagebuilder on building host, maybe with python venv?
+# tasks file for ansible_openwrtimagebuilder
+- name: make sure builddir exists
+  ansible.builtin.file:
+    path: "{{ openwrt_imagebuilder_builddir }}"
+    state: directory
+- name: make sure outputdir exists
+  ansible.builtin.file:
+    path: "{{ openwrt_imagebuilder_outputdir }}"
+    state: directory
+- name: get filename from url
+  ansible.builtin.set_fact:
+    openwrt_imagebuilder_filename: "{{ openwrt_imagebuilder_downloadurl | basename }}"
+- name: check if download is needed
+  ansible.builtin.stat:
+    path: "{{ openwrt_imagebuilder_builddir }}/{{ openwrt_imagebuilder_filename }}"
+  register: downloaded_file
+- name: conditional download file
+  ansible.builtin.get_url:
+    url: "{{ openwrt_imagebuilder_downloadurl }}"
+    dest: "{{ openwrt_imagebuilder_builddir }}"
+  when: not downloaded_file.stat.exists
+- name: extract imagebuilder
+  ansible.builtin.unarchive:
+    src: "{{ openwrt_imagebuilder_builddir }}/{{ openwrt_imagebuilder_filename }}"
+    list_files: true
+    dest: "{{ openwrt_imagebuilder_builddir }}"
+  register: openwrt_imagebuilder_extraction
+- name: get extracted folder name
+  ansible.builtin.set_fact:
+    openwrt_imagebuilder_extractedfolder: "{{ openwrt_imagebuilder_extraction.files[0] }}"
+- name: remove old files dir if exist
+  ansible.builtin.file:
+    path: "{{ openwrt_imagebuilder_builddir }}/{{ openwrt_imagebuilder_extractedfolder }}{{ openwrt_imagebuilder_filesdir }}"
+    state: absent
+- name: create empty files dir
+  ansible.builtin.file:
+    path: "{{ openwrt_imagebuilder_builddir }}/{{ openwrt_imagebuilder_extractedfolder }}{{ openwrt_imagebuilder_filesdir }}"
+    state: directory
+- name: set this files directory to use as openwrt deployroot for all compatible roles
+  ansible.builtin.set_fact:
+    "{{ item }}": "{{ openwrt_imagebuilder_builddir }}/{{ openwrt_imagebuilder_extractedfolder }}{{ openwrt_imagebuilder_filesdir }}/"
+  loop:
+    - openwrt_acme_deployroot
+    - openwrt_batmanadv_deployroot
+    - openwrt_babeld_deployroot
+    - openwrt_bmx7_deployroot
+    - openwrt_dhcp_deployroot
+    - openwrt_dropbear_deployroot
+    - openwrt_firewall_deployroot
+    - openwrt_network_deployroot
+    - openwrt_restic_deployroot
+    - openwrt_services_deployroot
+    - openwrt_system_deployroot
+    - openwrt_uhttpd_deployroot
+    - openwrt_wireless_deployroot

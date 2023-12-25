@@ -1,0 +1,25 @@
+---
+- name: enable kernel logging on console
+  ansible.builtin.file:
+    path: "{{ openwrt_system_deploypath_kernellogging }}"
+    state: absent
+  when: openwrt_system_kernellogonconsole
+- name: Make sure kernel logging deploypath exists
+  ansible.builtin.file:
+    path: "{{ openwrt_system_deploypath_kernellogging }}"
+    state: directory
+- name: disable kernel logging on console
+  ansible.builtin.template:
+    src: "kernellogging.conf.jinja2"
+    dest: "{{ openwrt_system_deploypath_kernellogging }}/{{ openwrt_system_deployfile_kernellogging }}"
+    mode: 0644
+  when: not openwrt_system_kernellogonconsole
+- name: Make sure kernel sysctl deploypath exists
+  ansible.builtin.file:
+    path: "{{ openwrt_system_deploypath_sysctl }}"
+    state: directory
+- name: set additional kernel parameters in sysctl.conf
+  ansible.builtin.template:
+    src: sysctl.conf.jinja2
+    dest: "{{ openwrt_system_deploypath_sysctl }}/{{ openwrt_system_deployfile_sysctl }}"
+    mode: 0644

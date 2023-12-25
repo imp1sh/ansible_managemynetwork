@@ -1,0 +1,90 @@
+config system 'system'
+        # Configuration distributed by Ansible
+        # Basic Node configuration
+        option hostname "{{ openwrt_system_hostname | default('OpenWrt', true) }}"
+{% if openwrt_system_maintainer is defined %}
+        option maintainer "{{ openwrt_system_maintainer }}"
+{% endif %}
+{% if openwrt_system_description is defined %}
+        option description "{{ openwrt_system_description }}"
+{% endif %}
+{% if openwrt_system_notes is defined %}
+        option notes "{{ openwrt_system_notes }}"
+{% endif %}
+{% if openwrt_system_ttylogin is defined %}
+	option ttylogin "{{ openwrt_system_ttylogin }}"
+{% endif %}
+{% if openwrt_system_urandom_seed is defined %}
+	option urandom_seed "{{ openwrt_system_urandom_seed }}"
+{% endif %}
+
+        # System Logging Settings
+{% if openwrt_system_log_proto is defined %}
+        option log_proto "{{ openwrt_system_log_proto }}"
+{% endif %}
+{% if openwrt_system_log_trailer_null is defined %}
+	option log_trailer_null "{{ openwrt_system_log_trailer_null }}"
+{% endif %}
+{% if openwrt_system_log_type is defined %}
+	option log_type "{{ openwrt_system_log_type }}"
+{% endif %}
+{% if openwrt_system_cronloglevel is defined %}
+        option cronloglevel "{{ openwrt_system_cronloglevel }}"
+{% endif %}
+{% if openwrt_system_conloglevel is defined %}
+        option conloglevel "{{ openwrt_system_conloglevel }}"
+{% endif %}
+{% if openwrt_system_buffersize is defined %}
+	option buffersize "{{ openwrt_system_buffersize }}"
+{% endif %}
+{% if openwrt_system_klogconloglevel is defined %}
+	option klogconloglevel "{{ openwrt_system_klogconloglevel }}"
+{% endif %}
+{% if openwrt_system_log_buffer_size is defined %}
+	option log_buffer_size "{{ openwrt_system_log_buffer_size }}"
+{% endif %}
+{% if openwrt_system_logsize is defined %}
+        option log_size "{{ openwrt_system_logsize }}"
+{% endif %}
+{% if openwrt_system_log_ip is defined %}
+        option log_ip "{{ openwrt_system_log_ip }}"
+{% endif %}
+{% if openwrt_system_log_hostname is defined %}
+	option log_hostname "{{ openwrt_system_log_hostname }}"
+{% endif %}
+{% if openwrt_system_log_remote is defined %}
+	option log_remote "{{ openwrt_system_log_remote }}"
+{% endif %}
+{% if openwrt_system_logport is defined %}
+        option log_port "{{ openwrt_system_logport }}"
+{% endif %}
+{% if openwrt_system_logfile is defined %}
+        option log_file "{{ openwrt_system_logfile }}"
+{% endif %}
+{% if openwrt_system_log_prefix is defined %}
+	option log_prefix "{{ openwrt_system_log_prefix }}"
+{% endif %}
+	# System Timezone Information
+{% if openwrt_system_timezone is defined %}
+        option timezone "{{ openwrt_system_timezone }}"
+{% endif %}
+{% if openwrt_system_zonename is defined %}
+        option zonename "{{ openwrt_system_zonename }}"
+{% endif %}
+
+{% if openwrt_system_ntp_server is defined %}
+config timeserver 'ntp'
+{% for ntpserver in openwrt_system_ntp_server %}
+        list server "{{ ntpserver }}"
+{% endfor %}
+{% if openwrt_system_ntp_enable_server is defined %}
+        option enable_server "{{ openwrt_system_ntp_enable_server }}"
+{% endif %}
+{% if openwrt_system_ntp_use_dhcp is defined %}
+        option use_dhcp "{{ openwrt_system_ntp_use_dhcp }}"
+{% endif %}
+{% if openwrt_system_ntp_enabled is defined %}
+	option enabled "{{ openwrt_system_ntp_enabled }}"
+{% endif %}
+{% endif %}
+

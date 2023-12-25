@@ -1,0 +1,55 @@
+# Configuration distributed by Ansible
+config bmx7 "general"
+	option runtimeDir "/var/run/bmx7"
+        option trustedNodesDir "/etc/bmx7/trustedNodes"
+
+# Plugins
+{% if openwrt_bmx7_plugin_sms_enabled is defined and openwrt_bmx7_plugin_sms_enabled %}
+config plugin
+	option plugin "bmx7_sms.so"
+{% endif %}
+{% if openwrt_bmx7_plugin_json_enabled is defined and openwrt_bmx7_plugin_json_enabled %}
+config plugin
+	option plugin "bmx7_json.so"
+{% endif %}
+{% if openwrt_bmx7_plugin_topology_enabled is defined and openwrt_bmx7_plugin_topology_enabled %}
+config plugin
+	option plugin "bmx7_topology.so"
+{% endif %}
+{% if openwrt_bmx7_plugin_tun_enabled is defined and openwrt_bmx7_plugin_tun_enabled %}
+config plugin
+	option plugin "bmx7_tun.so"
+{% endif %}
+
+# Interfaces
+{% if openwrt_bmx7_interfaces is defined %}
+{% for interface in openwrt_bmx7_interfaces %}
+config dev "{{ interface['name'] }}"
+	option dev "{{ interface['name'] }}"
+{% endfor %}
+{% endif %}
+
+# HNA
+{% if openwrt_bmx7_hna is defined %}
+config unicastHna "{{ openwrt_bmx7_hna['name'] }}"
+	option unicastHna "{{ openwrt_bmx7_hna['prefix'] }}"
+{% endif %}
+
+# Tunnel
+{% if openwrt_bmx7_prefixes is defined %}
+{% for prefix in openwrt_bmx7_prefixes %}
+config tunOut
+	option tunOut "ip6"
+	option network "{{ prefix }}"
+{% endfor %}
+{% endif %}
+{% if openwrt_bmx7_collectedprefixes is defined %}
+config tunOut
+	option tunOut "ip6"
+	option network "{{ openwrt_bmx7_collectedprefixes.stdout }}"
+{% endif %}
+{% if openwrt_bmx7_ulaprefix is defined %}
+config tunOut
+	option tunOut "ip6"
+	option network "{{ openwrt_bmx7_ulaprefix.stdout }}"
+{% endif %}

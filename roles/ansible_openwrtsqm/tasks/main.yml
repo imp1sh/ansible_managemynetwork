@@ -1,0 +1,8 @@
+---
+# tasks file for ansible_openwrtsqm
+- name: deploy sqm configuration
+  ansible.builtin.template:
+    src: sqm.jinja2
+    dest: "{{ openwrt_sqm_deploypath }}/{{ openwrt_sqm_deployfile }}"
+  when: openwrt_sqm_interfaces is defined
+  notify: restart sqm

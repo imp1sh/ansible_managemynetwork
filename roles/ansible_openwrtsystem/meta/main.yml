@@ -1,0 +1,16 @@
+---
+galaxy_info:
+  role_name: ansible_openwrtsystem
+  author: Jochen Demmer
+  description: Basic system configuration for Openwrt, everything in /etc/config/system
+  company: libcom.de
+  issue_tracker_url: https://github.com/imp1sh/ansible_openwrt/issues
+  license: BSD-3-Clause
+  min_ansible_version: "2.9"
+  platforms:
+    - name: OpenWRT
+      versions:
+        - "21.02"
+        - "22.03"
+  galaxy_tags: [openwrt, lede, system, ntp, logging, sysctl, kernel]
+dependencies: []

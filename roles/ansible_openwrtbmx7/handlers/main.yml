@@ -1,0 +1,6 @@
+---
+# handlers file for ansible_openwrtbmx7
+- name: restart bmx7
+  service:
+    name: bmx7
+    state: restarted

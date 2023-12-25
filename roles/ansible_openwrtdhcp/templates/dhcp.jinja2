@@ -1,0 +1,324 @@
+{% import "functions.jinja2" as functions with context %}
+# Configuration deployed by Ansible
+
+# Global dnsmasq configuration
+config dnsmasq
+{% if openwrt_dhcp_add_local_domain is defined %}
+	options add_local_domain "{{ openwrt_dhcp_add_local_domain }}"
+{% endif %}
+{% if openwrt_dhcp_dnsmasq_add_local_hostname is defined %}
+	option add_local_hostname "{{ openwrt_dhcp_dnsmasq_add_local_hostname }}"
+{% endif %}
+{% if openwrt_dhcp_dnsmasq_add_local_fqdn is defined %}
+	option add_local_fqdn "{{ openwrt_dhcp_dnsmasq_add_local_fqdn }}"
+{% endif %}
+{% if openwrt_dhcp_dnsmasq_add_wan_fqdn is defined %}
+	option add_wan_fqdn "{{ openwrt_dhcp_dnsmasq_add_wan_fqdn }}"
+{% endif %}
+{% if openwrt_dhcp_dnsmasq_addnhosts is defined %}
+{% for addnhost in openwrt_dhcp_dnsmasq_addnhosts %}
+	list addnhosts "{{ addnhost }}"
+{% endfor %}
+{% endif %}
+{% if openwrt_dhcp_dnsmasq_authoritative is defined %}
+	option authoritative "{{ openwrt_dhcp_dnsmasq_authoritative }}"
+{% endif %}
+{% if openwrt_dhcp_dnsmasq_bogusnxdomain is defined %}
+{% for nxdomain in openwrt_dhcp_dnsmasq_bogusnxdomain %}
+	list bogusnxdomain "{{ nxdomain }}"
+{% endfor %}
+{% endif %}
+{% if openwrt_dhcp_dnsmasq_boguspriv is defined %}
+	option boguspriv "{{ openwrt_dhcp_dnsmasq_boguspriv }}"
+{% endif %}
+{% if openwrt_dhcp_dnsmasq_cachelocal is defined %}
+	option cachelocal "{{ openwrt_dhcp_dnsmasq_cachelocal }}"
+{% endif %}
+{% if openwrt_dhcp_dnsmasq_cachesize is defined %}
+	option cachesize "{{ openwrt_dhcp_dnsmasq_cachesize }}"
+{% endif %}
+{% if openwrt_dhcp_dnsmasq_dbus is defined %}
+	option dbus "{{ openwrt_dhcp_dnsmasq_dbus }}"
+{% endif %}
+{% if openwrt_dhcp_dnsmasq_dhcp_boot is defined %}
+	option dhcp_boot "{{ openwrt_dhcp_dnsmasq_dhcp_boot }}"
+{% endif %}
+{% if openwrt_dhcp_dnsmasq_dhcphostsfile is defined %}
+	option dhcphostsfile "{{ openwrt_dhcp_dnsmasq_dhcphostsfile }}"
+{% endif %}
+{% if openwrt_dhcp_dnsmasq_dhcpleasemax is defined %}
+	option dhcpleasemax "{{ openwrt_dhcp_dnsmasq_dhcpleasemax }}"
+{% endif %}
+{% if openwrt_dhcp_dnsmasq_dnsforwardmax is defined %}
+	option dnsforwardmax "{{ openwrt_dhcp_dnsmasq_dnsforwardmax }}"
+{% endif %}
+{% if openwrt_dhcp_dnsmasq_domain is defined %}
+	option domain "{{ openwrt_dhcp_dnsmasq_domain }}"
+{% endif %}
+{% if openwrt_dhcp_dnsmasq_domainneeded is defined %}
+	option domainneeded "{{ openwrt_dhcp_dnsmasq_domainneeded }}"
+{% endif %}
+{% if openwrt_dhcp_dnsmasq_dnssec is defined %}
+	option dnssec "{{ openwrt_dhcp_dnsmasq_dnssec }}"
+{% endif %}
+{% if openwrt_dhcp_dnsmasq_dnsseccheckunsigned is defined %}
+	option dnsseccheckunsigned "{{ openwrt_dhcp_dnsmasq_dnsseccheckunsigned }}"
+{% endif %}
+{% if openwrt_dhcp_dnsmasq_ednspacket_max is defined %}
+	option ednspacket_max "{{ openwrt_dhcp_dnsmasq_ednspacket_max }}"
+{% endif %}
+{% if openwrt_dhcp_dnsmasq_enable_tftp is defined %}
+	option enable_tftp "{{ openwrt_dhcp_dnsmasq_enable_tftp }}"
+{% endif %}
+{% if openwrt_dhcp_dnsmasq_expandhosts is defined %}
+	option expandhosts "{{ openwrt_dhcp_dnsmasq_expandhosts }}"
+{% endif %}
+{% if openwrt_dhcp_dnsmasq_filterwin2k is defined %}
+	option filterwin2k "{{ openwrt_dhcp_dnsmasq_filterwin2k }}"
+{% endif %}
+{% if openwrt_dhcp_dnsmasq_fqdn is defined %}
+	option fqdn "{{ openwrt_dhcp_dnsmasq_fqdn }}"
+{% endif %}
+{% if openwrt_dhcp_dnsmasq_interface is defined %}
+{% for dnsmasq_interface in openwrt_dhcp_dnsmasq_interface %}
+	list interface "{{ dnsmasq_interface }}"
+{% endfor %}
+{% endif %}
+{% if openwrt_dhcp_dnsmasq_ipset is defined %}
+{% for dnsmasq_ipset in openwrt_dhcp_dnsmasq_ipset %}
+	list interface "{{ dnsmasq_ipset }}"
+{% endfor %}
+{% endif %}
+{% if openwrt_dhcp_dnsmasq_leasefile is defined %}
+	option leasefile "{{ openwrt_dhcp_dnsmasq_leasefile }}"
+{% endif %}
+{% if openwrt_dhcp_dnsmasq_local is defined %}
+	option local "{{ openwrt_dhcp_dnsmasq_local }}"
+{% endif %}
+{% if openwrt_dhcp_dnsmasq_localise_queries is defined %}
+	option localise_queries "{{ openwrt_dhcp_dnsmasq_localise_queries }}"
+{% endif %}
+{% if openwrt_dhcp_dnsmasq_localservice is defined %}
+	option localservice "{{ openwrt_dhcp_dnsmasq_localservice }}"
+{% endif %}
+{% if openwrt_dhcp_dnsmasq_local_ttl is defined %}
+	option local_ttl "{{ openwrt_dhcp_dnsmasq_local_ttl }}"
+{% endif %}
+{% if openwrt_dhcp_dnsmasq_localuse is defined %}
+	option localuse "{{ openwrt_dhcp_dnsmasq_localuse }}"
+{% endif %}
+{% if openwrt_dhcp_dnsmasq_logfacility is defined %}
+	option logfacility "{{ openwrt_dhcp_dnsmasq_logfacility }}"
+{% endif %}
+{% if openwrt_dhcp_dnsmasq_logqueries is defined %}
+	option logqueries "{{ openwrt_dhcp_dnsmasq_logqueries }}"
+{% endif %}
+{% if openwrt_dhcp_dnsmasq_nodaemon is defined %}
+	option nodaemon "{{ openwrt_dhcp_dnsmasq_nodaemon }}"
+{% endif %}
+{% if openwrt_dhcp_dnsmasq_nohosts is defined %}
+	option nohosts "{{ openwrt_dhcp_dnsmasq_nohosts }}"
+{% endif %}
+{% if openwrt_dhcp_dnsmasq_nonegcache is defined %}
+	option nonegcache "{{ openwrt_dhcp_dnsmasq_nonegcache }}"
+{% endif %}
+{% if openwrt_dhcp_dnsmasq_noresolv is defined %}
+	option noresolv "{{ openwrt_dhcp_dnsmasq_noresolv }}"
+{% endif %}
+{% if openwrt_dhcp_dnsmasq_notinterface is defined %}
+{% for notlistenif in openwrt_dhcp_dnsmasq_notinterface %}
+	list notinterface "{{ notlistenif }}"
+{% endfor %}
+{% endif %}
+{% if openwrt_dhcp_dnsmasq_nonwildcard is defined %}
+	option nonwildcard "{{ openwrt_dhcp_dnsmasq_nonwildcard }}"
+{% endif %}
+{% if openwrt_dhcp_dnsmasq_port is defined %}
+	option port "{{ openwrt_dhcp_dnsmasq_port }}"
+{% endif %}
+{% if openwrt_dhcp_dnsmasq_queryport is defined %}
+	option queryport "{{ openwrt_dhcp_dnsmasq_queryport }}"
+{% endif %}
+{% if openwrt_dhcp_dnsmasq_readethers is defined %}
+	option readethers "{{ openwrt_dhcp_dnsmasq_readethers }}"
+{% endif %}
+{% if openwrt_dhcp_dnsmasq_rebind_protection is defined %}
+	option rebind_protection "{{ openwrt_dhcp_dnsmasq_rebind_protection }}"
+{% endif %}
+{% if openwrt_dhcp_dnsmasq_rebind_localhost is defined %}
+	option rebind_localhost "{{ openwrt_dhcp_dnsmasq_rebind_localhost }}"
+{% endif %}
+{% if openwrt_dhcp_dnsmasq_rebind_domain is defined %}
+{% for rebind_domain in openwrt_dhcp_dnsmasq_rebind_domain %}
+	list rebind_domain "{{ rebind_domain }}"
+{% endfor %}
+{% endif %}
+{% if openwrt_dhcp_dnsmasq_resolvfile is defined %}
+	option resolvfile "{{ openwrt_dhcp_dnsmasq_resolvfile }}"
+{% endif %}
+{% if openwrt_dhcp_dnsmasq_server is defined %}
+{% for dnsmasq_server in openwrt_dhcp_dnsmasq_server %}
+	list server "{{ dnsmasq_server }}"
+{% endfor %}
+{% endif %}
+{% if openwrt_dhcp_dnsmasq_serverlist is defined %}
+	option serverlist "{{ openwrt_dhcp_dnsmasq_serverlist }}"
+{% endif %}
+{% if openwrt_dhcp_dnsmasq_rev_server is defined %}
+{% for dnsmasq_rev_server in openwrt_dhcp_dnsmasq_rev_server %}
+	list server "{{ dnsmasq_rev_server }}"
+{% endfor %}
+{% endif %}
+{% if openwrt_dhcp_dnsmasq_address is defined %}
+{% for dnsmasq_address in openwrt_dhcp_dnsmasq_address %}
+	list server "{{ dnsmasq_address }}"
+{% endfor %}
+{% endif %}
+{% if openwrt_dhcp_dnsmasq_strictorder is defined %}
+	option strictorder "{{ openwrt_dhcp_dnsmasq_strictorder }}"
+{% endif %}
+{% if openwrt_dhcp_dnsmasq_tftp_root is defined %}
+	option tftp_root "{{ openwrt_dhcp_dnsmasq_tftp_root }}"
+{% endif %}
+{% if openwrt_dhcp_dnsmasq_minport is defined %}
+	option minport "{{ openwrt_dhcp_dnsmasq_minport }}"
+{% endif %}
+{% if openwrt_dhcp_dnsmasq_maxport is defined %}
+	option maxport "{{ openwrt_dhcp_dnsmasq_maxport }}"
+{% endif %}
+{% if openwrt_dhcp_dnsmasq_noping is defined %}
+	option noping "{{ openwrt_dhcp_dnsmasq_noping }}"
+{% endif %}
+{% if openwrt_dhcp_dnsmasq_allservers is defined %}
+	option allservers "{{ openwrt_dhcp_dnsmasq_allservers }}"
+{% endif %}
+{% if openwrt_dhcp_dnsmasq_quietdhcp is defined %}
+	option quietdhcp "{{ openwrt_dhcp_dnsmasq_quietdhcp }}"
+{% endif %}
+{% if openwrt_dhcp_dnsmasq_sequential_ip is defined %}
+	option sequential_ip "{{ openwrt_dhcp_dnsmasq_sequential_ip }}"
+{% endif %}
+{% if openwrt_dhcp_dnsmasq_addmac is defined %}
+	option addmac "{{ openwrt_dhcp_dnsmasq_addmac }}"
+{% endif %}
+{% if openwrt_dhcp_dnsmasq_logdhcp is defined %}
+	option logdhcp "{{ openwrt_dhcp_dnsmasq_logdhcp }}"
+{% endif %}
+{% if openwrt_dhcp_dnsmasq_dhcpscript is defined %}
+	option dhcpscript "{{ openwrt_dhcp_dnsmasq_dhcpscript }}"
+{% endif %}
+{% if openwrt_dhcp_dnsmasq_confidr is defined %}
+	option confidr "{{ openwrt_dhcp_dnsmasq_confidr }}"
+{% endif %}
+{% if openwrt_dhcp_dnsmasq_max_ttl is defined %}
+	option max_ttl "{{ openwrt_dhcp_dnsmasq_max_ttl }}"
+{% endif %}
+{% if openwrt_dhcp_dnsmasq_min_cache_ttl is defined %}
+	option min_cache_ttl "{{ openwrt_dhcp_dnsmasq_min_cache_ttl }}"
+{% endif %}
+{% if openwrt_dhcp_dnsmasq_max_cache_ttl is defined %}
+	option max_cache_ttl "{{ openwrt_dhcp_dnsmasq_max_cache_ttl }}"
+{% endif %}
+{% if openwrt_dhcp_dnsmasq_rapidcommit is defined %}
+	options rapidcommit "{{ openwrt_dhcp_dnsmasq_rapidcommit }}"
+{% endif %}
+
+# DHCP Pools
+# Host based DHCP pool definitions
+{% if openwrt_dhcp_poolshost is defined %}
+{{ functions.create_pools(openwrt_dhcp_poolshost) }}
+{% endif %}
+
+# Host based DHCP pool definitions
+{% if openwrt_dhcp_poolsmergedgroup is defined %}
+{{ functions.create_pools(openwrt_dhcp_poolsmergedgroup) }}
+{% endif %}
+
+# Leases
+{% if openwrt_dhcp_leases is defined %}
+{% for lease in openwrt_dhcp_leases %}
+config host
+	option name "{{ lease['name'] }}"
+{% if lease['ip'] is defined %}
+	option ip "{{ lease['ip'] }}"
+{% endif %}
+{% if lease['mac'] is defined %}
+	option mac "{{ lease['mac'] }}"
+{% endif %}
+{% if lease['hostid'] is defined %}
+	option hostid "{{ lease['hostid'] }}"
+{% endif %}
+{% if lease['duid'] is defined %}
+	option duid "{{ lease['duid'] }}"
+{% endif %}
+{% if lease['tag'] is defined %}
+	option tag "{{ lease['tag'] }}"
+{% endif %}
+{% if lease['match_tag'] is defined %}
+{% for matchtag in lease['match_tag'] %}
+	list match_tag "{{ matchtag }}"
+{% endfor %}
+{% endif %}
+{% if lease['dns'] is defined %}
+	option dns "{{ lease['dns'] }}"
+{% endif %}
+{% if lease['broadcast'] is defined %}
+	option broadcast "{{ lease['broadcast'] }}"
+{% endif %}
+{% if lease['leasetime'] is defined %}
+	option leasetime "{{ lease['leasetime'] }}"
+{% endif %}
+{% if lease['instance'] is defined %}
+	option instance "{{ lease['instance'] }}"
+{% endif %}
+{% endfor %}
+{% endif %}
+
+# Hostname overrides
+{% if openwrt_dhcp_hostoverrides is defined %}
+{% for hostoverride in openwrt_dhcp_hostoverrides %}
+config domain
+	option name "{{ hostoverride['name'] }}"
+	option ip "{{ hostoverride['ip'] }}"
+{% endfor %}
+{% endif %}
+
+# PXE Boot options
+{% if openwrt_dhcp_boot is defined %}
+{% for bootitem in openwrt_dhcp_boot %}
+config boot
+{% if bootitem['dhcp_option'] is defined %}
+{% for dhcpoption in bootitem['dhcp_option'] %}
+	list dhcp_option "{{ dhcpoption }}"
+{% endfor %}
+{% endif %}
+{% if bootitem['filename'] is defined %}
+	option filename "{{ bootitem['filename'] }}"
+{% endif %}
+{% if bootitem['networkid'] is defined %}
+	option networkid "{{ bootitem['networkid'] }}"
+{% endif %}
+{% if bootitem['serveraddress'] is defined %}
+	option serveraddress "{{ bootitem['serveraddress'] }}"
+{% endif %}
+{% if bootitem['servername'] is defined %}
+	option servername "{{ bootitem['servername'] }}"
+{% endif %}
+{% if bootitem['force'] is defined %}
+	option force "{{ bootitem['force'] }}"
+{% endif %}
+{% if bootitem['instance'] is defined %}
+	option instance "{{ bootitem['instance'] }}"
+{% endif %}
+{% endfor %}
+{% endif %}
+
+# ODHCP
+config odhcpd "odhcpd"
+	option maindhcp "{{ openwrt_dhcp_odhcpd_maindhcp }}"
+	option leasefile "{{ openwrt_dhcp_odhcpd_leasefile }}"
+	option leasetrigger "{{ openwrt_dhcp_odhcpd_leasetrigger }}"
+	option loglevel "{{ openwrt_dhcp_odhcpd_loglevel }}"
+{% if openwrt_dhcp_odhcpd_legacy is defined %}
+	option legacy "{{ openwrt_dhcp_odhcpd_legacy }}"
+{% endif %}

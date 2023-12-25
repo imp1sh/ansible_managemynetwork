@@ -1,0 +1,24 @@
+# Merge Interfaces
+- name: merge group interfaces
+  ansible.builtin.set_fact:
+    openwrt_network_interfacesmergedgroup: "{{ openwrt_network_interfacesgroup.keys() | list | intersect(group_names) | map('extract', openwrt_network_interfacesgroup) | combine }}"
+  when: openwrt_network_interfacesgroup is defined
+- name: combine all interfaces into openwrt_network_interfaces
+  ansible.builtin.set_fact:
+    openwrt_network_interfaces: "{{ openwrt_network_interfaceshost | default({}) | combine(openwrt_network_interfacesmergedgroup | default({}) ) }}"
+# Merge Devices
+- name: merge group devices
+  ansible.builtin.set_fact:
+    openwrt_network_devicesmergedgroup: "{{ openwrt_network_devicesgroup.keys() | list | intersect(group_names) | map('extract', openwrt_network_devicesgroup) | combine }}"
+  when: openwrt_network_devicesgroup is defined
+- name: combine all devices into openwrt_network_devices
+  ansible.builtin.set_fact:
+    openwrt_network_devices: "{{ openwrt_network_deviceshost | default({}) | combine(openwrt_network_devicesmergedgroup | default({}) ) }}"
+# Merge VLAN Devices
+- name: Combine vlan group devices that the host belongs to into one list variable
+  ansible.builtin.set_fact:
+    openwrt_network_bridge_vlanmergedgroup: "{{ openwrt_network_bridge_vlangroup.keys() | list | intersect(group_names) | map('extract', openwrt_network_bridge_vlangroup) | list | flatten }}"
+  when: openwrt_network_bridge_vlangroup is defined
+- name: combine all bridge_vlan into openwrt_network_bridge_vlan
+  ansible.builtin.set_fact:
+    openwrt_network_bridge_vlan: "{{ openwrt_network_bridge_vlanhost | default([]) + openwrt_network_bridge_vlanmergedgroup | default([]) }}"

@@ -1,0 +1,10 @@
+---
+# tasks file for ansible_openwrtpackage
+- name: prepare install variables
+  include_tasks: "1prepare_install.yml"
+- name: prepare install variables
+  include_tasks: "2prepare_remove.yml"
+- name: Remove tasks
+  include_tasks: "5remove.yml"
+- name: Install tasks
+  include_tasks: "3install.yml"

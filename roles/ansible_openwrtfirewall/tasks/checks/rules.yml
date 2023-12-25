@@ -1,0 +1,19 @@
+---
+- name: check src port validity
+  ansible.builtin.assert:
+    that:
+      - ruleitem.value.src_port is number
+      - ruleitem.value.src_port is integer
+      - ruleitem.value.src_port >= 0
+      - ruleitem.value.src_port <= 65536
+    fail_msg: "Make sure port is int between 1 and 65536. Error in port definition: {{ ruleitem.value.src_port }}. Don't put the number in quotes!"
+  when: ruleitem.value.src_port is defined
+- name: check dest port validity
+  ansible.builtin.assert:
+    that:
+      - ruleitem.value.dest_port is number
+      - ruleitem.value.dest_port is integer
+      - ruleitem.value.dest_port >= 0
+      - ruleitem.value.dest_port <= 65536
+    fail_msg: "Make sure port is int between 1 and 65536. Error in port definition: {{ ruleitem.value.dest_port }}. Don't put the numbers in quotes!"
+  when: ruleitem.value.dest_port is defined

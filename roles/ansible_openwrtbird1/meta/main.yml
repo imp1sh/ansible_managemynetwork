@@ -1,0 +1,28 @@
+---
+galaxy_info:
+  role_name: ansible_openwrtbird1
+  author: Jochen Demmer
+  description: configures bird1 for OpenWrt
+  company: libcom.de
+  issue_tracker_url: https://github.com/imp1sh/ansible_openwrt/issues
+  license: BSD-3-Clause
+  min_ansible_version: "2.9"
+  platforms:
+    - name: OpenWRT
+      versions:
+        - "22.03"
+  galaxy_tags: [openwrt, lede, bird1, routing]
+dependencies:
+  - role: imp1sh.ansible_openwrt.ansible_openwrtpackages
+    vars:
+      openwrt_packages_installrole:
+        - bird1-ipv4
+        - bird1-ipv4-uci
+        - bird1-ipv6
+        - bird1-ipv6-uci
+        - bird1c-ipv4
+        - bird1c-ipv6
+        - bird1cl-ipv4
+        - bird1cl-ipv6
+        - luci-app-bird1-ipv4
+        - luci-app-bird1-ipv6

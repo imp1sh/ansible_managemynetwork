@@ -1,0 +1,6 @@
+---
+# defaults file for ansible_openwrttinyproxy
+openwrt_tinyproxy_deployroot: "/"
+openwrt_tinyproxy_deploypath: "{{ openwrt_tinyproxy_deployroot }}etc/config"
+openwrt_tinyproxy_deployfile: "tinyproxy"
+openwrt_tinyproxy_filterfile: "tinyproxy_filter"

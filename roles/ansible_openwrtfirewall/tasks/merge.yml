@@ -1,0 +1,38 @@
+# Zones
+- name: merge group firewall zones from different groups
+  ansible.builtin.set_fact:
+    openwrt_firewall_zonesmergedgroup: "{{ openwrt_firewall_zonesgroup.keys() | list | intersect(group_names) | map('extract', openwrt_firewall_zonesgroup) | combine }}"
+  when: openwrt_firewall_zonesgroup is defined
+- name: combine all zones into openwrt_firewall_zones
+  ansible.builtin.set_fact:
+    openwrt_firewall_zones: "{{ openwrt_firewall_zonesdefault | combine(openwrt_firewall_zoneshost | default({}), openwrt_firewall_zonesmergedgroup | default({}) ) }}"
+  when: openwrt_firewall_setdefaultzones
+- name: combine only host and group zones into openwrt_firewall_zones
+  ansible.builtin.set_fact:
+    openwrt_firewall_zones: "{{ openwrt_firewall_zoneshost | default({}) | combine(openwrt_firewall_zonesmergedgroup | default({}) ) }}"
+  when: not openwrt_firewall_setdefaultzones
+# Rules
+- name: merge group firewall rules from different groups
+  ansible.builtin.set_fact:
+    openwrt_firewall_rulesmergedgroup: "{{ openwrt_firewall_rulesgroup.keys() | list | intersect(group_names) | map('extract', openwrt_firewall_rulesgroup) | combine }}"
+  when: openwrt_firewall_rulesgroup is defined
+- name: combine all rules into openwrt_firewall_rules
+  ansible.builtin.set_fact:
+    openwrt_firewall_rules: "{{ openwrt_firewall_rulesdefault | combine(openwrt_firewall_ruleshost | default({}), openwrt_firewall_rulesmergedgroup | default({}) ) }}"
+# Forwardings
+- name: merge group firewall forwardings from different groups
+  ansible.builtin.set_fact:
+    openwrt_firewall_forwardingsmergedgroup: "{{ openwrt_firewall_forwardingsgroup.keys() | list | intersect(group_names) | map('extract', openwrt_firewall_forwardingsgroup) | list | flatten }}"
+  when: openwrt_firewall_forwardingsgroup is defined
+- name: combine all forwardings into openwrt_firewall_forwardings
+  ansible.builtin.set_fact:
+    openwrt_firewall_forwardings: "{{ openwrt_firewall_forwardingsdefault | default([]) + openwrt_firewall_forwardingsmergedgroup | default([]) + openwrt_firewall_forwardingshost | default([]) }}"
+# REDIRECTS
+# DNATS
+- name: merge group firewall redirects from different groups
+  ansible.builtin.set_fact:
+    openwrt_firewall_redirectsmergedgroup: "{{ openwrt_firewall_redirectsgroup.keys() | list | intersect(group_names) | map('extract', openwrt_firewall_redirectsgroup) | combine }}"
+  when: openwrt_firewall_redirectsgroup is defined
+- name: combine all redirects into openwrt_firewall_redirects
+  ansible.builtin.set_fact:
+    openwrt_firewall_redirects: "{{ openwrt_firewall_redirectshost | default({}) | combine(openwrt_firewall_redirectsmergedgroup | default({})) }}"

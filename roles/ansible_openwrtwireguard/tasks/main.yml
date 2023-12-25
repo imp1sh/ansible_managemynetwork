@@ -1,0 +1,11 @@
+---
+- name: initialize openwrt_packages_installimagebuilder
+  set_fact:
+    openwrt_packages_installimagebuilder: []
+  when:
+    - openwrt_packages_installimagebuilder is not defined
+    - openwrt_wireguard_runimagebuilder | default(false)
+- name: merge role packages into openwrt_packages_installimagebuilder
+  set_fact:
+    openwrt_packages_installimagebuilder: "{{ openwrt_packages_installimagebuilder + openwrt_packages_installrole }}"
+  when: openwrt_wireguard_runimagebuilder | default(false)

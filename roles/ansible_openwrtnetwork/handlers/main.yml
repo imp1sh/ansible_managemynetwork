@@ -1,0 +1,8 @@
+---
+# handlers file for ansible_openwrtnetwork
+- name: restart network
+  ansible.builtin.service:
+    name: network
+    state: restarted
+  when:
+    not openwrt_network_runimagebuilder | default(false)

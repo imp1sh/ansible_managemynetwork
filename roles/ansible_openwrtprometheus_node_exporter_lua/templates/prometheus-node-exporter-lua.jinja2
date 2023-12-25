@@ -1,0 +1,3 @@
+config prometheus-node-exporter-lua "main"
+        option listen_interface "{{ openwrt_prometheus_node_exporter_lua_interface | default('loopback', true) }}"
+        option listen_port "{{ openwrt_prometheus_node_exporter_lua_port | default('9100', true) }}"

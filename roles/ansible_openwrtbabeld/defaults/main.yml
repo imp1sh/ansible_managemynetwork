@@ -1,0 +1,7 @@
+---
+# defaults file for ansible_openwrtbabeld
+openwrt_babeld_deployroot: "/"
+openwrt_babeld_deploypath: "{{ openwrt_babeld_deployroot }}etc/config"
+openwrt_babeld_deployfile: "babeld"
+openwrt_babeld_deploypath_initlink: "{{ openwrt_babeld_deployroot }}etc/rc.d"
+openwrt_babeld_deployfile_initlink: "S70babeld"

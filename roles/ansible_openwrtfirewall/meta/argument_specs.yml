@@ -1,0 +1,95 @@
+---
+argument_specs:
+  main:
+    short_description: "Checking firewall global policies"
+    options:
+      openwrt_firewall_default_forward:
+        type: "str"
+        choices:
+          - "ACCEPT"
+          - "REJECT"
+          - "DROP"
+      openwrt_firewall_default_input:
+        type: "str"
+        choices:
+          - "ACCEPT"
+          - "REJECT"
+          - "DROP"
+      openwrt_firewall_default_output:
+        type: "str"
+        choices:
+          - "ACCEPT"
+          - "REJECT"
+          - "DROP"
+      openwrt_firewall_default_synflood:
+        type: 'int'
+        choices:
+          - 0
+          - 1
+      openwrt_firewall_default_synflood_protect:
+        type: 'int'
+        choices:
+          - 0
+          - 1
+      openwrt_firewall_default_tcp_syncookies:
+        type: 'int'
+        choices:
+          - 0
+          - 1
+      openwrt_firewall_default_tcp_ecn:
+        type: 'int'
+        choices:
+          - 0
+          - 1
+      openwrt_firewall_default_tcp_windows_scaling:
+        type: 'int'
+        choices:
+          - 0
+          - 1
+      openwrt_firewall_default_accept_redirects:
+        type: 'int'
+        choices:
+          - 0
+          - 1
+      openwrt_firewall_default_accept_source_route:
+        type: 'int'
+        choices:
+          - 0
+          - 1
+      openwrt_firewall_default_custom_chains:
+        type: 'int'
+        choices:
+          - 0
+          - 1
+      openwrt_firewall_default_disable_ipv6:
+        type: 'int'
+        choices:
+          - 0
+          - 1
+      openwrt_firewall_default_flow_offloading:
+        type: 'int'
+        choices:
+          - 0
+          - 1
+      openwrt_firewall_default_flow_offloading_hw:
+        type: 'int'
+        choices:
+          - 0
+          - 1
+      openwrt_firewall_default_auto_helper:
+        type: 'int'
+        choices:
+          - 0
+          - 1
+      openwrt_firewall_default_drop_invalid:
+        type: 'int'
+        choices:
+          - 0
+          - 1
+      openwrt_firewall_synflood_burst:
+        type: 'int'
+        choices:
+          - 0
+          - 1
+      openwrt_firewall_zoneshost:
+        type: 'dict'

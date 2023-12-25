@@ -1,0 +1,7 @@
+---
+- name: check every variable if it's from type int
+  ansible.builtin.assert:
+    that: kernelvariable | default(omit) | type_debug == 'int'
+    fail_msg: "kernel parameter {{ kernelvariable }} must be of type int."
+    success_msg: "kernel parameter {{ kernelvariable }} is of type int."
+  when: kernelvariable is defined

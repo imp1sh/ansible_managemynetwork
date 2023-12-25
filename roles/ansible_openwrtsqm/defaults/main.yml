@@ -1,0 +1,5 @@
+---
+# defaults file for ansible_openwrtsqm
+openwrt_sqm_deployroot: "/"
+openwrt_sqm_deploypath: "{{ openwrt_sqm_deployroot }}etc/config"
+openwrt_sqm_deployfile: "sqm"

@@ -1,0 +1,26 @@
+[Interface]
+Address    = {{ item.value.allowed_ips | join(', ') }}
+PrivateKey = {{ client_privatekey_data_decoded }}
+MTU = {{ item.value.mtu |  default("1420", true) }}
+
+[Peer]
+PublicKey    = {{ server_publickey_data_decoded }}
+{% if item.value.s2s is defined and item.value.s2s %}
+PresharedKey = {{ s2s_psk_decoded }}
+{% else %}
+PresharedKey = {{ client_psk_decoded }}
+{% endif %}
+{% if item.value.routes_to is defined %}
+AllowedIPs   = {{ hostvars[inventory_hostname]['openwrt_network_interfaceshost'][item.value.interface]['wg_addresses'] | ipaddr('network/prefix') | join(', ') }}, {{ item.value.routes_to | join (', ') }}
+{% else %}
+AllowedIPs   = {{ hostvars[inventory_hostname]['openwrt_network_interfaceshost'][item.value.interface]['wg_addresses'] | ipaddr('network/prefix') | join(', ') }}
+{% endif %}
+
+{% if item.value.endpoint is not defined %}
+Endpoint     = {{ hostvars[inventory_hostname]['openwrt_network_interfaces'][item.value.interface]['wg_myendpoint']}}:{{ hostvars[inventory_hostname]['openwrt_network_interfaces'][item.value.interface]['wg_listen_port']}}
+{% else %}
+Endpoint     = {{ item.value.endpoint }}:{{ item.value.endpointport }}
+{% endif %}
+{% if item.value.keepalive is defined %}
+PersistentKeepalive = {{ item.value.keepalive }}
+{% endif %}

@@ -1,0 +1,20 @@
+---
+# Prepare first phase
+- name: Merge openwrt_packages_install from all groups this host is a member of
+  ansible.builtin.set_fact:
+    openwrt_packages_installmergedgroup: "{{ openwrt_packages_installgroup.keys() | list | intersect(group_names) | map('extract', openwrt_packages_installgroup) | list | flatten }}"
+  when: openwrt_packages_installgroup is defined
+- name: Set seperator if imagebuilder
+  ansible.builtin.set_fact:
+    openwrt_packages_separator: ' '
+  when: openwrt_packages_runimagebuilder | default(false)
+- name: Set separator if not imagebuilder
+  ansible.builtin.set_fact:
+    openwrt_packages_separator: ','
+  when: not openwrt_packages_runimagebuilder | default(false)
+- name: combine lists into openwrt_packages_install var
+  ansible.builtin.set_fact:
+    openwrt_packages_install: "{{ [openwrt_packages_installmergedgroup, openwrt_packages_installhost, openwrt_packages_installrole] | select('defined') | flatten | unique }}"
+- name: remove duplicates from install list
+  ansible.builtin.set_fact:
+    openwrt_packages_install: "{{ openwrt_packages_install | unique }}"

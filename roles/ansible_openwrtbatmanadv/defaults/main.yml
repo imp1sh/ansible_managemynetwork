@@ -1,0 +1,5 @@
+---
+# defaults file for ansible_openwrtbatmanadv
+openwrt_batmanadv_deployroot: "/"
+openwrt_batmanadv_deploypath: "{{ openwrt_batmanadv_deployroot }}etc/config"
+openwrt_batmanadv_deployfile: "batman-adv"

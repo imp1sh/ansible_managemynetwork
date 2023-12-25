@@ -1,0 +1,67 @@
+---
+# tasks file for ansible_openwrtbabeld
+- name: Install getprefix script
+  ansible.builtin.template:
+    src: getprefix.sh.jinja2
+    dest: /root/getprefix.sh
+    mode: 0744
+  when:
+    not openwrt_babeld_runimagebuilder | default(false)
+    #- name: register dynamic prefixes from script
+    #  ansible.builtin.shell: /root/getprefix.sh
+    #  register: openwrt_babeld_collectedprefixes
+    #  when:
+    #    not openwrt_babeld_runimagebuilder | default(false)
+  # here shall be a task that sets the prefixes to distribute manually
+  # by giving specific, predefined prefixes for redistribution
+  # - name: register dynamic prefix from variable
+  #  set_fact: openwrt_babeld_collectedprefixes
+  #  when:
+  #    openwrt_babeld_runimagebuilder | default(false)
+- name: register local ula
+  ansible.builtin.shell: /sbin/uci get network.globals.ula_prefix
+  register: openwrt_babeld_ulaprefix
+  when:
+    not openwrt_babeld_runimagebuilder | default(false)
+- name: Make sure babel deploypath exists
+  ansible.builtin.file:
+    path: "{{ openwrt_babeld_deploypath }}"
+    state: directory
+- name: Provide babeld configuration
+  ansible.builtin.template:
+    src: babeld.jinja2
+    dest: "{{ openwrt_babeld_deploypath }}/{{ openwrt_babeld_deployfile }}"
+    mode: 0600
+  notify: restart babeld
+  when: openwrt_babeld_interfaces is defined
+  # todo: it's not up to this role to activate services
+  # there is a dedicated role for this
+- name: enable babeld service
+  ansible.builtin.service:
+    name: babeld
+    state: started
+    enabled: true
+  when:
+    not openwrt_babeld_runimagebuilder | default(false)
+- name: Make sure babeld service deploypath exists
+  ansible.builtin.file:
+    path: "{{ openwrt_babeld_deploypath_initlink }}"
+    state: directory
+  when: openwrt_babeld_runimagebuilder | default(false)
+- name: enable babeld service in imagebuilder
+  ansible.builtin.file:
+    src: ../init.d/babeld
+    dest: "{{ openwrt_babeld_deploypath_initlink }}/{{ openwrt_babeld_deployfile_initlink }}"
+    state: link
+    force: true
+  when: openwrt_babeld_runimagebuilder | default(false)
+- name: initialize openwrt_packages_installimagebuilder
+  ansible.builtin.set_fact:
+    openwrt_packages_installimagebuilder: []
+  when:
+    - openwrt_packages_installimagebuilder is not defined
+    - openwrt_babeld_runimagebuilder | default(false)
+- name: merge role packages into openwrt_packages_installimagebuilder
+  ansible.builtin.set_fact:
+    openwrt_packages_installimagebuilder: "{{ openwrt_packages_installimagebuilder + openwrt_packages_installrole }}"
+  when: openwrt_babeld_runimagebuilder | default(false)

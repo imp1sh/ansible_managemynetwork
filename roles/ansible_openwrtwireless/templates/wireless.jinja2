@@ -1,0 +1,266 @@
+# Distributed by Ansible
+# Wifi devices
+{% for key, value in openwrt_wifi_devices.items() %}
+config wifi-device "{{ key }}"
+{% if value.type is defined %}
+	option type "{{ value.type }}"
+{% endif %}
+{% if value.phy is defined %}
+	option phy "{{ value.phy }}"
+{% endif %}
+{% if value.macaddr is defined %}
+	option macaddr "{{ value.macaddr }}"
+{% endif %}
+{% if value.disabled is defined %}
+	option disabled "{{ value.disabled }}"
+{% endif %}
+{% if value.channel is defined %}
+	option channel "{{ value.channel }}"
+{% endif %}
+{% if value.channels is defined %}
+	option channels "{{ value.channels }}"
+{% endif %}
+{% if value.hwmode is defined %}
+	option hwmode "{{ value.hwmode }}"
+{% endif %}
+{% if value.htmode is defined %}
+	option htmode "{{ value.htmode }}"
+{% endif %}
+{% if value.chanbw is defined %}
+	option chanbw "{{ value.chanbw }}"
+{% endif %}
+{% if value.ht_capab is defined %}
+	option ht_capab "{{ value.ht_capab }}"
+{% endif %}
+{% if value.txpower is defined %}
+	option txpower "{{ value.txpower }}"
+{% endif %}
+{% if value.diversity is defined %}
+	option diversity "{{ value.diversity }}"
+{% endif %}
+{% if value.rxantenna is defined %}
+	option rxantenna "{{ value.rxantenna }}"
+{% endif %}
+{% if value.txantenna is defined %}
+	option txantenna "{{ value.txantenna }}"
+{% endif %}
+{% if value.country is defined %}
+	option country "{{ value.country }}"
+{% endif %}
+{% if value.country_ie is defined %}
+	option country_ie "{{ value.country_ie }}"
+{% endif %}
+{% if value.distance is defined %}
+	option distance "{{ value.distance }}"
+{% endif %}
+{% if value.beacon_int is defined %}
+	option beacon_int "{{ value.beacon_int }}"
+{% endif %}
+{% if value.legacy_rates is defined %}
+	option legacy_rates "{{ value.legacy_rates }}"
+{% endif %}
+{% if value.require_mode is defined %}
+	option require_mode "{{ value.require_mode }}"
+{% endif %}
+{% if value.cell_density is defined %}
+	option cell_density "{{ value.cell_density }}"
+{% endif %}
+{% if value.basic_rate is defined %}
+	option basic_rate "{{ value.basic_rate }}"
+{% endif %}
+{% if value.supported_rates is defined %}
+	option supported_rates "{{ value.supported_rates }}"
+{% endif %}
+{% if value.log_level is defined %}
+	option log_level "{{ value.log_level }}"
+{% endif %}
+{% if value.hostapd_options is defined %}
+	option hostapd_options "{{ value.hostapd_options }}"
+{% endif %}
+{% if value.path is defined %}
+	option path "{{ value.path }}"
+{% endif %}
+{% if value.chanbw is defined %}
+	option chanbw "{{ value.chanbw }}"
+{% endif %}
+{% if value.noscan is defined %}
+	option noscan "{{ value.noscan }}"
+{% endif %}
+{% if value.ht_coex is defined %}
+	option ht_coex "{{ value.ht_coex }}"
+{% endif %}
+{% if value.frag is defined %}
+	option frag "{{ value.frag }}"
+{% endif %}
+{% if value.rts is defined %}
+	option rts "{{ value.rts }}"
+{% endif %}
+{% if value.antenna_gain is defined %}
+	option antenna_gain "{{ value.antenna_gain }}"
+{% endif %}
+{% if value.frameburst is defined %}
+	option frameburst "{{ value.frameburst }}"
+{% endif %}
+{% if value.maxassoc is defined %}
+	option maxassoc "{{ value.maxassoc }}"
+{% endif %}
+{% if value.slottime is defined %}
+	option slottime "{{ value.slottime }}"
+{% endif %}
+{% if value.antenna is defined %}
+	option antenna "{{ value.antenna }}"
+{% endif %}
+{% if value.band is defined %}
+	option band "{{ value.band }}"
+{% endif %}
+
+{% endfor %}
+# Wifi interfaces
+{% for key, value in openwrt_wifi_interfaces.items() %}
+config wifi-iface "{{ key }}"
+	option device "{{ value.device }}"
+	option network "{{ value.network }}"
+	option mode "{{ value.mode }}"
+{% if value.ifname is defined %}
+	option ifname "{{ value.ifname }}"
+{% endif %}
+{% if value.disabled is defined %}
+	option disabled "{{ value.disabled }}"
+{% endif %}
+{% if value.ssid is defined %}
+	option ssid "{{ value.ssid }}"
+{% endif %}
+{% if value.bssid is defined %}
+	option bssid "{{ value.bssid }}"
+{% endif %}
+{% if value.mesh_id is defined %}
+	option mesh_id "{{ value.mesh_id }}"
+{% endif %}
+{% if value.hidden is defined %}
+	option hidden "{{ value.hidden }}"
+{% endif %}
+{% if value.isolate is defined %}
+	option isolate "{{ value.isolate }}"
+{% endif %}
+{% if value.doth is defined %}
+	option doth "{{ value.doth }}"
+{% endif %}
+{% if value.wmm is defined %}
+	option wmm "{{ value.wmm }}"
+{% endif %}
+{% if value.encryption is defined %}
+	option encryption "{{ value.encryption }}"
+{% endif %}
+{% if value.key is defined %}
+	option key "{{ value.key }}"
+{% endif %}
+{% if value.key1 is defined %}
+	option key1 "{{ value.key1 }}"
+{% endif %}
+{% if value.key2 is defined %}
+	option key2 "{{ value.key2 }}"
+{% endif %}
+{% if value.key3 is defined %}
+	option key3 "{{ value.key3 }}"
+{% endif %}
+{% if value.key4 is defined %}
+	option key4 "{{ value.key4 }}"
+{% endif %}
+{% if value.macfilter is defined %}
+	option macfilter "{{ value.macfilter }}"
+{% endif %}
+{% if value.maclist is defined %}
+	option maclist "{{ value.maclist }}"
+{% endif %}
+{% if value.iapp_interface is defined %}
+	option iapp_interface "{{ value.iapp_interface }}"
+{% endif %}
+{% if value.rsn_preauth is defined %}
+	option rsn_preauth "{{ value.rsn_preauth }}"
+{% endif %}
+{% if value.ieee80211w is defined %}
+	option ieee80211w "{{ value.ieee80211w }}"
+{% endif %}
+{% if value.ieee80211w_max_timeout is defined %}
+	option ieee80211w_max_timeout "{{ value.ieee80211w_max_timeout }}"
+{% endif %}
+{% if value.ieee80211w_retry_timeout is defined %}
+	option ieee80211w_retry_timeout "{{ value.ieee80211w_retry_timeout }}"
+{% endif %}
+{% if value.maxassoc is defined %}
+	option maxassoc "{{ value.maxassoc }}"
+{% endif %}
+{% if value.macaddr is defined %}
+	option macaddr "{{ value.macaddr }}"
+{% endif %}
+{% if value.dtim_period is defined %}
+	option dtim_period "{{ value.dtim_period }}"
+{% endif %}
+{% if value.short_preamble is defined %}
+	option short_preamble "{{ value.short_preamble }}"
+{% endif %}
+{% if value.max_listen_int is defined %}
+	option max_listen_int "{{ value.max_listen_int }}"
+{% endif %}
+{% if value.disassoc_low_ack is defined %}
+	option disassoc_low_ack "{{ value.disassoc_low_ack }}"
+{% endif %}
+{% if value.wpa_disable_eapol_key_retries is defined %}
+	option wpa_disable_eapol_key_retries "{{ value.wpa_disable_eapol_key_retries }}"
+{% endif %}
+{% if value.mcast_rate is defined %}
+	option mcast_rate "{{ value.mcast_rate }}"
+{% endif %}
+{% if value.wds is defined %}
+	option wds "{{ value.wds }}"
+{% endif %}
+{% if value.owe_transition_ssid is defined %}
+	option owe_transition_ssid "{{ value.owe_transition_ssid }}"
+{% endif %}
+{% if value.owe_transition_bssid is defined %}
+	option owe_transition_bssid "{{ value.owe_transition_bssid }}"
+{% endif %}
+{% if value.sae_pwe is defined %}
+	option sae_pwe "{{ value.sae_pwe }}"
+{% endif %}
+{% if value.start_disabled is defined %}
+	option start_disabled "{{ value.start_disabled }}"
+{% endif %}
+{% if value.default_disabled is defined %}
+	option default_disabled "{{ value.default_disabled }}"
+{% endif %}
+{% if value.ieee80211r is defined %}
+	option ieee80211r "{{ value.ieee80211r }}"
+{% endif %}
+{% if value.nasid is defined %}
+	option nasid "{{ value.nasid }}"
+{% endif %}
+{% if value.mobility_domain is defined %}
+	option mobility_domain "{{ value.mobility_domain }}"
+{% endif %}
+{% if value.r0_key_lifetime is defined %}
+	option r0_key_lifetime "{{ value.r0_key_lifetime }}"
+{% endif %}
+{% if value.r1_key_holder is defined %}
+	option r1_key_holder "{{ value.r1_key_holder }}"
+{% endif %}
+{% if value.reassociation_deadline is defined %}
+	option reassociation_deadline "{{ value.reassociation_deadline }}"
+{% endif %}
+{% if value.r0kh is defined %}
+	option r0kh "{{ value.r0kh }}"
+{% endif %}
+{% if value.r1kh is defined %}
+	option r1kh "{{ value.r1kh }}"
+{% endif %}
+{% if value.pmk_r1_push is defined %}
+	option pmk_r1_push "{{ value.pmk_r1_push }}"
+{% endif %}
+{% if value.ft_over_ds is defined %}
+	option ft_over_ds "{{ value.ft_over_ds }}"
+{% endif %}
+{% if value.ft_psk_generate_local is defined %}
+	option ft_psk_generate_local "{{ value.ft_psk_generate_local }}"
+{% endif %}
+
+{% endfor %}

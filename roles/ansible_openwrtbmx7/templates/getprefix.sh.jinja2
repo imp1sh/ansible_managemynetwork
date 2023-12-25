@@ -1,0 +1,6 @@
+#!/usr/bin/env ash
+address=$(/sbin/ifstatus wan6 | /usr/bin/jq '.["ipv6-prefix"][].address')
+netmask=$(/sbin/ifstatus wan6 | /usr/bin/jq '.["ipv6-prefix"][].mask')
+addressnew=${address//\"/}
+echo "$addressnew/$netmask"
+

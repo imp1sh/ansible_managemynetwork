@@ -1,0 +1,66 @@
+---
+- name: check if ruleshost AND rulesgroup is undefined
+  pause:
+    prompt: "Neither ruleshost nor rulesgroup is defined. Do you still want to deploy firewall config? [yes/no]"
+  register: openwrt_firewall_rulesdeploybool
+  when:
+    - openwrt_firewall_rulesgroup is undefined
+    - openwrt_firewall_ruleshost is undefined
+# - name: run zone checks
+#  include_tasks: checks/zones.yml
+#  loop:
+#    - "{{ openwrt_firewall_zoneshost | default(omit) }}"
+#    - "{{ openwrt_firewall_zonesdefault | default(omit) }}"
+#  loop_control:
+#    loop_var: zones
+      # check somehow not working
+      # - name: Check all variables that either need to be 1 or 0
+      #  ansible.builtin.assert:
+      #    that:
+      #      - item is int
+      #        #- item == 1 or item == 0
+      #    fail_msg: "{{ item }} needs to be 1 or 0."
+      #    success_msg: "{{ item }} is valid."
+      #  loop:
+      #    - "openwrt_firewall_default_synflood_protect"
+      #    - "openwrt_firewall_default_flow_offloading"
+      #    - "openwrt_firewall_default_flow_offloading_hw"
+      #    - "openwrt_firewall_default_drop_invalid"
+- name: check default forwards
+  ansible.builtin.assert:
+    that:
+      - item.src is defined
+      - item.dest is defined
+    fail_msg: "forwarding list item needs a src AND dest key."
+    success_msg: "forwarding item seems valid."
+  loop: "{{ openwrt_firewall_forwardingsdefault }}"
+  when: openwrt_firewall_forwardingsdefault is defined
+- name: check host based forwardings
+  ansible.builtin.assert:
+    that:
+      - item.src is defined
+      - item.dest is defined
+    fail_msg: "forwarding list item needs a src AND dest key."
+    success_msg: "host forwardings seem valid."
+  loop: "{{ openwrt_firewall_forwardingshost }}"
+  when: openwrt_firewall_forwardingshost is defined
+- name: check group based forwardings
+  ansible.builtin.assert:
+    that:
+      - item.src is defined
+      - item.dest is defined
+    fail_msg: "forwarding list item needs a src AND dest key."
+    success_msg: "host forwardings seem valid."
+  loop: "{{ openwrt_firewall_forwardingsmergedgroup }}"
+  when: openwrt_firewall_forwardingsmergedgroup is defined
+  # src and dest port is a bit hard to check since it may also be
+  # a list of ports "80 443" or a range "122-115"
+  # I could check if whitespace is in string, and then convert to list and run check on each item
+  # for range split by hyphen and also run a list through a check
+  # a single port could also be converted to list with one entry
+  # later!!!
+  #- name: check rules
+  #  ansible.builtin.include_tasks: checks/rules.yml
+  #  loop: "{{ openwrt_firewall_rules | dict2items }}"
+  #  loop_control:
+  #    loop_var: ruleitem

@@ -1,0 +1,64 @@
+config uhttpd 'main'
+{% for listenhttp in openwrt_uhttpd_main_listen_http %}
+	list listen_http "{{ listenhttp }}
+{% endfor %}
+{% for listenhttps in openwrt_uhttpd_main_listen_https %}
+	list listen_https "{{ listenhttps }}
+{% endfor %}
+        option home "{{ openwrt_uhttpd_main_home }}"
+        option rfc1918_filter "{{ openwrt_uhttpd_main_rfc1918_filter }}"
+        option max_requests "{{ openwrt_uhttpd_main_max_requests }}"
+        option max_connections "{{ openwrt_uhttpd_main_max_connections }}"
+        option cgi_prefix "{{ openwrt_uhttpd_main_cgi_prefix }}"
+{% for luaprefix in openwrt_uhttpd_main_lua_prefix %}
+	list lua_prefix "{{ luaprefix }}"
+{% endfor %}
+        option script_timeout "{{ openwrt_uhttpd_main_script_timeout }}"
+        option network_timeout "{{ openwrt_uhttpd_main_network_timeout }}"
+        option http_keepalive "{{ openwrt_uhttpd_main_http_keepalive }}"
+        option tcp_keepalive "{{ openwrt_uhttpd_main_tcp_keepalive }}"
+        option ubus_prefix "{{ openwrt_uhttpd_main_ubus_prefix }}"
+        option key "{{ openwrt_uhttpd_main_key }}"
+        option cert "{{ openwrt_uhttpd_main_cert }}"
+        option redirect_https "{{ openwrt_uhttpd_main_redirect_https }}"
+{% if openwrt_uhttpd_main_realm is defined %}
+	option realm "{{ openwrt_uhttpd_main_realm }}"
+{% endif %}
+{% if openwrt_uhttpd_main_config is defined %}
+	option config "{{ openwrt_uhttpd_main_config }}"
+{% endif %}
+{% if openwrt_uhttpd_main_index_file is defined %}
+	option index_file "{{ openwrt_uhttpd_main_index_file }}"
+{% endif %}
+{% if openwrt_uhttpd_main_index_page is defined %}
+	option index_page "{{ openwrt_uhttpd_main_index_page }}"
+{% endif %}
+{% if openwrt_uhttpd_main_error_page is defined %}
+	option error_page "{{ openwrt_uhttpd_main_error_page }}"
+{% endif %}
+{% if openwrt_uhttpd_main_no_symlinks is defined %}
+	option no_symlinks "{{ openwrt_uhttpd_main_no_symlinks }}"
+{% endif %}
+{% if openwrt_uhttpd_main_no_dirlists is defined %}
+	option no_dirlists "{{ openwrt_uhttpd_main_no_dirlists }}"
+{% endif %}
+{% if openwrt_uhttpd_main_ubus_socket is defined %}
+	option ubus_socket "{{ openwrt_uhttpd_main_ubus_socket }}"
+{% endif %}
+{% if openwrt_uhttpd_main_ubus_noauth is defined %}
+	option ubus_noauth "{{ openwrt_uhttpd_main_ubus_noauth }}"
+{% endif %}
+{% if openwrt_uhttpd_main_ubus_cors is defined %}
+	option ubus_cors "{{ openwrt_uhttpd_main_ubus_cors }}"
+{% endif %}
+
+config cert 'defaults'
+        option days "{{ openwrt_uhttpd_cert_days }}"
+        option key_type "{{ openwrt_uhttpd_cert_key_type }}"
+        option bits "{{ openwrt_uhttpd_cert_bits }}"
+        option ec_curve "{{ openwrt_uhttpd_cert_ec_curve }}"
+        option country "{{ openwrt_uhttpd_cert_country }}"
+        option state "{{ openwrt_uhttpd_cert_state }}"
+        option location "{{ openwrt_uhttpd_cert_location }}"
+        option commonname "{{ openwrt_uhttpd_cert_commonname }}"
+

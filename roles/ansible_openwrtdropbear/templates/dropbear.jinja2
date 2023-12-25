@@ -1,0 +1,41 @@
+config dropbear
+        # Configuration distributed by Ansible
+{% if openwrt_dropbear_verbose is defined %}
+	option verbose "{{ openwrt_dropbear_verbose }}"
+{% endif %}
+{% if openwrt_dropbear_bannerfile is defined %}
+	option BannerFile "{{ openwrt_dropbear_bannerfile }}"
+{% endif %}
+{% if openwrt_dropbear_passwordauth is defined %}
+        option PasswordAuth "{{ openwrt_dropbear_passwordauth }}"
+{% endif %}
+{% if openwrt_dropbear_port is defined %}
+	option Port "{{ openwrt_dropbear_port }}"
+{% endif %}
+{% if openwrt_dropbear_rootpasswordauth is defined %}
+        option RootPasswordAuth "{{ openwrt_dropbear_rootpasswordauth }}"
+{% endif %}
+{% if openwrt_dropbear_rootlogin is defined%}
+	option RootLogin "{{ openwrt_dropbear_rootlogin }}"
+{% endif %}
+{% if openwrt_dropbear_gatewayports is defined %}
+        option GatewayPorts "{{ openwrt_dropbear_gatewayports }}"
+{% endif %}
+{% if openwrt_dropbear_interface is defined %}
+        option Interface "{{ openwrt_dropbear_interface }}"
+{% endif %}
+{% if openwrt_dropbear_keyfile is defined %}
+	option keyfile "{{ openwrt_dropbear_keyfile }}"
+{% endif %}
+{% if openwrt_dropbear_sshkeepalive is defined %}
+	option SSHKeepAlive "{{ openwrt_dropbear_sshkeepalive }}"
+{% endif %}
+{% if openwrt_dropbear_idletimeout is defined %}
+	option IdleTimeout "{{ openwrt_dropbear_idletimeout }}"
+{% endif %}
+{% if openwrt_dropbear_mdns is defined %}
+	option mdns "{{ openwrt_dropbear_mdns }}"
+{% endif %}
+{% if openwrt_dropbear_maxauthtries is defined %}
+	option MaxAuthTries "{{ openwrt_dropbear_maxauthtries }}"
+{% endif %}

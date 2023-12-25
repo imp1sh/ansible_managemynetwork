@@ -1,0 +1,7 @@
+# File is managed by Ansible, do not edit
+{% for filter in openwrt_tinyproxy_filters %}
+{% if filter['comment'] is defined %}
+# {{ filter['comment'] }}
+{% endif %}
+{{ filter.content }}
+{% endfor %}

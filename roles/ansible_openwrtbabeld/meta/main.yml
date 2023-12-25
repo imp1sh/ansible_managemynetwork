@@ -1,0 +1,22 @@
+---
+galaxy_info:
+  role_name: ansible_openwrtbabeld
+  author: Jochen Demmer
+  description: configures babeld dynamic routing daemon for OpenWrt
+  company: libcom.de
+  issue_tracker_url: https://github.com/imp1sh/ansible_openwrt/issues
+  license: BSD-3-Clause
+  min_ansible_version: "2.9"
+  platforms:
+    - name: OpenWRT
+      versions:
+        - "21.02"
+        - "22.03"
+  galaxy_tags: [openwrt, lede, babeld, routing]
+dependencies:
+  - role: imp1sh.ansible_openwrt.ansible_openwrtpackages
+    vars:
+      openwrt_packages_installrole:
+        - jq
+        - babeld
+        - luci-app-babeld

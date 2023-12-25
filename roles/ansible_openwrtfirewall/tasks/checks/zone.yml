@@ -1,0 +1,28 @@
+---
+- name: Show current zone
+  ansible.builtin.debug:
+    msg: "Current zone is {{ zone.key }}"
+- name: check input, output and forward attributes
+  include_tasks: accept_reject_drop.yml
+  loop:
+    - "{{ zone.value.forward | default(omit) }}"
+    - "{{ zone.value.input | default(omit) }}"
+    - "{{ zone.value.output | default(omit) }}"
+  loop_control:
+    loop_var: policyitem
+- name: checks on attributes log, masq
+  include_tasks: boolean.yml
+  loop:
+    - "{{ zone.value.log | default(omit) }}"
+    - "{{ zone.value.masq | default(omit) }}"
+  loop_control:
+    loop_var: booleanitem
+      # cannot really check this type because ip may have a ! in front
+      # - name: checks on attributes masq_src, masq_dest
+      #  include_tasks: listofipaddresses.yml
+      #  loop:
+      #    - "{{ zone.value.masq_src | default(omit) }}"
+      #    - "{{ zone.value.masq_dest | default(omit) }}"
+      #  loop_control:
+      #    loop_var: listofips
+      #  when: zone.value.masq_src is defined or zone.value.masq_dest is defined

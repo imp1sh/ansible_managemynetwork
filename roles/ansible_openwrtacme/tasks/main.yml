@@ -1,0 +1,22 @@
+---
+# tasks file for ansible_openwrtacme
+- name: Make sure deploypath is present
+  ansible.builtin.file:
+    path: "{{ openwrt_acme_deploypath }}"
+    state: directory
+- name: Setup acme config
+  ansible.builtin.template:
+    src: "acme.jinja2"
+    dest: "{{ openwrt_acme_deploypath }}/{{ openwrt_acme_deployfile }}"
+  notify: restart acme
+  when: openwrt_acme_cert is defined
+- name: Initialize openwrt_packages_installimagebuilder
+  ansible.builtin.set_fact:
+    openwrt_packages_installimagebuilder: []
+  when:
+    - openwrt_packages_installimagebuilder is not defined
+    - openwrt_acme_runimagebuilder | default(false)
+- name: Merge role packages into openwrt_packages_installimagebuilder
+  ansible.builtin.set_fact:
+    openwrt_packages_installimagebuilder: "{{ openwrt_packages_installimagebuilder + openwrt_packages_installrole }}"
+  when: openwrt_acme_runimagebuilder | default(false)

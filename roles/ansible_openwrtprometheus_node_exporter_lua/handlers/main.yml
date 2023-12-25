@@ -1,0 +1,6 @@
+---
+# handlers file for ansible_openwrtprometheus_node_exporter_lua
+- name: Restart prometheus-node-exporter-lua
+  ansible.builtin.service:
+    state: restarted
+    name: "{{ openwrtprometheus_node_exporter_lua_servicename }}"

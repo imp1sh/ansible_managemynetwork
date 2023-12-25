@@ -1,0 +1,7 @@
+---
+# defaults file for ansible_openwrtdropbear
+openwrt_dropbear_deployroot: "/"
+openwrt_dropbear_deploypath: "{{ openwrt_dropbear_deployroot }}etc/config"
+openwrt_dropbear_deployfile: "dropbear"
+openwrt_dropbear_deploypath_keys: "{{ openwrt_dropbear_deployroot }}etc/dropbear"
+openwrt_dropbear_deployfile_keys: "authorized_keys"

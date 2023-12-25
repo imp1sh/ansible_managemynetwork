@@ -1,0 +1,5 @@
+---
+# defaults file for ansible_openwrtimagebuilder
+openwrt_packages_installrole:
+  - luci
+  - luci-base

@@ -1,0 +1,16 @@
+---
+galaxy_info:
+  role_name: ansible_openwrtdropbear
+  author: Jochen Demmer
+  description: configures dropbear ssh for OpenWrt
+  company: libcom.de
+  issue_tracker_url: https://github.com/imp1sh/ansible_openwrt/issues
+  license: BSD-3-Clause
+  min_ansible_version: "2.9"
+  platforms:
+    - name: OpenWRT
+      versions:
+        - "21.02"
+        - "22.03"
+  galaxy_tags: [openwrt, lede, dropbear, ssh]
+dependencies: []

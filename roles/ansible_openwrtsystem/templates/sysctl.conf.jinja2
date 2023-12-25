@@ -1,0 +1,20 @@
+# Distributed by Ansible
+# Defaults are configured in /etc/sysctl.d/* and can be customized in this file
+{% if openwrt_system_nf_conntrack_acct is defined %}
+net.netfilter.nf_conntrack_acct={{ openwrt_system_nf_conntrack_acct }}
+{% endif %}
+{% if openwrt_system_nf_conntrack_checksum is defined %}
+net.netfilter.nf_conntrack_checksum= {{ openwrt_system_nf_conntrack_checksum }}
+{% endif %}
+{% if openwrt_system_nf_conntrack_max is defined %}
+net.netfilter.nf_conntrack_max={{ openwrt_system_nf_conntrack_max }}
+{% endif %}
+{% if openwrt_system_nf_conntrack_tcp_timeout_established is defined %}
+net.netfilter.nf_conntrack_tcp_timeout_established={{ openwrt_system_nf_conntrack_tcp_timeout_established }}
+{% endif %}
+{% if openwrt_system_nf_conntrack_udp_timeout is defined %}
+net.netfilter.nf_conntrack_udp_timeout={{ openwrt_system_nf_conntrack_udp_timeout }}
+{% endif %}
+{% if openwrt_system_nf_conntrack_udp_timeout_stream is defined %}
+net.netfilter.nf_conntrack_udp_timeout_stream={{ openwrt_system_nf_conntrack_udp_timeout_stream }}
+{% endif %}

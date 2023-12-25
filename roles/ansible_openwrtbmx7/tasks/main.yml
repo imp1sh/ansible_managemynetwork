@@ -1,0 +1,75 @@
+---
+# tasks file for ansible_openwrtbmx7
+- name: make sure deploypath is present
+  ansible.builtin.file:
+    path: "{{ openwrt_bmx7_deploypath }}"
+    state: directory
+- name: Refresh opkg so packages will be found
+  shell: opkg update
+  when:
+    - not openwrt_bmx7_runimagebuilder | default(false)
+- name: Install json plugin
+  package:
+    name: bmx7-json
+    state: present
+  when:
+    - openwrt_bmx7_plugin_json_enabled is defined
+    - not openwrt_bmx7_runimagebuilder | default(false)
+- name: Install topology plugin
+  package:
+    name: bmx7-topology
+    state: present
+  when:
+    - openwrt_bmx7_plugin_topology_enabled is defined
+    - not openwrt_bmx7_runimagebuilder | default(false)
+- name: Install sms plugin
+  package:
+    name: bmx7-sms
+    state: present
+  when:
+    - openwrt_bmx7_plugin_sms_enabled is defined
+    - not openwrt_bmx7_runimagebuilder | default(false)
+- name: Install tun plugin
+  package:
+    name: bmx7-tun
+    state: present
+  when:
+    - openwrt_bmx7_plugin_tun_enabled is defined
+    - not openwrt_bmx7_runimagebuilder | default(false)
+- name: Install jq in order to be able to parse ifstatus
+  package:
+    name: jq
+    state: present
+  when:
+    - not openwrt_bmx7_runimagebuilder | default(false)
+- name: Install getprefix script
+  template:
+    src: getprefix.sh.jinja2
+    dest: /root/getprefix.sh
+    mode: 0744
+  when:
+    - not openwrt_bmx7_runimagebuilder | default(false)
+- name: register dynamic prefixes
+  shell: /root/getprefix.sh
+  register: openwrt_bmx7_collectedprefixes
+  when:
+    - not openwrt_bmx7_runimagebuilder | default(false)
+- name: register local ula
+  shell: /sbin/uci get network.globals.ula_prefix
+  register: openwrt_bmx7_ulaprefix
+  when:
+    - not openwrt_bmx7_runimagebuilder | default(false)
+- name: Provide bmx7 configuration
+  template:
+    src: bmx7.jinja2
+    dest: "{{ openwrt_bmx7_deploypath }}/{{ openwrt_bmx7_deployfile }}"
+    mode: 0600
+  notify: restart bmx7
+- name: enable bmx7 service
+  service:
+    name: bmx7
+    state: started
+    enabled: yes
+  when:
+    - not openwrt_bmx7_runimagebuilder | default(false)
+

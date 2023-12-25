@@ -1,0 +1,3 @@
+- name: merge group dhcp pools different groups
+  ansible.builtin.set_fact:
+    openwrt_dhcp_poolsmergedgroup: "{{ openwrt_dhcp_poolsgroup.keys() | list | intersect(group_names) | map('extract', openwrt_dhcp_poolsgroup) | list | flatten }}"

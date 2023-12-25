@@ -1,0 +1,14 @@
+---
+# handlers file for ansible_openwrtsystem
+- name: restart logging
+  ansible.builtin.service:
+    name: log
+    state: restarted
+  when:
+    not openwrt_system_runimagebuilder | default(false)
+- name: restart systemservice
+  ansible.builtin.service:
+    name: system
+    state: restarted
+  when:
+    not openwrt_system_runimagebuilder | default(false)

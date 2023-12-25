@@ -1,0 +1,26 @@
+---
+# tasks file for ansible_openwrtfirewall
+- name: Make sure deploypath config exists
+  ansible.builtin.file:
+    path: "{{ openwrt_firewall_deploypath }}"
+    state: directory
+- name: declare emtpy zone array
+  ansible.builtin.set_fact:
+    openwrt_firewall_zonesactive: []
+- name: Run checks on variables
+  import_tasks: checks.yml
+- name: Merge rules, zones and forwardings
+  import_tasks: merge.yml
+- name: Make a list of all active zones
+  ansible.builtin.set_fact:
+    openwrt_firewall_zonesactive: "{{ openwrt_firewall_zonesactive + [ item.key ] }}"
+  when:
+    - ( item.value.disabled is not defined ) or ( item.value.disabled is defined and not item.value.disabled )
+  loop: "{{ openwrt_firewall_zones | dict2items }}"
+- name: Deploy firewall config
+  ansible.builtin.template:
+    src: "firewall.jinja2"
+    dest: "{{ openwrt_firewall_deploypath }}/{{ openwrt_firewall_deployfile }}"
+    mode: 0600
+  when: openwrt_firewall_rulesdeploybool.user_input is undefined or openwrt_firewall_rulesdeploybool.user_input == 'yes'
+  notify: reload firewall

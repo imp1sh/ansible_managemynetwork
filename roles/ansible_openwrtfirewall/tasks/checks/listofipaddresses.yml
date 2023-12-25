@@ -1,0 +1,10 @@
+---
+- name: Check if it is a list
+  ansible.builtin.assert:
+    that: listofips is mapping
+    fail_msg: "Variable {{ listofips }} type is not list / array."
+    success_msg: "Variable {{ listofips }} is list / array."
+- name: Check if entries are valid ip addresses
+  ansible.builtin.assert:
+    that: "{{ item | ipaddr }}"
+  loop: "{{ listofips }}"

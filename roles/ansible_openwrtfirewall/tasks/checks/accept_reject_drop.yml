@@ -1,0 +1,6 @@
+---
+- name: check if it's ACCEPT REJECT or DROP
+  ansible.builtin.assert:
+    that: ( policyitem | upper == "ACCEPT") or ( policyitem | upper == "REJECT") or ( policyitem | upper == "DROP")
+    fail_msg: "Value {{ policyitem }} invalid. May only be either ACCEPT, REJECT or DROP."
+    success_msg: "Item is valid."

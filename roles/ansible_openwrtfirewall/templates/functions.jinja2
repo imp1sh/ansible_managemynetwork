@@ -1,0 +1,233 @@
+{% macro create_redirects(allredirects) %}
+{% for key, value in allredirects.items() %}
+config redirect
+	option name "{{ key }}"
+	option src "{{ value['src'] }}"
+{% if value['src_ip'] is defined %}
+	option src_ip "{{ value['src_ip'] }}"
+{% endif %}
+{% if value['src_dport'] is defined %}
+	option src_dport "{{ value['src_dport'] }}"
+{% endif %}
+{% if value['src_dip'] is defined %}
+	option src_dip "{{ value['src_dip'] }}"
+{% endif %}
+{% if value['src_mac'] is defined %}
+	option src_mac "{{ value['src_mac'] }}"
+{% endif %}
+{% if value['src_port'] is defined %}
+	option src_port "{{ value['src_port'] }}"
+{% endif %}
+{% if value['proto'] is defined %}
+{% for proto in value['proto'] %}
+	list proto "{{ proto }}"
+{% endfor %}
+{% endif %}
+{% if value['dest'] is defined %}
+	option dest "{{ value['dest'] }}"
+{% endif %}
+{% if value['dest_ip'] is defined %}
+	option dest_ip "{{ value['dest_ip'] }}"
+{% endif %}
+{% if value['dest_port'] is defined %}
+	option dest_port "{{ value['dest_port'] }}"
+{% endif %}
+{% if value['ipset'] is defined %}
+	option ipset "{{ value['ipset'] }}"
+{% endif %}
+{% if value['mark'] is defined %}
+	option mark "{{ value['mark'] }}"
+{% endif %}
+{% if value['start_date'] is defined %}
+	option start_date "{{ value['start_date'] }}"
+{% endif %}
+{% if value['stop_date'] is defined %}
+	option stop_date "{{ value['stop_date'] }}"
+{% endif %}
+{% if value['start_time'] is defined %}
+	option start_time "{{ value['start_time'] }}"
+{% endif %}
+{% if value['stop_time'] is defined %}
+	option stop_time "{{ value['stop_time'] }}"
+{% endif %}
+{% if value['weekdays'] is defined %}
+{% for weekday in value['weekdays'] %}
+	list weekdays "{{ weekday }}"
+{% endfor %}
+{% endif %}
+{% if value['monthdays'] is defined %}
+{% for monthday in value['monthdays'] %}
+	option monthdays "{{ monthday }}"
+{% endfor %}
+{% endif %}
+{% if value['utc_time'] is defined %}
+	option utc_time "{{ value['utc_time'] }}"
+{% endif %}
+{% if value['target'] is defined %}
+	option target "{{ value['target'] }}"
+{% endif %}
+{% if value['family'] is defined %}
+	option family "{{ value['family'] }}"
+{% endif %}
+{% if value['reflection'] is defined %}
+	option reflection "{{ value['reflection'] }}"
+{% endif %}
+{% if value['reflection_src'] is defined %}
+	option reflection_src "{{ value['reflection_src'] }}"
+{% endif %}
+{% if value['limit'] is defined %}
+	option limit "{{ value['limit'] }}"
+{% endif %}
+{% if value['limit_burst'] is defined %}
+	option limit_burst "{{ value['limit_burst'] }}"
+{% endif %}
+{% if value['extra'] is defined %}
+	option extra "{{ value['extra'] }}"
+{% endif %}
+{% if value['enabled'] is defined %}
+	option enabled "{{ value['enabled'] }}"
+{% endif %}
+{% if value['hellper'] is defined %}
+	option hellper "{{ value['hellper'] }}"
+{% endif %}
+{% endfor %}
+{% endmacro %}
+
+{% macro create_zones(allzones) %}
+{% for key, value in allzones.items() %}
+{% if ( value['disabled'] is not defined ) or ( value['disabled'] is defined and not value['disabled'] )%}
+config zone
+	option name "{{ key }}"
+	option forward "{{ value['forward'] }}"
+	option input "{{ value['input'] }}"
+	option output "{{ value['output'] }}"
+{% if value['log'] is defined %}
+	option log "{{ value['log'] }}"
+{% endif %}
+{% if value['masq'] is defined %}
+	option masq "{{ value['masq'] }}"
+{% endif %}
+{% if value['mtu_fix'] is defined %}
+	option mtu_fix "{{ value['mtu_fix'] }}"
+{% endif %}
+{% if value['interfaces'] is defined %}
+{% for interface in value['interfaces'] %}
+	list network "{{ interface }}"
+{% endfor %}
+{% endif %}
+{% if value['masq_src'] is defined %}
+{% for masq_src in value['masq_src'] %}
+	list masq_src "{{ masq_src }}"
+{% endfor %}
+{% endif %}
+{% if value['masq_dest'] is defined %}
+{% for masq_dest in value['masq_dest'] %}
+	option masq_dest "{{ value['masq_dest'] }}"
+{% endfor %}
+{% endif %}
+{% endif %}
+{% endfor %}
+{% endmacro %}
+
+{% macro create_forwardings(allforwardings) %}
+{% for forwarding in allforwardings %}
+{% if forwarding['src'] in openwrt_firewall_zonesactive and forwarding['dest'] in openwrt_firewall_zonesactive %}
+config forwarding
+	option src "{{ forwarding['src'] }}"
+	option dest "{{ forwarding['dest'] }}"
+{% if forwarding['name'] is defined %}
+        option name "{{ forwarding['name'] }}"
+{% endif %}
+{% if forwarding['family'] is defined %}
+        option family "{{ forwarding['family'] }}"
+{% endif %}
+{% if forwarding['enabled'] is defined %}
+        option enabled "{{ forwarding['enabled'] }}"
+{% endif %}
+{% endif %}
+{% endfor %}
+{% endmacro %}
+
+{% macro create_rules(allrules) %}
+{% for key, value in allrules.items() %}
+{% if ( value['src'] is defined and value['dest'] is defined and ( (value['src'] in openwrt_firewall_zonesactive or value['src'] == "*" ) and (value['dest'] in openwrt_firewall_zonesactive or value['dest'] == "*" ))) or   (( value['src'] is defined and value['dest'] is not defined and (value['src'] in openwrt_firewall_zonesactive or value['src'] == "*")) or ( value['dest'] is defined and value['src'] is not defined and ( value['dest'] in openwrt_firewall_zonesactive or value['dest'] == "*" ))) %}
+config rule
+	option name "{{ key }}"
+{% if value['enabled'] is defined %}
+	option enabled "{{ value['enabled'] }}"
+{% endif %}
+{% if value['family'] is defined %}
+	option family "{{ value['family'] }}"
+{% endif %}
+{% if value['proto'] is defined %}
+{% if "all" in value['proto'] %}
+	option proto "all"
+{% else %}
+{% if "icmp" in value['proto'] %}
+	list proto "icmp"
+{% if value['icmp_type'] is defined %}
+{% for icmp_type in value['icmp_type'] %}
+	list icmp_type "{{ icmp_type }}"
+{% endfor %}
+{% endif %}
+{% endif %}
+{% if "udp" in value['proto'] %}
+	list proto "udp"
+{% endif %}
+{% if "tcp" in value['proto'] %}
+	list proto "tcp"
+{% endif %}
+{% if "igmp" in value['proto'] %}
+	list proto "igmp"
+{% endif %}
+{% if "esp" in value['proto'] %}
+	list proto "esp"
+{% endif %}
+{% if "udplite" in value['proto'] %}
+	list proto "udplite"
+{% endif %}
+{% if "ah" in value['proto'] %}
+	list proto "ah"
+{% endif %}
+{% if "sctp" in value['proto'] %}
+	list proto "sctp"
+{% endif %}
+{% endif %}
+{% endif %}
+{% if value['src'] is defined %}
+	option src "{{ value['src'] }}"
+{% endif %}
+{% if value['src_ip'] is defined %}
+{% for src_ip in value['src_ip'] %}
+	list src_ip "{{ src_ip }}"
+{% endfor %}
+{% endif %}
+{% if value['dest'] is defined %}
+	option dest "{{ value['dest'] }}"
+{% endif %}
+{% if value['dest_ip'] is defined %}
+{% for dest_ip in value['dest_ip'] %}
+	list dest_ip "{{ dest_ip }}"
+{% endfor %}
+{% endif %}
+{% if value['src_port'] is defined %}
+	option src_port "{{ value['src_port'] }}"
+{% elif value['srcport'] is defined %}
+	option src_port "{{ value['srcport'] }}"
+{% elif value['src-port'] is defined %}
+	option src_port "{{ value['src-port'] }}"
+{% endif %}
+{% if value['dest_port'] is defined %}
+	option dest_port "{{ value['dest_port'] }}"
+{% elif value['port'] is defined %}
+	option dest_port "{{ value['port'] }}"
+{% elif value['dest-port'] is defined %}
+	option dest_port "{{ value['dest-port'] }}"
+{% endif %}
+{% if value['limit'] is defined %}
+	option limit "{{ value['limit'] }}"
+{% endif %}
+	option target "{{ value['target'] }}"
+{% endif %}
+{% endfor %}
+{% endmacro %}

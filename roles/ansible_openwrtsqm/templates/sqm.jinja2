@@ -1,0 +1,13 @@
+{% for key, value in openwrt_sqm_interfaces.items() %}
+config queue "{{ key }}"
+	option qdisc "{{ value.qdisc | default('cake', true) }}"
+	option script "{{ value.script | default('piece_of_cake.qos', true) }}"
+	option linklayer "{{ value.linklayer | default('none', true) }}"
+	option overhead "{{ value.overhead | default('0', true) }}"
+	option enabled "{{ value.enabled | default('1', true) }}"
+	option upload "{{ value.upload }}"
+	option download "{{ value.download }}"
+	option debug_logging "{{ value.debug_loggin | default('0', true) }}"
+	option verbosity "{{ value.verbosity | default('5', true) }}"
+	option interface "{{ value.interface }}"
+{% endfor %}

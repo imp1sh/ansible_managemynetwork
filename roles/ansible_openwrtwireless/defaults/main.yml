@@ -1,0 +1,5 @@
+---
+# defaults file for ansible_openwrtwireless
+openwrt_wireless_deployroot: "/"
+openwrt_wireless_deploypath: "{{ openwrt_wireless_deployroot }}etc/config"
+openwrt_wireless_deployfile: "wireless"

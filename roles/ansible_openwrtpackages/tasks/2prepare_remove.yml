@@ -1,0 +1,20 @@
+---
+# Prepare first phase
+- name: Merge packages_remove from all groups this host is a member of
+  ansible.builtin.set_fact:
+    openwrt_packages_removemergedgroup: "{{ openwrt_packages_removegroup.keys() | list | intersect(group_names) | map('extract', openwrt_packages_removegroup) | list | flatten }}"
+  when: openwrt_packages_removegroup is defined
+- name: Set seperator if imagebuilder
+  ansible.builtin.set_fact:
+    openwrt_packages_separator: ' '
+  when: openwrt_packages_runimagebuilder | default(false)
+- name: Set separator if not imagebuilder
+  ansible.builtin.set_fact:
+    openwrt_packages_separator: ','
+  when: not openwrt_packages_runimagebuilder | default(false)
+- name: combine lists into openwrt_packages_remove var
+  ansible.builtin.set_fact:
+    openwrt_packages_remove: "{{ [openwrt_packages_removemergedgroup, openwrt_packages_removehost, openwrt_packages_removerole] | select('defined') | flatten | unique }}"
+- name: remove duplicates from remove list
+  ansible.builtin.set_fact:
+    openwrt_packages_remove: "{{ openwrt_packages_remove | unique }}"

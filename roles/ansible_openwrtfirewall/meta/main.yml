@@ -1,0 +1,16 @@
+---
+galaxy_info:
+  role_name: "ansible_openwrtfirewall"
+  author: Jochen Demmer
+  description: configures firewall for OpenWrt devices including zones, rules and forwardings. Focus is on IPv6 of course.
+  company: libcom.de
+  issue_tracker_url: https://github.com/imp1sh/ansible_openwrt/issues
+  license: BSD-3-Clause
+  min_ansible_version: "2.9"
+  platforms:
+    - name: OpenWRT
+      versions:
+        - "21.02"
+        - "22.03"
+  galaxy_tags: [openwrt, lede, firewall, iptables, nftables, fw3, fw4]
+dependencies: []

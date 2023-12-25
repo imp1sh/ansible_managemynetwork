@@ -1,0 +1,11 @@
+---
+# defaults file for ansible_openwrtsystem
+openwrt_system_ttylogin: "1"
+openwrt_system_kernellogonconsole: false
+openwrt_system_deployroot: "/"
+openwrt_system_deploypath: "{{ openwrt_system_deployroot }}etc/config"
+openwrt_system_deployfile: "system"
+openwrt_system_deploypath_kernellogging: "{{ openwrt_system_deployroot }}etc/sysctl.d"
+openwrt_system_deployfile_kernellogging: "kernellogging.conf"
+openwrt_system_deploypath_sysctl: "{{ openwrt_system_deployroot }}etc"
+openwrt_system_deployfile_sysctl: "sysctl.conf"

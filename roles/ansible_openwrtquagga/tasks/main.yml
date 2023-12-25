@@ -1,0 +1,34 @@
+---
+# tasks file for ansible_openwrtquagga
+- name: Enable bgp
+  set_fact:
+    openwrt_packages_installrole: "{{ openwrt_packages_installrole + ['quagga-bgpd'] }}"
+  when: openwrt_quagga_enablebgp
+- name: Enable ospf
+  set_fact:
+    openwrt_packages_installrole: "{{ openwrt_packages_installrole + ['quagga-libospf', 'quagga-ospfd'] }}"
+  when: openwrt_quagga_enableospf
+- name: Enable ospf6
+  set_fact:
+    openwrt_packages_installrole: "{{ openwrt_packages_installrole + ['quagga-libospf', 'quagga-ospf6d'] }}"
+  when: openwrt_quagga_enableospf6
+- name: Enable isis
+  set_fact:
+    openwrt_packages_installrole: "{{ openwrt_packages_installrole + ['quagga-isisd'] }}"
+  when: openwrt_quagga_enableisis
+- name: Enable rip
+  set_fact:
+    openwrt_packages_installrole: "{{ openwrt_packages_installrole + ['quagga-ripd'] }}"
+  when: openwrt_quagga_enablerip
+- name: Enable ripng
+  set_fact:
+    openwrt_packages_installrole: "{{ openwrt_packages_installrole + ['quagga-ripngd'] }}"
+  when: openwrt_quagga_enableripng
+- name: Again run packages role
+  ansible.builtin.include_role:
+    name: imp1sh.ansible_openwrt.ansible_openwrtpackages
+- name: Enable Quagga
+  ansible.builtin.service:
+    name: quagga
+    enabled: yes
+    state: started

@@ -1,0 +1,59 @@
+---
+- name: validate buffersize variable
+  ansible.builtin.assert:
+    that:
+      - openwrt_system_buffersize | type_debug == 'int'
+    fail_msg: "openwrt_system_buffersize must be of type integer."
+    success_msg: "openwrt_system_buffersize seems valid."
+  when: openwrt_system_buffersize is defined
+    # - name: validate conloglevel variable
+    #   ansible.builtin.assert:
+    #     that:
+    #       - openwrt_system_conloglevel | type_debug == 'int'
+    #       - openwrt_system_conloglevel >= 0
+    #       - openwrt_system_conloglevel < 10
+    #     fail_msg: "openwrt_system_conloglevel must be of type integer and between 1 and 8."
+    #     success_msg: "openwrt_system_conloglevel is valid."
+    #   when: openwrt_system_conloglevel is defined
+    # - name: validate cronloglevel variable
+    #   ansible.builtin.assert:
+    #     that:
+    #       - openwrt_system_cronloglevel | type_debug == 'int'
+    #       - openwrt_system_cronloglevel is regex("^[0-20]+$")
+    #     fail_msg: "openwrt_system_conloglevel must be of type integer of 1 or bigger."
+    #     success_msg: "openwrt_system_conloglevel is valid."
+    #   when: openwrt_system_cronloglevel is defined
+- name: validate openwrt_system_log_proto variable
+  ansible.builtin.assert:
+    that:
+      - (openwrt_system_log_proto | lower == 'tcp') or (openwrt_system_log_proto | lower == 'udp')
+    fail_msg: "openwrt_system_log_proto must be either tcp or udp."
+    success_msg: "openwrt_system_log_proto seems valid."
+  when: openwrt_system_log_proto is defined
+- name: validate openwrt_system_ntp_server variable
+  ansible.builtin.assert:
+    that:
+      - openwrt_system_ntp_server | type_debug == 'list'
+    fail_msg: "openwrt_system_ntp_server must be of type list."
+    success_msg: "openwrt_system_ntp_server is a list."
+  when: openwrt_system_ntp_server is defined
+- name: validate openwrt_system_ntp_enabled variable
+  ansible.builtin.assert:
+    that:
+      - openwrt_system_ntp_enabled | type_debug == 'int'
+      - (openwrt_system_ntp_enabled == 0) or (openwrt_system_ntp_enabled == 1)
+    fail_msg: "openwrt_system_ntp_enabled must be either 0 or 1."
+    success_msg: "openwrt_system_ntp_enabled is valid."
+  when: openwrt_system_ntp_enabled is defined
+    #  not working, check later, why
+    # - name: run checkint tasks
+    #   include_tasks: checkint.yml
+    #   loop:
+    #     - "{{ openwrt_system_nf_conntrack_acct }}"
+    #     - "{{ openwrt_system_nf_conntrack_checksum }}"
+    #     - "{{ openwrt_system_nf_conntrack_max }}"
+    #     - "{{ openwrt_system_nf_conntrack_tcp_timeout_established }}"
+    #     - "{{ openwrt_system_nf_conntrack_udp_timeout }}"
+    #     - "{{ openwrt_system_nf_conntrack_udp_timeout_stream }}"
+    #   loop_control:
+    #     loop_var: kernelvariable

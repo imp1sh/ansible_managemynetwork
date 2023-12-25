@@ -1,0 +1,10 @@
+- name: assemble repository string
+  include_tasks: xassemblerepo.yml
+- name: init repository
+  ansible.builtin.shell: "source {{ openwrt_restic_deploypath }}/{{ openwrt_restic_deployfile }}_{{ backupitem['name'] }} && restic init -p {{ openwrt_restic_deploypath_passwordfile }}/{{ openwrt_restic_deployfile_passwordfile }}_{{ backupitem['name'] }} -r {{ assembledrepo }}"
+  register: restic_init
+  failed_when:
+    - restic_init.rc != 0
+    - not 'config file already exists' in restic_init.stderr
+    - not 'config already initialized' in restic_init.stderr
+    - not 'config already exists' in restic_init.stderr

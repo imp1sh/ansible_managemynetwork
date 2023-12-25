@@ -1,0 +1,20 @@
+---
+galaxy_info:
+  role_name: ansible_openwrtprometheus_node_exporter_lua
+  author: Jochen Demmer
+  description: configures prometheus node exporter lua
+  company: libcom.de
+  issue_tracker_url: https://github.com/imp1sh/ansible_openwrt/issues
+  license: BSD-3-Clause
+  min_ansible_version: "2.9"
+  platforms:
+  - name: OpenWRT
+    versions:
+      - "22.03"
+  galaxy_tags: [openwrt, prometheus, node-exporter]
+dependencies:
+  - role: imp1sh.ansible_openwrt.ansible_openwrtpackages
+    vars:
+      openwrt_packages_installrole:
+        - prometheus-node-exporter-lua
+        - prometheus-node-exporter-lua-openwrt

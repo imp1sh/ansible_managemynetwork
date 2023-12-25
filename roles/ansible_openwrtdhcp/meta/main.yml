@@ -1,0 +1,15 @@
+---
+galaxy_info:
+  role_name: ansible_openwrtdhcp
+  author: Jochen Demmer
+  description: Role to handle dnsmasq settings on OpenWrt
+  company: libcom.de
+  license: BSD-3-Clause
+  min_ansible_version: 2.9
+  platforms:
+    - name: OpenWRT
+      versions:
+        - "21.02"
+        - "22.03"
+  galaxy_tags: [openwrt, lede, dnsmasq, dhcp, radvd, dhcp, dhcpv6, resolver]
+dependencies: []

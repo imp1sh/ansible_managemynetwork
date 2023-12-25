@@ -1,0 +1,7 @@
+---
+- name: check if it's boolean in an OpenWrt sense
+  ansible.builtin.assert:
+    that:
+      - booleanitem|int == '0' or booleanitem|int == '1'
+    fail_msg: "Value {{ booleanitem }} invalid. May only be 0 or 1. Don't use quotes when define variable."
+    success_msg: "Value {{ booleanitem }} is valid."

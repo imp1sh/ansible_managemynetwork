@@ -1,0 +1,31 @@
+---
+# tasks file for ansible_uhttpd
+- name: Make sure deploypath is present
+  ansible.builtin.file:
+    path: "{{ openwrt_uhttpd_deploypath }}"
+    state: directory
+- name: search for existing certificate
+  ansible.builtin.stat:
+    path: "{{ openwrt_uhttpd_cert_searchpath }}/{{ inventory_hostname }}.cer"
+  register: searchcert
+- name: search for existing key
+  ansible.builtin.stat:
+    path: "{{ openwrt_uhttpd_cert_searchpath }}/{{ inventory_hostname }}.key"
+  register: searchkey
+- name: debug
+  debug:
+    msg: "Cert found? {{ searchcert }}"
+- name: overwrite defaults with found cert and key
+  ansible.builtin.set_fact:
+    openwrt_uhttpd_main_cert: "{{ searchcert.stat.path }}"
+    openwrt_uhttpd_main_key: "{{ searchkey.stat.path }}"
+  when:
+    - searchkey is defined
+    - searchcert is defined
+    - searchkey.stat.exists
+    - searchcert.stat.exists
+- name: Deploy uhttpd config
+  ansible.builtin.template:
+    src: "uhttpd.jinja2"
+    dest: "{{ openwrt_uhttpd_deploypath }}/{{ openwrt_uhttpd_deployfile }}"
+  notify: restart uhttpd

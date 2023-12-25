@@ -1,0 +1,72 @@
+---
+- name: Enable bmx6 addition
+  set_fact:
+    openwrt_packages_installrole: "{{ openwrt_packages_installrole + ['prometheus-node-exporter-lua-bmx6'] }}"
+  when: openwrt_prometheus_node_exporter_lua_bmx6 is defined
+- name: Enable bmx7 addition
+  set_fact:
+    openwrt_packages_installrole: "{{ openwrt_packages_installrole + ['prometheus-node-exporter-lua-bmx7'] }}"
+  when: openwrt_prometheus_node_exporter_lua_bmx7 is defined
+- name: Enable dawn addition
+  set_fact:
+    openwrt_packages_installrole: "{{ openwrt_packages_installrole + ['prometheus-node-exporter-lua-dawn'] }}"
+  when: openwrt_prometheus_node_exporter_lua_dawn is defined
+- name: Enable hostapd_stations addition
+  set_fact:
+    openwrt_packages_installrole: "{{ openwrt_packages_installrole + ['prometheus-node-exporter-lua-hostapd_stations'] }}"
+  when: openwrt_prometheus_node_exporter_lua_hostapd_stations is defined
+- name: Enable hostapd_ubus_stations addition
+  set_fact:
+    openwrt_packages_installrole: "{{ openwrt_packages_installrole + ['prometheus-node-exporter-lua-hostapd_ubus_stations'] }}"
+  when: openwrt_prometheus_node_exporter_lua_hostapd_ubus_stations is defined
+- name: Enable nat_traffic addition
+  set_fact:
+    openwrt_packages_installrole: "{{ openwrt_packages_installrole + ['prometheus-node-exporter-lua-nat_traffic'] }}"
+  when: openwrt_prometheus_node_exporter_lua_nat_traffic is defined
+- name: Enable netstat addition
+  set_fact:
+    openwrt_packages_installrole: "{{ openwrt_packages_installrole + ['prometheus-node-exporter-lua-netstat'] }}"
+  when: openwrt_prometheus_node_exporter_lua_netstat is defined
+- name: Enable snmp6 addition
+  set_fact:
+    openwrt_packages_installrole: "{{ openwrt_packages_installrole + ['prometheus-node-exporter-lua-snmp6'] }}"
+  when: openwrt_prometheus_node_exporter_lua_snmp6 is defined
+- name: Enable textfile addition
+  set_fact:
+    openwrt_packages_installrole: "{{ openwrt_packages_installrole + ['prometheus-node-exporter-lua-textfile'] }}"
+  when: openwrt_prometheus_node_exporter_lua_textfile is defined
+- name: Enable ubnt-manager addition
+  set_fact:
+    openwrt_packages_installrole: "{{ openwrt_packages_installrole + ['prometheus-node-exporter-lua-ubnt-manager'] }}"
+  when: openwrt_prometheus_node_exporter_lua_ubnt_manager is defined
+- name: Enable dhcp_host addition
+  set_fact:
+    openwrt_packages_installrole: "{{ openwrt_packages_installrole + ['prometheus-node-exporter-lua-uci_dhcp_host'] }}"
+  when: openwrt_prometheus_node_exporter_lua_dhcp_host is defined
+- name: Enable wifi addition
+  set_fact:
+    openwrt_packages_installrole: "{{ openwrt_packages_installrole + ['prometheus-node-exporter-lua-wifi'] }}"
+  when: openwrt_prometheus_node_exporter_lua_wifi is defined
+- name: Enable wifi_stations addition
+  set_fact:
+    openwrt_packages_installrole: "{{ openwrt_packages_installrole + ['prometheus-node-exporter-lua-wifi_stations'] }}"
+  when: openwrt_prometheus_node_exporter_lua_wifi_stations is defined
+- name: Again run packages role
+  ansible.builtin.include_role:
+    name: imp1sh.ansible_openwrt.ansible_openwrtpackages
+- name: Provide prometheus-node-exporter-lua configuration
+  ansible.builtin.template:
+    src: "prometheus-node-exporter-lua.jinja2"
+    dest: "{{ openwrtprometheus_node_exporter_lua_deploypath }}/{{ openwrtprometheus_node_exporter_lua_deployfile }}"
+  notify: Restart prometheus-node-exporter-lua
+- name: enable prometheus-node-exporter-lua service
+  ansible.builtin.service:
+    name: prometheus-node-exporter-lua
+    state: started
+    enabled: true
+  when:
+    not openwrt_prometheus_node_exporter_lua_runimagebuilder | default(false)
+- name: merge role packages into openwrt_packages_installimagebuilder
+  ansible.builtin.set_fact:
+    openwrt_packages_installimagebuilder: "{{ openwrt_packages_installimagebuilder | default([]) + openwrt_packages_installrole }}"
+  when: openwrt_prometheus_node_exporter_lua_runimagebuilder | default(false)

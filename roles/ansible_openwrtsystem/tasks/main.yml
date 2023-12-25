@@ -1,0 +1,18 @@
+---
+# tasks file for ansible_openwrtsystem
+- name: Run checks if variables meet the requirements
+  import_tasks: checks.yml
+- name: Set kernel logging console
+  import_tasks: kernel.yml
+- name: make sure deploypath is present
+  ansible.builtin.file:
+    path: "{{ openwrt_system_deploypath }}"
+    state: directory
+- name: Install system config /etc/config/system
+  ansible.builtin.template:
+    src: system.jinja2
+    dest: "{{ openwrt_system_deploypath }}/{{ openwrt_system_deployfile }}"
+    mode: 0600
+  notify:
+    - restart logging
+    - restart systemservice
