@@ -8,6 +8,7 @@
   ansible.builtin.template:
     src: "wireless.jinja2"
     dest: "{{ openwrt_wireless_deploypath }}/{{ openwrt_wireless_deployfile }}"
+    backup: "{{ openwrt_wireless_backupconfig | default(false)}}"
     mode: "0600"
   when: openwrt_wifi_devices is defined
   notify: restart wireless

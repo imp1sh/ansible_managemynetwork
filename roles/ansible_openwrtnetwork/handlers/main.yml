@@ -5,4 +5,5 @@
     name: network
     state: restarted
   when:
-    not openwrt_network_runimagebuilder | default(false)
+    - not openwrt_network_runimagebuilder | default(false)
+    - not openwrt_network_skiprestart | default(false)

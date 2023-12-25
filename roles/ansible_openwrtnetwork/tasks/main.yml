@@ -27,5 +27,6 @@
   ansible.builtin.template:
     src: network.jinja2
     dest: "{{ openwrt_network_deploypath }}/{{ openwrt_network_deployfile }}"
+    backup: "{{ openwrt_network_backupconfig | default(false) }}"
     mode: 0600
   notify: restart network

@@ -2,4 +2,6 @@
 # handlers file for ansible_openwrtwireless
 - name: restart wireless
   ansible.builtin.command: /sbin/wifi
-  when: not openwrt_wireless_runimagebuilder | default(false)
+  when:
+    - not openwrt_wireless_runimagebuilder | default(false)
+    - not openwrt_wireless_skiprestart | default(false)

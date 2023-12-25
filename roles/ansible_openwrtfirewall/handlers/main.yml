@@ -11,4 +11,5 @@
     name: firewall
     state: restarted
   when:
-    not openwrt_firewall_runimagebuilder | default(false)
+    - not openwrt_firewall_runimagebuilder | default(false)
+    - not openwrt_firewall_skiprestart | default(false)
