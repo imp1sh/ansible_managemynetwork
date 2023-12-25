@@ -46,7 +46,7 @@ OpenWrt specific
   - [:leftwards_arrow_with_hook: imp1sh.ansible_managemynetwork.ansible_openwrtnetwork](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_openwrtnetwork/README.md)
   - [:leftwards_arrow_with_hook: imp1sh.ansible_managemynetwork.ansible_openwrtpackages](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_openwrtpackages/README.md)
   - [:leftwards_arrow_with_hook: imp1sh.ansible_managemynetwork.ansible_openwrtpodman](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_openwrtpodman/README.md)
-  - [:leftwards_arrow_with_hook: imp1sh.ansible_managemynetwork.ansible_openwrtprometheus_node_exporter_lua](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_openwrtprometheus_node_exporter_lue/README.md)
+  - [:leftwards_arrow_with_hook: imp1sh.ansible_managemynetwork.ansible_openwrtprometheus_node_exporter_lua](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_openwrtprometheus_node_exporter_lua/README.md)
   - [:leftwards_arrow_with_hook: imp1sh.ansible_managemynetwork.ansible_openwrtrestic](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_openwrtrestic/README.md)
   - [:leftwards_arrow_with_hook: imp1sh.ansible_managemynetwork.ansible_openwrtservices](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_openwrtservices/README.md)
   - [:leftwards_arrow_with_hook: imp1sh.ansible_managemynetwork.ansible_openwrtsqm](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_openwrtsqm/README.md)
