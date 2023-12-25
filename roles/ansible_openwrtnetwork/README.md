@@ -1,4 +1,4 @@
-# imp1sh.ansible_openwrt.ansible_openwrtnetwork
+# imp1sh.ansible_managemynetwork.ansible_openwrtnetwork
 
 > python3-netaddr needs to be installed for this role
 {.is-warning}

@@ -1,4 +1,4 @@
-# imp1sh.ansible_openwrt.ansible_openwrtdropbear
+# imp1sh.ansible_managemynetwork.ansible_openwrtdropbear
 
 This role manages the SSH service. OpenWrt uses dropbear in contrast to many other system, that use OpenSSH.
 

@@ -1,4 +1,4 @@
-# imp1sh.ansible_openwrt.ansible_openwrtrestic
+# imp1sh.ansible_managemynetwork.ansible_openwrtrestic
 This role sets up restic backup for your ansible node. This role will try to install the ssh public key to the target backup machine, so ideally it is managed by ansible, too.
 
 > Since version 0.4.1 there was a major overhaul of this role. It supports defining multiple repositories now, so it can be backed up to multiple locations.

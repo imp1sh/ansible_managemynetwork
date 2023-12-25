@@ -1,4 +1,4 @@
-# imp1sh.ansible_openwrt.ansible_openwrtfirewall
+# imp1sh.ansible_managemynetwork.ansible_openwrtfirewall
 
 This role manages
 
@@ -100,7 +100,7 @@ Additionally you need to define your own task within your playbook file.
       when: openwrt_firewall_zones_mysite is defined
   become: true
   roles:
-    - imp1sh.ansible_openwrt.ansible_openwrtfirewall
+    - imp1sh.ansible_managemynetwork.ansible_openwrtfirewall
 ```
 
 This will merge `openwrt_firewall_zonesdefault` and `openwrt_firewall_zones_mysite`

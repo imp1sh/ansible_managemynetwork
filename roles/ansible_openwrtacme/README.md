@@ -1,4 +1,4 @@
-# imp1sh.ansible_openwrt.ansible_openwrtacme
+# imp1sh.ansible_managemynetwork.ansible_openwrtacme
 With ansible_openwrt you can manage Letsencrypt certificates for your OpenWrt devices. There are three different modes:
 
 1) DNS

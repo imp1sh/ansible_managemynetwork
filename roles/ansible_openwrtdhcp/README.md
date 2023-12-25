@@ -1,4 +1,4 @@
-# imp1sh.ansible_openwrt.ansible_openwrtdhcp
+# imp1sh.ansible_managemynetwork.ansible_openwrtdhcp
 This role manages the integrated dnsmasq DHCP / DNS / Radvd and DHCPv6 Settings. Managing odhcp, bind or other alternative packages is currently not supported.
 
 ## Globale Parameters

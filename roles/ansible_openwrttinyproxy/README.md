@@ -1,4 +1,4 @@
-# imp1sh.ansible_openwrt.ansible_openwrttinyproxy
+# imp1sh.ansible_managemynetwork.ansible_openwrttinyproxy
 
 This ansible role manages tinyproxy for OpenWrt. A minimalistic configuration is to just use this role. The default values will setup and make basic configuration.
 For a more pracital example you can set some variables:

@@ -1,4 +1,4 @@
-# imp1sh.ansible_openwrt.ansible_openwrtbabeld
+# imp1sh.ansible_managemynetwork.ansible_openwrtbabeld
 babeld is a dynamic layer 3 routing daemon.
 
 This role is not finished. Since version 0.5.0 of this collection there is rudimentary support for babeld. If you're missing a feature, just contact me.

@@ -1,4 +1,4 @@
-# imp1sh.ansible_openwrt.ansible_openwrtpackages
+# imp1sh.ansible_managemynetwork.ansible_openwrtpackages
 This role manages opkg packages on OpenWrt nodes.
 You can install packages for a specific host:
 
@@ -34,7 +34,7 @@ Other roles that need specific packages installed, make use of the packages role
 Here is an example from `ansible_openwrtrestic`.
 ```yaml
 dependencies:
-  - role: imp1sh.ansible_openwrt.ansible_openwrtpackages
+  - role: imp1sh.ansible_managemynetwork.ansible_openwrtpackages
     vars:
       openwrt_packages_installrole:
         - restic

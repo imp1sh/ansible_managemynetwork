@@ -1,4 +1,4 @@
-# imp1sh.ansible\_openwrt.ansible\_openwrtsqm
+# imp1sh.ansible._managemynetwork.ansible_openwrtsqm
 
 This role sets up SQM QoS traffic shaping, in Luci found at *Network- SQM QoS*.
 For detailed documentation about this feature see [OpenWrt SQM docs](https://openwrt.org/docs/guide-user/network/traffic-shaping/sqm).

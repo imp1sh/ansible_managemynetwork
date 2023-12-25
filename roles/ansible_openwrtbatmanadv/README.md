@@ -1,4 +1,4 @@
-# imp1sh.ansible_openwrt.ansible_openwrtbatmanadv
+# imp1sh.ansible_managemynetwork.ansible_openwrtbatmanadv
 Batman-adv is a dynamic layer 2 routing daemon. It is being used largely at Freifunk.
 
 This role is unfinished so please do not use it, yet.

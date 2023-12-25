@@ -1,4 +1,4 @@
-# imp1sh.ansible_openwrt.ansible_openwrtbird1
+# imp1sh.ansible_managemynetwork.ansible_openwrtbird1
 bird is a dynamic routing toolikit.
 
 This role is unfinished so please do not use it, yet.

@@ -1,4 +1,4 @@
-# imp1sh.ansible_openwrt.ansible_openwrtwireless
+# imp1sh.ansible_managemynetwork.ansible_openwrtwireless
 
 This ansible role manages wireless connectivity for your OpenWrt node. In the filesystem the config file is `/etc/config/wireless`. It manages wifi-devices on the one hand and wifi-interfaces on the other.
 For possible attributes see the the [OpenWrt wifi docs](https://openwrt.org/docs/guide-user/network/wifi/basic).
@@ -159,6 +159,6 @@ Playbook: role_openwrtwireless.yml
       when: openwrt_wifi_interfaces_wle600v is defined
   become: true
   roles:
-    - imp1sh.ansible_openwrt.ansible_openwrtwireless
+    - imp1sh.ansible_managemynetwork.ansible_openwrtwireless
 
 ```

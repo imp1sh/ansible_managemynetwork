@@ -1,4 +1,4 @@
-# imp1sh.ansible_openwrt.ansible_openwrtbmx7
+# imp1sh.ansible_managemynetwork.ansible_openwrtbmx7
 bmx7 is a dynamic routing protocol.
 
 This role is unfinished so please do not use it, yet.

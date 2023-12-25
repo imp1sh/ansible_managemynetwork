@@ -1,4 +1,4 @@
-# # imp1sh.ansible_openwrt.ansible_openwrtimagebuilder
+# # imp1sh.ansible_managemynetwork.ansible_openwrtimagebuilder
 In certain scenarios it might be interesting to automate the [OpenWrt Imagebuilder](https://openwrt.org/docs/guide-user/additional-software/imagebuilder) process. With this role you can do this. It will not only build the designated Image for your specific devices, but it will also:
 
 - integrate your configurations
@@ -51,32 +51,32 @@ This is an example playbook for the ansible_openwrtimagebuilder role.
   tasks:
     - name: run imagebuilder preparations
       ansible.builtin.import_role:
-        name: imp1sh.ansible_openwrt.ansible_openwrtimagebuilder
+        name: imp1sh.ansible_managemynetwork.ansible_openwrtimagebuilder
         tasks_from: prepare
     - name: run acme
       ansible.builtin.import_role:
-        name: imp1sh.ansible_openwrt.ansible_openwrtacme
+        name: imp1sh.ansible_managemynetwork.ansible_openwrtacme
     - name: run dhcp
       ansible.builtin.import_role:
-        name: imp1sh.ansible_openwrt.ansible_openwrtdhcp
+        name: imp1sh.ansible_managemynetwork.ansible_openwrtdhcp
     - name: run dropbear
       ansible.builtin.import_role:
-        name: imp1sh.ansible_openwrt.ansible_openwrtdropbear
+        name: imp1sh.ansible_managemynetwork.ansible_openwrtdropbear
     - name: run firewall
       ansible.builtin.import_role:
-        name: imp1sh.ansible_openwrt.ansible_openwrtfirewall
+        name: imp1sh.ansible_managemynetwork.ansible_openwrtfirewall
     - name: run network
       ansible.builtin.import_role:
-        name: imp1sh.ansible_openwrt.ansible_openwrtnetwork
+        name: imp1sh.ansible_managemynetwork.ansible_openwrtnetwork
     - name: run restic
       ansible.builtin.import_role:
-        name: imp1sh.ansible_openwrt.ansible_openwrtrestic
+        name: imp1sh.ansible_managemynetwork.ansible_openwrtrestic
     - name: run system
       ansible.builtin.import_role:
-        name: imp1sh.ansible_openwrt.ansible_openwrtsystem
+        name: imp1sh.ansible_managemynetwork.ansible_openwrtsystem
     - name: run imagebuilder build
       ansible.builtin.import_role:
-        name: imp1sh.ansible_openwrt.ansible_openwrtimagebuilder
+        name: imp1sh.ansible_managemynetwork.ansible_openwrtimagebuilder
         tasks_from: build
 
 ```
