@@ -4,25 +4,41 @@
   include_vars: "{{ ansible_distribution }}.yml"
 - name: Install Repo Debian 10
   apt:
-    deb: "https://repo.zabbix.com/zabbix/5.4/debian/pool/main/z/zabbix-release/zabbix-release_5.4-1+debian10_all.deb"
+    deb: "https://repo.zabbix.com/zabbix/6.4/debian/pool/main/z/zabbix-release/zabbix-release_6.4-1+debian10_all.deb"
   when:
     - ansible_distribution == "Debian"
     - ansible_distribution_release == "buster"
 - name: Install Repo Debian 11
   apt:
-    deb: "https://repo.zabbix.com/zabbix/5.4/debian/pool/main/z/zabbix-release/zabbix-release_5.4-1+debian11_all.deb"
+    deb: "https://repo.zabbix.com/zabbix/6.4/debian/pool/main/z/zabbix-release/zabbix-release_6.4-1+debian11_all.deb"
   when:
     - ansible_distribution == "Debian"
     - ansible_distribution_release == "bullseye"
+- name: Install Repo Debian 12
+  apt:
+    deb: "https://repo.zabbix.com/zabbix/6.4/debian/pool/main/z/zabbix-release/zabbix-release_6.4-1+debian12_all.deb"
+  when:
+    - ansible_distribution == "Debian"
+    - ansible_distribution_release == "bookworm"
 - name: Install Repo Ubuntu 20.04
   apt:
-    deb: "https://repo.zabbix.com/zabbix/5.4/ubuntu/pool/main/z/zabbix-release/zabbix-release_5.4-1+ubuntu20.04_all.deb"
+    deb: "https://repo.zabbix.com/zabbix/6.4/ubuntu/pool/main/z/zabbix-release/zabbix-release_6.4-1+ubuntu20.04_all.deb"
   when:
     - ansible_distribution == "Ubuntu"
     - ansible_distribution_release == "focal"
+- name: Install Repo Ubuntu 22.04
+  apt:
+    deb: "https://repo.zabbix.com/zabbix/6.4/ubuntu/pool/main/z/zabbix-release/zabbix-release_6.4-1+ubuntu22.04_all.deb"
+  when:
+    - ansible_distribution == "Ubuntu"
+    - ansible_distribution_release == "jammy"
 - name: Apt update
   shell: apt update
   when: ansible_os_family == "Debian"
+    #- name: Remove old Zabbix Agent
+    #  package:
+    #    name: "zabbix-agent"
+    #    state: absent
 - name: Install Zabbix Agent
   package:
     name: "{{ zabbixagent_packagename }}"
