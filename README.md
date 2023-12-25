@@ -124,7 +124,7 @@ Use the roles in a playbook by referencing the roles you need, for example:
 
 ## Variables
 
-You can definee variables in Ansible on a host or on a group basis. The variable type corresponds to the UCI datatype. If it is a list in UCI, it is a list in Ansible.
+You can define variables in Ansible on a host or on a group basis. The variable type corresponds to the UCI datatype. If it is a list in UCI, it is a list in Ansible.
 Depending on what level you choose the variable names may differ, depending if you choose to define on host or group basis.
 
 There need to a group named *allhosts*. Within its scope you defined several variables.
