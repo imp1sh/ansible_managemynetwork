@@ -20,7 +20,7 @@ Generally speaking this collection aims to achieve a seperation of logical eleme
 
 > This Collection is quite old. It grew over time and contains LOTS of different roles. Only consider the documented roles to be in a *ready for production* state.
 > All other roles will be removed or lifted to the same quality standard in the future.
-{.is-warning}
+
 
   - [:leftwards_arrow_with_hook: imp1sh.ansible_managemynetwork.ansible_borgmatic](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_borgmatic/README.md)
   - [:leftwards_arrow_with_hook: imp1sh.ansible_managemynetwork.ansible_chrony](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_chrony/README.md)
