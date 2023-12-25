@@ -1,14 +1,17 @@
-imp1sh.ansible_managemynetwork.ansible_qemuagent
-=========
+# imp1sh.ansible_managemynetwork.ansible_qemuagent
 
-[Documentation](https://wiki.junicast.de/en/junicast/docs/AnsibleManagemynetworkCollection/roleQemuagent)
+[Source Code on GitHub](https://github.com/imp1sh/ansible_managemynetwork/tree/main/roles/ansible_qemuagent)
 
-License
--------
+This role is very easy. It install the qemu guest agent. This makes handling of qemu guests much easier and I strongly suggest to use it.
 
-BSD
+You don't have to define any variables. Just use the role and the rest will be taken care of.
 
-Author Information
-------------------
+I tested it on
 
-Jochen Demmer
+- FreeBSD
+- **Debian**
+- Ubuntu
+- Alpine
+- Fedora
+
+but official support is only for the main focues, i.e. Debian.

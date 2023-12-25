@@ -1,38 +1,68 @@
-Role Name
-=========
+# imp1sh.ansible_managemynetwork.ansible_users
 
-A brief description of the role goes here.
+[Source Code on GitHub](https://github.com/imp1sh/ansible_managemynetwork/tree/main/roles/ansible_users)
 
-Requirements
-------------
+This role manages users for hosts.
+It currently supports those Operating Systems:
+- Debian
+- Ubuntu (best effort)
+- FreeBSD (best effort)
+- ~~Alpine~~ (probably works but no longer supported)
+- ~~Arch~~ (probably works but no longer supported)
+- ~~Manjaro~~ (probably works but no longer supported)
 
-Any pre-requisites that may not be covered by Ansible itself or the role should be mentioned here. For instance, if the role uses the EC2 module, it may be a good idea to mention in this section that the boto package is required.
 
-Role Variables
---------------
+Since you don't want to define your users for every host individually, you need to place your variable somewhere every host has access to it. In this example the `system_users` variable will be defined in the scope of an Ansible group called tags_allhosts.
 
-A description of the settable variables for this role should go here, including any variables that are in defaults/main.yml, vars/main.yml, and any variables that can/should be set via parameters to the role. Any variables that are read from other roles and/or the global scope (ie. hostvars, group vars, etc.) should be mentioned here as well.
+./group_vars/tags_allhosts.yaml
+```yaml
+system_users:
+  jdenker:
+    comment: "Johann Denker"
+    uid: 2048
+    password: "$6$6FlXAIFWM2v1clqj$pVYUclQuCJ0kDDcg2QFhjgfhjg31rt4FmS8cVKUxsDKSOmasdfasdfasdfaqcQJECEpaiCjasdfsadfm0GxRtsmCNoTh/mlIp9gQDGr97pvUhswZOieSi0"
+    shell: "bash"
+  "skuchen":
+    comment: "Sibille Kuchen"
+    uid: 2050
+    password: "$6$clsF9Lxzh9JF5LZJ$RhUnTHwDHiLwrLjIkFj2.K0BHh632465gi95g6JSe0BsdafsdfaoCs6141.sA3hz32RGtvMiLXn4NhgfdhjmhsX.zXu4ozlIQTaoQL2xuP9I/"
+    shell: "zsh"
+```
 
-Dependencies
-------------
+The password is expected to be encrypted. The easiest way to get such an encrypted password is to use the `mkpasswd` command line tool.
+A more complete list of available options can be found in the [role's documentation](https://docs.ansible.com/ansible/latest/collections/ansible/builtin/user_module.html).
 
-A list of other roles hosted on Galaxy should go here, plus any details in regards to parameters that may need to be set for other roles, or variables that are used from other roles.
+This role has a dependency to [imp1sh.ansible_managemynetwork.ansible_packages](/junicast/docs/AnsibleManagemynetworkCollection/rolePackages) and will install the shell package you choose for the users automatically.
 
-Example Playbook
-----------------
+## Host association
+Whether or not a users id deployed on a system is defined within `system_users_create_on_hosts` and `system_users_create_on_hostgroups`. First one for defining on an individual host basis, second one on a group level. Here is an example:
 
-Including an example of how to use your role (for instance, with variables passed in as parameters) is always nice for users too:
+```yaml
+system_users_create_on_hosts:
+  mmustermann:
+    - "accounting.example.com"
+  sibilledegenhard:
+    - "accounting.example.com"
+  user1:
+    - "xps13.example.com"
+    - "macbook.example.com"
+  scan:
+    - "nas.example.com"
+system_users_create_on_hostgroups:
+  ansible:
+    - "tags_allhosts"
+  sysadm_recovery:
+    - "tags_allhosts"
+  backupuser:
+    - "tags_backuptarget_borg"
+```
 
-    - hosts: servers
-      roles:
-         - { role: username.rolename, x: 42 }
+The group names correspond to the group names in Ansible, here it's a dynamic Netbox inventory using netbox tags.
 
-License
--------
+## Remove Users
+Just set the `state` attribute of the user to `absent`. If the attribute `state` is not defined it will default to present.
 
-BSD
+## Shell
+You do not give the full path to the shell here, but only the binary name, e.g. `zsh`. If your OS doesn't work with this role or a shell you want is missing, please open [an issue](https://github.com/imp1sh/ansible_managemynetwork/issues).
 
-Author Information
-------------------
-
-An optional section for the role authors to include contact information, or a website (HTML is not allowed).
+[Here is](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_users/vars/Debian.yml) a list of supported shells so far.

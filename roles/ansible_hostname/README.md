@@ -1,14 +1,14 @@
-imp1sh.ansible_managemynetwork.ansible_hostname
-=========
+# imp1sh.ansible_managemynetwork.ansible_dehydrated
 
-[Documentation](https://wiki.junicast.de/en/junicast/docs/AnsibleManagemynetworkCollection/roleHostname)
+[Source Code on GitHub](https://github.com/imp1sh/ansible_managemynetwork/tree/main/roles/ansible_hostname)
 
-License
--------
+This role sets the hostname of a host.
+It currently supports these Operating Systems:
+- Debian
+- Ubuntu (best effort)
+- FreeBSD (best effort)
+- ~~Alpine~~ (probably works but no longer supported)
+- ~~Arch~~ (probably works but no longer supported)
+- ~~Manjaro~~ (probably works but no longer supported)
 
-BSD
-
-Author Information
-------------------
-
-Jochen Demmer
+This role will set the hostname to the value of the variable `system_hostname` or if not defined to `inventory_hostname`.
