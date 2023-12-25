@@ -7,7 +7,7 @@ authors:
   - Jochen Demmer <jochen@libcom.de>
 description: A collection of several roles that I need to manage my network. You can use it as well.
 license_file: 'LICENSE'
-tags: [server, system, management, freebsd, debian, network, services]
+tags: [server, system, management, freebsd, debian, network, services, openwrt]
 dependencies: {}
 repository: https://github.com/imp1sh/ansible_managemynetwork
 documentation: https://wiki.junicast.de/en/junicast/docs/AnsibleManagemynetworkCollection
