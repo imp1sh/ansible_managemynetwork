@@ -4,8 +4,8 @@ location:
       - {{ directory }}
 {% endfor %}
     repositories:
-{% for repository in borgmatic_repositories %}
-      - {{ repository }}
+{% for key, value in borgmatic_repositories.items() %}
+      - "{{ value['type'] }}://{{ value['targetuser'] }}@{{ value['targethost'] }}/./{{ value['subdir'] }}/{{ inventory_hostname }}"
 {% endfor %}
 {% if borgmatic_excludepatterns is defined %}
     exclude_patterns:

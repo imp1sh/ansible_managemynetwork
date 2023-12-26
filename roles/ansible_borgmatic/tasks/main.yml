@@ -17,6 +17,9 @@
   when: borgmatic_cron_manage
 - name: include ssh tasks
   include_tasks: 5ssh.yml
+  loop: "{{ borgmatic_repositories | dict2items }}"
+  loop_control:
+    loop_var: borgmatic_repository
   when: borgmatic_ssh_manage
 - name: Provide borgmatic config
   template:

@@ -6,18 +6,18 @@
   register: rootuser
 - name: provide root user's public key to destination machine
   authorized_key:
-    user: "{{ borgmatic_sshkey_user }}"
+    user: "{{ borgmatic_repository.value['targetuser'] }}"
     state: present
     key: "{{ rootuser['ssh_public_key'] }}"
-  delegate_to: "{{ borgmatic_sshkey_targethost }}"
+  delegate_to: "{{ borgmatic_repository.value['targethost'] }}"
 - name: register remote host key
-  command: "ssh-keyscan -tecdsa {{ borgmatic_sshkey_targethost }}"
+  command: "ssh-keyscan -tecdsa {{ borgmatic_repository.value['targethost'] }}"
   register: hostkey
 - name: install target hosts fingerprint to known hosts
   known_hosts:
     path: "{{ borgmatic_file_sshknownhosts }}"
     key: "{{ hostkey.stdout }}"
-    name: "{{ borgmatic_sshkey_targethost }}"
+    name: "{{ borgmatic_repository.value['targethost'] }}"
     state: present
       # this didn't work reliably. In rare cases the key value was just empty
       #- name: install target hosts fingerprint to known hosts
