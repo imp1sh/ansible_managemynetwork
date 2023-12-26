@@ -1,109 +1,108 @@
-location:
-    source_directories:
+source_directories:
 {% for directory in borgmatic_srcdirs | default(borgmatic_default_srcdirs) %}
-      - {{ directory }}
+  - {{ directory }}
 {% endfor %}
-    repositories:
+
+repositories:
 {% for key, value in borgmatic_repositories.items() %}
-      - "{{ value['type'] }}://{{ value['targetuser'] }}@{{ value['targethost'] }}/./{{ value['subdir'] }}/{{ inventory_hostname }}"
+  - path: "{{ value['type'] | default('')}}{{ value['targetuser'] }}@{{ value['targethost'] }}/{% if value['subdir'] is defined %}./{{ value['subdir'] }}/{% endif %}{{ inventory_hostname }}"
+    label: "{{ key }}"
 {% endfor %}
+
 {% if borgmatic_excludepatterns is defined %}
-    exclude_patterns:
+exclude_patterns:
 {% for excludepattern in borgmatic_excludepatterns %}
-      - "{{ excludepattern }}"
+  - "{{ excludepattern }}"
 {% endfor %}
 {% endif %}
 
-storage:
 {% if borgmatic_encpassphrase is defined %}
-    encryption_passphrase: "{{ borgmatic_encpassphrase }}"
+encryption_passphrase: "{{ borgmatic_encpassphrase }}"
 {% endif %}
 {% if borgmatic_sshcommand is defined %}
-    ssh_command: {{ borgmatic_sshcommand }}
+ssh_command: {{ borgmatic_sshcommand }}
 {% endif %}
-    compression: {{ borgmatic_compression | default('lz4', true) }}
+compression: {{ borgmatic_compression | default('lz4', true) }}
 
-retention:
 {% if borgmatic_keepwithin is defined %}
-    keep_within: {{ borgmatic_keepwithin }}
+keep_within: {{ borgmatic_keepwithin }}
 {% endif %}
 {% if borgmatic_keepsecondly is defined %}
-    keep_secondly: {{ borgmatic_keepsecondly }}
+keep_secondly: {{ borgmatic_keepsecondly }}
 {% endif %}
 {% if borgmatic_keepminutely is defined %}
-    keep_minutely: {{ borgmatic_keepminutely }}
+keep_minutely: {{ borgmatic_keepminutely }}
 {% endif %}
 {% if borgmatic_keephourly is defined %}
-    keep_hourly: {{ borgmatic_keephourly }}
+keep_hourly: {{ borgmatic_keephourly }}
 {% endif %}
-    keep_daily: {{ borgmatic_keepdaily | default('7', true) }}
+keep_daily: {{ borgmatic_keepdaily | default('7', true) }}
 {% if borgmatic_keepweekly is defined %}
-    keep_weekly: {{ borgmatic_keepweekly }}
+keep_weekly: {{ borgmatic_keepweekly }}
 {% endif %}
 {% if borgmatic_keepmonthly is defined %}
-    keep_monthly: {{ borgmatic_keepmonthly }}
+keep_monthly: {{ borgmatic_keepmonthly }}
 {% endif %}
 {% if borgmatic_keepyearly is defined %}
-    keep_yearly: {{ borgmatic_keepyearly }}
+keep_yearly: {{ borgmatic_keepyearly }}
 {% endif %}
 
 {% if borgmatic_postgresdbs is defined or borgmatic_mysqldbs is defined or borgmatic_hooks_on_error is defined %}
-hooks:
 {% endif %}
 {% if borgmatic_hooks_on_error is defined %}
-  on_error:
+on_error:
 {% for errorhook in borgmatic_hooks_on_error %}
-    - {{ errorhook }}
+  - {{ errorhook }}
 {% endfor %}
 {% endif %}
 {% if borgmatic_postgresdbs is defined %}
-  postgresql_databases:
+postgresql_databases:
 {% for postgresdb in borgmatic_postgresdbs %}
-    - name: {{ postgresdb['name'] }}
+  - name: {{ postgresdb['name'] }}
 {% if postgresdb['username'] is defined %}
-      username: {{ postgresdb['username'] }}
+    username: {{ postgresdb['username'] }}
 {% endif %}
 {% if postgresdb['port'] is defined %}
-      port: {{ postgresdb['port'] }}
+    port: {{ postgresdb['port'] }}
 {% endif %}
 {% if postgresdb['hostname'] is defined %}
-      hostname: {{ postgresdb['hostname'] }}
+    hostname: {{ postgresdb['hostname'] }}
 {% endif %}
 {% if postgresdb['format'] is defined %}
-      format: {{ postgresdb['format'] }}
+    format: {{ postgresdb['format'] }}
 {% endif %}
 {% if postgresdb['ssl_mode'] is defined %}
-      ssl_mode: {{ postgresdb['ssl_mode'] }}
+    ssl_mode: {{ postgresdb['ssl_mode'] }}
 {% endif %}
 {% if postgresdb['ssl_cert'] is defined %}
-      ssl_cert: {{ postgresdb['ssl_cert'] }}
+    ssl_cert: {{ postgresdb['ssl_cert'] }}
 {% endif %}
 {% if postgresdb['ssl_key'] is defined %}
-      ssl_key: {{ postgresdb['ssl_key'] }}
+    ssl_key: {{ postgresdb['ssl_key'] }}
 {% endif %}
 {% if postgresdb['ssl_root_cert'] is defined %}
-      ssl_root_cert: {{ postgresdb['ssl_root_cert'] }}
+    ssl_root_cert: {{ postgresdb['ssl_root_cert'] }}
 {% endif %}
 {% if postgresdb['ssl_crl'] is defined %}
-      ssl_crl: {{ postgresdb['ssl_crl'] }}
+    ssl_crl: {{ postgresdb['ssl_crl'] }}
 {% endif %}
 {% endfor %}
 {% endif %}
 {% if borgmatic_mysqldbs is defined %}
-  mysql_databases:
+mysql_databases:
 {% for mysqldb in borgmatic_mysqldbs %}
-    - name: {{ mysqldb['name'] }}
+  - name: {{ mysqldb['name'] }}
 {%if mysqldb['port'] is defined %}
-      port: {{ mysqldb['port'] }}
+    port: {{ mysqldb['port'] }}
 {% endif %}
 {%if mysqldb['username'] is defined %}
-      username: {{ mysqldb['username'] }}
+    username: {{ mysqldb['username'] }}
 {% endif %}
 {%if mysqldb['password'] is defined %}
-      password: {{ mysqldb['password'] }}
+    password: {{ mysqldb['password'] }}
 {% endif %}
 {%if mysqldb['hostname'] is defined %}
-      hostname: {{ mysqldb['hostname'] }}
+    hostname: {{ mysqldb['hostname'] }}
 {% endif %}
 {% endfor %}
 {% endif %}

@@ -3,7 +3,7 @@ borgmatic_packagename_borgmatic: "borgmatic"
 borgmatic_package_requirements: 
   - python3-dev
   - python3-pip
-  - python3-virtualenv
+  - python3-venv
   - libacl1-dev
   - libacl1
   - libssl-dev

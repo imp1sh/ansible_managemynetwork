@@ -3,9 +3,12 @@
   ansible.builtin.package:
     name: "{{ packagepip }}"
     state: present
+  when:
+    - not apprise_via_pip
 - name: install apprise via pip
   ansible.builtin.pip:
     name: "{{ packageapprisepip }}"
+    virtualenv: "/opt/venv/apprise"
   when:
     - apprise_via_pip
 - name: Install apprise via package manager
@@ -16,10 +19,3 @@
 - name: Get apprise path
   ansible.builtin.command: which apprise
   register: apprisequery
-- name: install borgmatic template (optional)
-  ansible.builtin.template:
-    src: apprise_borgmatic.sh.jinja2
-    dest: "{{ path_apprise_script }}/apprise_borgmatic.sh"
-    mode: 0750
-    owner: root
-  when: borgmatic_apprise

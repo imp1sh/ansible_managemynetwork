@@ -5,32 +5,47 @@
     state: present
   when: borgmatic_package_requirements is defined
 # package manager
-- name: borg backup via package manager
-  ansible.builtin.package:
-    name: "{{ borgmatic_packagename_borg }}"
-    state: "{{ borgmatic_package_state }}"
-- name: borgmatic via package manager
-  ansible.builtin.package:
-    name: "{{ borgmatic_packagename_borgmatic }}"
-    state: "{{ borgmatic_package_state }}"
-# pip  
-- name: Install pip for pip installation
-  ansible.builtin.package:
-    name: "{{ borgmatic_pip_package }}"
-    state: present
-  when: borgmatic_via_pip
-- name: Install borgmatic via pip
-  ansible.builtin.pip:
-    name: borgmatic
-  when: borgmatic_via_pip
-- name: Install borg via pip
-  ansible.builtin.pip:
-    name: borgbackup
+- name: package manager block
+  block:
+    - name: borg backup via package manager
+      ansible.builtin.package:
+        name: "{{ borgmatic_packagename_borg }}"
+        state: "{{ borgmatic_package_state }}"
+    - name: borgmatic via package manager
+      ansible.builtin.package:
+        name: "{{ borgmatic_packagename_borgmatic }}"
+        state: "{{ borgmatic_package_state }}"
+  when: not borgmatic_via_pip
+# pip 
+- name: pip block 
+  block:
+    - name: Install pip for pip installation
+      ansible.builtin.package:
+        name: "{{ borgmatic_pip_package }}"
+        state: present
+    - name: Install borgmatic via pip
+      ansible.builtin.pip:
+        name: borgmatic
+        virtualenv: "{{ borgmatic_venvdir }}"
+    - name: Install borg via pip
+      ansible.builtin.pip:
+        name: borgbackup
+        virtualenv: "{{ borgmatic_venvdir }}"
   when: borgmatic_via_pip
 # Apprise
-- name: Install apprise if needed
-  ansible.builtin.include_role:
-    name: imp1sh.ansible_managemynetwork.ansible_apprise
+- name: apprise block
+  block:
+    - name: Insntall apprise via pip
+      ansible.builtin.pip:
+        name: "{{ borgmatic_packageapprisepip  }}"
+        virtualenv: "{{ borgmatic_venvdir }}"
+      when: borgmatic_apprise_via_pip
+    - name: install borgmatic template (optional)
+      ansible.builtin.template:
+        src: apprise_borgmatic.sh.jinja2
+        dest: "{{ borgmatic_path_apprise_script }}/apprise_borgmatic.sh"
+        mode: 0750
+        owner: root
   when: borgmatic_apprise
 # config dir
 - name: Make sure borgmatic config dir exists

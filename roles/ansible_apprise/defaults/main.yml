@@ -1,5 +1,2 @@
 ---
 # defaults file for ansible_apprise
-packageapprisepip: "apprise"
-path_apprise_script: "/usr/local/bin"
-apprise_via_pip: true
