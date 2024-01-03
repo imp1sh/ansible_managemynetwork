@@ -3,7 +3,7 @@ This role lets you run your nftables firewall without ufw or firewalld or any ot
 ## setup
 * Install role
 ```
-ansible-galaxy install imp1sh.nftables
+ansible-galaxy collection install imp1sh.ansible_managemynetwork
 ```
 * Assign role to your host
 ```
@@ -11,7 +11,7 @@ ansible-galaxy install imp1sh.nftables
 - hosts: my.firewall.com
   become: true
   roles
-    - imp1sh.nftables
+    - imp1sh.ansible_managemynetwork.ansible_nftables
 ```
 * Define basic variables
 ```
@@ -24,12 +24,12 @@ You can define rules on a host or group level:
 - nftablesopenhost
 - nftablesopengroup
 
-For the hosts just put the rules into the host vars, e.g. in host_vars/hostname.yml
-For definitions on ansible group level ideally put it in something like group_vars/allhosts.yml.
+For the hosts just put the rules into the host vars, e.g. in host_vars/*hostname*.yml
+For definitions on ansible group level ideally put it in something like group_vars/all.yml.
 Those are example variable definitions:
 ```
 nftablesopengroup:
-  allhosts:
+  all:
   - dport: "22"
     family: 6
     saddr: "{ {{ ipv6_bla_siteA }}, {{ ipv6_bla_siteB }}, {{ ipv6_bla_siteC }} }"
@@ -43,9 +43,9 @@ nftablesopengroup:
     proto: "tcp"
     comment: "Allow Icinga API Port"
 ```
-allhosts is the group where everybody is member of, icingmaster is a group where only icinga hosts are member of. The tasks later merge so that every host get rules from every group it is a member of.
-Choose family 6 for IPv6 only, 4 for IPv4 only and 46 for dual stack.
-inif is optional in case your server has multiple interfaces.
+*all* is the group where everybody is member of, icingmaster is a group where only icinga hosts are member of. The tasks later merge so that every host get rules from every group it is a member of.
+Choose family *6* for IPv6 only, *4* for IPv4 only and *46* for dual stack.
+inif is optional in case your server has multiple interfaces and you want to restrict the rule for interface-specific incoming traffic.
 
 ## Firewall Mode
 Let' assume you run it in firewall mode with IPv4 Masquerading / IPv6 routed with eth0 your WAN interface and eth1 LAN.
@@ -71,7 +71,7 @@ Now open up ports like this for incoming packets, inif is optional to define on 
     saddr: "2a01:4348:aa08:1a03::2"
     comment: "Allow SSH old server ip"
 ```
-It's possible to use globally defined variables as source or destination addresses. That's possible for ports, too. Here's an example:
+It's possible to use globally defined variables as source or destination addresses. That's possible for ports, too. Ideally you'd use some SSOT like Netbox. Here's a very unsophisticated example for using Ansible vars:
 ```
 nfvars:
   nets:
