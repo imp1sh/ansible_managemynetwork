@@ -10,6 +10,6 @@ license_file: 'LICENSE'
 tags: [server, system, management, freebsd, debian, network, services, openwrt]
 dependencies: {}
 repository: https://github.com/imp1sh/ansible_managemynetwork
-documentation: https://wiki.junicast.de/en/junicast/docs/AnsibleManagemynetworkCollection
-homepage: https://github.com/imp1sh/ansible_managemynetwork
+documentation: https://github.com/imp1sh/ansible_managemynetwork/blob/main/README.md
+homepage: https://wiki.junicast.de
 issues: https://github.com/imp1sh/ansible_managemynetwork/issues
