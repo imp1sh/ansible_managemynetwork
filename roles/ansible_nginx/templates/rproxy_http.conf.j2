@@ -3,6 +3,14 @@
 server {
     listen	80;
     listen	[::]:80;
+{% if rproxyitem.set is defined %}
+{% for setitem in rproxyitem.set %}
+    set {{ setitem }};
+{% endfor %}
+{% endif %}
+{% if rproxyitem.http_version is defined %}
+    proxy_http_version {{ rproxyitem.http_version }};
+{% endif %}
 {% if rproxyitem.rproxyaltfqdn is defined %}
     server_name {{ rproxyitem.name }} {{ rproxyitem.rproxyaltfqdn }};
 {% else %}

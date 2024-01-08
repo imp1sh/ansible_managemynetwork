@@ -7,6 +7,14 @@ server {
     ssl_certificate {{ nginx_certpath }}/{{ rproxy_certname }}/fullchain.pem;
     ssl_certificate_key {{ nginx_certpath }}/{{ rproxy_certname }}/privkey.pem;
     ssl_protocols TLSv1.2 TLSv1.3;
+{% if rproxyitem.set is defined %}
+{% for setitem in rproxyitem.set %}
+    set {{ setitem }};
+{% endfor %}
+{% endif %}
+{% if rproxyitem.http_version is defined %}
+    proxy_http_version {{ rproxyitem.http_version }};
+{% endif %}
 {% if rproxyitem.rproxycipher is defined %}
     ssl_ciphers {{ rproxyitem.rproxycipher }};
 {% else %}
@@ -83,9 +91,6 @@ server {
 {% for addheaderitem in rproxyitem.addheaders %}
             add_header {{ addheaderitem }};
 {% endfor %}
-{% endif %}
-{% if rproxyitem.httpversion is defined %}
-            proxy_http_version {{ rproxyitem.httpversion }};
 {% endif %}
 
     }
