@@ -29,5 +29,5 @@
     group: "{{ borgmatic_fileconfig_group }}"
     mode: 0740
 - name: borgmatic init repository
-  ansible.builtin.command: "{{ borgmatic_venvdir }}/bin/{{ borgmatic_commandname_borgmatic }} -c {{ borgmatic_pathconfig }}/{{ borgmatic_fileconfig }} init --encryption repokey"
+  ansible.builtin.command: "{{ borgmatic_venv_wrapper }} -c {{ borgmatic_pathconfig }}/{{ borgmatic_fileconfig }} init --encryption repokey"
   register: borgmatic_init_success

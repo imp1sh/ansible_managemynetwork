@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+source {{ borgmatic_venvdir }}/bin/activate
+{{ borgmatic_commandname_borgmatic }} $@
+deactivate

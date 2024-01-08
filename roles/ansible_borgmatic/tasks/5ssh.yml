@@ -28,4 +28,4 @@
           #    key: "{{ lookup('pipe', 'ssh-keyscan -trsa ' + borgmatic_sshkey_targethost) }}"
           #    name: "{{ borgmatic_sshkey_targethost }}"
           #    state: present
-  when: borgmatic_repository.value['type'] == "ssh"
+  when: borgmatic_repository.value['type'] == "ssh://"

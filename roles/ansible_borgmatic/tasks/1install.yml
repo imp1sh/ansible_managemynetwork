@@ -47,6 +47,13 @@
         mode: 0750
         owner: root
   when: borgmatic_apprise
+# Wrapper script
+- name: Deploy wrapper script to use venv
+  ansible.builtin.template:
+    src: borgmatic_venv_wrapper.sh.jinja2
+    dest: "{{ borgmatic_venv_wrapper }}"
+    mode: 0740
+    owner: root
 # config dir
 - name: Make sure borgmatic config dir exists
   file:

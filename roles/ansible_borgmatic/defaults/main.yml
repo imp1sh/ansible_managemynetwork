@@ -1,6 +1,7 @@
 ---
 # defaults file for ansible_borgmatic
 borgmatic_packageapprisepip: "apprise"
+borgmatic_venv_wrapper: "/usr/local/sbin/borgmatic_venv"
 borgmatic_path_apprise_script: "/usr/local/bin"
 borgmatic_apprise_via_pip: true
 borgmatic_via_pip: true
