@@ -1,0 +1,13 @@
+---
+- name: remove unnecessary files
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  when: remove_files
+  loop: "{{ cleanup_remove_files }}"
+- name: remove unnecessary directory
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  when: remove_directory
+  loop: "{{ cleanup_remove_directory }}"
