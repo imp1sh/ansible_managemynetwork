@@ -13,6 +13,7 @@ borgmatic_package_requirements:
   - build-essential
   - pkg-config
   - python3-pkgconfig
+  - virtualenv
 borgmatic_pathconfig: "/etc/borgmatic"
 borgmatic_pathconfig_owner: "root"
 borgmatic_pathconfig_group: "root"
