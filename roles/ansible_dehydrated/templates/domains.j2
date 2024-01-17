@@ -1,0 +1,5 @@
+{% for domain in dehydrated_domains -%}
+{{ domain.name }}{% if domain.altnames is defined %} {{ domain.altnames | join(' ') }}{% endif -%}
+{% if not loop.last %} 
+{% endif %}
+{% endfor %}

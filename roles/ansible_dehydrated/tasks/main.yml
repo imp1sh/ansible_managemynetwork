@@ -88,7 +88,7 @@
 # deploy files and jobs
 - name: Install dehydrated config
   ansible.builtin.template:
-    src: dehydratedconfig
+    src: dehydratedconfig.j2
     dest: "{{ dehydrated_confdir }}/config"
     owner: "{{ dehydrated_user }}"
     group: "{{ dehydrated_group }}"
@@ -96,7 +96,7 @@
   notify: dehydrated cron
 - name: Install nginx hook script
   ansible.builtin.template:
-    src: nginxhook.sh
+    src: nginxhook.j2
     dest: "{{ dehydrated_basedir }}/nginxhook.sh"
     mode: 0750
     owner: "{{ dehydrated_user }}"
@@ -110,13 +110,20 @@
     group: "{{ dehydrated_group }}"
 - name: Install dehydrated domains.txt
   template:
-    src: domains.txt
+    src: domains.j2
     dest: "{{ dehydrated_confdir }}/domains.txt"
     owner: "{{ dehydrated_user }}"
     group: "{{ dehydrated_group }}"
   when: dehydrated_domains is defined
   notify:
     - dehydrated cron
+- name: Setup per-certificate domain config
+  # https://github.com/dehydrated-io/dehydrated/blob/master/docs/per-certificate-config.md
+  ansible.builtin.include_tasks:
+    file: domainconfig.yml
+  loop: "{{ dehydrated_domains }}"
+  loop_control:
+    loop_var: dehydrated_domain
 # Accept terms and cron
 - name: Run dehydrated to accept terms
   ansible.builtin.command: "{{ dehydrated_binpath }} --register --accept-terms"

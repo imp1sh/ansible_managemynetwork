@@ -1,3 +1,0 @@
-{% for line in dehydrated_domains %}
-{{ line }}
-{% endfor %}
