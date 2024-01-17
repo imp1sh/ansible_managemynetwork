@@ -47,15 +47,15 @@ Version:        {{ ansible_facts['distribution_version'] }}
 purpose:        {{ nb_vms[inventory_hostname]["description"] }}
 {% elif nb_devices[inventory_hostname]["description"] is defined %}
 purpose:        {{ nb_devices[inventory_hostname]["description"] }}
-{% else %}
-purpose:        {{ motd_purpose | default(omit) }}
+{% elif motd_purpose is defined %}
+purpose:        {{ motd_purpose }}
 {% endif %}
 {% if nb_vms[inventory_hostname]["site"]["display"] is defined %}
 site:           {{ nb_vms[inventory_hostname]["site"]["display"] }}
 {% elif nb_devices[inventory_hostname]["site"]["display"] is defined %}
 site:           {{ nb_devices[inventory_hostname]["site"]["display"] }}
-{% else %}
-site:           {{ motd_site | default(omit) }}
+{% elif motd_site is defined %}
+site:           {{ motd_site }}
 {% endif %}
 {% if nb_vms[inventory_hostname]["primary_ip6"] is defined %}
 IPv6 address:   {{ nb_vms[inventory_hostname]["primary_ip6"] }}
