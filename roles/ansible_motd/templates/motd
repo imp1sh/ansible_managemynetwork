@@ -38,7 +38,7 @@
  _ __   ___  _ __ _ ___   _ __   ___| |___      _____  _ __| | _____ 
 | '_ \ / _ \| '__| / __| | '_ \ / _ \ __\ \ /\ / / _ \| '__| |/ / __|
 | | | | (_) | |  | \__ \ | | | |  __/ |_ \ V  V / (_) | |  |   <\__ \
-|_| |_|\___/|_|  |_|___/ |_| |_|\___|\__| \_/\_/ \___/|_|  |_|\_\___/
+|_| |_|\___/|_|  |_|___/ |_| |_|\___|\__| \_/\_/ \___/|_|  |_|\_\___
 
 {% else %}
    ___            _ __   __   
@@ -71,16 +71,16 @@ IPv6 address:   {{ nb_vms[inventory_hostname]["primary_ip6"] }}
 IPv6 address:   {{ nb_devices[inventory_hostname]["primary_ip6"] }}
 {% elif primary_ip6 is defined %}
 IPv6 address:   {{ primary_ip6 }}
-{% else %}
-IPv6 address:   {{ ansible_facts['ansible_default_ipv6']['address'] }}/{{ ansible_facts['ansible_default_ipv6']['prefix'] }}
+{% elif ansible_facts['default_ipv6']['address'] is defined %}
+IPv6 address:   {{ ansible_facts['default_ipv6']['address'] }}/{{ ansible_facts['default_ipv6']['prefix'] }}
 {% endif %}
-{% if nb_vms[inventory_hostname]["primary_ip4"] is defined %}
+{% if nb_vms[inventory_hostname]["primary_ip4"]['address'] is defined %}
 IPv4 address:   {{ nb_vms[inventory_hostname]["primary_ip4"] }}
 {% elif nb_devices[inventory_hostname]["primary_ip4"] is defined %}
 IPv4 address:   {{ nb_devices[inventory_hostname]["primary_ip4"] }}
 {% elif primary_ip4 is defined %}
 IPv4 address:   {{ primary_ip4 }}
-{% else %}
-IPv4 address:   {{ ansible_facts['ansible_default_ipv4']['address'] }}/{{ ansible_facts['ansible_default_ipv4']['prefix'] }}
+{% elif ansible_facts['default_ipv4']['address'] is defined %}
+IPv4 address:   {{ ansible_facts['default_ipv4']['address'] }}/{{ ansible_facts['default_ipv4']['prefix'] }}
 {% endif %}
 timezone:       {{ ansible_date_time['tz'] }}
