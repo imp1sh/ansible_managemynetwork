@@ -6,7 +6,7 @@
 You can define interfaces in ansible, either
 - per host via `openwrt_network_interfaceshost` 
 - per group via `openwrt_network_interfacesgroup`
-The same is avlid for 
+The same is valid for 
 - `openwrt_network_devices` and
 - `openwrt_network_bridge_vlan`
 
@@ -130,13 +130,13 @@ openwrt_network_deviceshost:
       - "eth3"
 ```
 
-In order to assign VLAN you use the 'openwrt_network_bridge_vlan' variable:
+In order to assign VLAN you use the 'openwrt_network_bridge_vlanhost' variable:
 * **t** is Tagged
 * **u** is untagged
 * **\*** is for primary VLAN ID
 
 ```yaml
-openwrt_network_bridge_vlan:
+openwrt_network_bridge_vlanhost:
   - device: "mainbridge"
     vlan: "5"
     vlaninfo: "Netz1"
