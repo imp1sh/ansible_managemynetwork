@@ -16,7 +16,9 @@
   when: ansible_facts['os_family'] == 'Alpine' or ansible_facts['os_family'] == 'Debian' or ansible_facts['os_family'] == 'RedHat'
 - name: check if logging variable is defined
   assert:
-    that: nftableslogging|bool
+    that:
+      - nftableslogging is defined
+      - nftableslogging is boolean
     fail_msg: "You need to enable or disable logging explicitly. Set the variable nftableslogging either to true or false."
     success_msg: "nftables logging is set to {{ nftableslogging }}"
     quiet: yes
