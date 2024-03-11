@@ -86,8 +86,8 @@ server {
 {% endif %}
 {% if vhostitem.additionallocations is defined %}
 {% for locationitem in vhostitem.additionallocations %}
-location {{ locationvhostitem.location }} {
-{% for locationitemelement in locationvhostitem.options %}
+location {{ locationitem.location }} {
+{% for locationitemelement in locationitem.options %}
   {{ locationitemelement }}
 {% endfor %}
 }

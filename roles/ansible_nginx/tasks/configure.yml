@@ -32,8 +32,8 @@
     path: "{{ item.authfile }}"
     name: "{{ item.authuser }}"
     password: "{{ item.authpassword }}"
-    owner: "{{ nginx_confowner }}"
-    group: "{{ nginx_confgroup }}"
+    owner: "{{ nginx_group }}"
+    group: "{{ nginx_group }}"
     mode: 0640
   loop: "{{ nginx_authenticationitems }}"
   when: nginx_authenticationitems is defined
