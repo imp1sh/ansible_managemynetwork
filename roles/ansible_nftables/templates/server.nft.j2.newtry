@@ -1,0 +1,80 @@
+{% import "functions.nft.j2" as functions with context %}
+#!/usr/sbin/nft -f
+# Deployed by Ansible
+
+flush ruleset
+
+table inet filter {
+    chain input {
+{{ functions.policyswitch_header(nftables_server_input_policy) }}
+        iif lo accept comment "Accept any localhost traffic"
+        ct state invalid drop comment "Drop invalid connections"
+        ct state established,related accept comment "Accept traffic originated from us"
+        
+        ip6 nexthdr icmpv6 icmpv6 type { echo-request, destination-unreachable, packet-too-big, time-exceeded, parameter-problem, mld-listener-query, mld-listener-report, mld-listener-reduction, nd-router-solicit, nd-router-advert, nd-neighbor-solicit, nd-neighbor-advert, ind-neighbor-solicit, ind-neighbor-advert, mld2-listener-report } accept comment "Accept ICMPv6"
+        ip protocol icmp icmp type { echo-request, destination-unreachable, router-solicitation, router-advertisement, time-exceeded, parameter-problem } accept comment "Accept ICMP"
+        ip protocol igmp accept comment "Accept IGMP"
+        # individual rules
+{% if nftablesopenhost is defined %}
+{% for rule in nftablesopenhost %}
+{{ functions.create_input_rule(rule) }}
+{% endfor %}
+{% endif %}
+{% if nftablesmergedgroup is defined %}
+{% for rule in nftablesmergedgroup %}
+{{ functions.create_input_rule(rule) }}
+{% endfor %}
+{% endif %}
+        # individual interface input jump points
+{% for interface in ansible_interfaces %}
+{% if interface != 'lo' %}
+        iifname {{ interface }} jump input_{{ interface }}
+{% endif %}
+{% endfor %}
+{{ functions.policyswitch_footer(nftables_server_input_policy) }}
+{{ functions.loggingswitch(nftableslogging) }}
+    }
+
+    chain forward {
+{{ functions.policyswitch_header(nftables_server_forward_policy) }}
+{{ functions.policyswitch_footer(nftables_server_forward_policy) }}
+    }
+
+    chain output {
+{{ functions.policyswitch_header(nftables_server_output_policy) }}
+{{ functions.policyswitch_footer(nftables_server_output_policy) }}
+    }
+
+    # individual interface chains
+{% for interface in ansible_interfaces %}
+{% if interface != 'lo' %}
+    chain input_{{ interface }} {
+{% if nftablesopenhost is defined %}
+{% for inputrule in nftablesopenhost %}
+{% if inputrule['inif'] is defined and inputrule['inif'] == interface %}
+{{ functions.create_input_rule(inputrule) }}
+{% endif %}
+{% endfor %}
+{% endif %}
+{% if nftablesgroupmerged is defined %}
+{% for inputrule in nftablesgroupmerged %}
+{% if inputrule['inif'] is defined and inputrule['inif'] == interface %}
+{{ functions.create_input_rule(inputrule) }}
+{% endif %}
+{% endfor %}
+{% endif %}
+
+{% if nftables_dnat is defined %}
+        # Rules auto generated from dnat definitions
+{% for dnatrule in nftables_dnat %}
+{% if dnatrule['inif'] == interface %}
+        {{ dnatrule['proto'] }} dport {{ dnatrule['dport'] }} meta protocol ip accept comment "{{ dnatrule['comment'] }}"
+{% endif %}
+{% endfor %}
+{% endif %}
+{{ functions.loggingswitch(nftableslogging) }}
+{{ functions.policyswitch_footer(nftables_server_input_policy) }}
+    }
+{% endif %}
+{% endfor %}
+}

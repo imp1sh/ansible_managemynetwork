@@ -3,3 +3,6 @@
 templatename_rules_firewall: "firewall.nft.j2"
 templatename_rules_workstation: "workstation.nft.j2"
 templatename_rules_server: "server.nft.j2"
+nftables_server_input_policy: "reject"
+nftables_server_forward_policy: "reject"
+nftables_server_output_policy: "accept"
