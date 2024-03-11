@@ -53,7 +53,7 @@
   when: openwrt_prometheus_node_exporter_lua_wifi_stations is defined
 - name: Again run packages role
   ansible.builtin.include_role:
-    name: imp1sh.ansible_openwrt.ansible_openwrtpackages
+    name: imp1sh.ansible_managemynetwork.ansible_openwrtpackages
 - name: Provide prometheus-node-exporter-lua configuration
   ansible.builtin.template:
     src: "prometheus-node-exporter-lua.jinja2"

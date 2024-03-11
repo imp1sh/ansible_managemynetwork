@@ -26,7 +26,7 @@
   when: openwrt_quagga_enableripng
 - name: Again run packages role
   ansible.builtin.include_role:
-    name: imp1sh.ansible_openwrt.ansible_openwrtpackages
+    name: imp1sh.ansible_managemynetwork.ansible_openwrtpackages
 - name: Enable Quagga
   ansible.builtin.service:
     name: quagga
