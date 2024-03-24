@@ -4,6 +4,10 @@
 # missing routine for enable as well as for disabling services in imagebuilder...
 # it's only adding or removing a link, but I need the exact link name it would have been used
 # in a real openwrt device, otherwise there could be conflicts
+- name: Merge variables
+  ansible.builtin.include_tasks:
+    file: merge.yml
+
 - name: make sure deploypath config exists
   ansible.builtin.file:
     path: "{{ openwrt_services_deploypath }}"

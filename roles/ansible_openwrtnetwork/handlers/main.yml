@@ -7,3 +7,15 @@
   when:
     - not openwrt_network_runimagebuilder | default(false)
     - not openwrt_network_skiprestart | default(false)
+- name: restart_keepalived
+  ansible.builtin.service:
+    name: keepalived
+    state: restarted
+  when:
+    - not openwrt_network_runimagebuilder | default(false)
+- name: restart_conntrackd
+  ansible.builtin.service:
+    name: conntrackd
+    state: restarted
+  when:
+    - not openwrt_network_runimagebuilder | default(false)

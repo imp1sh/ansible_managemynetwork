@@ -1,0 +1,41 @@
+---
+# Prepare first phase
+# Disabled services
+- name: Merge openwrt_services_disabled from all groups this host is a member of
+  ansible.builtin.set_fact:
+    openwrt_services_disabledmergedgroup: "{{ openwrt_services_disabledgroup.keys() | list | intersect(group_names) | map('extract', openwrt_services_disabledgroup) | list | flatten }}"
+  when: openwrt_services_disabledgroup is defined
+- name: Set seperator if imagebuilder
+  ansible.builtin.set_fact:
+    openwrt_services_separator: ' '
+  when: openwrt_services_runimagebuilder | default(false)
+- name: Set separator if not imagebuilder
+  ansible.builtin.set_fact:
+    openwrt_services_separator: ','
+  when: not openwrt_services_runimagebuilder | default(false)
+- name: combine lists into openwrt_services_disabled var
+  ansible.builtin.set_fact:
+    openwrt_services_disabled: "{{ [openwrt_services_disabledmergedgroup, openwrt_services_disabledhost, openwrt_services_disabledrole] | select('defined') | flatten | unique }}"
+- name: remove duplicates from list
+  ansible.builtin.set_fact:
+    openwrt_services_disabled: "{{ openwrt_services_disabled | unique }}"
+
+# Enabled services
+- name: Merge openwrt_services_enabled from all groups this host is a member of
+  ansible.builtin.set_fact:
+    openwrt_services_enabledmergedgroup: "{{ openwrt_services_enabledgroup.keys() | list | intersect(group_names) | map('extract', openwrt_services_enabledgroup) | list | flatten }}"
+  when: openwrt_services_enabledgroup is defined
+- name: Set seperator if imagebuilder
+  ansible.builtin.set_fact:
+    openwrt_services_separator: ' '
+  when: openwrt_services_runimagebuilder | default(false)
+- name: Set separator if not imagebuilder
+  ansible.builtin.set_fact:
+    openwrt_services_separator: ','
+  when: not openwrt_services_runimagebuilder | default(false)
+- name: combine lists into openwrt_services_enabled var
+  ansible.builtin.set_fact:
+    openwrt_services_enabled: "{{ [openwrt_services_enabledmergedgroup, openwrt_services_enabledhost, openwrt_services_enabledrole] | select('defined') | flatten | unique }}"
+- name: remove duplicates from install list
+  ansible.builtin.set_fact:
+    openwrt_services_enabled: "{{ openwrt_services_enabled | unique }}"

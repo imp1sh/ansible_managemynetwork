@@ -2,6 +2,7 @@
 # tasks file for ansible_openwrtnetwork
 - name: merge interfaces from group and host definitions
   include_tasks: merge.yml
+
 # Wireguard
 - name: make sure wireguard management dir exists
   ansible.builtin.file:
@@ -22,6 +23,12 @@
   ansible.builtin.file:
     path: "{{ openwrt_network_deploypath }}"
     state: directory
+
+# HA Tasks
+- name: Run Tasks for HA setup
+  ansible.builtin.include_tasks: ha.yml
+  when: openwrt_network_hamaster is defined or openwrt_network_habackup is defined
+
 # Main Network Deployment Tasks
 - name: Deploy Network configuration
   ansible.builtin.template:
