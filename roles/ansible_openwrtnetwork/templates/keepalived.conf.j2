@@ -1,0 +1,53 @@
+! Configuration File for keepalived distributed by Ansible
+
+global_defs {
+{% if openwrt_network_keepalived_notification_emails is defined %}
+   notification_email {
+{% for notification_email in openwrt_network_keepalived_notification_emails %}
+      {{ notification_email }}
+{% endfor %}
+   }
+{% endif %}
+{% if openwrt_network_keepalived_notification_email_from is defined %}
+   notification_email_from {{ openwrt_network_keepalived_notification_email_from }}
+{% endif %}
+{% if openwrt_network_keepalived_smtp_server is defined %}
+   smtp_server {{ openwrt_network_keepalived_smtp_server }} {{ openwrt_network_keepalived_smtp_port | default('25') }}
+{% endif %}
+   smtp_connect_timeout 30
+   router_id {{ inventory_hostname }}
+   vrrp_skip_check_adv_addr
+   vrrp_strict
+   vrrp_garp_interval 0
+   vrrp_gna_interval 0
+}
+
+vrrp_sync_group MAINGROUP {
+   group {
+{% for key, value in openwrt_network_keepalived_sync_groups.items() %}
+      {{ key }}
+{% endfor %}
+   }
+}
+
+{% for key, value in openwrt_network_keepalived_sync_groups.items() %}
+vrrp_instance {{ key }} {
+{% if openwrt_network_hamaster is defined and openwrt_network_hamaster == inventory_hostname %}
+   state MASTER
+   priority 200
+{% elif openwrt_network_haslave is defined and openwrt_network_haslave == inventory_hostname %}
+   state BACKUP
+   priority 100
+{% endif %}
+   interface {{ value['interface'] }}
+   virtual_router_id {{ value['virtual_router_id'] }}
+   advert_int 1
+   authentication {
+      auth_type PASS
+      auth_pass {{ value['auth_pass'] }}
+   }
+   virtual_ipaddress {
+      {{ value['virtual_address'] }}
+   }
+}
+{% endfor %}

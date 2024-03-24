@@ -1,0 +1,48 @@
+Sync {
+    Mode FTFW {
+        DisableExternalCache Off
+        CommitTimeout 1800
+        PurgeTimeout 5
+    }
+
+    UDP {
+{% if openwrt_network_conntrackd_self_ipv4 is defined %}
+        IPv4_address {{ openwrt_network_conntrackd_self_ipv4 }}
+        IPv4_Destination_Address {{ openwrt_network_conntrackd_remote_ipv4 }}
+{% else %}
+	IPv6_address {{ openwrt_network_conntrackd_self_ipv6 }}
+        IPv6_Destination_Address {{ openwrt_network_conntrackd_remote_ipv6 }}
+{% endif %}
+        Port 3780
+        Interface {{ openwrt_network_conntrackd_interface }}
+        SndSocketBuffer 1249280
+        RcvSocketBuffer 1249280
+        Checksum on
+    }
+}
+
+General {
+    Nice -20
+    HashSize 32768
+    HashLimit 131072
+    LogFile on
+    Syslog on
+    LockFile /var/lock/conntrack.lock
+    UNIX {
+        Path /var/run/conntrackd.ctl
+        Backlog 20
+    }
+    NetlinkBufferSize 2097152
+    NetlinkBufferSizeMaxGrowth 8388608
+    Filter From Userspace {
+        Protocol Accept {
+            TCP
+            UDP
+            ICMP
+        }
+        Address Ignore {
+            IPv4_address 127.0.0.1
+            IPv6_address ::1
+        }
+    }
+}
