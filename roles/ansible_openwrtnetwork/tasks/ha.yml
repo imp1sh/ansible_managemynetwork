@@ -1,35 +1,39 @@
 ---
 # Packages
-- name: additional packages are needed for hamode
-  set_fact:
-    openwrt_packages_installrole: "{{ ['keepalived', 'conntrackd', 'kmod-nf-conntrack', 'kmod-nf-conntrack6'] }}"
-  when: openwrt_network_hamster is defined or openwrt_network_habackup is defined
-- name: Call packages role
-  ansible.builtin.include_role:
-    name: imp1sh.ansible_managemynetwork.ansible_openwrtpackages
+- name: packages
+  block:
+    - name: additional packages are needed for hamode
+      set_fact:
+        openwrt_packages_installrole: "{{ ['keepalived', 'conntrackd', 'kmod-nf-conntrack', 'kmod-nf-conntrack6'] }}"
+    - name: Call packages role
+      ansible.builtin.include_role:
+        name: imp1sh.ansible_managemynetwork.ansible_openwrtpackages
+  when: not openwrt_network_runimagebuilder | default(false)
 
 # Deploy config
 - name: deploy keepalived config
   ansible.builtin.template:
     src: keepalived.conf.j2
-    dest: /etc/keepalived/keepalived.conf
+    dest: "{{ openwrt_network_keepalived_deploypath }}/{{ openwrt_network_keepalived_deployfile }}"
   notify: restart_keepalived
 - name: deploy keepalived uci config
   ansible.builtin.template:
     src: keepalived.j2
-    dest: /etc/config/keepalived
+    dest: "{{ openwrt_network_deploypath }}/{{ openwrt_network_keepalived_deployfile_uci }}"
   notify: restart_keepalived
 - name: deploy conntrackd config
   ansible.builtin.template:
     src: conntrackd.conf.j2
-    dest: /etc/conntrackd/conntrackd.conf 
+    dest: "{{ openwrt_network_conntrackd_deploypath }}/{{ openwrt_network_conntrackd_deployfile }}"
   notify: restart_conntrackd
 
 # Services
 - name: Handling services
-  set_fact:
-    openwrt_services_enabledrole: "{{ ['keepalived', 'conntrackd'] }}"
-  when: openwrt_network_hamster is defined or openwrt_network_habackup is defined
-- name: Call services role
-  ansible.builtin.include_role:
-    name: imp1sh.ansible_managemynetwork.ansible_openwrtservices
+  block:
+    - name: set service fact
+      ansible.builtin.set_fact:
+        openwrt_services_enabledrole: "{{ ['keepalived', 'conntrackd'] }}"
+    - name: Call services role
+      ansible.builtin.include_role:
+        name: imp1sh.ansible_managemynetwork.ansible_openwrtservices
+  when: not openwrt_network_runimagebuilder | default(false)
