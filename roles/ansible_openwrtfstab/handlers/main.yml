@@ -1,0 +1,5 @@
+---
+# handlers file for ansible_openwrtfstab
+- name: "fstab mount"
+  ansible.builtin.shell: "/sbin/block mount"
+  when: not openwrt_fstab_runimagebuilder | default(false)

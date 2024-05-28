@@ -1,0 +1,5 @@
+---
+# defaults file for ansible_openwrtfstab
+openwrt_fstab_deployroot: "/"
+openwrt_fstab_deploypath: "{{ openwrt_fstab_deployroot }}etc/config"
+openwrt_fstab_deployfile: "fstab"

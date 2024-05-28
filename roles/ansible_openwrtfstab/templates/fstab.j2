@@ -1,0 +1,53 @@
+config global
+        option anon_swap "{{ openwrt_fstab_anon_swap | default(0) }}"
+        option anon_mount "{{ openwrt_fstab_anon_mount | default(0) }}"
+        option auto_swap "{{ openwrt_fstab_auto_swap | default(1) }}"
+        option auto_mount "{{ openwrt_fstab_auto_mount | default(1) }}" 
+        option delay_root "{{ openwrt_fstab_delay_root | default(5) }}"
+        option check_fs "{{ openwrt_fstab_check_fs | default(0) }}"
+
+{% if openwrt_fstab_swap is defined %}
+{% for swap in openwrt_fstab_swap %}
+config swap
+{% if swap['enabled'] is defined %}
+	option enabled "{{ swap['enabled'] }}"
+{% endif %}
+{% if swap['device'] is defined %}
+	option device "{{ swap['device'] }}"
+{% endif %}
+{% if swap['uuid'] is defined %}
+	option uuid "{{ swap['uuid'] }}"
+{% endif %}
+{% if swap['label'] is defined %}
+	option label "{{ swap['label'] }}"
+{% endif %}
+{% if swap['priority'] is defined %}
+	option priority "{{ swap['priority'] }}"
+{% endif %}
+{% endfor %}
+{% endif %}
+
+{% if openwrt_fstab_mount is defined %}
+{% for mount in openwrt_fstab_mount %}
+config mount
+{% if mount['enabled'] is defined %}
+	option enabled "{{ mount['enabled'] }}"
+{% endif %}
+{% if mount['uuid'] is defined %}
+	option uuid "{{ mount['uuid'] }}"
+{% elif mount['label'] is defined %}
+	option label "{{ mount['label'] }}"
+{% elif mount['device'] is defined %}
+	option device "{{ mount['device'] }}"
+{% endif %}
+{% if mount['autofs'] is defined %}
+	option autofs "{{ mount['autofs'] }}"
+{% endif %}
+{% if mount['target'] is defined %}
+	option target "{{ mount['target'] }}"
+{% endif %}
+{% if mount['options'] is defined %}
+	option options "{{ mount['options'] }}"
+{% endif %}
+{% endfor %}
+{% endif %}
