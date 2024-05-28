@@ -1,7 +1,7 @@
 ---
 - name: Enable bmx6 addition
   set_fact:
-    openwrt_packages_installrole: "{{ openwrt_packages_installrole + ['prometheus-node-exporter-lua-bmx6'] }}"
+    openwrt_packages_installrole: "{{ openwrt_packages_installrole | default([]) + ['prometheus-node-exporter-lua-bmx6'] }}"
   when: openwrt_prometheus_node_exporter_lua_bmx6 is defined
 - name: Enable bmx7 addition
   set_fact:
@@ -21,7 +21,7 @@
   when: openwrt_prometheus_node_exporter_lua_hostapd_ubus_stations is defined
 - name: Enable nat_traffic addition
   set_fact:
-    openwrt_packages_installrole: "{{ openwrt_packages_installrole + ['prometheus-node-exporter-lua-nat_traffic'] }}"
+    openwrt_packages_installrole: "{{ openwrt_packages_installrole | default([]) + ['prometheus-node-exporter-lua-nat_traffic'] }}"
   when: openwrt_prometheus_node_exporter_lua_nat_traffic is defined
 - name: Enable netstat addition
   set_fact:
