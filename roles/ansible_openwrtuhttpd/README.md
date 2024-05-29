@@ -15,7 +15,7 @@ role_openwrtuhttpd.yml
 
 Even without a single variable set the role will deploy a default configuration equal to how the OpenWrt configuration look like on a fresh install. The only difference is that it will redirect to https as a default.
 
-If you would like to make modifications to the [default values](https://github.com/imp1sh/ansible_openwrt/blob/main/roles/ansible_openwrtuhttpd/defaults/main.yml) of the role, just define them in your Ansible environment.
+If you would like to make modifications to the [default values](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_openwrtuhttpd/defaults/main.yml) of the role, just define them in your Ansible environment.
 
 For a full list of available configuration options, look at the [OpenWrt's uhttpd documentation](https://openwrt.org/docs/guide-user/services/webserver/uhttpd).
 

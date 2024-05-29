@@ -233,7 +233,7 @@ All other attributes are optional.
 
 ### Predefined Rules
 There are some predefined rules that are meant for the predefined zones. In contrast to stock OpenWrt there are some minor changes. In accordance to [RFC4890](https://datatracker.ietf.org/doc/html/rfc4890) several ICMPv6 packates are being passed. Additionally there are some more predefined rules as there are more predefined zones.
-In the [github repo](https://github.com/imp1sh/ansible_openwrt/blob/main/roles/ansible_openwrtfirewall/defaults/main.yml) you can inspect those default rules, see variable:  `openwrt_firewall_rulesdefault`.
+In the [github repo](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_openwrtfirewall/defaults/main.yml) you can inspect those default rules, see variable:  `openwrt_firewall_rulesdefault`.
 
 ### Rules for a Single Host:
 Example configuration for a single host two rules.
