@@ -1,4 +1,8 @@
 ---
+- name: make sure directory exists
+  ansible.builtin.file:
+    state: directory
+    path: "{{ dehydrated_basedir }}/certs/{{ dehydrated_domain.name }}/"
 - name: set per-certificate config
   ansible.builtin.template:
     src: domainconfig.j2
