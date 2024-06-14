@@ -44,15 +44,14 @@ Generally speaking this collection aims to achieve a seperation of logical eleme
 
 The roles starting with *ansible_openwrt\** are OpenWrt specific.The goal is to be able to manage every aspect of OpenWrt centrally with Ansible.
 
-
-## Advantages of imp1sh Ansible Collection
+## Advantages of imp1sh OpenWrt roles
 
 The roles contained in this collection are pretty powerful. There are even some options that are not accessible through the LUCI Webinterface. In contrast to using LUCI multiple OpenWrt devices can be managed with Ansible centrally. With it you are able to deploy settings individually, on a group basis or even for every device in your environment.
 
 It can be viewed as an alternate solution to [OpenWisp](https://openwisp.org/). Yet it is more flexible because it's based upon the super powerful Ansible software.
-It is targeted towards Service Providers, Hosters or Cloud Providers. With it you can manage plenty of Access Points / Firewalls with low effort. It is also suitable for smaller and medium sized environments in order to make sure every node is configured consistently.
+It is targeted towards Service Providers, Hosters or Cloud Providers but it's also well suited for home environments. With it you can manage plenty of Access Points / Firewalls with low effort. Using it will help you dramatically in order to make your device configurations consistent.
 
-Use Ansible properties to your needs, e.g. defining variables once and use them often. This simplifies management fundamentally. Even the big players like pfSense do not offer a central management for multiple firewalls.
+Use Ansible properties to your needs, e.g. defining variables once and use them often. This simplifies management fundamentally.
 At the same time you can access the expandibility and flexibility of OpenWrt and its packages.
 
 ## Hardware requirements OpenWrt device
@@ -69,7 +68,7 @@ The openwrt roles in this collection us **python** which is not installed on sto
 
 Depending on your needs the requirements might be higher. Depending on the additional packages you need you will need more disk space. Generally speaking I would recommand a device with:
 * 256+ MB Storage
-* OpenWrt 22.03
+* OpenWrt 23.05
 * 512+ MB RAM
 
 ## Installation
@@ -104,7 +103,7 @@ cd <<Ansible working directory>>
 ansible-galaxy collection install git+https://github.com/imp1sh/ansible_nftwallcollection.git
 ```
 
-> The collection expects to have an Ansible group named **allhosts** defined. All nodes need to be part of the group.
+> The collection expects to have an Ansible group containing all hosts. In the docs we typically use the name **tags_allhosts** defined.
 {.is-warning}
 
 ## Using the roles
@@ -128,9 +127,8 @@ Use the roles in a playbook by referencing the roles you need, for example:
 You can define variables in Ansible on a host or on a group basis. The variable type corresponds to the UCI datatype. If it is a list in UCI, it is a list in Ansible.
 Depending on what level you choose the variable names may differ, depending if you choose to define on host or group basis.
 
-There need to a group named *allhosts*. Within its scope you defined several variables.
-
 Example for defining a rule for one specific host:
+
 ```
 openwrt_firewall_ruleshost:
   "icmp wan to dmz":
@@ -140,7 +138,8 @@ openwrt_firewall_ruleshost:
     target: "ACCEPT"
 ```
 
-In contrast you can define packages to be installed on a group basis within  *./group_vars/allhosts.yml*. This will deploy the packages to all hosts member of the group openwrthosts.
+In contrast to the common ansible convention of defning group variable values within the actual group scope we need a more global group containing all hosts like **tags_allhosts**. The assocition to the group(s) is done via a dict item representing the actual group name. In this example the groups are *openwrthosts* and *openwrtaccesspoints*.
+
 ```
 openwrt_packagesinstallgroup:
   openwrthosts:
@@ -176,47 +175,32 @@ openwrt_packagesinstallgroup:
 Variable names are constructed by using the role name which is at the same time the uci section name. The wildcard part (\*) is the subsection within uci for example:
 `openwrt_system_hostname`
 
-Role: imp1sh.ansible_managemynetwork.ansible_openwrt**system**
-Variables: `openwrt_system_*`
+| Role | Varible Prefix |
+| - | - |
+|imp1sh.ansible_managemynetwork.ansible_openwrt**system** |  `openwrt_system_*` |
+|imp1sh.ansible_managemynetwork.ansible_openwrt**dropbear** | `openwrt_dropbear_*` |
+|imp1sh.ansible_managemynetwork.ansible_openwrt**services** | `openwrt_services_*` |
+|imp1sh.ansible_managemynetwork.ansible_openwrt**network**  | `openwrt_network_*` |
+|imp1sh.ansible_managemynetwork.ansible_openwrt**firewall** | `openwrt_firewall_*` |
+|imp1sh.ansible_managemynetwork.ansible_openwrt**dhcp** | `openwrt_dhcp_*` |
+|imp1sh.ansible_managemynetwork.ansible_openwrt**packages** | `òpenwrt_packages_*` |
+|imp1sh.ansible_managemynetwork.ansible_openwrt**restic** | `openwrt_restic_*` |
+|imp1sh.ansible_managemynetwork.ansible_openwrt**dhcp** |`openwrt_dhcp_*` |
+|imp1sh.ansible_managemynetwork.ansible_openwrt**acme** | `openwrt_acme_*` |
 
-Role: imp1sh.ansible_managemynetwork.ansible_openwrt**dropbear**
-Variables: `openwrt_dropbear_*`
-
-Role: imp1sh.ansible_managemynetwork.ansible_openwrt**services**
-Variables: `openwrt_services_*`
-
-Role: imp1sh.ansible_managemynetwork.ansible_openwrt**network**
-Variables: `openwrt_network_*`
-
-Role: imp1sh.ansible_managemynetwork.ansible_openwrt**firewall**
-Variables: `openwrt_firewall_*`
-
-Role: imp1sh.ansible_managemynetwork.ansible_openwrt**dhcp**
-Variables: `openwrt_dhcp_*`
-
-Role: imp1sh.ansible_managemynetwork.ansible_openwrt**packages**
-Variables: `òpenwrt_packages_*`
-
-Role: imp1sh.ansible_managemynetwork.ansible_openwrt**restic**
-Variables: `openwrt_restic_*`
-
-Role: imp1sh.ansible_managemynetwork.ansible_openwrt**dhcp**
-Variables: `openwrt_dhcp_*`
-
-Role: imp1sh.ansible_managemynetwork.ansible_openwrt**acme**
-Variables: `openwrt_acme_*`
-
-## Roles of this collection
+## OpenWrt roles this collection
 
 Each role has a specific purpose. You can use them seperately to control specific uci sections. It is desirably though to control the system as a whole with Ansible. If you do, neither make changes manually by command line nor via the webinterface. Changes will be overwritten by Ansible.
-
 If my collection lacks a feature or you find a bug, open an [issue](https://github.com/imp1sh/ansible_managemynetwork/issues) in the git bugtracker.
+
+Those are the roles that are purely OpenWrt specific.
 
   - [:leftwards_arrow_with_hook: imp1sh.ansible_managemynetwork.ansible_openwrtacme](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_openwrtacme/README.md)
   - [:leftwards_arrow_with_hook: imp1sh.ansible_managemynetwork.ansible_openwrtbabeld](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_openwrtbabeld/README.md)
   - [:leftwards_arrow_with_hook: imp1sh.ansible_managemynetwork.ansible_openwrtdhcp](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_openwrtdhcp/README.md)
   - [:leftwards_arrow_with_hook: imp1sh.ansible_managemynetwork.ansible_openwrtdropbear](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_openwrtdropbear/README.md)
   - [:leftwards_arrow_with_hook: imp1sh.ansible_managemynetwork.ansible_openwrtfirewall](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_openwrtfirewall/README.md)
+  - [:leftwards_arrow_with_hook: imp1sh.ansible_managemynetwork.ansible_openwrtfstab](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_openwrtfstab/README.md)
   - [:leftwards_arrow_with_hook: imp1sh.ansible_managemynetwork.ansible_openwrtimagebuilder](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_openwrtimagebuilder/README.md)
   - [:leftwards_arrow_with_hook: imp1sh.ansible_managemynetwork.ansible_openwrtnetwork](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_openwrtnetwork/README.md)
   - [:leftwards_arrow_with_hook: imp1sh.ansible_managemynetwork.ansible_openwrtpackages](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_openwrtpackages/README.md)
@@ -230,4 +214,7 @@ If my collection lacks a feature or you find a bug, open an [issue](https://gith
   - [:leftwards_arrow_with_hook: imp1sh.ansible_managemynetwork.ansible_openwrtuhttpd](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_openwrtuhttpd/README.md)
   - [:leftwards_arrow_with_hook: imp1sh.ansible_managemynetwork.ansible_openwrtwireguard](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_openwrtwireguard/README.md)
   - [:leftwards_arrow_with_hook: imp1sh.ansible_managemynetwork.ansible_openwrtwireless](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_openwrtwireless/README.md)
-  - [:leftwards_arrow_with_hook: imp1sh.ansible_managemynetwork.ansible_openwrtzabbix](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_openwrtzabbix/README.md)
+
+There are some roles that work for common Linux AND OpenWrt as well like:
+
+  - [:leftwards_arrow_with_hook: imp1sh.ansible_managemynetwork.ansible_zabbixagent](https://github.com/imp1sh/ansible_managemynetwork/tree/main/roles/ansible_zabbixagent)
