@@ -11,3 +11,5 @@ shellpackages:
   sh: "bash"
   bash: "bash"
   fish: "fish"
+  nologin: "bash"
+  "false" "bash"
