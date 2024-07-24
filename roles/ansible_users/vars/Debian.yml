@@ -12,4 +12,4 @@ shellpackages:
   bash: "bash"
   fish: "fish"
   nologin: "bash"
-  "false" "bash"
+  "false": "bash"
