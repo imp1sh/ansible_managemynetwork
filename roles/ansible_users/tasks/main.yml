@@ -9,6 +9,14 @@
         - "default.yml"
       paths:
         - "vars"
+  when: system_users is defined
+
+- name: Install OpenWrt specific packages
+  ansible.builtin.package:
+    name: "{{ system_users_additional_packages }}"
+    state: present
+  when: ansible_facts['os_family'] == "OpenWrt"
+
 
 - name: iterate over the users
   ansible.builtin.include_tasks: "iterateusers.yml"
@@ -16,3 +24,8 @@
   loop_control:
     loop_var: user
   when: system_users is defined
+
+- name: Fail status feedback
+  ansible.builtin.debug:
+    msg: "The role system_users did not run on host {{ inventory_hostname }} because the var system_users is not set."
+  when: system_users is not defined

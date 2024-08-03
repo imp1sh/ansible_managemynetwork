@@ -5,16 +5,21 @@
 This role manages users for hosts.
 It currently supports those Operating Systems:
 - Debian
+- OpenWrt
 - Ubuntu (best effort)
 - FreeBSD (best effort)
 - ~~Alpine~~ (probably works but no longer supported)
 - ~~Arch~~ (probably works but no longer supported)
 - ~~Manjaro~~ (probably works but no longer supported)
 
+When using this with OpenWrt it will install those packages so ansible.builtin.user can do its job:
+- shadow-useradd
+- sudo
+Usually in OpenWrt only the root user is being used but it's actually possible to add additional users, e.g. for backup jobs or whatever. This role is not compatible to run with [ansible_openwrtimagebuilder](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_openwrtimagebuilder/README.md) so if you want the users on your system you will have to run this role on a live system. 
 
 Since you don't want to define your users for every host individually, you need to place your variable somewhere every host has access to it. In this example the `system_users` variable will be defined in the scope of an Ansible group called tags_allhosts.
 
-./group_vars/tags_allhosts.yaml
+`./group_vars/tags_allhosts.yaml`
 ```yaml
 system_users:
   jdenker:
@@ -29,7 +34,7 @@ system_users:
     shell: "zsh"
 ```
 
-The password is expected to be encrypted. The easiest way to get such an encrypted password is to use the `mkpasswd` command line tool.
+The password is expected to be encrypted. The easiest way to get such an encrypted password is to use the `mkpasswd` command line tool. Some might even want to put this into ansible-vault encryption on top.
 A more complete list of available options can be found in the [role's documentation](https://docs.ansible.com/ansible/latest/collections/ansible/builtin/user_module.html).
 
 This role has a dependency to [imp1sh.ansible_managemynetwork.ansible_packages](/junicast/docs/AnsibleManagemynetworkCollection/rolePackages) and will install the shell package you choose for the users automatically.
