@@ -1,2 +1,4 @@
 ---
 # defaults file for ansible_users
+system_users_setpassword_deploypath: "{{ system_users_setpassword_deployroot }}/etc/uci-defaults/"
+system_users_setpassword_deployfile: "99-set-root-password"

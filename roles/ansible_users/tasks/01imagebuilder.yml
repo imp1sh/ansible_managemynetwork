@@ -1,0 +1,36 @@
+---
+- name: Block when system_users is defined for host
+  block:
+    - name: Setting OS variables
+      ansible.builtin.include_vars: OpenWrt.yml
+    
+    - name: set additoinal packages for installrole var
+      ansible.builtin.set_fact:
+        openwrt_packages_installrole: "{{ system_users_additional_packages }}"
+    
+    - name: call packages role
+      ansible.builtin.include_role:
+        name: imp1sh.ansible_managemynetwork.ansible_openwrtpackages
+
+    - name: Ensure users dictionary has a hosts attribute
+      ansible.builtin.set_fact:
+        list_of_users: []
+
+    - name: check what users shall be deployed on host
+      ansible.builtin.include_tasks: "02check_if_user_shall_be_deployed.yml"
+      loop: "{{ system_users | dict2items }}"
+      loop_control:
+        loop_var: user
+
+    - name: deploy users
+      ansible.builtin.include_tasks: "03imagebuilder_runusers.yml"
+      loop: "{{ system_users | dict2items }}"
+      loop_control:
+        loop_var: user
+        index_var: index
+  when: system_users is defined
+
+- name: Fail status feedback
+  ansible.builtin.debug:
+    msg: "The role system_users did not run on host {{ inventory_hostname }} because the var system_users is not set."
+  when: system_users is not defined

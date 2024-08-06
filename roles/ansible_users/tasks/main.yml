@@ -1,31 +1,12 @@
 ---
-- name: Setting OS variables
-  ansible.builtin.include_vars: "{{lookup('ansible.builtin.first_found', params)}}"
-  vars:
-    params:
-      files:
-        - "{{ ansible_distribution }}.yml"
-        - "{{ ansible_os_family }}.yml"
-        - "default.yml"
-      paths:
-        - "vars"
-  when: system_users is defined
+- name: Run live mode
+  ansible.builtin.include_tasks: 01live.yml
+  when: ( system_users_runimagebuilder is not defined ) or
+        ( system_users_runimagebuilder is defined and not system_users_runimagebuilder )
 
-- name: Install OpenWrt specific packages
-  ansible.builtin.package:
-    name: "{{ system_users_additional_packages }}"
-    state: present
-  when: ansible_facts['os_family'] == "OpenWrt"
+- name: Run imagebuilder mode
+  ansible.builtin.include_tasks: 01imagebuilder.yml
+  when: 
+    - system_users_runimagebuilder is defined
+    - system_users_runimagebuilder
 
-
-- name: iterate over the users
-  ansible.builtin.include_tasks: "iterateusers.yml"
-  loop: "{{ system_users | dict2items }}"
-  loop_control:
-    loop_var: user
-  when: system_users is defined
-
-- name: Fail status feedback
-  ansible.builtin.debug:
-    msg: "The role system_users did not run on host {{ inventory_hostname }} because the var system_users is not set."
-  when: system_users is not defined
