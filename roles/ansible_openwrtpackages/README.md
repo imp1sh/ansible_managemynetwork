@@ -1,4 +1,7 @@
 # imp1sh.ansible_managemynetwork.ansible_openwrtpackages
+
+> Role is deprecated and will not be developed further, please use [imp1sh.ansible_managemynetwork.ansible_packages](https://github.com/imp1sh/ansible_managemynetwork/tree/main/roles/ansible_packages) instead.
+
 This role manages opkg packages on OpenWrt nodes.
 You can install packages for a specific host:
 
