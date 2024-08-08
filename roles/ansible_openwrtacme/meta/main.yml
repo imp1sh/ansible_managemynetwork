@@ -14,9 +14,9 @@ galaxy_info:
         - "22.03"
   galaxy_tags: [openwrt, lede, letsencrypt, acme, certmanager]
 dependencies:
-  - role: imp1sh.ansible_managemynetwork.ansible_openwrtpackages
+  - role: imp1sh.ansible_managemynetwork.ansible_packages
     vars:
-      openwrt_packages_installrole:
+      packages_installrole:
         - acme
         - acme-acmesh-dnsapi
         - luci-app-acme

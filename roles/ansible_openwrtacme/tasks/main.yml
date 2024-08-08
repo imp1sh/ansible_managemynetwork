@@ -10,13 +10,13 @@
     dest: "{{ openwrt_acme_deploypath }}/{{ openwrt_acme_deployfile }}"
   notify: restart acme
   when: openwrt_acme_cert is defined
-- name: Initialize openwrt_packages_installimagebuilder
+- name: Initialize packages_installimagebuilder
   ansible.builtin.set_fact:
-    openwrt_packages_installimagebuilder: []
+    packages_installimagebuilder: []
   when:
-    - openwrt_packages_installimagebuilder is not defined
+    - packages_installimagebuilder is not defined
     - openwrt_acme_runimagebuilder | default(false)
-- name: Merge role packages into openwrt_packages_installimagebuilder
+- name: Merge role packages into packages_installimagebuilder
   ansible.builtin.set_fact:
-    openwrt_packages_installimagebuilder: "{{ openwrt_packages_installimagebuilder + openwrt_packages_installrole }}"
+    packages_installimagebuilder: "{{ packages_installimagebuilder + packages_installrole }}"
   when: openwrt_acme_runimagebuilder | default(false)
