@@ -14,9 +14,9 @@ galaxy_info:
       - "22.03"
   galaxy_tags: [openwrt, lede, batman-adv, routing]
 dependencies:
-  - role: imp1sh.ansible_managemynetwork.ansible_openwrtpackages
+  - role: imp1sh.ansible_managemynetwork.ansible_packages
     vars:
-      openwrt_packages_installrole:
+      packages_installrole:
         - alfred
         - batctl-full
         - kmod-batman-adv  
