@@ -1,9 +1,21 @@
 ---
-- name: List of packages to be removed
+- name: MMN Packages - List of packages to be removed
   debug:
     var: packages_remove
-- name: Uninstall packages
+- name: MMN Packages - Uninstalling packages non OpenWrt
   ansible.builtin.package:
     name: "{{ packages_remove }}"
     state: absent
-  when: packages_remove
+  when:
+    - packages_remove
+    - ansible_distribution != 'OpenWrt'
+    - not packages_runimagebuilder | default(false)
+- name: MMN Packages - Uninstalling packages OpenWrt
+  ansible.builtin.opkg:
+    name: "{{ packages_remove | join(packages_separator) }}"
+    state: absent
+    update_cache: true
+  when:
+    - packages_remove
+    - ansible_distribution == 'OpenWrt'
+    - not packages_runimagebuilder | default(false)

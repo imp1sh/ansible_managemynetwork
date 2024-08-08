@@ -1,27 +1,28 @@
 ---
-- name: Updating cache Alpine
+# Update Cache for different OSes
+- name: MMN Packages - Updating cache Alpine
   community.general.apk:
     update_cache: true
   changed_when: false
   when: ansible_distribution == "Alpine"
-- name: Updating cache Debian based OS
+- name: MMN Packages - Updating cache Debian based OS
   ansible.builtin.apt:
     update_cache: true
   changed_when: false
   when: ansible_os_family == "Debian"
-- name: Updating cache Arch based OS
+- name: MMN Packages - Updating cache Arch based OS
   community.general.pacman:
     update_cache: true
   changed_when: false
   when: ansible_os_family == "ArchLinux"
-- name: Updating cache RedHat based OS
+- name: MMN Packages - Updating cache RedHat based OS
   ansible.builtin.dnf:
     update_cache: true
   changed_when: false
   when:
     - ansible_os_family == "RedHat"
     - ( ansible_distribution_version | float | round(0, 'floor') | int ) > 7
-- name: Updating cache RedHat based OS (yum legacy)
+- name: MMN Packages - Updating cache RedHat based OS (yum legacy)
   ansible.builtin.yum:
     update_cache: true
     use_backend: "yum"
