@@ -4,10 +4,10 @@
   block:
     - name: additional packages are needed for hamode
       set_fact:
-        openwrt_packages_installrole: "{{ ['keepalived', 'conntrackd', 'kmod-nf-conntrack', 'kmod-nf-conntrack6'] }}"
+        packages_installrole: "{{ ['keepalived', 'conntrackd', 'kmod-nf-conntrack', 'kmod-nf-conntrack6'] }}"
     - name: Call packages role
       ansible.builtin.include_role:
-        name: imp1sh.ansible_managemynetwork.ansible_openwrtpackages
+        name: imp1sh.ansible_managemynetwork.ansible_packages
   when: not openwrt_network_runimagebuilder | default(false)
 
 # Deploy config
