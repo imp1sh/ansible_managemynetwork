@@ -1,0 +1,4 @@
+---
+- name: MMN Restic - Assemble repo for current backup iteration
+  ansible.builtin.set_fact:
+    assembledrepo: "{{ backupitem['repotype'] }}://{{ backupitem['authuser'] | default('', true) }}{% if backupitem['authuser'] is defined and backupitem['authpass'] is defined %}:{% endif %}{{ backupitem['authpass'] | default('', true) }}{% if backupitem['authuser'] is defined %}@{% endif %}{{ backupitem['targethost'] }}/{{ backupitem['targetsubdir'] | default('', true) }}{% if backupitem['targetsubdir'] is defined %}/{% endif %}{{ inventory_hostname }}"

@@ -1,0 +1,12 @@
+---
+- name: MMN Restic - Make sure sysupgrade.conf file exists
+  ansible.builtin.file:
+    path: "{{ restic_deploypath_sysupgrade }}/{{ restic_deployfile_sysupgrade }}"
+    mode: '0644'
+    state: touch
+- name: MMN Restic - Add /etc/config/installed.packages to sysupgrade config
+  ansible.builtin.lineinfile:
+    path: "{{ restic_deploypath_sysupgrade }}/{{ restic_deployfile_sysupgrade }}"
+    line: /etc/config/installed.packages
+    regexp: /etc/config/installed.packages
+    state: present

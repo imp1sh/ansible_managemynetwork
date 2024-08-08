@@ -1,0 +1,61 @@
+---
+# tasks file for ansible_restic
+- name: MMN restic - Make sure deploypath config exists
+  ansible.builtin.file:
+    path: "{{ restic_deploypath }}"
+    state: directory
+
+- name: MMN restic - sysupgrade integration for OpenWrt
+  include_tasks: 1sysupgrade.yml
+  when: ansible_distribution == 'OpenWrt'
+
+- name: MMN restic - Deploy config files
+  include_tasks: 2config.yml
+  loop: "{{ restic_backups }}"
+  loop_control:
+    loop_var: backupitem 
+  when: restic_backups is defined
+
+- name: MMN restic - SSH setup
+  include_tasks: 3ssh.yml
+  loop: "{{ restic_backups }}"
+  loop_control:
+    loop_var: backupitem
+  when:
+    - not restic_runimagebuilder | default(false)
+    - restic_backups is defined
+
+- name: MMN restic - Init repository
+  include_tasks: 4init.yml
+  loop: "{{ restic_backups }}"
+  loop_control:
+    loop_var: backupitem
+  when:
+    - not restic_runimagebuilder | default(false)
+    - restic_backups is defined
+
+- name: MMN restic - Setup cron jobs
+  include_tasks: 5cron.yml
+  when: not restic_runimagebuilder | default(false)
+  loop: "{{ restic_backups }}"
+  loop_control:
+    loop_var: backupitem
+  when:
+    - not restic_runimagebuilder | default(false)
+    - restic_backups is defined
+
+- name: MMN restic - Initialize packages_installimagebuilder OpenWrt
+  ansible.builtin.set_fact:
+    packages_installimagebuilder: []
+  when:
+    - packages_installimagebuilder is not defined
+    - restic_runimagebuilder | default(false)
+    - ansible_distribution == 'OpenWrt'
+
+- name: MMN restic - Merge role packages into packages_installimagebuilder OpenWrt
+  ansible.builtin.set_fact:
+    packages_installimagebuilder: "{{ packages_installimagebuilder + packages_installrole }}"
+  when:
+    - restic_runimagebuilder | default(false)
+    - ansible_distribution == 'OpenWrt'
+

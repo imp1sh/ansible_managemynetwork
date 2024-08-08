@@ -1,0 +1,24 @@
+---
+- name: MMN Restic - Assemble repository string
+  include_tasks: xassemblerepo.yml
+- name: MMN Restic - Setup ansible.builtin.cron to dump installed packages once a day
+  ansible.builtin.cron:
+    name: "dump packages"
+    minute: 0
+    hour: 0
+    job: "/bin/opkg list-installed > /etc/config/installed.packages"
+  when: ansible_distribution == 'OpenWrt'
+- name: MMN Restic - Setup ansible.builtin.cron backup job
+  ansible.builtin.cron:
+    name: "{{ restic_cron_name }} {{ backupitem['name'] }}"
+    hour: "{{ backupitem['cron_hour'] | default(restic_cron_hour) }}"
+    minute: "{{ backupitem['cron_minute'] | default(restic_cron_minute) }}"
+    user: "root"
+    job: "source {{ restic_deploypath }}/{{ restic_deployfile }}_{{ backupitem['name'] }} && /usr/bin/restic -p {{ restic_deploypath}}/{{ restic_deployfile_passwordfile }}_{{ backupitem['name'] }} -r {{ assembledrepo }} backup {{ backupitem['includes'] | map('regex_replace', '^(.*)$', '\"\\1\"') | join(' ') }} {{ backupitem['excludes'] | map('regex_replace', '^(.*)$', '-e \"\\1\"') | join(' ') }}"
+- name: MMN Restic - setup ansible.builtin.cron prune job
+  ansible.builtin.cron:
+    name: "{{ restic_cron_name }} {{ backupitem['name'] }} prune"
+    hour: "{{ backupitem['prune_hour'] | default(restic_prune_hour) }}"
+    minute: "{{ backupitem['prune_minute'] | default(restic_prune_minute) }}"
+    user: "root"
+    job: "source {{ restic_deploypath }}/{{ restic_deployfile }}_{{ backupitem['name'] }} && /usr/bin/restic forget -p {{ restic_deploypath}}/{{ restic_deployfile_passwordfile }}_{{ backupitem['name'] }} --keep-daily {{ backupitem['keepdaily'] | default(restic_keepdaily, true) }} --keep-weekly {{ backupitem['keepweekly'] | default(restic_keepweekly, true) }} --keep-monthly {{ backupitem['keepmonthly'] | default(restic_keepmonthly, true) }} -r {{ assembledrepo }} --prune"
