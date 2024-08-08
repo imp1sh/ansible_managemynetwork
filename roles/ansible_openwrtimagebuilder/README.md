@@ -41,7 +41,7 @@ This is an example playbook for the ansible_openwrtimagebuilder role.
     openwrt_dropbear_runimagebuilder: true
     openwrt_firewall_runimagebuilder: true
     openwrt_network_runimagebuilder: true
-    openwrt_packages_runimagebuilder: true
+    packages_runimagebuilder: true
     openwrt_restic_runimagebuilder: true
     openwrt_services_runimagebuilder: true
   gather_facts: no

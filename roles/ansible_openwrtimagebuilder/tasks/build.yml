@@ -8,29 +8,29 @@
   when: openwrt_imagebuilder_kernelvars is defined
 - name: List packages that will be in the image
   debug:
-    var: openwrt_packages_install
+    var: packages_install
 - name: List packages that will be remove in the image
   debug:
-    var: openwrt_packages_remove
+    var: packages_remove
 - name: Convert imagebuilder packages into list
   ansible.builtin.set_fact:
-    openwrt_packages_imagebuilder: "{{ ( openwrt_packages_install + ( openwrt_packages_remove | map('regex_replace', '^', '-'))) | join(openwrt_packages_separator) }}"
-  when: openwrt_packages_install is defined
+    packages_imagebuilder: "{{ ( packages_install + ( packages_remove | map('regex_replace', '^', '-'))) | join(packages_separator) }}"
+  when: packages_install is defined
 - name: Building info
   debug:
-    msg: "Building with the following command: make image PACKAGES={{ openwrt_packages_imagebuilder }} FILES={{ openwrt_imagebuilder_filesdir }}"
+    msg: "Building with the following command: make image PACKAGES={{ packages_imagebuilder }} FILES={{ openwrt_imagebuilder_filesdir }}"
   when: openwrt_imagebuilder_profile is not defined
 - name: Building info
   debug:
-    msg: "Building with the following command: make image PACKAGES={{ openwrt_packages_imagebuilder }} FILES={{ openwrt_imagebuilder_filesdir }} PROFILE={{ openwrt_imagebuilder_profile }}"
+    msg: "Building with the following command: make image PACKAGES={{ packages_imagebuilder }} FILES={{ openwrt_imagebuilder_filesdir }} PROFILE={{ openwrt_imagebuilder_profile }}"
   when: openwrt_imagebuilder_profile is defined
 - name: Create image
-  ansible.builtin.shell: make image PACKAGES="{{ openwrt_packages_imagebuilder|default("") }}" FILES="{{ openwrt_imagebuilder_filesdir }}"
+  ansible.builtin.shell: make image PACKAGES="{{ packages_imagebuilder|default("") }}" FILES="{{ openwrt_imagebuilder_filesdir }}"
   args:
     chdir: "{{ openwrt_imagebuilder_builddir }}/{{ openwrt_imagebuilder_extractedfolder }}"
   when: openwrt_imagebuilder_profile is not defined
 - name: Create image with profile option
-  ansible.builtin.shell: make image PACKAGES="{{ openwrt_packages_imagebuilder|default("") }}" FILES="{{ openwrt_imagebuilder_filesdir }}" PROFILE="{{ openwrt_imagebuilder_profile }}"
+  ansible.builtin.shell: make image PACKAGES="{{ packages_imagebuilder|default("") }}" FILES="{{ openwrt_imagebuilder_filesdir }}" PROFILE="{{ openwrt_imagebuilder_profile }}"
   args:
     chdir: "{{ openwrt_imagebuilder_builddir }}/{{ openwrt_imagebuilder_extractedfolder }}"
   when: openwrt_imagebuilder_profile is defined
