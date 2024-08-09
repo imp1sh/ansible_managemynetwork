@@ -18,7 +18,4 @@ galaxy_info:
         - "22.03"
         - "23.05"
   galaxy_tags: [openwrt, lede, restic, backup, debian]
-dependencies:
-  - role: imp1sh.ansible_managemynetwork.ansible_packages
-    vars:
-      openwrt_packages_installrole: "{{ mmn_restic_packages }}"
+dependencies: []
