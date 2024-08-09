@@ -42,7 +42,7 @@ This is an example playbook for the ansible_openwrtimagebuilder role.
     openwrt_firewall_runimagebuilder: true
     openwrt_network_runimagebuilder: true
     packages_runimagebuilder: true
-    openwrt_restic_runimagebuilder: true
+    restic_runimagebuilder: true
     openwrt_services_runimagebuilder: true
   gather_facts: no
   connection: local
@@ -70,7 +70,7 @@ This is an example playbook for the ansible_openwrtimagebuilder role.
         name: imp1sh.ansible_managemynetwork.ansible_openwrtnetwork
     - name: run restic
       ansible.builtin.import_role:
-        name: imp1sh.ansible_managemynetwork.ansible_openwrtrestic
+        name: imp1sh.ansible_managemynetwork.ansible_restic
     - name: run system
       ansible.builtin.import_role:
         name: imp1sh.ansible_managemynetwork.ansible_openwrtsystem
@@ -102,4 +102,4 @@ openwrt_imagebuilder_kernelvars:
 {.is-warning}
 
 ## Special roles
-There are some roles, e.g. *openwrt_restic* that need to run on a deployed system so they can function. Always let Ansible run on the target device, after you deployed your firmware.
+There are some roles, e.g. *ansible_restic* that need to run on a deployed system so they can function. Always let Ansible run on the target device, after you deployed your firmware.

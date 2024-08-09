@@ -50,7 +50,7 @@
     - openwrt_dropbear_deployroot
     - openwrt_firewall_deployroot
     - openwrt_network_deployroot
-    - openwrt_restic_deployroot
+    - restic_deployroot
     - openwrt_services_deployroot
     - openwrt_system_deployroot
     - openwrt_uhttpd_deployroot
