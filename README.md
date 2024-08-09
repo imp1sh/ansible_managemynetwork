@@ -34,11 +34,19 @@ Generally speaking this collection aims to achieve a seperation of logical eleme
   - [:leftwards_arrow_with_hook: imp1sh.ansible_managemynetwork.ansible_netbox2yaml](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_netbox2yaml/README.md)
   - [:leftwards_arrow_with_hook: imp1sh.ansible_managemynetwork.ansible_nsupdate_bash](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_nsupdate_bash/README.md)
   - [:leftwards_arrow_with_hook: imp1sh.ansible_managemynetwork.ansible_ohmyzsh](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_ohmyzsh/README.md)
+  - [:leftwards_arrow_with_hook: imp1sh.ansible_managemynetwork.ansible_restic](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_restic/README.md)
   - [:leftwards_arrow_with_hook: imp1sh.ansible_managemynetwork.ansible_packages](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_packages/README.md)
   - [:leftwards_arrow_with_hook: imp1sh.ansible_managemynetwork.ansible_qemuagent](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_qemuagent/README.md)
- - [:leftwards_arrow_with_hook: imp1sh.ansible_managemynetwork.ansible_sshkeys](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_sshkeys/README.md)
- - [:leftwards_arrow_with_hook: imp1sh.ansible_managemynetwork.ansible_sudo](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_sudo/README.md)
- - [:leftwards_arrow_with_hook: imp1sh.ansible_managemynetwork.ansible_users](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_users/README.md)
+  - [:leftwards_arrow_with_hook: imp1sh.ansible_managemynetwork.ansible_sshkeys](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_sshkeys/README.md)
+  - [:leftwards_arrow_with_hook: imp1sh.ansible_managemynetwork.ansible_sudo](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_sudo/README.md)
+  - [:leftwards_arrow_with_hook: imp1sh.ansible_managemynetwork.ansible_users](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_users/README.md)
+  - [:leftwards_arrow_with_hook: imp1sh.ansible_managemynetwork.ansible_zabbixagent](https://github.com/imp1sh/ansible_managemynetwork/tree/main/roles/ansible_zabbixagent)
+
+I am working on integrating formerly OpenWrt specific roles into the general roles. Those general roles will work with common Linux distribution but also with OpenWrt.
+
+- ansible_packages
+- ansible_zabbixagent
+- ansible_restic
 
 # OpenWrt specific
 
@@ -184,7 +192,7 @@ Variable names are constructed by using the role name which is at the same time 
 |imp1sh.ansible_managemynetwork.ansible_openwrt**firewall** | `openwrt_firewall_*` |
 |imp1sh.ansible_managemynetwork.ansible_openwrt**dhcp** | `openwrt_dhcp_*` |
 |imp1sh.ansible_managemynetwork.ansible_openwrt**packages** | `òpenwrt_packages_*` |
-|imp1sh.ansible_managemynetwork.ansible_openwrt**restic** | `openwrt_restic_*` |
+|imp1sh.ansible_managemynetwork.ansible_**restic** | `openwrt_restic_*` |
 |imp1sh.ansible_managemynetwork.ansible_openwrt**dhcp** |`openwrt_dhcp_*` |
 |imp1sh.ansible_managemynetwork.ansible_openwrt**acme** | `openwrt_acme_*` |
 
@@ -206,7 +214,6 @@ Those are the roles that are purely OpenWrt specific.
   - [:leftwards_arrow_with_hook: imp1sh.ansible_managemynetwork.ansible_openwrtpackages](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_openwrtpackages/README.md)
   - [:leftwards_arrow_with_hook: imp1sh.ansible_managemynetwork.ansible_openwrtpodman](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_openwrtpodman/README.md)
   - [:leftwards_arrow_with_hook: imp1sh.ansible_managemynetwork.ansible_openwrtprometheus_node_exporter_lua](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_openwrtprometheus_node_exporter_lua/README.md)
-  - [:leftwards_arrow_with_hook: imp1sh.ansible_managemynetwork.ansible_openwrtrestic](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_openwrtrestic/README.md)
   - [:leftwards_arrow_with_hook: imp1sh.ansible_managemynetwork.ansible_openwrtservices](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_openwrtservices/README.md)
   - [:leftwards_arrow_with_hook: imp1sh.ansible_managemynetwork.ansible_openwrtsqm](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_openwrtsqm/README.md)
   - [:leftwards_arrow_with_hook: imp1sh.ansible_managemynetwork.ansible_openwrtsystem](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_openwrtsystem/README.md)
@@ -215,6 +222,3 @@ Those are the roles that are purely OpenWrt specific.
   - [:leftwards_arrow_with_hook: imp1sh.ansible_managemynetwork.ansible_openwrtwireguard](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_openwrtwireguard/README.md)
   - [:leftwards_arrow_with_hook: imp1sh.ansible_managemynetwork.ansible_openwrtwireless](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_openwrtwireless/README.md)
 
-There are some roles that work for common Linux AND OpenWrt as well like:
-
-  - [:leftwards_arrow_with_hook: imp1sh.ansible_managemynetwork.ansible_zabbixagent](https://github.com/imp1sh/ansible_managemynetwork/tree/main/roles/ansible_zabbixagent)
