@@ -1,5 +1,5 @@
 # imp1sh.ansible_managemynetwork.ansible_restic
-This role sets up restic backup for your ansible node. This role will try to install the ssh public key to the target backup machine, so ideally it is managed by ansible, too.
+This role sets up restic backup for your ansible node. This role will try to install the ssh public key to the target backup machine (when manage_ssh: true), so ideally it is managed by ansible, too.
 
 > Since version 0.4.1 there was a major overhaul of this role. It supports defining multiple repositories now, so it can be backed up to multiple locations.
 {.is-warning}
@@ -9,27 +9,30 @@ This role sets up restic backup for your ansible node. This role will try to ins
 ```yaml
 restic_backups:
   - name: "wasabi"
+    state: "present"
     repotype: "s3:https"
     targethost: "s3.eu-west-2.wasabisys.com"
     targetsubdir: "forelle" #this is the bucket in s3
     aws_access_key_id: "youraccesskey"
     aws_secret_access_key: "yourverysecretsecretkey"
   - name: "backup_to_siteA"
+    state: "absent"
     repotype: "sftp"
     targetsubdir: "SiteX"
     targethost: "myhost.onsitea.com"
     sshkey_user: "backupuser"
     authuser: "backupuser"
     manage_ssh: true
-    sources:
+    includes:
       - "/etc"
       - "/root"
   - name: "backup_to_borgbase"
+    state: "present"
     repotype: "rest:https"
     authuser: "secretusername"
     authpass: "secretpassword"
     targethost: "username.repo.borgbase.com"
-    sources:
+    includes:
       - "/etc"
       - "/root"
 ```
