@@ -1,0 +1,3 @@
+---
+restic_packages:
+  - "restic"
