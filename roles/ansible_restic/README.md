@@ -98,3 +98,9 @@ instead of a specific snapshot you can just say `latest`.
 restic -p /etc/resticpassword_to_datacenter1 -r sftp:backupuser@backup1.example.com:./subfolder1/firewall1.example.com restore latest --target /tmp
 ```
 More information about restic can be found on their [homepage](https://restic.net/).
+
+### Mount backup
+This will mount the repository to `/mnt/tmp`. Within the mount you can decide which backup date to use.
+```
+restic -p /etc/resticpassword_<<your_destination>> -r sftp:backupuser@<<target_hostname>>>:./<<subfolder>>/<<myhostname>> mount /mnt/tmp
+```
