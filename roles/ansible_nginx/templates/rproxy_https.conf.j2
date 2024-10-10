@@ -58,7 +58,7 @@ server {
     access_log /var/log/nginx/{{ rproxyitem.name }}-ssl_access.log;
     error_log /var/log/nginx/{{ rproxyitem.name }}-ssl_error.log error;
     location / {
-            client_max_body_size 256M;
+            client_max_body_size 1024M;
             proxy_buffering {{ rproxyitem.proxybuffering | default('on', true) }};
             proxy_buffers 4 512k;
             proxy_busy_buffers_size 512k;

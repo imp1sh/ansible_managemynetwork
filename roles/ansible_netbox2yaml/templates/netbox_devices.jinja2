@@ -22,6 +22,9 @@ nb_devices:
     interfaces:
 {% for interface in dict_interfaces[device.key] %}
       {{ interface.name }}:
+{% if interface.mac_address is defined %}
+        mac: {{ interface.mac_address }}
+{% endif %}
 {% if dict_ips[interface.ips] is defined %}
         ip4: {{ dict_ips[interface.ips]|selectattr('family', 'eq', 4)|map(attribute='address')|list }}
         ip6: {{ dict_ips[interface.ips]|selectattr('family', 'eq', 6)|map(attribute='address')|list }}

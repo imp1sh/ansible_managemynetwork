@@ -1,0 +1,13 @@
+---
+- name: MMN Podman - Create networks
+  containers.podman.podman_network:
+    name: "{{ item.name }}"
+    driver: "{{ item.driver }}"
+    ipv6: "{{ item.ipv6 }}"
+  loop: "{{ podman_networks }}"
+- name: MMN podman - Ensure podman container directories
+  ansible.builtin.file:
+    path: "{{ item.1 | split(':') | first | ansible.builtin.dirname }}"
+    state: directory
+  when: podman_containers is defined
+  loop: "{{ podman_containers | subelements('volume', 'skip_missing=True') }}"

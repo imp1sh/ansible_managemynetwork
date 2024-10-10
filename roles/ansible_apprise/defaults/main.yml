@@ -1,2 +1,3 @@
 ---
+apprise_via_pip: false
 # defaults file for ansible_apprise

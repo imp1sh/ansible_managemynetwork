@@ -1,0 +1,17 @@
+---
+- name: MMN Podman - systemd tasks
+  ansible.builtin.include_tasks:
+    file: 3systemd.yml
+  loop: "{{ podman_containers }}"
+  loop_control:
+    loop_var: podman_container
+  when:
+    - ansible_distribution != "OpenWrt"
+- name: MMN Podman - procd tasks for OpenWrt
+  ansible.builtin.include_tasks:
+    file: 3procd.yml
+  loop: "{{ podman_containers }}"
+  loop_control:
+    loop_var: podman_container
+  when:
+    - ansible_distribution == "OpenWrt"
