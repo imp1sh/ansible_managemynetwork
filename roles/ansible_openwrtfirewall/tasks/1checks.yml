@@ -1,12 +1,12 @@
 ---
-- name: check if ruleshost AND rulesgroup is undefined
+- name: MMN openwrtfirewall - Check if ruleshost AND rulesgroup is undefined
   pause:
     prompt: "Neither ruleshost nor rulesgroup is defined. Do you still want to deploy firewall config? [yes/no]"
   register: openwrt_firewall_rulesdeploybool
   when:
     - openwrt_firewall_rulesgroup is undefined
     - openwrt_firewall_ruleshost is undefined
-# - name: run zone checks
+# - name: MMN openwrtfirewall - Run zone checks
 #  include_tasks: checks/zones.yml
 #  loop:
 #    - "{{ openwrt_firewall_zoneshost | default(omit) }}"
@@ -14,7 +14,7 @@
 #  loop_control:
 #    loop_var: zones
       # check somehow not working
-      # - name: Check all variables that either need to be 1 or 0
+      # - name: MMN openwrtfirewall - Check all variables that either need to be 1 or 0
       #  ansible.builtin.assert:
       #    that:
       #      - item is int
@@ -26,7 +26,7 @@
       #    - "openwrt_firewall_default_flow_offloading"
       #    - "openwrt_firewall_default_flow_offloading_hw"
       #    - "openwrt_firewall_default_drop_invalid"
-- name: check default forwards
+- name: MMN openwrtfirewall - Check default forwards
   ansible.builtin.assert:
     that:
       - item.src is defined
@@ -35,7 +35,7 @@
     success_msg: "forwarding item seems valid."
   loop: "{{ openwrt_firewall_forwardingsdefault }}"
   when: openwrt_firewall_forwardingsdefault is defined
-- name: check host based forwardings
+- name: MMN openwrtfirewall - Check host based forwardings
   ansible.builtin.assert:
     that:
       - item.src is defined
@@ -44,7 +44,7 @@
     success_msg: "host forwardings seem valid."
   loop: "{{ openwrt_firewall_forwardingshost }}"
   when: openwrt_firewall_forwardingshost is defined
-- name: check group based forwardings
+- name: MMN openwrtfirewall - Check group based forwardings
   ansible.builtin.assert:
     that:
       - item.src is defined
