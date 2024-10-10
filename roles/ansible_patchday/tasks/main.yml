@@ -1,0 +1,5 @@
+---
+# tasks file for ansible_patchday
+- name: MMN Patchday - Entry point choosing task for individual OS
+  ansible.builtin.include_tasks: "tasks/{{ ansible_os_family | lower }}.yml"
+  when: ansible_os_family | lower in ['debian']

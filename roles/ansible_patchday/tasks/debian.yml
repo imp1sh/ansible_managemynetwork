@@ -1,0 +1,50 @@
+---
+# Debian specific tasks
+
+# check if updates are needed
+- name: MMN Patchday - update cache
+  ansible.builtin.apt:
+    update_cache: yes
+- name: MMN Patchday - check for updates
+  ansible.builtin.apt:
+    upgrade: dist
+  check_mode: true
+  register: check_for_updates
+- name: MMN Patchday - set var
+  ansible.builtin.set_fact:
+    patchday_updates_available: "{{ check_for_updates.changed }}"
+
+# Hosts needs no updates
+- block:
+    - name: MMN Patchday - Inform
+      ansible.builtin.debug:
+        msg: "Skipping host, as it needs no updates." 
+    - name: MMN Patchday - Skip host if no updates are available
+      meta: end_play
+  when: not patchday_updates_available
+
+# Apply updates
+- name: MMN Patchday - Apply updates
+  ansible.builtin.apt:
+    upgrade: full
+  when: patchday_updates_available
+
+# Tidy up
+- name: MMN Patchday - Autoremove
+  ansible.builtin.apt:
+    autoremove: yes
+
+# Handle reboot
+- name: MMN Patchday - Check if a reboot is required
+  stat:
+    path: /var/run/reboot-required
+  register: reboot_required
+
+- name: MMN Patchday - Reboot the server if needed
+  reboot:
+    msg: "Rebooting the system after updates."
+    connect_timeout: 5
+    reboot_timeout: 600
+    pre_reboot_delay: 0
+    post_reboot_delay: 30
+  when: reboot_required.stat.exists
