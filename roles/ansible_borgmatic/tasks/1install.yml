@@ -27,10 +27,10 @@
       ansible.builtin.pip:
         name: borgmatic
         virtualenv: "{{ borgmatic_venvdir }}"
-    - name: Install pyfuse3 for mounting via fuse
-      ansible.builtin.pip:
-        name: pyfuse3
-        virtualenv: "{{ borgmatic_venvdir }}"
+          #- name: Install pyfuse3 for mounting via fuse
+          #  ansible.builtin.pip:
+          #    name: pyfuse3
+          #    virtualenv: "{{ borgmatic_venvdir }}"
     - name: Install borg via pip
       ansible.builtin.pip:
         name: borgbackup
