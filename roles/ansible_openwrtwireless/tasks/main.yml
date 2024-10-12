@@ -1,10 +1,12 @@
 ---
 # tasks file for ansible_openwrtwireless
-- name: Make sure wireless deploypath exists
+- name: MMN openwrtwireless - Make sure wireless deploypath exists
   ansible.builtin.file:
     path: "{{ openwrt_wireless_deploypath }}"
     state: directory
-- name: deploy wireless config
+- name: MMN openwrtwireless - Merge devices and interfaces
+  import_tasks: 1merge.yml
+- name: MMN openwrtwireless - deploy wireless config
   ansible.builtin.template:
     src: "wireless.jinja2"
     dest: "{{ openwrt_wireless_deploypath }}/{{ openwrt_wireless_deployfile }}"
