@@ -1,16 +1,16 @@
 # Merge Interfaces
-- name: merge group interfaces
+- name: MMN openwrtwireless - Merge group interfaces
   ansible.builtin.set_fact:
     openwrt_wifi_interfacesmergedgroup: "{{ openwrt_wifi_interfacesgroup.keys() | list | intersect(group_names) | map('extract', openwrt_wifi_interfacesgroup) | combine }}"
   when: openwrt_wifi_interfacesgroup is defined
-- name: combine all interfaces into openwrt_wifi_interfaces
+- name: MMN openwrtwireless - Combine all interfaces into openwrt_wifi_interfaces
   ansible.builtin.set_fact:
     openwrt_wifi_interfaces: "{{ openwrt_wifi_interfaceshost | default({}) | combine(openwrt_wifi_interfacesmergedgroup | default({}) ) }}"
 # Merge Devices
-- name: merge group devices
+- name: MMN openwrtwireless - Merge group devices
   ansible.builtin.set_fact:
     openwrt_wifi_devicesmergedgroup: "{{ openwrt_wifi_devicesgroup.keys() | list | intersect(group_names) | map('extract', openwrt_wifi_devicesgroup) | combine }}"
   when: openwrt_wifi_devicesgroup is defined
-- name: combine all devices into openwrt_wifi_devices
+- name: MMN openwrtwireless - Combine all devices into openwrt_wifi_devices
   ansible.builtin.set_fact:
     openwrt_wifi_devices: "{{ openwrt_wifi_deviceshost | default({}) | combine(openwrt_wifi_devicesmergedgroup | default({}) ) }}"
