@@ -1,22 +1,22 @@
 ---
-- name: Block task if user shall be created on this very host
+- name: MMN users - Block task if user shall be created on this very host
   block:
-    - name: The user will be installed
+    - name: MMN users - The user will be installed
       ansible.builtin.debug:
         var: user.key
-    - name: Set fact for package install
+    - name: MMN users - Set fact for package install
       ansible.builtin.set_fact:
         packages_installrole: "{{ shellpackages[user.value.shell] }}"
       when:
         - user.value.shell is defined
-    - name: Install package for shell
+    - name: MMN users - Install package for shell
       ansible.builtin.include_role:
         name: imp1sh.ansible_managemynetwork.ansible_packages
       when:
         user.value.shell is defined
-    - name: Create user
+    - name: MMN users - Create user
       ansible.builtin.include_tasks: 04justdoit.yml
-    - name: Deploy files (optional)
+    - name: MMN users - Deploy files (optional)
       ansible.builtin.include_tasks: "05deployfiles.yml"
       loop: "{{ user.value.deployfiles }}"
       loop_control:

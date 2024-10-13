@@ -1,5 +1,5 @@
 ---
-- name: Setting OS variables
+- name: MMN users - Setting OS variables
   ansible.builtin.include_vars: "{{lookup('ansible.builtin.first_found', params)}}"
   vars:
     params:
@@ -12,7 +12,7 @@
   when: system_users is defined
 
 # this should be optimized. The role for packages should be called instead of using builtin.package
-- name: Install OpenWrt specific packages
+- name: MMN users - Install OpenWrt specific packages
   ansible.builtin.package:
     name: "{{ system_users_additional_packages }}"
     state: present
@@ -20,22 +20,22 @@
 
 - name: check and deploy block
   block:
-    - name: Ensure users dictionary has a hosts attribute
+    - name: MMN users - Ensure users dictionary has a hosts attribute
       ansible.builtin.set_fact:
         list_of_users: []
-    - name: check what users shall be deployed on host
+    - name: MMN users - check what users shall be deployed on host
       ansible.builtin.include_tasks: "02check_if_user_shall_be_deployed.yml"
       loop: "{{ system_users | dict2items }}"
       loop_control:
         loop_var: user
-    - name: deploy users
+    - name: MMN users - Deploy users
       ansible.builtin.include_tasks: "03live_runusers.yml"
       loop: "{{ system_users | dict2items }}"
       loop_control:
         loop_var: user
   when: system_users is defined
 
-- name: Fail status feedback
+- name: MMN users - Fail status feedback
   ansible.builtin.debug:
     msg: "The role system_users did not run on host {{ inventory_hostname }} because the var system_users is not set."
   when: system_users is not defined

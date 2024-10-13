@@ -1,31 +1,31 @@
 ---
-- name: Block task if user shall be created on this very host
+- name: MMN users - Block task if user shall be created on this very host
   block:
-    - name: The user will be installed
+    - name: MMN users - The user will be installed
       ansible.builtin.debug:
         var: user.key
-    - name: Set fact for package install
+    - name: MMN users - Set fact for package install
       ansible.builtin.set_fact:
         packages_installrole: "{{ shellpackages[user.value.shell] }}"
       when:
         - user.value.shell is defined
-    - name: Install package for shell
+    - name: MMN users - Install package for shell
       ansible.builtin.include_role:
         name: imp1sh.ansible_managemynetwork.ansible_packages
       when:
         user.value.shell is defined
-    - name: set users shell for this OS
+    - name: MMN users - Set users shell for this OS
       set_fact:
         usershell: "{{ shells[user.value.shell] }}"
       when: user.value.shell is defined
-    - name: debug
+    - name: MMN users - Debug
       debug:
         msg: "{{ system_users_setpassword_deploypath }}/{{ 99 + index }}{{ system_users_setpassword_deployfile }}-{{ user.key }}"
-    - name: Make sure init script deploypath exists
+    - name: MMMN users - ake sure init script deploypath exists
       ansible.builtin.file:
         path: "{{ system_users_setpassword_deploypath }}"
         state: directory
-    - name: deploy init script for user
+    - name: dMMN users - Deploy init script for user
       ansible.builtin.template:
         src: imagebuilderuser.j2
         dest: "{{ system_users_setpassword_deploypath }}/{{ index }}{{ system_users_setpassword_deployfile }}-{{ user.key }}"
