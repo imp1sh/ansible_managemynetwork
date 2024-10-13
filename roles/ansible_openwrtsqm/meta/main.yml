@@ -18,5 +18,4 @@ dependencies:
     vars:
       packages_installrole:
         - sqm-scripts
-        - sqm-scripts-extra
         - luci-app-sqm
