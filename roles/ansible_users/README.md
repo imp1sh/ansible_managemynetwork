@@ -12,10 +12,28 @@ It currently supports those Operating Systems:
 - ~~Arch~~ (probably works but no longer supported)
 - ~~Manjaro~~ (probably works but no longer supported)
 
+## OpenWrt specific
 When using this with OpenWrt it will install those packages so ansible.builtin.user can do its job:
 - shadow-useradd
 - sudo
 Usually in OpenWrt only the root user is being used but it's actually possible to add additional users, e.g. for backup jobs or whatever. This role is not compatible to run with [ansible_openwrtimagebuilder](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_openwrtimagebuilder/README.md) so if you want the users on your system you will have to run this role on a live system. 
+If you do `import_playbook` on the users role but you only want it to run on OpenWrt, use:
+```yaml
+- name: MMN users
+  import_playbook: users.yml
+  when: ansible_distribution == 'OpenWrt'
+```
+while the users playbook looking like this:
+```yaml
+---
+- name: Handling users in Linux, Unix
+  hosts: all
+  become: true
+  roles:
+    - imp1sh.ansible_managemynetwork.ansible_users
+```
+
+## Variables
 
 Since you don't want to define your users for every host individually, you need to place your variable somewhere every host has access to it. In this example the `system_users` variable will be defined in the scope of an Ansible group called tags_allhosts.
 
