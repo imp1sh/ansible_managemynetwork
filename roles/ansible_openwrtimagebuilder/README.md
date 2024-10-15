@@ -1,4 +1,4 @@
-# # imp1sh.ansible_managemynetwork.ansible_openwrtimagebuilder
+# imp1sh.ansible_managemynetwork.ansible_openwrtimagebuilder
 In certain scenarios it might be interesting to automate the [OpenWrt Imagebuilder](https://openwrt.org/docs/guide-user/additional-software/imagebuilder) process. With this role you can do this. It will not only build the designated Image for your specific devices, but it will also:
 
 - integrate your configurations
