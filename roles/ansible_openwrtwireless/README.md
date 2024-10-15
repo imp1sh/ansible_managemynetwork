@@ -8,7 +8,7 @@ Best practice for a new device is to experiment with Luci and make your target c
 
 Interfaces:
 ```yaml
-openwrt_wifi_interfaces:
+openwrt_wifi_interfaceshost:
   wifi1_5g:
     mode: "ap"
     device: "radio1"
@@ -40,7 +40,7 @@ openwrt_wifi_interfaces:
 ```
 Devices:
 ```yaml
-openwrt_wifi_devices:
+openwrt_wifi_deviceshost:
   radio0:
     type: "mac80211"
     path: "pci0000:00/0000:00:02.5/0000:05:00.0"
@@ -59,11 +59,18 @@ openwrt_wifi_devices:
 
 ## Managing multiple devices
 
+> This docs need rework. The role recently switched to:
+- openwrt_wifi_deviceshost
+- openwrt_wifi_devicesgroup
+- openwrt_wifi_interfaceshost
+- openwrt_wifi_interfacesgroup
+Now things get a bit easier, but below here the docs are basically wrong.
+
 Group up your devices by your needs. In this example there is one site with two different wifi cards.
 
 group name: tags_asiarf_aw7915-npd
 ```yaml
-openwrt_wifi_devices:
+openwrt_wifi_deviceshost:
   radio0:
     type: "mac80211"
     path: "pci0000:00/0000:00:02.5/0000:05:00.0"
