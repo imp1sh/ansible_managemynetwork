@@ -24,15 +24,9 @@ This is an example playbook for the ansible_openwrtimagebuilder role.
 
 ```yaml
 ---
-- hosts: tags_openwrt-imagebuilder
-  pre_tasks:
-    - name: combine default zones with manual settings
-      set_fact:
-        openwrt_firewall_zonesdefault: "{{ openwrt_firewall_zonesdefault | combine(openwrt_firewall_zones_mysite, recursive=true) }}"
-      when: openwrt_firewall_zones_mysite is defined
+- name: Playbook for building openwrt images
+  hosts: tags_openwrt-imagebuilder
   vars:
-    openwrt_imagebuilder_builddir: "/home/jochen/openwrt_imagebuilder"
-    openwrt_imagebuilder_outputdir: "/home/jochen/openwrt_imagebuilder_images"
     openwrt_acme_runimagebuilder: true
     openwrt_babeld_runimagebuilder: true
     openwrt_batmanadv_runimagebuilder: true
@@ -40,14 +34,21 @@ This is an example playbook for the ansible_openwrtimagebuilder role.
     openwrt_dhcp_runimagebuilder: true
     openwrt_dropbear_runimagebuilder: true
     openwrt_firewall_runimagebuilder: true
+    openwrt_imagebuilder_builddir: "/home/jochen/openwrt_imagebuilder"
+    openwrt_imagebuilder_outputdir: "/home/jochen/openwrt_imagebuilder_images"
     openwrt_network_runimagebuilder: true
     packages_runimagebuilder: true
     restic_runimagebuilder: true
     openwrt_services_runimagebuilder: true
-  gather_facts: no
+    openwrt_system_runimagebuilder: true
+    openwrt_uhttpd_runimagebuilder: true
+    openwrt_wireguard_runimagebuilder: true
+    openwrt_wireless_runimagebuilder: true
+    system_users_runimagebuilder: true
+  gather_facts: true
   connection: local
   serial: 1
-  #become: true
+  # become: true
   tasks:
     - name: run imagebuilder preparations
       ansible.builtin.import_role:
@@ -56,6 +57,9 @@ This is an example playbook for the ansible_openwrtimagebuilder role.
     - name: run acme
       ansible.builtin.import_role:
         name: imp1sh.ansible_managemynetwork.ansible_openwrtacme
+    - name: run uhttpd
+      ansible.builtin.import_role:
+        name: imp1sh.ansible_managemynetwork.ansible_openwrtuhttpd
     - name: run dhcp
       ansible.builtin.import_role:
         name: imp1sh.ansible_managemynetwork.ansible_openwrtdhcp
@@ -74,11 +78,19 @@ This is an example playbook for the ansible_openwrtimagebuilder role.
     - name: run system
       ansible.builtin.import_role:
         name: imp1sh.ansible_managemynetwork.ansible_openwrtsystem
+    - name: run wireless
+      ansible.builtin.import_role:
+        name: imp1sh.ansible_managemynetwork.ansible_openwrtwireless
+    - name: run wireguard
+      ansible.builtin.import_role:
+        name: imp1sh.ansible_managemynetwork.ansible_openwrtwireguard
+    - name: run users
+      ansible.builtin.import_role:
+        name: imp1sh.ansible_managemynetwork.ansible_users
     - name: run imagebuilder build
       ansible.builtin.import_role:
         name: imp1sh.ansible_managemynetwork.ansible_openwrtimagebuilder
         tasks_from: build
-
 ```
 
 It's important to run the `prepare` task first. Next come your own choice of Ansible roles for OpenWrt from my collection. At the end the `build` task needs to run.
