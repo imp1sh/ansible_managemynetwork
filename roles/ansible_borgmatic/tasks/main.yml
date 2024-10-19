@@ -14,7 +14,9 @@
   include_tasks: 1install.yml
 - name: MMN borgmatic - Include cron tasks
   include_tasks: 3cron.yml
-  when: borgmatic_cron_manage
+- name: MMN borgmatic - Include systemd timer task
+  include_tasks: 4systemd_timer.yml
+  when: borgmatic_systemd_manage
 - name: MMN borgmatic - Include ssh tasks
   include_tasks: 5ssh.yml
   loop: "{{ borgmatic_repositories | dict2items }}"

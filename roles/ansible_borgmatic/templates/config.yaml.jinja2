@@ -5,8 +5,10 @@ source_directories:
 
 repositories:
 {% for key, value in borgmatic_repositories.items() %}
+{% if value['enabled'] %}
   - path: "{{ value['type'] | default('')}}{{ value['targetuser'] }}@{{ value['targethost'] }}/{% if value['subdir'] is defined %}./{{ value['subdir'] }}/{% endif %}{{ inventory_hostname }}"
     label: "{{ key }}"
+{% endif %}
 {% endfor %}
 
 {% if borgmatic_excludepatterns is defined %}

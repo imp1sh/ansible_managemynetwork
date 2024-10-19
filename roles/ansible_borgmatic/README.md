@@ -30,8 +30,8 @@ borgmatic_compression: "zstd"
 borgmatic_keepdaily: 9
 borgmatic_keepweekly: 2
 borgmatic_keepmonthly: 2
-borgmatic_cron_hourrange_start: 2
-borgmatic_cron_hourrange_end: 4
+borgmatic_systemd_hourrange_start: 2
+borgmatic_systemd_hourrange_end: 4
 borgmatic_apprise: true
 borgmatic_apprise_user: "notify"
 borgmatic_apprise_password: "secret"
@@ -52,11 +52,13 @@ borgmatic_repositories:
     targetuser: backupuser
     targethost: target0.example.com
     subdir: myhost
+    enabled: true
   backupuser@target1:
     type: "ssh://"
     targetuser: backupuser
     targethost: target1.example.com
     subdir: somedir
+    enabled: false
 ```
 If you don't want to manage the ssh key port maybe because you just cannot integrate the backup target machine into Ansible, set
 ```yaml
@@ -64,21 +66,22 @@ borgmatic_ssh_manage: False
 ```
 
 ## Schedule
-Backups are scheduled via cron. The time when it will run will be randomized between 1 and 6 in the morning. You can override the time directly
+Backups are scheduled via systemd timer. By default the time when it will run will be daily randomized between 1 and 6 in the morning. You can override the time directly
 ```yaml
-borgmatic_cron_hour: 1
-borgmatic_cron_minute: 3
+borgmatic_systemd_hour: 1
+borgmatic_systemd_minute: 3
 ```
 or define another range within which the time will be randomized
 ```yaml
-borgmatic_cron_hourrange_start: 1
-borgmatic_cron_hourrange_end: 6
-borgmatic_cron_minuterange_start: 1
-borgmatic_cron_minuterange_end: 59
+borgmatic_systemd_hourrange_start: 1
+borgmatic_systemd_hourrange_end: 6
+borgmatic_systemd_minuterange_start: 1
+borgmatic_systemd_minuterange_end: 59
 ```
-If you don't want to have the cron job managed via the role, set
+You can also define the OnCalender value directly by setting the var `borgmatic_systemd_schedule`. [Look Arch wiki](https://wiki.archlinux.org/title/Systemd/Timers#Realtime_timer) for more information on the format.
+If you don't want to have the systemd job managed via the role, set
 ```yaml
-borgmatic_cron_manage: False
+borgmatic_systemd_manage: False
 ```
 
 ## Apprise notification
