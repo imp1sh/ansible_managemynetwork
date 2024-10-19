@@ -1,0 +1,43 @@
+---
+- name: MMN borgmatic - Create borgmatic backup systemd service
+  ansible.builtin.copy:
+    dest: "{{ borgmatic_systemd_servicefile }}"
+    content: |
+      [Unit]
+      Description=Borgmatic Backup Service
+      Wants=network-online.target
+      After=network-online.target
+
+      [Service]
+      Type=oneshot
+      ExecStart={{ borgmatic_venv_wrapper }} -c {{ borgmatic_pathconfig }}/{{ borgmatic_fileconfig }} --syslog-verbosity 1
+      User=root
+
+      [Install]
+      WantedBy=multi-user.target
+  notify:
+    - Reload systemd
+
+# Create the borgmatic backup systemd timer file
+- name: MMN borgmatic - Create borgmatic backup systemd timer
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/borgmatic-backup.timer
+    content: |
+      [Unit]
+      Description=Run Borgmatic Backup
+
+      [Timer]
+      OnCalendar={{ borgmatic_systemd_schedule | default("*-*-* " + borgmatic_systemd_hour + ":" + borgmatic_systemd_minute + ":00") }}
+      Persistent=true
+
+      [Install]
+      WantedBy=timers.target
+  notify:
+    - Reload systemd
+
+# Enable and start the timer
+- name: MMN borgmatic - Enable and start the borgmatic timer
+  ansible.builtin.systemd:
+    name: borgmatic-backup.timer
+    enabled: yes
+    state: started
