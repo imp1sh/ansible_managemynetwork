@@ -1,5 +1,5 @@
 ---
-- name: setup cronjob
+- name: MMN borgmatic - Setup cronjob
   ansible.builtin.cron:
     name: "{{ borgmatic_cron_name }}"
     hour: "{{ borgmatic_cron_hour }}"

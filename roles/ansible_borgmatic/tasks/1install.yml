@@ -1,29 +1,29 @@
 ---
-- name: Borgmatic requirements
+- name: MMN borgmatic - Borgmatic requirements
   ansible.builtin.package:
     name: "{{ borgmatic_package_requirements }}"
     state: present
   when: borgmatic_package_requirements is defined
 # package manager
-- name: package manager block
+- name: MMN borgmatic - Package manager block
   block:
-    - name: borg backup via package manager
+    - name: MMN borgmatic - Borg backup via package manager
       ansible.builtin.package:
         name: "{{ borgmatic_packagename_borg }}"
         state: "{{ borgmatic_package_state }}"
-    - name: borgmatic via package manager
+    - name: MMN borgmatic - Borgmatic via package manager
       ansible.builtin.package:
         name: "{{ borgmatic_packagename_borgmatic }}"
         state: "{{ borgmatic_package_state }}"
   when: not borgmatic_via_pip
 # pip 
-- name: pip block 
+- name: MMN borgmatic - pip block 
   block:
-    - name: Install pip for pip installation
+    - name: MMN borgmatic - Install pip for pip installation
       ansible.builtin.package:
         name: "{{ borgmatic_pip_package }}"
         state: present
-    - name: Install borgmatic via pip
+    - name: MMN borgmatic - Install borgmatic via pip
       ansible.builtin.pip:
         name: borgmatic
         virtualenv: "{{ borgmatic_venvdir }}"
@@ -31,20 +31,20 @@
           #  ansible.builtin.pip:
           #    name: pyfuse3
           #    virtualenv: "{{ borgmatic_venvdir }}"
-    - name: Install borg via pip
+    - name: MMN borgmatic - Install borg via pip
       ansible.builtin.pip:
         name: borgbackup
         virtualenv: "{{ borgmatic_venvdir }}"
   when: borgmatic_via_pip
 # Apprise
-- name: apprise block
+- name: MMN borgmatic - Apprise block
   block:
-    - name: Insntall apprise via pip
+    - name: MMN borgmatic - Install apprise via pip
       ansible.builtin.pip:
         name: "{{ borgmatic_packageapprisepip  }}"
         virtualenv: "{{ borgmatic_venvdir }}"
       when: borgmatic_apprise_via_pip
-    - name: install borgmatic template (optional)
+    - name: MMN borgmatic - Install borgmatic template (optional)
       ansible.builtin.template:
         src: apprise_borgmatic.sh.jinja2
         dest: "{{ borgmatic_path_apprise_script }}/apprise_borgmatic.sh"
@@ -52,14 +52,14 @@
         owner: root
   when: borgmatic_apprise
 # Wrapper script
-- name: Deploy wrapper script to use venv
+- name: MMN borgmatic - Deploy wrapper script to use venv
   ansible.builtin.template:
     src: borgmatic_venv_wrapper.sh.jinja2
     dest: "{{ borgmatic_venv_wrapper }}"
     mode: 0740
     owner: root
 # config dir
-- name: Make sure borgmatic config dir exists
+- name: MMN borgmatic - Make sure borgmatic config dir exists
   file:
     path: "{{ borgmatic_pathconfig }}"
     state: directory

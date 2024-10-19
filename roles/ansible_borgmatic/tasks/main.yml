@@ -1,33 +1,33 @@
 ---
 # tasks file for ansible_borgmatic
-- name: include OS vars
+- name: MMN borgmatic - include OS vars
   include_vars: "{{ ansible_distribution }}.yml"
-- name: Setting absent state for intallation of distribution packages
+- name: MMN borgmatic - Setting absent state for intallation of distribution packages
   ansible.builtin.set_fact:
     borgmatic_package_state: absent
   when: borgmatic_via_pip
-- name: Setting present state for installation of distribution packages
+- name: MMN borgmatic - Setting present state for installation of distribution packages
   ansible.builtin.set_fact:
     borgmatic_package_state: present
   when: not borgmatic_via_pip
-- name: include install tasks
+- name: MMN borgmatic - include install tasks
   include_tasks: 1install.yml
-- name: include cron tasks
+- name: MMN borgmatic - Include cron tasks
   include_tasks: 3cron.yml
   when: borgmatic_cron_manage
-- name: include ssh tasks
+- name: MMN borgmatic - Include ssh tasks
   include_tasks: 5ssh.yml
   loop: "{{ borgmatic_repositories | dict2items }}"
   loop_control:
     loop_var: borgmatic_repository
   when: borgmatic_ssh_manage
-- name: Provide borgmatic config
+- name: MMN borgmatic - Provide borgmatic config
   ansible.builtin.template:
     src: config.yaml.jinja2
     dest: "{{ borgmatic_pathconfig }}/{{ borgmatic_fileconfig }}"
     owner: "{{ borgmatic_fileconfig_owner }}"
     group: "{{ borgmatic_fileconfig_group }}"
     mode: 0740
-- name: borgmatic init repository
+- name: MMN borgmatic - Init repository
   ansible.builtin.command: "{{ borgmatic_venv_wrapper }} -c {{ borgmatic_pathconfig }}/{{ borgmatic_fileconfig }} init --encryption repokey"
   register: borgmatic_init_success
