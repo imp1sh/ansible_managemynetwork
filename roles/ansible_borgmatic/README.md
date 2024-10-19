@@ -47,9 +47,16 @@ borgmatic_encpassphrase: "yoursupersecurepassphrase"
 It would be advisable to set the backup target in a group var for your site.
 ```yaml
 borgmatic_repositories:
-  - "ssh://backupuser@backuptargetsystem1.libcom.de/./subfoldername/{{ inventory_hostname }}"
-borgmatic_sshkey_user: "backupuser"
-borgmatic_sshkey_targethost: "backuptargetsystem1.libcom.de"
+  backupuser@target0:
+    type: "ssh://"
+    targetuser: backupuser
+    targethost: target0.example.com
+    subdir: myhost
+  backupuser@target1:
+    type: "ssh://"
+    targetuser: backupuser
+    targethost: target1.example.com
+    subdir: somedir
 ```
 If you don't want to manage the ssh key port maybe because you just cannot integrate the backup target machine into Ansible, set
 ```yaml
