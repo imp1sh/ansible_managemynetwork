@@ -71,6 +71,12 @@ config system 'system'
 {% if openwrt_system_zonename is defined %}
         option zonename "{{ openwrt_system_zonename }}"
 {% endif %}
+{% if openwrt_system_zram_comp_algo is defined %}
+	option zram_comp_algo "{{ openwrt_system_system_zram_comp_algo }}"
+{% endif %}
+{% if openwrt_system_zram_size_mb is defined %}
+	option zram_size_mb "{{ openwrt_sytem_zram_size_mb }}"
+{% endif %}
 
 {% if openwrt_system_ntp_server is defined %}
 config timeserver 'ntp'
@@ -88,3 +94,21 @@ config timeserver 'ntp'
 {% endif %}
 {% endif %}
 
+# LED
+{% if openwrt_system_led is defined %}
+{% for system_led in openwrt_system_led %}
+config led "{{ system_led.itemname }}"
+	option name "{{ system_led.name }}"
+{% if system_led.sysfs is defined %}
+	option sysfs "{{ system_led.sysfs }}"
+{% endif %}
+{% if system_led.trigger is defined %}
+	option trigger "{{ system_led.trigger }}"
+{% endif %}
+{% if system_led.ports is defined %}
+{% for system_port in system_led.ports %}
+	list port "{{ system_port }}"
+{% endfor %}
+{% endif %}
+{% endfor %}
+{% endif %}
