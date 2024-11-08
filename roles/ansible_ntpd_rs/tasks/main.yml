@@ -1,0 +1,33 @@
+---
+# tasks file for ansible_ntpd-rs
+- name: Download ntpd-rs .deb package
+  ansible.builtin.get_url:
+    url: 'https://github.com/pendulum-project/ntpd-rs/releases/download/v1.3.0/ntpd-rs_1.3.0-1_amd64.deb'
+    dest: /tmp/ntpd-rs.deb
+  become: true
+- name: Install
+  ansible.builtin.apt:
+    deb: /tmp/ntpd-rs.deb
+    state: present
+  become: true
+- name: MMN ntpd_rs - Deploy config
+  ansible.builtin.template:
+    src: ntp.toml.jinja2
+    dest: /etc/ntpd-rs/ntp.toml
+  notify:
+    - Restart ntpd-rs-metrics
+    - Restart ntpd-rs
+- name: Enable service
+  ansible.builtin.systemd:
+    name: ntpd-rs
+    state: started
+    enabled: true
+  become: true
+- name: Enable metrics server
+  ansible.builtin.systemd:
+    name: ntpd-rs-metrics
+    state: started
+    enabled: true
+  when:
+    - ntpds_metrics_enable is defined
+    - ntpds_metrics_enable

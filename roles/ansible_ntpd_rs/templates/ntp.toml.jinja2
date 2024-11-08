@@ -1,0 +1,118 @@
+[source-defaults]
+{% if ntpdrs_poll_interval_limits is defined %}
+poll-interval-limits = "{{ poll-interval-limits }}"
+{% endif %}
+{% if ntpdrs_initial_poll_interval is defined %}
+initial-poll-interval = "{{ ntpdrs_initial_poll_interval }}"
+{% endif %}
+
+[observability]
+# You can configure ntpd-rs with different output levels of logging information
+# Basic values for this are `trace`, `debug`, `info`, `warn` and `error`.
+log-level = "{{ ntpdrs_log_level | default('info') }}"
+
+## Using the observe socket you can retrieve statistical information about the
+## daemon while it is running. You can use the `ntp-ctl` or prometheus based
+## `ntp-metrics-exporter` binaries for some default options to read from the
+## observe socket.
+observation-path = "/var/run/ntpd-rs/observe"
+{% if ntpdrs_observation_permissions is defined %}
+observation-permissions = "{{ ntpdrs_observation_permissions }}"
+{% endif %}
+
+{% if ntpdrs_metrics_exporter_listen is defined %}
+metrics-exporter-listen = "{{ ntpdrs_metrics_exporter_listen }}"
+{% endif %}
+
+## The sources section allows configuring sources, you may configure multiple of
+## these blocks to add more sources to your configuration.
+## Our default configuration spawns a pool of sources (by default this attempts
+## to discover 4 distinct sources).
+{% for source in ntpdrs_sources %}
+[[source]]
+mode = "{{ source.mode }}"
+address = "{{ source.address }}"
+{% if source.count is defined %}
+count = {{ source.count }}
+{% endif %}
+{% if source.mode|lower == 'nts' and source.certificate_authority %}
+certificate-authority = "{{ source.certificate_authority }}"
+{% endif %}
+{% if source.mode|lower == 'pool' and source.ignore is defined %}
+ignore = "{{ source.ignore }}"
+{% endif %}
+{% endfor %}
+
+## If you have an NTS server, you can configure a source that connects using NTS
+## by adding a configuration such as the one below
+#[[source]]
+#mode = "nts"
+# NTS service from NETNOD: https://www.netnod.se/nts/network-time-security
+#address = "nts.netnod.se"
+
+## A source in server mode will only create a single source in contrast to the
+## multiple sources of a pool. This is the recommended source mode if you only
+## have an IP address for your source.
+#[[source]]
+#mode = "server"
+#address = "ntpd-rs.pool.ntp.org"
+
+## If you want to provide time to other machines, the configuration below
+## enables serving time on port 123 of all network interfaces.
+#[[server]]
+#listen = "[::]:123"
+{% if ntpdrs_server is defined %}
+[[server]]
+listen = "{{ ntpdrs_listen | default('[::]:123') }}"
+{% if ntpdrs_rate_limiting_cache_size is defined %}
+rate-limiting-cache-size = "{{ ntpdrs_rate_limiting_cache_size }}"
+{% endif %}
+{% if ntpdrs_rate_limiting_cutoff_ms is defined %}
+rate-limiting-cutoff-ms = "{{ ntpdrs_rate_limiting_cutoff_ms }}"
+{% endif %}
+{% if ntpdrs_require_nts is defined %}
+require-nts = "{{ ntpdrs_require_nts }}"
+{% endif %}
+{% if ntpdrs_server_allowlist is defined %}
+[server.allowlist]
+filter = [
+{% for subnet_allow in ntpdrs_server_allowlist %}
+    "{{ subnet_allow }}",
+{% endfor %}
+]
+action = "{{ ntpdrs_server_allowlist_action | default('ignore') }}"
+{% endif %}
+
+{% if ntpdrs_server_denylist is defined %}
+[server.denylist]
+filter = [
+{% for subnet in ntpdrs_server_denylist %}
+    "{{ subnet_deny }}",
+{% endfor %}
+]
+action = "{{ ntpdrs_server_denylist_action | default('deny') }}"
+{% endif %}
+{% endif %}
+
+## Below are configured various thresholds beyond which ntpd-rs will not
+## change the system clock. CHANGE THESE TO MATCH YOUR SECURITY NEEDS!
+[synchronization]
+# The maximum step size (in seconds) of a single step during normal operation
+single-step-panic-threshold = {{ ntpdrs_single_step_panic_threshold | default(1800) }}
+# On startup a larger jump may occur, this sets limits for that initial jump
+startup-step-panic-threshold = { forward="{{ ntpdrs_startup_step_panic_threshold_forward | default("inf") }}", backward = {{ ntpdrs_startup_step_panic_threshold_backward | default(86400) }} }
+# If, during the lifetime of the ntp-daemon the combined time of time jumps
+# exceeds this value, then the NTP daemon will stop, this is disabled by default
+#accumulated-threshold = 1800
+{% if ntpdrs_accumulated_threshold is defined %}
+accumulated-threshold = {{ ntpdrs_accumulated_threshold }}
+{% endif %}
+
+#minimum-agreeing-sources = 3
+{% if ntpdrs_minimum_agreeing_sources is defined %}
+minimum-agreeing-sources = {{ ntpdrs_minimum_agreeing_sources }}
+{% endif %}
+
+{% if ntpdrs_local_stratum is defined %}
+local-stratum = "{{ ntpdrs_local_stratum }}"
+{% endif %}

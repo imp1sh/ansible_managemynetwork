@@ -1,0 +1,10 @@
+---
+# handlers file for ansible_ntpd-rs
+- name: Restart ntpd-rs
+  ansible.builtin.service:
+    name: ntpd-rs
+    state: restarted
+- name: Restart ntpd-rs-metrics
+  ansible.builtin.service:
+    name: ntpd-rs-metrics
+    state: restarted
