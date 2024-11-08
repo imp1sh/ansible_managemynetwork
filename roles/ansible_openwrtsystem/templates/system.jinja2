@@ -55,8 +55,12 @@ config system 'system'
 {% if openwrt_system_log_remote is defined %}
 	option log_remote "{{ openwrt_system_log_remote }}"
 {% endif %}
-{% if openwrt_system_logport is defined %}
-        option log_port "{{ openwrt_system_logport }}"
+{% if openwrt_system_log_port is defined %}
+{% if openwrt_system_log_port is number %}
+        option log_port "{{ openwrt_system_log_port }}"
+{% else %}
+# option log_port not set, because it is not a number but {{ openwrt_system_log_port }}
+{% endif %}
 {% endif %}
 {% if openwrt_system_logfile is defined %}
         option log_file "{{ openwrt_system_logfile }}"
