@@ -5,6 +5,10 @@
     driver: "{{ item.driver }}"
     ipv6: "{{ item.ipv6 }}"
   loop: "{{ podman_networks }}"
+- name: MMN Podman - Select subset of containers, because you asked for it
+  ansible.builtin.set_fact:
+    podman_containers: "{{ podman_containers | selectattr('name', 'in', podman_limited_containers) | list }}"
+  when: podman_limited_containers is defined
 - name: MMN podman - Ensure podman container directories
   ansible.builtin.file:
     path: "{{ item.1 | split(':') | first | ansible.builtin.dirname }}"

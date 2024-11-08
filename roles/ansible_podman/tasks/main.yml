@@ -11,7 +11,8 @@
 - name: MMN Podman - Create containers
   containers.podman.podman_containers:
     containers: "{{ podman_containers }}"
-  when: podman_containers is defined
+  when:
+    - podman_containers is defined
 
 - name: MMN Podman - Post tasks
   ansible.builtin.include_tasks:
