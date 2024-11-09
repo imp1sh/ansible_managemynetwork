@@ -1,0 +1,6 @@
+---
+# defaults file for ansible_talos
+talos_version: "v1.8.2"
+talos_talosctl_version: "{{ talos_version }}"
+talos_config_path: "{{ talos_config_basepath | default('/tmp') }}/talosconfig_{{ talos_cluster_name }}/"
+talos_config_file: "{{ talos_config_path }}/talosconfig"

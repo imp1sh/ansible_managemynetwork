@@ -1,0 +1,30 @@
+---
+# Update talosctl
+- name: MMN Talos - Update talosctl configs
+  ansible.builtin.command: talosctl config endpoint {{ talos_hosts_controlplane[0] }} --talosconfig {{ talos_config_file }}
+  changed_when: true
+  delegate_to: 127.0.0.1
+
+- name: MMN Talos - Update talosctl configs
+  ansible.builtin.command: talosctl config node {{ talos_hosts_controlplane[0] }} --talosconfig {{ talos_config_file }}
+  changed_when: true
+  delegate_to: 127.0.0.1
+
+  #################################
+  # WAIT FOR REBOOT & BOOTSTRAP   #
+  #################################
+- name: MMN Talos - Keep trying to bootstrap
+  ansible.builtin.command:
+    cmd: "talosctl bootstrap --talosconfig {{ talos_config_file }}"
+  register: talos_bootstrap_result
+  retries: 10
+  delay: 30
+  until: talos_bootstrap_result.rc == 0
+  changed_when: talos_bootstrap_result.rc == 0
+  delegate_to: 127.0.0.1
+
+# Grab kubeconfig
+- name: MMN Talos - Get kubeconfig
+  ansible.builtin.command: talosctl kubeconfig . --talosconfig {{ talos_config_file }}
+  changed_when: true
+  delegate_to: 127.0.0.1

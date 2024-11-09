@@ -1,0 +1,8 @@
+---
+- name: MMN Talos - Apply config to control plane nodes
+  ansible.builtin.command:
+    cmd: talosctl apply-config --insecure --nodes {{ item }} --file {{ talos_config_path }}/controlplane.yaml
+  loop: "{{ talos_hosts_controlplane }}"
+  when: talos_hosts_controlplane is defined
+  changed_when: true
+  delegate_to: 127.0.0.1
