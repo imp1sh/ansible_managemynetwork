@@ -2,7 +2,7 @@
 galaxy_info:
   role_name: ansible_talos
   author: Jochen Demmer
-  description: Setup process for talos cluster in maintenance mode
+  description: Setup process for talos cluster in maintenance mode. Based upon https://github.com/JamesTurland/JimsGarage/tree/main/Ansible/Playbooks/Talos
   company: libcom.de
   issue_tracker_url: https://github.com/imp1sh/ansible_managemynetwork/issues
   license: BSD-3-Clause
