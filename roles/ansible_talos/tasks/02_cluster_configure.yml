@@ -1,11 +1,9 @@
 ---
 - name: MMN Talos - Check if config file is already there
   ansible.builtin.stat:
-    path: "{{ talos_config_path }}"
+    path: "{{ talos_config_path }}/controlplane.yaml"
   register: talos_stat_result
-  delegate_to: 127.0.0.1
-- name: MMN Talos - Generate config file for cluster
-  ansible.builtin.command: talosctl gen config {{ talos_cluster_name }} https://{{ talos_hosts_controlplane[0] }}:6443 --output-dir {{ talos_config_path }} --install-image factory.talos.dev/installer/376567988ad370138ad8b2698212367b8edcb69b5fd68c80be1f2ec7d603b4ba:{{ talos_version }}
-  delegate_to: 127.0.0.1
+- name: MMN Talos - Generate config file for cluster "{{ talos_cluster.key }}"
+  ansible.builtin.command: "talosctl gen config {{ talos_cluster.key }} https://{{ talos_cluster.value.hosts_controlplane[0].ip4[0] | ansible.utils.ipaddr('address') }}:6443 --output-dir {{ talos_config_path }} --install-image ghcr.io/siderolabs/installer:{{ talos_cluster.value.talos_version | default(talos_version) }}"
   when: "not talos_stat_result.stat.exists"
   changed_when: true

@@ -1,4 +1,9 @@
 # Ansible Playbook to install Talos
+- name: MMN Talos - Check if talosctl is present
+  ansible.builtin.command:
+    cmd: which talosctl
+  register: talos_talosctl_check
+  ignore_errors: yes
 - name: MMN Talos - Download talosctl for Linux (amd64)
   ansible.builtin.get_url:
     url: https://github.com/siderolabs/talos/releases/download/{{ talos_talosctl_version }}/talosctl-linux-amd64
@@ -7,6 +12,7 @@
   become: true
   register: talos_download_result  # Register the result for debugging or verification
   delegate_to: 127.0.0.1
+  when: talos_talosctl_check.rc != 0
 
 - name: MMN Talos - Display download result
   ansible.builtin.debug:

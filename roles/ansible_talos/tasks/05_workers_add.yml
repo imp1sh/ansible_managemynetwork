@@ -6,4 +6,3 @@
   changed_when: true
   loop: "{{ talos_hosts_worker}}"
   when: talos_hosts_worker is defined
-  delegate_to: 127.0.0.1

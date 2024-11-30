@@ -1,0 +1,35 @@
+---
+- name: MMN Talos - Set talos_config_path
+  ansible.builtin.set_fact:
+    talos_config_path: "{{ talos_config_basepath }}/talosconfig_{{ talos_cluster.key }}"
+
+- name: MMN Talos - talosctl config path
+  ansible.builtin.set_fact:
+    talosctl_config_path: "{{ talos_config_path }}/talosconfig"
+
+- name: MMN Talos - Make sure config path exists
+  ansible.builtin.file:
+    path: "{{ talos_config_path }}"
+    state: directory
+
+- name: MMN Talos - Set talos_config_file path
+  ansible.builtin.set_fact:
+    talos_config_file: "{{ talos_config_path }}/talosconfig"
+
+- name: MMN Talos - Set talos_patches_path where patches will be stores
+  ansible.builtin.set_fact:
+    talos_patches_path: "{{ talos_config_path }}/patches"
+
+- name: MMN Talos - Make sure patches path exists
+  ansible.builtin.file:
+    path: "{{ talos_patches_path }}"
+    state: directory
+
+# this is the file name that contains the patches for the cluster
+- name: MMN Talos - Set talos_filename_controlplane_patch
+  ansible.builtin.set_fact:
+    talos_filename_controlplane_patch: "controlplane_{{ talos_cluster.key }}_patch.yaml"
+
+- name: MMN Talos - Set talos_filename_controlplane_patched
+  ansible.builtin.set_fact:
+    talos_filename_controlplane_patched: "controlplane_{{ talos_cluster.key }}_patched.yaml"

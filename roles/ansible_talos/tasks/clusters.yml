@@ -1,0 +1,15 @@
+---
+- name: MMN Talos - Setup vars
+  ansible.builtin.include_tasks: 01_vars.yml
+
+- name: MMN Talos - Configure Cluster
+  ansible.builtin.include_tasks: 02_cluster_configure.yml
+
+- name: MMN Talos - Apply Config
+  ansible.builtin.include_tasks: 03_config_apply.yml
+
+- name: MMN Talos - Export Talosctl Config
+  ansible.builtin.include_tasks: 04_config_export.yml
+
+- name: MMN Talos - Add Workers
+  ansible.builtin.include_tasks: 05_workers_add.yml

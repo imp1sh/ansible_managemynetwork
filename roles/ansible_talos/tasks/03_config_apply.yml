@@ -1,8 +1,33 @@
 ---
-- name: MMN Talos - Apply config to control plane nodes
+# CLUSTER WIDE PATCHING
+- name: MMN Talos - Generate controlplane patchfile for cluster "{{ talos_cluster.key }}"
+  ansible.builtin.template:
+    src: controlplane_patch.yaml.j2
+    dest: "{{ talos_patches_path }}/{{ talos_filename_controlplane_patch }}"
+- name: MMN Talos - Apply controlplane patchfile for cluster "{{ talos_cluster.key }}"
   ansible.builtin.command:
-    cmd: talosctl apply-config --insecure --nodes {{ item }} --file {{ talos_config_path }}/controlplane.yaml
-  loop: "{{ talos_hosts_controlplane }}"
-  when: talos_hosts_controlplane is defined
-  changed_when: true
-  delegate_to: 127.0.0.1
+    cmd: "talosctl machineconfig patch {{ talos_config_path }}/controlplane.yaml -p @{{ talos_patches_path }}/{{ talos_filename_controlplane_patch }} -o {{ talos_config_path }}/{{ talos_filename_controlplane_patched }}"
+
+# CONTROLPLANE NODES
+- name: MMN Talos - Generate controlpane host patches
+  ansible.builtin.template:
+    src: controlplane_patch_hostspecific.yaml.j2
+    dest: "{{ talos_patches_path }}/controlplane_{{ host_controlplane.name }}_patch.yaml"
+  loop: "{{ talos_cluster.value.hosts_controlplane }}"
+  loop_control:
+    loop_var: host_controlplane
+- name: MMN Talos - Apply controlplane host patchfiles
+  ansible.builtin.command:
+    cmd: "talosctl machineconfig patch {{ talos_config_path }}/{{ talos_filename_controlplane_patched }} -p @{{ talos_patches_path }}/controlplane_{{ host_controlplane.name }}_patch.yaml -o {{ talos_config_path }}/controlplane_{{ host_controlplane.name }}.yaml"
+  loop: "{{ talos_cluster.value.hosts_controlplane }}"
+  loop_control:
+    loop_var:  host_controlplane
+# hier sollte ich einen schalter einbauen entweder boostrap (--insecure) oder apply auf running cluster
+- name: MMN Talos - Deyploy controlplane hosts
+  ansible.builtin.command:
+    cmd: "talosctl apply-config --insecure --nodes {{ host_controlplane.name }} --endpoints {{ host_controlplane.ip4[0] | ansible.utils.ipaddr('address') }} --file {{ talos_config_path }}/controlplane_{{ host_controlplane.name }}.yaml"
+  loop: "{{ talos_cluster.value.hosts_controlplane }}"
+  loop_control:
+    loop_var: host_controlplane
+
+# WORKER NODES

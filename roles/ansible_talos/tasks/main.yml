@@ -1,16 +1,9 @@
 ---
-# tasks file for ansible_talos
 - name: MMN Talos - Install talosctl
-  include_tasks: 01_talosctl_install.yml
+  ansible.builtin.include_tasks: 00_talosctl_install.yml
 
-- name: MMN Talos - Configure Cluster
-  include_tasks: 02_cluster_configure.yml
-
-- name: MMN Talos - Apply Config
-  include_tasks: 03_config_apply.yml
-
-- name: MMN Talos - Export Talosctl Config
-  include_tasks: 04_config_export.yml
-
-- name: MMN Talos - Add Workers
-  include_tasks: 05_workers_add.yml
+- name: MMN Talos - Iterate over the list of defined clusters.
+  ansible.builtin.include_tasks: "clusters.yml"
+  loop: "{{ talos_clusters | dict2items }}"
+  loop_control:
+    loop_var: talos_cluster
