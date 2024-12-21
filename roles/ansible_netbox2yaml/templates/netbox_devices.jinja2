@@ -10,7 +10,9 @@ nb_devices:
 {% if device.value.comment is defined and device.value.comment != "" %}
     comments: "{{ device.value.comment }}"
 {% endif %}
-    device_role: {{ device.value.device_role }}
+{% if device.value.role is defined %}
+    device_role: {{ device.value.role }}
+{% endif %}
     device_type: {{ device.value.device_type }}
     primary_ip4: "{{ device.value.primary_ip4.address | default("") }}"
     primary_ip6: "{{ device.value.primary_ip6.address | default("") }}"
