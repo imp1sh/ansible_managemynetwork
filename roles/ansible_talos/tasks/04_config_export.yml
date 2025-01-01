@@ -1,23 +1,27 @@
 ---
 # Update talosctl
-- name: MMN Talos - Update talosctl configs
+# not yet working
+#- name: MMN Talos - Update talosctl configs (VIP)
+#  ansible.builtin.command: talosctl config endpoint {{ talos_cluster.value.controlplane_vip | ansible.utils.ipaddr('address') }} --talosconfig {{ talos_config_file }}
+#  changed_when: true
+#  when: talos_cluster.value.controlplane_vip is defined
+
+- name: MMN Talos - Update talosctl configs (nonVIP)
   ansible.builtin.command: talosctl config endpoint {{ talos_cluster.value.hosts_controlplane[0].ip4[0] | ansible.utils.ipaddr('address') }} --talosconfig {{ talos_config_file }}
   changed_when: true
+    #when: talos_cluster.value.controlplane_vip is not defined
 
 - name: MMN Talos - Update talosctl configs
   ansible.builtin.command: talosctl config node {{ talos_cluster.value.hosts_controlplane[0].ip4[0] | ansible.utils.ipaddr('address') }} --talosconfig {{ talos_config_file }}
   changed_when: true
 
   #################################
-  # WAIT FOR REBOOT & BOOTSTRAP   #
+  #           BOOTSTRAP           #
   #################################
 - name: MMN Talos - Keep trying to bootstrap
-  # FIX!
-  # ansible.builtin.command: "talosctl bootstrap -e 10.10.129.30 -n 10.10.129.30"
   ansible.builtin.command: "talosctl bootstrap"
   environment:
     TALOSCONFIG: "{{ talosctl_config_path }}" 
-  #ansible.builtin.command: "talosctl bootstrap -e {{ talos_cluster.value.hosts_controlplane[0].ip4[0] | ansible.utils.ipaddr('address') }} -n {{ talos_cluster.value.hosts_controlplane[0].ip4[0] | ansible.utils.ipaddr('address') }}"
   register: talos_bootstrap_result
   retries: 15
   delay: 30
@@ -25,11 +29,17 @@
   changed_when: talos_bootstrap_result.rc == 0
 
 # Grab kubeconfig
-- name: MMN Talos - Get kubeconfig
+#- name: MMN Talos - Get kubeconfig (VIP)
+#  ansible.builtin.command: "talosctl kubeconfig {{ talos_config_path }} -e {{ talos_cluster.value.controlplane_vip }}"
+#  environment:
+#    TALOSCONFIG: "{{ talosctl_config_path }}" 
+#  changed_when: true
+#  when: talos_cluster.value.controlplane_vip is defined
+
+- name: MMN Talos - Get kubeconfig (nonVIP)
   # removed explicit talosconfig due to setting env var
-  #ansible.builtin.command: "talosctl kubeconfig {{ talos_config_path }} --talosconfig {{ talos_config_file }}"
-  ansible.builtin.command: "talosctl kubeconfig {{ talos_config_path }} -e {{ talos_cluster.value.controlplane_vip }}"
+  ansible.builtin.command: "talosctl kubeconfig {{ talos_config_path }}"
   environment:
     TALOSCONFIG: "{{ talosctl_config_path }}" 
   changed_when: true
-  when: talos_cluster.value.controlplane_vip is defined
+    #when: talos_cluster.value.controlplane_vip is not defined

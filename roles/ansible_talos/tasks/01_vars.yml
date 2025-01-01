@@ -30,6 +30,16 @@
   ansible.builtin.set_fact:
     talos_filename_controlplane_patch: "controlplane_{{ talos_cluster.key }}_patch.yaml"
 
+- name: MMN Talos - Set talos_filename_worker_patch
+  ansible.builtin.set_fact:
+    talos_filename_worker_patch: "worker_{{ talos_cluster.key }}_patch.yaml"
+
 - name: MMN Talos - Set talos_filename_controlplane_patched
   ansible.builtin.set_fact:
     talos_filename_controlplane_patched: "controlplane_{{ talos_cluster.key }}_patched.yaml"
+
+- name: MMN Talos - Set talos_filename_worker_patched
+  ansible.builtin.set_fact:
+    talos_filename_worker_patched: "worker_{{ talos_cluster.key }}_patched.yaml"
+
+

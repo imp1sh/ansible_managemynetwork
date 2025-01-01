@@ -11,5 +11,5 @@
 - name: MMN Talos - Export Talosctl Config
   ansible.builtin.include_tasks: 04_config_export.yml
 
-- name: MMN Talos - Add Workers
-  ansible.builtin.include_tasks: 05_workers_add.yml
+    #- name: MMN Talos - Reset Cluster
+    #  ansible.builtin.include_tasks: 10_cluster_reset.yml

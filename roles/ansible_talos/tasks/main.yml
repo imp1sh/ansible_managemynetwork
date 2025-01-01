@@ -7,3 +7,4 @@
   loop: "{{ talos_clusters | dict2items }}"
   loop_control:
     loop_var: talos_cluster
+

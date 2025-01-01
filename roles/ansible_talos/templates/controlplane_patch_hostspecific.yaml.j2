@@ -1,18 +1,18 @@
 ---
 machine:
   network:
-    hostname: "{{ host_controlplane.name }}"
+    hostname: "{{ clusternode.name }}"
     interfaces:
     - deviceSelector:
         busPath: "0*"
       addresses:
-{% if host_controlplane.ip4 is defined %}
-{% for ip4 in host_controlplane.ip4 %}
+{% if clusternode.ip4 is defined %}
+{% for ip4 in clusternode.ip4 %}
         - "{{ ip4 }}"
 {% endfor %}
 {% endif %}
-{% if host_controlplane.ip6 is defined %}
-{% for ip6 in host_controlplane.ip6 %}
+{% if clusternode.ip6 is defined %}
+{% for ip6 in clusternode.ip6 %}
         - "{{ ip6 }}"
 {% endfor %}
 {% endif %}

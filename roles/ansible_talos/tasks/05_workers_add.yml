@@ -1,8 +1,0 @@
----
-# Generate Machine Configurations. This is using the qemu agent as per: https://www.talos.dev/v1.7/talos-guides/install/virtualized-platforms/proxmox/
-- name: MMN Talos - Apply config to workers
-  ansible.builtin.command:
-    cmd: talosctl apply-config --insecure --nodes {{ item }} --file {{ talos_config_path }}/worker.yaml
-  changed_when: true
-  loop: "{{ talos_hosts_worker}}"
-  when: talos_hosts_worker is defined

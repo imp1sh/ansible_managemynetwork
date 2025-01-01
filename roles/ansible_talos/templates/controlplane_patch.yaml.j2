@@ -11,9 +11,9 @@ machine:
           - network: "::/0"
             gateway: "{{ talos_cluster.value.gw6 }}"
 {% endif %}
-{% if talos_controlplane_vip is defined %}
+{% if talos_cluster.value.controlplane_vip is defined %}
         vip:
-          ip: "{{ talos_cluster.value.controlplan_vip }}"
+          ip: "{{ talos_cluster.value.controlplane_vip | ansible.builtin.ipaddr('address')  }}"
 {% endif %}
 {% if talos_cluster.value.nameservers is defined %}
     nameservers:
@@ -21,11 +21,29 @@ machine:
       - {{ talos_nameserver }}
 {% endfor %}
 {% endif %}
-{% if talos_cluster.value.additionalSANs is defined %}
+
 cluster:
   apiServer:
+{% if talos_cluster.value.additionalSANs is defined %}
     certSANs:
 {% for additionalSAN in talos_cluster.value.additionalSANs %}
       - "{{ additionalSAN }}"
+{% endfor %}
+{% endif %}
+  network:
+{% if talos_cluster.value.cni is defined %}
+    cni:
+      name: {{ talos_cluster.value.cni }}
+{% endif %}
+{% if talos_cluster.value.podSubnets is defined %}
+    podSubnets:
+{% for podSubnet in talos_cluster.value.podSubnets %}
+      - {{ podSubnet }}
+{% endfor %}
+{% endif %}
+{% if talos_cluster.value.serviceSubnets is defined %}
+    serviceSubnets:
+{% for serviceSubnet in talos_cluster.value.serviceSubnets %}
+      - {{ serviceSubnet }}
 {% endfor %}
 {% endif %}
