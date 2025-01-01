@@ -1,5 +1,5 @@
 - name: display current network interface
-  debug:
+  ansible.builtin.debug:
     msg: "We are iterating on interface {{ item.key }}"
 - name: make sure key directory for interface exists
   file:

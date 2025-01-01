@@ -2,8 +2,37 @@
 {% for route4 in allroutes4 %}
 config route
 	option target "{{ route4['target'] }}"
+{% if route4['gateway'] is defined %}
 	option gateway "{{ route4['gateway'] }}"
+{% endif %}
 	option interface "{{ route4['interface'] }}"
+{% if route4['netmask'] is defined %}
+	option netmask "{{ route4['netmask'] }}"
+{% endif %}
+{% if route4['metric'] is defined %}
+	option metric "{{ route4['metric'] }}"
+{% endif %}
+{% if route4['mtu'] is defined %}
+	option mtu "{{ route4['mtu'] }}"
+{% endif %}
+{% if route4['table'] is defined %}
+	option table "{{ route4['table'] }}"
+{% endif %}
+{% if route4['source'] is defined %}
+	option source "{{ route4['source'] }}"
+{% endif %}
+{% if route4['onlink'] is defined %}
+	option onlink "{{ route4['onlink'] }}"
+{% endif %}
+{% if route4['type'] is defined %}
+	option type "{{ route4['type'] }}"
+{% endif %}
+{% if route4['proto'] is defined %}
+	option proto "{{ route4['proto'] }}"
+{% endif %}
+{% if route4['disabled'] is defined %}
+	option disabled "{{ route4['disabled'] }}"
+{% endif %}
 {% endfor %}
 {% endmacro %}
 
@@ -11,8 +40,34 @@ config route
 {% for route6 in allroutes6 %}
 config route6
 	option target "{{ route6['target'] }}"
+{% if route6['gateway'] is defined %}
 	option gateway "{{ route6['gateway'] }}"
+{% endif %}
 	option interface "{{ route6['interface'] }}"
+{% if route6['metric'] is defined %}
+	option metric "{{ route6['metric'] }}"
+{% endif %}
+{% if route6['mtu'] is defined %}
+	option mtu "{{ route6['mtu'] }}"
+{% endif %}
+{% if route6['table'] is defined %}
+	option table "{{ route6['table'] }}"
+{% endif %}
+{% if route6['source'] is defined %}
+	option source "{{ route6['source'] }}"
+{% endif %}
+{% if route6['onlink'] is defined %}
+	option onlink "{{ route6['onlink'] }}"
+{% endif %}
+{% if route6['type'] is defined %}
+	option type "{{ route6['type'] }}"
+{% endif %}
+{% if route6['proto'] is defined %}
+	option proto "{{ route6['proto'] }}"
+{% endif %}
+{% if route6['disabled'] is defined %}
+	option disabled "{{ route6['disabled'] }}"
+{% endif %}
 {% endfor %}
 {% endmacro %}
 
@@ -413,7 +468,6 @@ config rule '{{ key }}'
 {% elif family == 6 %}
 config rule6 '{{ key }}'
 {% endif %}
-
 {% if value['in'] is defined %}
         option in "{{ value['in'] }}"
 {% endif %}
@@ -437,6 +491,9 @@ config rule6 '{{ key }}'
 {% endif %}
 {% if value['suppress_prefixlength'] is defined %}
         option suppress_prefixlength "{{ value['suppress_prefixlength'] }}"
+{% endif %}
+{% if value['ipproto'] is defined %}
+	option ipproto "{{ value['ipproto'] }}"
 {% endif %}
 {% if value['invert'] is defined %}
         option invert "{{ value['invert'] }}"

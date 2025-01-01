@@ -3,6 +3,15 @@
 - name: merge interfaces from group and host definitions
   include_tasks: merge.yml
 
+- name: Create routing tables
+  ansible.builtin.blockinfile:
+    path: "/etc/iproute2/rt_tables"
+    marker: "# {mark} ANSIBLE MANAGED TABLES"
+    block: |
+      {% for table in openwrt_network_routing_tables %}
+      {{ table.id }} {{ table.name }}
+      {% endfor %}
+
 # Wireguard
 - name: make sure wireguard management dir exists
   ansible.builtin.file:
@@ -29,6 +38,22 @@
   ansible.builtin.include_tasks: ha.yml
   when: openwrt_network_hamaster is defined or openwrt_network_habackup is defined
 
+- name: MMN openwrtnetwork - Check if interfaces are present
+  pause:
+    prompt: "Neither interfaceshost nor interfacesgroup is defined. Do you still want to deploy network config? [yes/no]"
+  register: openwrt_network_interfacesdeploybool
+  when:
+    - openwrt_network_interfacesgroup is undefined
+    - openwrt_network_interfaceshost is undefined
+
+- name: MMN openwrtnetwork - Check if devices are present
+  pause:
+    prompt: "Neither deviceshost nor devicesgroup is defined. Do you still want to deploy network config? [yes/no]"
+  register: openwrt_network_devicesdeploybool
+  when:
+    - openwrt_network_devicesgroup is undefined
+    - openwrt_network_deviceshost is undefined
+
 # Main Network Deployment Tasks
 - name: Deploy Network configuration
   ansible.builtin.template:
@@ -36,4 +61,7 @@
     dest: "{{ openwrt_network_deploypath }}/{{ openwrt_network_deployfile }}"
     backup: "{{ openwrt_network_backupconfig | default(false) }}"
     mode: 0600
+  when: 
+    - openwrt_network_interfacesdeploybool.user_input is undefined or openwrt_network_interfacesdeploybool.user_input == 'yes'
+    - openwrt_network_devicesdeploybool.user_input is undefined or openwrt_network_devicesdeploybool.user_input == 'yes'
   notify: restart network
