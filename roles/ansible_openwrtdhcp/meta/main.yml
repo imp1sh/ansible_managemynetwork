@@ -11,5 +11,7 @@ galaxy_info:
       versions:
         - "21.02"
         - "22.03"
+        - "23.05"
+        - "24.10"
   galaxy_tags: [openwrt, lede, dnsmasq, dhcp, radvd, dhcp, dhcpv6, resolver]
 dependencies: []

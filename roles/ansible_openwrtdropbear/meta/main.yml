@@ -12,5 +12,7 @@ galaxy_info:
       versions:
         - "21.02"
         - "22.03"
+        - "23.05"
+        - "24.10"
   galaxy_tags: [openwrt, lede, dropbear, ssh]
 dependencies: []

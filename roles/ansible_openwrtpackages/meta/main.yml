@@ -8,9 +8,11 @@ galaxy_info:
   license: BSD-3-Clause
   min_ansible_version: "2.9"
   platforms:
-  - name: OpenWrt
-    versions:
-      - 21.02
-      - 22.03
+    - name: OpenWrt
+      versions:
+        - 21.02
+        - 22.03
+        - 23.05
+        - 24.10
   galaxy_tags: [openwrt, lede, packages, opkg]
 dependencies: []
