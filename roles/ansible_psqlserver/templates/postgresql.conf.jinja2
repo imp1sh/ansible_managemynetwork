@@ -138,7 +138,7 @@ vacuum_defer_cleanup_age = {{ psqlserver_vacuum_defer_cleanup_age }}
 # REPLICATION STANDBY SERVER
 #------------------------------------------------------------------------------
 {% if psqlserver_primary_conninfo is defined %}
-primary_conninfo = {{ psqlserver_primary_conninfo }}
+primary_conninfo = '{{ psqlserver_primary_conninfo }}'
 {% endif %}
 {% if psqlserver_primary_slot_name is defined %}
 primary_slot_name = {{ psqlserver_primary_slot_name }}
