@@ -1,0 +1,19 @@
+machine:
+  network:
+    interfaces:
+      - deviceSelector:
+          busPath: "0*"
+        dhcp: false
+        routes:
+          - network: "0.0.0.0/0"
+            gateway: "{{ talos_cluster.value.gw4 }}"
+{% if talos_cluster.value.gw6 is defined %}
+          - network: "::/0"
+            gateway: "{{ talos_cluster.value.gw6 }}"
+{% endif %}
+{% if talos_cluster.value.nameservers is defined %}
+    nameservers:
+{% for talos_nameserver in talos_cluster.value.nameservers %}
+      - {{ talos_nameserver }}
+{% endfor %}
+{% endif %}
