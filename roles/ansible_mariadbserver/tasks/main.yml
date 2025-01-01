@@ -13,6 +13,7 @@
   ansible.builtin.import_tasks: install.yml
 - name: create databases
   community.mysql.mysql_db:
+    check_implicit_admin: true
     name: "{{ mariadb_databases }}"
     state: present
     login_user: "root"
