@@ -65,10 +65,15 @@ table inet filter {
     chain forward {
       type filter hook forward priority 0
 {{ functions.dropswitch(nftablespolicy) }}
-      # allows packets from lan to wan and other direction statefully (ct = connection tracking)
 {% for interface in nftables_masks %}
       iifname "{{ interface.downif }}" oifname "{{ interface.upif }}" accept
+{% if nftables_allow_inbound is defined and nftables_allow_inbound  %}
+      # allow packets in both directions
+      iifname "{{ interface.upif }}" oifname "{{ interface.downif }}" accept
+{% else %}
+      # allows packets from lan to wan and other direction statefully (ct = connection tracking)
       iifname "{{ interface.upif }}" oifname "{{ interface.downif }}" ct state related,established accept
+{% endif %}
 {% endfor %}
 {% if nftables_forward is defined %}
 {% for forwardrule in nftables_forward %}
