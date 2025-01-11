@@ -262,5 +262,21 @@ config wifi-iface "{{ key }}"
 {% if value.ft_psk_generate_local is defined %}
 	option ft_psk_generate_local "{{ value.ft_psk_generate_local }}"
 {% endif %}
+{% if value.bss_transition is defined %}
+	option bss_transition "{{ value.bss_transition }}"
+{% endif %}
+{% if value.wnm_sleep_mode is defined %}
+	option wnm_sleep_mode "{{ value.wnm_sleep_mode }}"
+{% endif %}
+{% if value.time_advertisement is defined %}
+	option time_advertisement "{{ value.time_advertisement }}"
+{% endif %}
+{% if value.time_zone is defined %}
+	option time_zone "{{ value.time_zone }}"
+{% endif %}
+{% if value.ieee80211k is defined %}
+	option ieee80211k "{{ value.ieee80211k }}"
+{% endif %}
+
 
 {% endfor %}
