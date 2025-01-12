@@ -1,0 +1,6 @@
+---
+# defaults file for ansible_openwrtusteer
+openwrt_usteer_config: 
+openwrt_usteer_deployroot: "/"
+openwrt_usteer_deploypath: "{{ openwrt_usteer_deployroot }}etc/config"
+openwrt_usteer_deployfile: "usteer"
