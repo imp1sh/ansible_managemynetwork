@@ -118,12 +118,12 @@ config wifi-device "{{ key }}"
 # Wifi interfaces
 {% for key, value in openwrt_wifi_interfaces.items() %}
 config wifi-iface "{{ key }}"
-	option device "{{ value.device }}"
-	option network "{{ value.network }}"
-	option mode "{{ value.mode }}"
 {% if value.ifname is defined %}
 	option ifname "{{ value.ifname }}"
 {% endif %}
+	option device "{{ value.device }}"
+	option network "{{ value.network }}"
+	option mode "{{ value.mode }}"
 {% if value.disabled is defined %}
 	option disabled "{{ value.disabled }}"
 {% endif %}
@@ -141,6 +141,9 @@ config wifi-iface "{{ key }}"
 {% endif %}
 {% if value.isolate is defined %}
 	option isolate "{{ value.isolate }}"
+{% endif %}
+{% if value.bridge_isolate is defined %}
+	option bridge_isolate "{{ value.bridge_isolate }}"
 {% endif %}
 {% if value.doth is defined %}
 	option doth "{{ value.doth }}"
@@ -170,7 +173,9 @@ config wifi-iface "{{ key }}"
 	option macfilter "{{ value.macfilter }}"
 {% endif %}
 {% if value.maclist is defined %}
-	option maclist "{{ value.maclist }}"
+{% for macelement in value.maclist %}
+	list maclist "{{ macelement }}"
+{% endfor %}
 {% endif %}
 {% if value.iapp_interface is defined %}
 	option iapp_interface "{{ value.iapp_interface }}"
@@ -187,6 +192,9 @@ config wifi-iface "{{ key }}"
 {% if value.ieee80211w_retry_timeout is defined %}
 	option ieee80211w_retry_timeout "{{ value.ieee80211w_retry_timeout }}"
 {% endif %}
+{% if value.sae_require_mfp is defined %}
+	option sae_require_mfp "{{ value.sae_require_mfp }}"
+{% endif %}
 {% if value.maxassoc is defined %}
 	option maxassoc "{{ value.maxassoc }}"
 {% endif %}
@@ -201,12 +209,6 @@ config wifi-iface "{{ key }}"
 {% endif %}
 {% if value.max_listen_int is defined %}
 	option max_listen_int "{{ value.max_listen_int }}"
-{% endif %}
-{% if value.disassoc_low_ack is defined %}
-	option disassoc_low_ack "{{ value.disassoc_low_ack }}"
-{% endif %}
-{% if value.wpa_disable_eapol_key_retries is defined %}
-	option wpa_disable_eapol_key_retries "{{ value.wpa_disable_eapol_key_retries }}"
 {% endif %}
 {% if value.mcast_rate is defined %}
 	option mcast_rate "{{ value.mcast_rate }}"
@@ -223,17 +225,162 @@ config wifi-iface "{{ key }}"
 {% if value.sae_pwe is defined %}
 	option sae_pwe "{{ value.sae_pwe }}"
 {% endif %}
+{% if value.ocv is defined %}
+	option ocv "{{ value.ocv }}"
+{% endif %}
 {% if value.start_disabled is defined %}
 	option start_disabled "{{ value.start_disabled }}"
 {% endif %}
 {% if value.default_disabled is defined %}
 	option default_disabled "{{ value.default_disabled }}"
 {% endif %}
-{% if value.ieee80211r is defined %}
-	option ieee80211r "{{ value.ieee80211r }}"
+{% if value.hostapd_bss_options is defined %}
+{% for hostapd_bss_option in value.hostapd_bss_options %}
+        list "{{ hostapd_bss_option }}"
+{% endfor %}
+{% endif %}
+{% if value.server is defined %}
+	option server "{{ value.server }}"
+{% endif %}
+{% if value.port is defined %}
+	option port "{{ value.port }}"
+{% endif %}
+{% if value.wpa_group_rekey is defined %}
+	option wpa_group_rekey "{{ value.wpa_group_rekey }}"
+{% endif %}
+{% if value.auth_server is defined %}
+	option auth_server "{{ value.auth_server }}"
+{% endif %}
+{% if value.auth_port is defined %}
+	option auth_port "{{ value.auth_port }}"
+{% endif %}
+{% if value.auth_secret is defined %}
+	option auth_secret "{{ value.auth_secret }}"
+{% endif %}
+{% if value.auth_cache is defined %}
+	option auth_cache "{{ value.auth_cache }}"
+{% endif %}
+{% if value.acct_server is defined %}
+	option acct_server "{{ value.acct_server }}"
+{% endif %}
+{% if value.acct_port is defined %}
+	option acct_port "{{ value.acct_port }}"
+{% endif %}
+{% if value.acct_secret is defined %}
+	option acct_secret "{{ value.acct_secret }}"
 {% endif %}
 {% if value.nasid is defined %}
 	option nasid "{{ value.nasid }}"
+{% endif %}
+{% if value.ownip is defined %}
+	option ownip "{{ value.ownip }}"
+{% endif %}
+{% if value.dae_client is defined %}
+	option dae_client "{{ value.dae_client }}"
+{% endif %}
+{% if value.dae_port is defined %}
+	option dae_port "{{ value.dae_port }}"
+{% endif %}
+{% if value.dae_secret is defined %}
+	option dae_secret "{{ value.dae_secret }}"
+{% endif %}
+{% if value.dynamic_vlan is defined %}
+	option dynamic_vlan "{{ value.dynamic_vlan }}"
+{% endif %}
+{% if value.vlan_file is defined %}
+	option vlan_file "{{ value.vlan_file }}"
+{% endif %}
+{% if value.vlan_naming is defined %}
+	option vlan_naming "{{ value.vlan_naming }}"
+{% endif %}
+{% if value.vlan_tagged_interface is defined %}
+	option vlan_tagged_interface "{{ value.vlan_tagged_interface }}"
+{% endif %}
+{% if value.vlan_bridge is defined %}
+	option vlan_bridge "{{ value.vlan_bridge }}"
+{% endif %}
+{% if value.radius_client_addr is defined %}
+	option radius_client_addr "{{ value.radius_client_addr }}"
+{% endif %}
+{% if value.eap_type is defined %}
+	option eap_type "{{ value.eap_type }}"
+{% endif %}
+{% if value.auth is defined %}
+	option auth "{{ value.auth }}"
+{% endif %}
+{% if value.identity is defined %}
+	option identity "{{ value.identity }}"
+{% endif %}
+{% if value.password is defined %}
+	option password "{{ value.password }}"
+{% endif %}
+{% if value.ca_cert is defined %}
+	option ca_cert "{{ value.ca_cert }}"
+{% endif %}
+{% if value.client_cert is defined %}
+	option client_cert "{{ value.client_cert }}"
+{% endif %}
+{% if value.priv_key is defined %}
+	option priv_key "{{ value.priv_key }}"
+{% endif %}
+{% if value.priv_key_pwd is defined %}
+	option priv_key_pwd "{{ value.priv_key_pwd }}"
+{% endif %}
+{% if value.wpa_psk_file is defined %}
+	option wpa_psk_file "{{ value.wpa_psk_file }}"
+{% endif %}
+{% if value.wpa_disable_eapol_key_retries is defined %}
+	option wpa_disable_eapol_key_retries "{{ value.wpa_disable_eapol_key_retries }}"
+{% endif %}
+{% if value.tdls_prohibit is defined %}
+	option tdls_prohibit "{{ value.tdls_prohibit }}"
+{% endif %}
+{% if value.wps_config is defined %}
+{% for wps_method in value.wps_config %}
+	list "{{ wps_method }}"
+{% endfor %}
+{% endif %}
+{% if value.wps_device_name is defined %}
+	option wps_device_name "{{ value.wps_device_name }}"
+{% endif %}
+{% if value.wps_device_type is defined %}
+	option wps_device_type "{{ value.wps_device_type }}"
+{% endif %}
+{% if value.wps_label is defined %}
+	option wps_label "{{ value.wps_label }}"
+{% endif %}
+{% if value.wps_manufacturer is defined %}
+	option wps_manufacturer "{{ value.wps_manufacturer }}"
+{% endif %}
+{% if value.wps_pushbutton is defined %}
+	option wps_pushbutton "{{ value.wps_pushbutton }}"
+{% endif %}
+{% if value.wps_pin is defined %}
+	option wps_pin "{{ value.wps_pin }}"
+{% endif %}
+{% if value.ieee80211k is defined %}
+	option ieee80211k "{{ value.ieee80211k }}"
+{% endif %}
+{% if value.rrm_neighbor_report is defined %}
+	option rrm_neighbor_report "{{ value.rrm_neighbor_report }}"
+{% endif %}
+{% if value.rrm_beacon_report is defined %}
+	option rrm_beacon_report "{{ value.rrm_beacon_report }}"
+{% endif %}
+{% if value.time_advertisement is defined %}
+	option time_advertisement "{{ value.time_advertisement }}"
+{% endif %}
+{% if value.time_zone is defined %}
+	option time_zone "{{ value.time_zone }}"
+{% endif %}
+{% if value.wnm_sleep_mode is defined %}
+	option wnm_sleep_mode "{{ value.wnm_sleep_mode }}"
+{% endif %}
+{% if value.bss_transition is defined %}
+	option bss_transition "{{ value.bss_transition }}"
+{% endif %}
+{% if value.ieee80211r is defined %}
+	option ieee80211r "{{ value.ieee80211r }}"
 {% endif %}
 {% if value.mobility_domain is defined %}
 	option mobility_domain "{{ value.mobility_domain }}"
@@ -262,21 +409,16 @@ config wifi-iface "{{ key }}"
 {% if value.ft_psk_generate_local is defined %}
 	option ft_psk_generate_local "{{ value.ft_psk_generate_local }}"
 {% endif %}
-{% if value.bss_transition is defined %}
-	option bss_transition "{{ value.bss_transition }}"
+{% if value.disassoc_low_ack is defined %}
+	option disassoc_low_ack "{{ value.disassoc_low_ack }}"
 {% endif %}
-{% if value.wnm_sleep_mode is defined %}
-	option wnm_sleep_mode "{{ value.wnm_sleep_mode }}"
+{% if value.max_inactivity is defined %}
+	option max_inactivity "{{ value.max_inactivity }}"
 {% endif %}
-{% if value.time_advertisement is defined %}
-	option time_advertisement "{{ value.time_advertisement }}"
+{% if value.skip_inactivity_poll is defined %}
+	option skip_inactivity_poll "{{ value.skip_inactivity_poll }}"
 {% endif %}
-{% if value.time_zone is defined %}
-	option time_zone "{{ value.time_zone }}"
+{% if value.max_listen_interval is defined %}
+	option max_listen_interval "{{ value.max_listen_interval }}"
 {% endif %}
-{% if value.ieee80211k is defined %}
-	option ieee80211k "{{ value.ieee80211k }}"
-{% endif %}
-
-
 {% endfor %}
