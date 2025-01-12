@@ -1,0 +1,26 @@
+---
+# tasks file for ansible_openwrtusteer
+- name: Make sure deploypath is present
+  ansible.builtin.file:
+    path: "{{ openwrt_usteer_deploypath }}"
+    state: directory
+    mode: '0755'
+
+- name: Setup usteer config
+  ansible.builtin.template:
+    src: "usteer.jinja2"
+    dest: "{{ openwrt_usteer_deploypath }}/{{ openwrt_usteer_deployfile }}"
+    mode: '0644'
+  notify: Restart usteer
+
+- name: Initialize packages_installimagebuilder
+  ansible.builtin.set_fact:
+    packages_installimagebuilder: []
+  when:
+    - packages_installimagebuilder is not defined
+    - openwrt_usteer_runimagebuilder | default(false)
+
+- name: Merge role packages into packages_installimagebuilder
+  ansible.builtin.set_fact:
+    packages_installimagebuilder: "{{ packages_installimagebuilder + packages_installrole }}"
+  when: openwrt_usteer_runimagebuilder | default(false)
