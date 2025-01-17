@@ -50,44 +50,47 @@ This is an example playbook for the ansible_openwrtimagebuilder role.
   serial: 1
   # become: true
   tasks:
-    - name: run imagebuilder preparations
+    - name: Run imagebuilder preparations
       ansible.builtin.import_role:
         name: imp1sh.ansible_managemynetwork.ansible_openwrtimagebuilder
         tasks_from: prepare
-    - name: run acme
+    - name: Run packages
+      ansible.builtin.import_role:
+        name: imp1sh.ansible_managemynetwork.ansible_packages
+    - name: Run acme
       ansible.builtin.import_role:
         name: imp1sh.ansible_managemynetwork.ansible_openwrtacme
-    - name: run uhttpd
+    - name: Run uhttpd
       ansible.builtin.import_role:
         name: imp1sh.ansible_managemynetwork.ansible_openwrtuhttpd
-    - name: run dhcp
+    - name: Run dhcp
       ansible.builtin.import_role:
         name: imp1sh.ansible_managemynetwork.ansible_openwrtdhcp
-    - name: run dropbear
+    - name: Run dropbear
       ansible.builtin.import_role:
         name: imp1sh.ansible_managemynetwork.ansible_openwrtdropbear
-    - name: run firewall
+    - name: Run firewall
       ansible.builtin.import_role:
         name: imp1sh.ansible_managemynetwork.ansible_openwrtfirewall
-    - name: run network
+    - name: Run network
       ansible.builtin.import_role:
         name: imp1sh.ansible_managemynetwork.ansible_openwrtnetwork
-    - name: run restic
+    - name: Run restic
       ansible.builtin.import_role:
         name: imp1sh.ansible_managemynetwork.ansible_restic
-    - name: run system
+    - name: Run system
       ansible.builtin.import_role:
         name: imp1sh.ansible_managemynetwork.ansible_openwrtsystem
-    - name: run wireless
+    - name: Run wireless
       ansible.builtin.import_role:
         name: imp1sh.ansible_managemynetwork.ansible_openwrtwireless
-    - name: run wireguard
+    - name: Run wireguard
       ansible.builtin.import_role:
         name: imp1sh.ansible_managemynetwork.ansible_openwrtwireguard
-    - name: run users
+    - name: Run users
       ansible.builtin.import_role:
         name: imp1sh.ansible_managemynetwork.ansible_users
-    - name: run imagebuilder build
+    - name: Run imagebuilder build
       ansible.builtin.import_role:
         name: imp1sh.ansible_managemynetwork.ansible_openwrtimagebuilder
         tasks_from: build
@@ -96,22 +99,34 @@ This is an example playbook for the ansible_openwrtimagebuilder role.
 It's important to run the `prepare` task first. Next come your own choice of Ansible roles for OpenWrt from my collection. At the end the `build` task needs to run.
 If you make use of the firewall role in which you might want to merge zones, place it in the pretask, like above.
 
+> [!NOTE]  
+> Some roles needs `ansible_packages` role to be run before, e.g. `ansible_openwrtacme` or `ansible_openwrtwireguard`.
+
 ## Variables
 
-If you don't adjust the `openwrt_imagebuilder_builddir` variable, the path `/tmp/openwrt_imagebuilder` will be used for building. The variable `openwrt_imagebuilder_outputdir` defines where the final images will be put. If you don't adjust, it will be in `/tmp/openwrt_imagebuilder_images`. The images will be named after the hostname in Ansible and will be compressed (tar.gz.)
-You can specify the image for your system by setting this variable `openwrt_imagebuilder_downloadurl`. If you don't specify, the default x86 imagebuilder URL will be used. Here is an example url link for the [Ubiquiti Edgerouter X](https://downloads.openwrt.org/releases/22.03.1/targets/ramips/mt7621/).
+* `openwrt_imagebuilder_builddir` - The directory where the imagebuilder will be built. Default is `/tmp/openwrt_imagebuilder`.
+* `openwrt_imagebuilder_outputdir` - The directory where the images will be put. Default is `/tmp/openwrt_imagebuilder_images`. 
+  * The images will be named in format `hostname--output-of-imagebuilder.bin`
+  * Additionally all output directory will be compressed in a tar.gz file and named `hostname.tar.gz`
+* `openwrt_imagebuilder_downloadurl` - The URL to the imagebuilder. Default is the x86 imagebuilder. [Instruction how to find the correct URL](https://openwrt.org/docs/guide-user/additional-software/imagebuilder#obtaining_the_image_builder)
+* `openwrt_imagebuilder_profile` - The profile to build. If not set, the default profile will be used.
+* ``openwrt_imagebuilder_kernelvars` - Kernel variables to set. Default is empty. \
+  For the build process you can specify kernel variables like in [Buildroot](https://openwrt.org/de/doc/howto/buildroot.exigence). Here you can also set the partition size, e.g:
+  ```yaml
+  openwrt_imagebuilder_kernelvars:
+    - name: "CONFIG_TARGET_KERNEL_PARTSIZE"
+      value: 32
+    - name: "CONFIG_TARGET_ROOTFS_PARTSIZE"
+      value: 900
+  ```
 
-For the build process you can specify kernel variables like in [Buildroot](https://openwrt.org/de/doc/howto/buildroot.exigence). Here you can also set the partition size, e.g:
-```yaml
-openwrt_imagebuilder_kernelvars:
-  - name: "CONFIG_TARGET_KERNEL_PARTSIZE"
-    value: 32
-  - name: "CONFIG_TARGET_ROOTFS_PARTSIZE"
-    value: 900
-```
-
+> [!WARNING]  
 > There are limits to partition size [see also](https://unix.stackexchange.com/questions/563203/what-is-the-maximum-value-for-the-bs-argument-of-dd). I successfully tested image sizes up to 15G.
-{.is-warning}
 
 ## Special roles
 There are some roles, e.g. *ansible_restic* that need to run on a deployed system so they can function. Always let Ansible run on the target device, after you deployed your firmware.
+
+## Make own role compatible with imagebuilder
+Use `openwrt_imagebuilder_deployroot` to deploy files to the image. \
+This variable is a path to a files directory in imagebuilder. \
+Each file in this directory will be copied to the root of the image.
