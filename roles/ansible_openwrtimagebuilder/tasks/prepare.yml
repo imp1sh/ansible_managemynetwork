@@ -74,5 +74,6 @@
     - openwrt_services_deployroot
     - openwrt_system_deployroot
     - openwrt_uhttpd_deployroot
+    - openwrt_usteer_deployroot
     - openwrt_wireless_deployroot
     - system_users_setpassword_deployroot
