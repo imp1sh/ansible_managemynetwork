@@ -76,8 +76,8 @@
 
 - name: Copy the image to the output directory
   ansible.builtin.copy:
-    src: "{{ openwrt_imagebuilder_image.files[0].path }}"
-    dest: "{{ openwrt_imagebuilder_outputdir }}/{{ inventory_hostname }}--{{ openwrt_imagebuilder_image_name }}"
+    src: "{{ openwrt_imagebuilder_image_path }}"
+    dest: "{{ openwrt_imagebuilder_destinationpath | default(openwrt_imagebuilder_outputdir) }}/{{ inventory_hostname }}--{{ openwrt_imagebuilder_image_name }}"
     remote_src: true
     mode: '0644'
 
