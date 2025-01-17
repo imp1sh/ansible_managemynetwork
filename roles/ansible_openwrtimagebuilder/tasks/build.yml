@@ -1,48 +1,89 @@
 ---
-- name: set kernel parameters for build
+- name: Set kernel parameters for build
   ansible.builtin.lineinfile:
     path: "{{ openwrt_imagebuilder_builddir }}/{{ openwrt_imagebuilder_extractedfolder }}/.config"
     regexp: "^{{ item.name }}="
     line: "{{ item.name }}={{ item.value }}"
   loop: "{{ openwrt_imagebuilder_kernelvars }}"
   when: openwrt_imagebuilder_kernelvars is defined
+
 - name: List packages that will be in the image
-  debug:
+  ansible.builtin.debug:
     var: packages_install
+
 - name: List packages that will be remove in the image
-  debug:
+  ansible.builtin.debug:
     var: packages_remove
+
 - name: Convert imagebuilder packages into list
   ansible.builtin.set_fact:
-    packages_imagebuilder: "{{ ( packages_install + ( packages_remove | map('regex_replace', '^', '-'))) | join(packages_separator) }}"
-  when: packages_install is defined
-- name: Building info
-  debug:
-    msg: "Building with the following command: make image PACKAGES={{ packages_imagebuilder }} FILES={{ openwrt_imagebuilder_filesdir }}"
-  when: openwrt_imagebuilder_profile is not defined
-- name: Building info
-  debug:
-    msg: "Building with the following command: make image PACKAGES={{ packages_imagebuilder }} FILES={{ openwrt_imagebuilder_filesdir }} PROFILE={{ openwrt_imagebuilder_profile }}"
+    openwrt_imagebulder_make_packages: >-
+      PACKAGES="
+      {{ packages_install | default('') | join(' ') }}
+      {{ packages_remove | map('regex_replace', '^', '-') | join(' ') }}"
+  when: packages_install is defined or packages_remove is defined
+
+- name: Check if filesdir is defined
+  ansible.builtin.set_fact:
+    openwrt_imagebulder_make_filesdir: "FILES=\"{{ openwrt_imagebuilder_filesdir }}\""
+  when: openwrt_imagebuilder_filesdir is defined
+
+- name: Check if imagebuilder profile is defined
+  ansible.builtin.set_fact:
+    openwrt_imagebulder_make_profile: "PROFILE=\"{{ openwrt_imagebuilder_profile }}\""
   when: openwrt_imagebuilder_profile is defined
+
+- name: Check if there are services to be disabled
+  ansible.builtin.set_fact:
+    openwrt_imagebulder_make_services: "DISABLE_SERVICES=\"{{ openwrt_services_disabled | join(' ') }}\""
+  when: openwrt_services_disabled is defined
+
+- name: Create make command
+  ansible.builtin.set_fact:
+    openwrt_imagebuilder_make_image_command: >-
+      make image
+      {{ openwrt_imagebulder_make_packages | default("") }}
+      {{ openwrt_imagebulder_make_filesdir | default("") }}
+      {{ openwrt_imagebulder_make_profile | default("") }}
+      {{ openwrt_imagebulder_make_services | default("") }}
+    openwrt_imagebuilder_make_path: "{{ openwrt_imagebuilder_builddir }}/{{ openwrt_imagebuilder_extractedfolder }}"
+
+- name: Building info
+  ansible.builtin.debug:
+    msg: "Building with the following command: {{ make_image_command }}"
+
 - name: Create image
-  ansible.builtin.shell: make image PACKAGES="{{ packages_imagebuilder|default("") }}" FILES="{{ openwrt_imagebuilder_filesdir }}"
-  args:
-    chdir: "{{ openwrt_imagebuilder_builddir }}/{{ openwrt_imagebuilder_extractedfolder }}"
-  when: openwrt_imagebuilder_profile is not defined
-- name: Create image with profile option
-  ansible.builtin.shell: make image PACKAGES="{{ packages_imagebuilder|default("") }}" FILES="{{ openwrt_imagebuilder_filesdir }}" PROFILE="{{ openwrt_imagebuilder_profile }}"
-  args:
-    chdir: "{{ openwrt_imagebuilder_builddir }}/{{ openwrt_imagebuilder_extractedfolder }}"
-  when: openwrt_imagebuilder_profile is defined
-- name: compress and remove for user set path
+  ansible.builtin.command:
+    cmd: "{{ openwrt_imagebuilder_make_image_command }}"
+    chdir: "{{ openwrt_imagebuilder_make_path }}"
+  changed_when: true
+
+- name: Find the image
+  ansible.builtin.find:
+    paths: "{{ openwrt_imagebuilder_builddir }}/{{ openwrt_imagebuilder_extractedfolder }}/bin"
+    recurse: true
+    patterns: "*-sysupgrade.bin"
+  register: openwrt_imagebuilder_image
+
+- name: Store file name
+  ansible.builtin.set_fact:
+    openwrt_imagebuilder_image_name: "{{ openwrt_imagebuilder_image.files[0].path | basename }}"
+    openwrt_imagebuilder_image_path: "{{ openwrt_imagebuilder_image.files[0].path }}"
+
+- name: Print the image name
+  ansible.builtin.debug:
+    var: openwrt_imagebuilder_image_name
+
+- name: Copy the image to the output directory
+  ansible.builtin.copy:
+    src: "{{ openwrt_imagebuilder_image.files[0].path }}"
+    dest: "{{ openwrt_imagebuilder_outputdir }}/{{ inventory_hostname }}--{{ openwrt_imagebuilder_image_name }}"
+    remote_src: true
+    mode: '0644'
+
+- name: Compress and remove build directory
   community.general.archive:
     path: "{{ openwrt_imagebuilder_builddir }}/{{ openwrt_imagebuilder_extractedfolder }}/bin"
-    dest: "{{ openwrt_imagebuilder_destinationpath }}/{{ inventory_hostname }}.tar.gz"
+    dest: "{{ openwrt_imagebuilder_destinationpath | default(openwrt_imagebuilder_outputdir) }}/{{ inventory_hostname }}.tar.gz"
     remove: true
-  when: openwrt_imagebuilder_destinationpath is defined
-- name: compress images and remove
-  community.general.archive:
-    path: "{{ openwrt_imagebuilder_builddir }}/{{ openwrt_imagebuilder_extractedfolder }}/bin"
-    dest: "{{ openwrt_imagebuilder_outputdir }}/{{ inventory_hostname }}.tar.gz"
-    remove: true
-  when: not openwrt_imagebuilder_destinationpath is defined
+    mode: '0644'
