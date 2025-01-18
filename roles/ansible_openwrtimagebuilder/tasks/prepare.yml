@@ -42,7 +42,7 @@
 
 - name: Set full path to files directory
   ansible.builtin.set_fact:
-    openwrt_imagebuilder_deployroot: "{{ openwrt_imagebuilder_builddir }}/{{ openwrt_imagebuilder_extractedfolder }}{{ openwrt_imagebuilder_filesdir }}"
+    openwrt_imagebuilder_deployroot: "{{ openwrt_imagebuilder_builddir }}/{{ openwrt_imagebuilder_extractedfolder }}{{ openwrt_imagebuilder_filesdir }}/"
 
 - name: Remove old files dir if exist
   ansible.builtin.file:
@@ -60,7 +60,7 @@
   # for setting deployroot
 - name: Set this files directory to use as openwrt deployroot for all compatible roles
   ansible.builtin.set_fact:
-    "{{ item }}": "{{ openwrt_imagebuilder_deployroot }}/"
+    "{{ item }}": "{{ openwrt_imagebuilder_deployroot }}"
   loop:
     - openwrt_acme_deployroot
     - openwrt_batmanadv_deployroot
@@ -74,6 +74,5 @@
     - openwrt_services_deployroot
     - openwrt_system_deployroot
     - openwrt_uhttpd_deployroot
-    - openwrt_usteer_deployroot
     - openwrt_wireless_deployroot
     - system_users_setpassword_deployroot
