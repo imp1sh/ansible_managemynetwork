@@ -2,6 +2,8 @@
 # defaults file for ansible_openwrtnetwork
 openwrt_network_deployroot: "/"
 openwrt_network_deploypath: "{{ openwrt_network_deployroot }}etc/config"
+openwrt_network_iproute2_deploypath: "{{ openwrt_network_deployroot }}/etc/iproute2"
+openwrt_network_iproute2_deployfile: "rt_tables"
 openwrt_network_deployfile: "network"
 openwrt_network_keepalived_deploypath: "{{ openwrt_network_deployroot }}etc/keepalived"
 openwrt_network_keepalived_deployfile: "keepalived.conf"
