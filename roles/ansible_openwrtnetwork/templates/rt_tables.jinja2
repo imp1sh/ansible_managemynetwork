@@ -1,0 +1,17 @@
+#
+# reserved values
+#
+128     prelocal
+255     local
+254     main
+253     default
+0       unspec
+#
+# local
+#
+#1      inr.ruhep
+# Ansible managed
+{% for table in openwrt_network_routing_tables %}
+{{ table.id }} {{ table.name }}
+{% endfor %}
+# Ansible managed end
