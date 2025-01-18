@@ -3,14 +3,18 @@
 - name: merge interfaces from group and host definitions
   include_tasks: merge.yml
 
-- name: Create routing tables
-  ansible.builtin.blockinfile:
-    path: "/etc/iproute2/rt_tables"
-    marker: "# {mark} ANSIBLE MANAGED TABLES"
-    block: |
-      {% for table in openwrt_network_routing_tables %}
-      {{ table.id }} {{ table.name }}
-      {% endfor %}
+- name: iproute tasks
+  when: openwrt_network_routing_tables is defined
+  block:
+    - name: Make sure iproute2 deploypath exists
+      ansible.builtin.file:
+        path: "{{ openwrt_network_iproute2_deploypath }}"
+        state: directory
+    - name: Create routing tables
+      ansible.builtin.template:
+        src: rt_tables.jinja2
+        dest: "{{ openwrt_network_iproute2_deploypath }}/{{ openwrt_network_iproute2_deployfile }}"
+        mode: 0600
 
 # Wireguard
 - name: make sure wireguard management dir exists
