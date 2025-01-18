@@ -21,11 +21,11 @@
     - name: MMN users - Debug
       debug:
         msg: "{{ system_users_setpassword_deploypath }}/{{ 99 + index }}{{ system_users_setpassword_deployfile }}-{{ user.key }}"
-    - name: MMMN users - ake sure init script deploypath exists
+    - name: MMN users - ake sure init script deploypath exists
       ansible.builtin.file:
         path: "{{ system_users_setpassword_deploypath }}"
         state: directory
-    - name: dMMN users - Deploy init script for user
+    - name: MMN users - Deploy init script for user
       ansible.builtin.template:
         src: imagebuilderuser.j2
         dest: "{{ system_users_setpassword_deploypath }}/{{ index }}{{ system_users_setpassword_deployfile }}-{{ user.key }}"
