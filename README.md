@@ -73,6 +73,7 @@ Some roles support Debian and OpenWrt at the same time.
   - [:leftwards_arrow_with_hook: imp1sh.ansible_managemynetwork.ansible_openwrtsystem](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_openwrtsystem/README.md)
   - [:leftwards_arrow_with_hook: imp1sh.ansible_managemynetwork.ansible_openwrttinyproxy](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_openwrttinyproxy/README.md)
   - [:leftwards_arrow_with_hook: imp1sh.ansible_managemynetwork.ansible_openwrtuhttpd](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_openwrtuhttpd/README.md)
+  - [:leftwards_arrow_with_hook: imp1sh.ansible_managemynetwork.ansible_openwrtusteer](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_openwrtusteer/README.md)
   - [:leftwards_arrow_with_hook: imp1sh.ansible_managemynetwork.ansible_openwrtwireguard](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_openwrtwireguard/README.md)
   - [:leftwards_arrow_with_hook: imp1sh.ansible_managemynetwork.ansible_openwrtwireless](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_openwrtwireless/README.md)
 
