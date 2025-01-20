@@ -58,29 +58,6 @@
     chdir: "{{ openwrt_imagebuilder_make_path }}"
   changed_when: true
 
-- name: Find the image
-  ansible.builtin.find:
-    paths: "{{ openwrt_imagebuilder_builddir }}/{{ openwrt_imagebuilder_extractedfolder }}/bin"
-    recurse: true
-    patterns: "*-sysupgrade.bin"
-  register: openwrt_imagebuilder_image
-
-- name: Store file name
-  ansible.builtin.set_fact:
-    openwrt_imagebuilder_image_name: "{{ openwrt_imagebuilder_image.files[0].path | basename }}"
-    openwrt_imagebuilder_image_path: "{{ openwrt_imagebuilder_image.files[0].path }}"
-
-- name: Print the image name
-  ansible.builtin.debug:
-    var: openwrt_imagebuilder_image_name
-
-- name: Copy the image to the output directory
-  ansible.builtin.copy:
-    src: "{{ openwrt_imagebuilder_image_path }}"
-    dest: "{{ openwrt_imagebuilder_outputdir }}/{{ inventory_hostname }}--{{ openwrt_imagebuilder_image_name }}"
-    remote_src: true
-    mode: '0644'
-
 - name: Compress and remove build directory
   community.general.archive:
     path: "{{ openwrt_imagebuilder_builddir }}/{{ openwrt_imagebuilder_extractedfolder }}/bin"
