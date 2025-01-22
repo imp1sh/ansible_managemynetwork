@@ -1,5 +1,12 @@
 ---
 # tasks file for ansible_openwrtusteer
+- name: Detect imagebuilder
+  ansible.builtin.set_fact:
+    openwrt_usteer_deployroot: "{{ openwrt_imagebuilder_deployroot }}"
+    openwrt_usteer_runimagebuilder: true
+  when: openwrt_imagebuilder_deployroot is defined
+
+
 - name: Make sure deploypath is present
   ansible.builtin.file:
     path: "{{ openwrt_usteer_deploypath }}"
@@ -18,9 +25,9 @@
     packages_installimagebuilder: []
   when:
     - packages_installimagebuilder is not defined
-    - openwrt_usteer_runimagebuilder | default(false)
+    - openwrt_usteer_runimagebuilder
 
 - name: Merge role packages into packages_installimagebuilder
   ansible.builtin.set_fact:
     packages_installimagebuilder: "{{ packages_installimagebuilder + packages_installrole }}"
-  when: openwrt_usteer_runimagebuilder | default(false)
+  when: openwrt_usteer_runimagebuilder
