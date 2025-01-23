@@ -1,8 +1,8 @@
 ---
 # handlers file for ansible_openwrtacme
-- name: restart acme
+- name: Restart acme
   ansible.builtin.service:
     name: "acme"
     state: restarted
   when:
-    not openwrt_acme_runimagebuilder | default(false)
+    not openwrt_acme_runimagebuilder

@@ -11,7 +11,7 @@
     dest: "{{ openwrt_acme_root_ca_path }}/{{ item.name }}"
     state: link
     follow: false
-    force: "{{ openwrt_acme_runimagebuilder | default(false) }}"
+    force: "{{ openwrt_acme_runimagebuilder }}"
 
 - name: Calculate hash
   ansible.builtin.command: "openssl x509 -in {{ openwrt_acme_root_ca_local_path }}/{{ item.name }} -hash -noout"
@@ -24,4 +24,4 @@
     dest: "{{ openwrt_acme_root_ca_path }}/{{ openwrt_acme_root_ca_info.stdout }}.0"
     state: link
     follow: false
-    force: "{{ openwrt_acme_runimagebuilder | default(false) }}"
+    force: "{{ openwrt_acme_runimagebuilder }}"

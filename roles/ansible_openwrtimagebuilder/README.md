@@ -27,7 +27,6 @@ This is an example playbook for the ansible_openwrtimagebuilder role.
 - name: Playbook for building openwrt images
   hosts: tags_openwrt-imagebuilder
   vars:
-    openwrt_acme_runimagebuilder: true
     openwrt_babeld_runimagebuilder: true
     openwrt_batmanadv_runimagebuilder: true
     openwrt_bmx7_runimagebuilder: true
@@ -129,4 +128,5 @@ There are some roles, e.g. *ansible_restic* that need to run on a deployed syste
 ## Make own role compatible with imagebuilder
 Use `openwrt_imagebuilder_deployroot` to deploy files to the image. \
 This variable is a path to a files directory in imagebuilder. \
-Each file in this directory will be copied to the root of the image.
+Each file in this directory will be copied to the root of the image. \
+For reference see the `ansible_openwrtacme` role.

@@ -13,3 +13,4 @@ openwrt_acme_root_ca_path_device: "/etc/ssl/certs"
 openwrt_acme_root_ca_path: "{{ openwrt_acme_deployroot }}{{ openwrt_acme_root_ca_path_device }}"
 openwrt_acme_uci_defaults_dir: "{{ openwrt_acme_deployroot }}etc/uci-defaults"
 openwrt_acme_deployfile: "acme"
+openwrt_acme_runimagebuilder: false

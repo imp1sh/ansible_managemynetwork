@@ -62,7 +62,6 @@
   ansible.builtin.set_fact:
     "{{ item }}": "{{ openwrt_imagebuilder_deployroot }}"
   loop:
-    - openwrt_acme_deployroot
     - openwrt_batmanadv_deployroot
     - openwrt_babeld_deployroot
     - openwrt_bmx7_deployroot

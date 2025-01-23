@@ -1,5 +1,11 @@
 ---
 # tasks file for ansible_openwrtacme
+- name: Detect imagebuilder
+  ansible.builtin.set_fact:
+    openwrt_acme_deployroot: "{{ openwrt_imagebuilder_deployroot }}"
+    openwrt_acme_runimagebuilder: true
+  when: openwrt_imagebuilder_deployroot is defined
+
 - name: Make sure deploypath is present
   ansible.builtin.file:
     path: "{{ openwrt_acme_deploypath }}"
@@ -66,10 +72,10 @@
         dest: "{{ openwrt_acme_deployroot }}/www/.well-known/acme-challenge"
         state: link
         follow: false
-        force: "{{ openwrt_acme_runimagebuilder | default(false) }}"
+        force: true
 
 - name: Setup acme first run in imagebuilder
-  when: openwrt_acme_runimagebuilder | default(false)
+  when: openwrt_acme_runimagebuilder
   block:
     - name: Make sure uci-defaults dir is present
       ansible.builtin.file:
@@ -87,8 +93,8 @@
     packages_installimagebuilder: []
   when:
     - packages_installimagebuilder is not defined
-    - openwrt_acme_runimagebuilder | default(false)
+    - openwrt_acme_runimagebuilder
 - name: Merge role packages into packages_installimagebuilder
   ansible.builtin.set_fact:
     packages_installimagebuilder: "{{ packages_installimagebuilder + packages_installrole }}"
-  when: openwrt_acme_runimagebuilder | default(false)
+  when: openwrt_acme_runimagebuilder
