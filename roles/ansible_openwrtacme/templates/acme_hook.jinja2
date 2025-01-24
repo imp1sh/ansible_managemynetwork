@@ -1,0 +1,3 @@
+if [ "$ACTION" = "renewed" ]; then
+	/etc/init.d/{{ item.name }} {{ item.action | default('reload') }}
+fi

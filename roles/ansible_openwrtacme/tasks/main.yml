@@ -1,22 +1,100 @@
 ---
 # tasks file for ansible_openwrtacme
+- name: Detect imagebuilder
+  ansible.builtin.set_fact:
+    openwrt_acme_deployroot: "{{ openwrt_imagebuilder_deployroot }}"
+    openwrt_acme_runimagebuilder: true
+  when: openwrt_imagebuilder_deployroot is defined
+
 - name: Make sure deploypath is present
   ansible.builtin.file:
     path: "{{ openwrt_acme_deploypath }}"
     state: directory
+    mode: "0755"
+
 - name: Setup acme config
   ansible.builtin.template:
     src: "acme.jinja2"
     dest: "{{ openwrt_acme_deploypath }}/{{ openwrt_acme_deployfile }}"
+    mode: "0600"
   notify: restart acme
   when: openwrt_acme_cert is defined
+
+- name: Setup hooks
+  when: openwrt_acme_hooks is defined
+  block:
+    - name: Make sure hookpath is present
+      ansible.builtin.file:
+        path: "{{ openwrt_acme_hook_path }}"
+        state: directory
+        mode: "0755"
+
+    - name: Setup hooks
+      ansible.builtin.template:
+        src: "acme_hook.jinja2"
+        dest: "{{ openwrt_acme_hook_path }}/00-{{ item.name }}"
+        mode: "0644"
+      loop: "{{ openwrt_acme_hooks }}"
+
+- name: Setup root ca certificates
+  when: openwrt_acme_root_cas is defined
+  block:
+    - name: Make sure root ca local path is present
+      ansible.builtin.file:
+        path: "{{ openwrt_acme_root_ca_local_path }}"
+        state: directory
+        mode: "0755"
+
+    - name: Make sure root ca path is present
+      ansible.builtin.file:
+        path: "{{ openwrt_acme_root_ca_path }}"
+        state: directory
+        mode: "0755"
+
+    - name: Setup root ca certificate
+      loop: "{{ openwrt_acme_root_cas }}"
+      loop_control:
+        label: "{{ item.name }}"
+      ansible.builtin.include_tasks: root_ca.yml
+
+- name: Setup for webroot
+  when: openwrt_acme_webroot_config
+  block:
+    - name: Make sure /www/.well-known is present
+      ansible.builtin.file:
+        path: "{{ openwrt_acme_deployroot }}/www/.well-known"
+        state: directory
+        mode: "0755"
+
+    - name: Create link for webroot
+      ansible.builtin.file:
+        src: "/var/run/acme/challenge/.well-known/acme-challenge"
+        dest: "{{ openwrt_acme_deployroot }}/www/.well-known/acme-challenge"
+        state: link
+        follow: false
+        force: true
+
+- name: Setup acme first run in imagebuilder
+  when: openwrt_acme_runimagebuilder
+  block:
+    - name: Make sure uci-defaults dir is present
+      ansible.builtin.file:
+        path: "{{ openwrt_acme_uci_defaults_dir }}"
+        state: directory
+        mode: "0755"
+    - name: Copy 99-acme to uci-defaults
+      ansible.builtin.copy:
+        src: "99-acme"
+        dest: "{{ openwrt_acme_uci_defaults_dir }}/99-acme"
+        mode: "0755"
+
 - name: Initialize packages_installimagebuilder
   ansible.builtin.set_fact:
     packages_installimagebuilder: []
   when:
     - packages_installimagebuilder is not defined
-    - openwrt_acme_runimagebuilder | default(false)
+    - openwrt_acme_runimagebuilder
 - name: Merge role packages into packages_installimagebuilder
   ansible.builtin.set_fact:
     packages_installimagebuilder: "{{ packages_installimagebuilder + packages_installrole }}"
-  when: openwrt_acme_runimagebuilder | default(false)
+  when: openwrt_acme_runimagebuilder

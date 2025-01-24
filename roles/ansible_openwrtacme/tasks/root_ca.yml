@@ -1,0 +1,27 @@
+---
+- name: Add root ca certificates
+  ansible.builtin.copy:
+    content: "{{ item.content }}"
+    dest: "{{ openwrt_acme_root_ca_local_path }}/{{ item.name }}"
+    mode: "0644"
+
+- name: Link root ca to /etc/ssl/certs
+  ansible.builtin.file:
+    src: "{{ openwrt_acme_root_ca_local_path_device }}/{{ item.name }}"
+    dest: "{{ openwrt_acme_root_ca_path }}/{{ item.name }}"
+    state: link
+    follow: false
+    force: "{{ openwrt_acme_runimagebuilder }}"
+
+- name: Calculate hash
+  ansible.builtin.command: "openssl x509 -in {{ openwrt_acme_root_ca_local_path }}/{{ item.name }} -hash -noout"
+  register: openwrt_acme_root_ca_info
+  changed_when: false
+
+- name: Add link from hash to certificate
+  ansible.builtin.file:
+    src: "{{ openwrt_acme_root_ca_path_device }}/{{ item.name }}"
+    dest: "{{ openwrt_acme_root_ca_path }}/{{ openwrt_acme_root_ca_info.stdout }}.0"
+    state: link
+    follow: false
+    force: "{{ openwrt_acme_runimagebuilder }}"

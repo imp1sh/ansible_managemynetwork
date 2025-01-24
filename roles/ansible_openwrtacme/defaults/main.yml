@@ -1,7 +1,16 @@
 ---
 # defaults file for ansible_openwrtacme
-openwrt_acme_state_dir: "/etc/acme"
-openwrt_acme_debug: 0
+openwrt_acme_hooks:
+  - name: uhttpd
+    action: restart
+openwrt_acme_webroot_config: true
 openwrt_acme_deployroot: "/"
 openwrt_acme_deploypath: "{{ openwrt_acme_deployroot }}etc/config"
+openwrt_acme_hook_path: "{{ openwrt_acme_deployroot }}etc/hotplug.d/acme"
+openwrt_acme_root_ca_local_path_device: "/usr/local/share/ca-certificates"
+openwrt_acme_root_ca_local_path: "{{ openwrt_acme_deployroot }}{{ openwrt_acme_root_ca_local_path_device }}"
+openwrt_acme_root_ca_path_device: "/etc/ssl/certs"
+openwrt_acme_root_ca_path: "{{ openwrt_acme_deployroot }}{{ openwrt_acme_root_ca_path_device }}"
+openwrt_acme_uci_defaults_dir: "{{ openwrt_acme_deployroot }}etc/uci-defaults"
 openwrt_acme_deployfile: "acme"
+openwrt_acme_runimagebuilder: false
