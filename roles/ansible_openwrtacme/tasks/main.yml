@@ -17,7 +17,7 @@
     src: "acme.jinja2"
     dest: "{{ openwrt_acme_deploypath }}/{{ openwrt_acme_deployfile }}"
     mode: "0600"
-  notify: restart acme
+  notify: Restart acme
   when: openwrt_acme_cert is defined
 
 - name: Setup hooks
