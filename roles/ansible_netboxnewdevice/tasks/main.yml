@@ -1,0 +1,8 @@
+---
+# tasks file for ansible_netboxnewdevice (nnd)
+
+- name: Include Manufacturer task
+  ansible.builtin.include_tasks: manufacturer.yml
+
+- name: Include Device Type task
+  ansible.builtin.include_tasks: device_type.yml

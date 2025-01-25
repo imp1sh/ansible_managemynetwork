@@ -1,0 +1,70 @@
+---
+- name: "MMN NND - Search for existing manufacturers"
+  ansible.builtin.set_fact:
+    nnd_manufacturers_list: "{{ query('netbox.netbox.nb_lookup', 'manufacturers', api_endpoint=NETBOX_URL, token=NETBOX_TOKEN) }}"
+
+- name: "MMN NND - Create list of manufacturers"
+  ansible.builtin.set_fact:
+    nnd_manufacturers_list_stripped: "{{ nnd_manufacturers_list | map(attribute='value.name') | list }}"
+
+- name: "MMN NND - List manufacturers found"
+  ansible.builtin.debug:
+    msg: "{{ item.1 }}: {{ item.0 }}"
+  loop: "{{ nnd_manufacturers_list_stripped | zip(range(1, nnd_manufacturers_list_stripped | length + 1)) | list }}"
+
+- name: "MMN NNND - Prompt for manufacturer selection"
+  pause:
+    prompt: "Enter the number corresponding to the manufacturer. If you want to create a new manufacturer type the string 'create'"
+  register: manufacturer_selection
+  run_once: true
+
+- name: "MMN NND - Choosing an existing manufacturer"
+  block:
+    - name: "MMN NND - Set selected manufacturer"
+      ansible.builtin.set_fact:
+        selected_manufacturer: "{{ nnd_manufacturers_list_stripped[manufacturer_selection.user_input | int - 1] }}"
+      when: manufacturer_selection.user_input | int > 0 and manufacturer_selection.user_input | int <= nnd_manufacturers_list_stripped | length
+    
+    - name: "MMN NND - Display selected manufacturer"
+      ansible.builtin.debug:
+        msg: "You selected the manufacturer: {{ selected_manufacturer }}"
+  when: manufacturer_selection.user_input != 'create'
+
+- name: "MMN NND - Creating a new manufacturer"
+  block:
+    - name: "MMN NND - Prompt for new manufacturer full name"
+      pause:
+        prompt: "Enter the new manufactuers full name"
+      register: nnd_new_manufacturer_name
+      run_once: true
+    
+    - name: "MMN NND - Prompt for new manufacturer slug"
+      pause:
+        prompt: "Enter the new manufactuers short name, containing only alphanumerical, no whitespaces and only dashes allowed."
+      register: nnd_new_manufacturer_slug
+      run_once: true
+    
+    - name: "MMN NND - Prompt for new manufacturer description"
+      pause:
+        prompt: "Enter the new manufactuers description"
+      register: nnd_new_manufacturer_description
+      run_once: true
+
+    - name: "MMN NND - Insert Manufacturer into netbox"
+      netbox.netbox.netbox_manufacturer:
+        netbox_url: "{{ NETBOX_URL }}"
+        netbox_token: "{{ NETBOX_TOKEN }}"
+        data:
+          name: "{{ nnd_new_manufacturer_name.user_input }}"
+          description: "{{ nnd_new_manufacturer_description.user_input }}"
+          slug: "{{ nnd_new_manufacturer_slug.user_input }}"
+        state: present
+
+    - name: "MMN NND - Set selected manufacturer"
+      ansible.builtin.set_fact:
+        selected_manufacturer: "{{ nnd_new_manufacturer_name.user_input }}"
+  when: manufacturer_selection.user_input == 'create'
+
+- name: "MMN NND - Show chosen manufacturer"
+  debug:
+    var: selected_manufacturer
