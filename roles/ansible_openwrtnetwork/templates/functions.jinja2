@@ -236,6 +236,7 @@ config device
 {% macro create_interfaces(allinterfaces) %}
 {% for key, value in allinterfaces.items() %}
 config interface "{{ key }}"
+        # CONFIG OPTIONS ALL START
 {% if value['auto'] is defined %}
         option auto "{{ value['auto'] }}"
 {% endif %}
@@ -261,7 +262,9 @@ config interface "{{ key }}"
 {% if value['ip6table'] is defined %}
         option ip6table "{{ value['ip6table'] }}"
 {% endif %}
+        # CONFIG OPTIONS ALL END
 {% if value['proto'] == "wireguard" %}
+        # CONFIG OPTIONS WIREGUARD START
 	option private_key "{{ value['wg_private_key'] }}"
 {% if value['wg_listen_port'] is defined %}
 	option listen_port "{{ value['wg_listen_port'] }}"
@@ -277,20 +280,56 @@ config interface "{{ key }}"
 {% if value['wg_nohostroute'] is defined %}
 	option nohostroute "{{ value['wg_nohostroute'] }}"
 {% endif %}
+        # CONFIG OPTIONS WIREGUARD END
 {% endif %}
 {% if value['proto'] == "dhcp" %}
-        # DHCP client config
+        # CONFIG OPTIONS DHCP START
+{% if value['hostname'] is defined %}
+	option hostname "{{ value['hostname'] }}"
+{% endif %}
+{% if value['broadcast'] is defined %}
+	option broadcast "{{ value['broadcast'] }}"
+{% endif %}
+{% if value['vendorid'] is defined %}
+	option vendorid "{{ value['vendorid'] }}"
+{% endif %}
+        # CONFIG OPTIONS DHCP END
 {% endif %}
 {% if value['proto'] == "dhcpv6" %}
-        # DHCPv6 client config
+        # CONFIG OPTIONS DHCPV6 START
 {% if value['reqaddress'] is defined %}
         option reqaddress "{{ value['reqaddress'] }}"
 {% endif %}
 {% if value['reqprefix'] is defined %}
         option reqprefix "{{ value['reqprefix'] }}"
 {% endif %}
+{% if value['norelease'] is defined %}
+	option norelease "{{ value['norelease'] }}"
+{% endif %}
+{% if value['sourcefilter'] is defined %}
+	option sourcefilter "{{ value['sourcefilter'] }}"
+{% endif %}
+{% if value['ip6ifaceid'] is defined %}
+	option ip6ifaceid "{{ value['ip6ifaceid'] }}"
+{% endif %}
+{% if value['ip6weight'] is defined %}
+	option ip6weight "{{ value['ip6weight'] }}"
+{% endif %}
+        # CONFIG OPTIONS DHCPV6 END
+{% endif %}
+{% if value['proto'] == "dhcp" or value['proto'] == "dhcpv6" %}
+        # CONFIG OPTIONS MIXED DHCP AND DHVPV6 START
 {% if value['clientid'] is defined %}
 	option clientid "{{ value['clientid'] }}"
+{% endif %}
+{% if value['defaultroute'] is defined %}
+	option defaultroute "{{ value['defaultroute'] }}"
+{% endif %}
+{% if value['peerdns'] is defined %}
+	option peerdns "{{ value['peerdns'] }}"
+{% endif %}
+{% if value['dns_metric'] is defined %}
+	option dns_metric "{{ value['dns_metric'] }}"
 {% endif %}
 {% if value['ifaceid'] is defined %}
 	option ifaceid "{{ value['ifaceid'] }}"
@@ -300,12 +339,7 @@ config interface "{{ key }}"
 	list dns "{{ dns }}"
 {% endfor %}
 {% endif %}
-{% if value['peerdns'] is defined %}
-	option peerdns "{{ value['peerdns'] }}"
-{% endif %}
-{% if value['defaultroute'] is defined %}
-	option defaultroute "{{ value['defaultroute'] }}"
-{% endif %}
+        # CONFIG OPTIONS MIXED DHCP AND DHVPV6 START
 {% if value['reqopts'] is defined %}
 {% for reqopt in value['reqopts'] %}
 	list reqopts "{{ value['reqopts'] }}"
@@ -320,12 +354,12 @@ config interface "{{ key }}"
 {% if value['forceprefix'] is defined %}
 	option forceprefix "{{ value['forceprefix'] }}"
 {% endif %}
-{% if value['norelease'] is defined %}
-	option norelease "{{ value['norelease'] }}"
-{% endif %}
 {% if value['ip6prefix'] is defined %}
 	option ip6prefix "{{ value['ip6prefix'] }}"
 {% endif %}
+        # CONFIG OPTIONS MIXED DHCP AND DHVPV6 END
+{% endif %}
+{# CONFIG OPTIONS WITH UNKNOWN ASSOCIATION START #}
 {% if value['iface_dslite'] is defined %}
 	option iface_dslite "{{ value['iface_dslite'] }}"
 {% endif %}
@@ -347,9 +381,6 @@ config interface "{{ key }}"
 {% if value['zone'] is defined %}
 	option zone "{{ value['zone'] }}"
 {% endif %}
-{% if value['sourcefilter'] is defined %}
-	option sourcefilter "{{ value['sourcefilter'] }}"
-{% endif %}
 {% if value['vendorclass'] is defined %}
 	option vendorclass "{{ value['vendorclass'] }}"
 {% endif %}
@@ -368,9 +399,9 @@ config interface "{{ key }}"
 {% if value['ra_holdoff'] is defined %}
 	option ra_holdoff "{{ value['ra_holdoff'] }}"
 {% endif %}
-{% endif %}
+{# CONFIG OPTIONS WITH UNKNOWN ASSOCIATION END #}
 {% if value['proto'] == "static" %}
-        # Static config
+        # CONFIG OPTIONS STATIC START
 {% if value['gateway'] is defined %}
         option gateway "{{ value['gateway'] }}"
 {% endif %}
@@ -414,18 +445,16 @@ config interface "{{ key }}"
         list dns "{{ resolver }}"
 {% endfor %}
 {% endif %}
-{% if value['dns_metric'] is defined %}
-	option dns_metric "{{ value['dns_metric'] }}"
-{% endif %}
 {% if value['metric'] is defined %}
 	option metric "{{ value['metric'] }}"
 {% endif %}
+        # CONFIG OPTIONS STATIC END
 {% endif %}
 {% if value['proto'] == "none" %}
-        # Unmanaged config
+        # CONFIG OPTIONS UNMANAGED START *and* END
 {% endif %}
 {% if value['proto'] == "ppp" %}
-        # PPP config
+        # CONFIG OPTIONS PPP START
 {% if value['ipv6'] is not defined %}
         option ipv6 "auto"
 {% endif %}
@@ -438,9 +467,10 @@ config interface "{{ key }}"
 {% if value['password'] is defined %}
         option password "{{ value['password'] }}"
 {% endif %}
+        # CONFIG OPTIONS PPP END
 {% endif %}
 {% if value['proto'] == "pppoe" %}
-        # PPPoE config
+        # CONFIG OPTIONS PPPOE START
 {% if value['ipv6'] is not defined %}
         option ipv6 "auto"
 {% endif %}
@@ -456,6 +486,10 @@ config interface "{{ key }}"
 {% if value['service'] is defined %}
         option service "{{ value['service'] }}"
 {% endif %}
+{% if value['defaultroute'] is defined %}
+	option defaultroute "{{ value['defaultroute'] }}"
+{% endif %}
+        # CONFIG OPTIONS PPPOE END
 {% endif %}
 {% endfor %}
 {% endmacro %}

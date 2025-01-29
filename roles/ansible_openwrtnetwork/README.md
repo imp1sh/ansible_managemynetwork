@@ -3,6 +3,23 @@
 > python3-netaddr needs to be installed for this role
 {.is-warning}
 
+This role configures network interfaces in OpenWrt while not all interface types are supported just yet. This is me trying to assemble a list of what's supported so far. The most comprehensive list so far is [this](https://openwrt.org/docs/guide-user/network/wan/wan_interface_protocols).
+- static
+- dhcp
+- dhcpv6
+- wireguard
+- pppoe
+- ppp
+
+Known to be MISSING:
+- pppoa
+- 3g
+- qmi
+- ncm
+- wwan
+
+As OpenWrt's documentation is surprisingly thin when it comes to fully listing all different interface options what I would need was a complete list of options and to what options they associate with. If you consider to assist with completing interface type support, do it in a tidy fashion as it is really hard to overlook what UCI options are available where.
+
 You can define interfaces in ansible, either
 - per host via `openwrt_network_interfaceshost` 
 - per group via `openwrt_network_interfacesgroup`
