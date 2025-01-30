@@ -276,7 +276,25 @@ openwrt_network_interfaceshost:
     reqprefix: 48
 ```
 
+# Static routes
+
+You can implement static routes by using the `openwrt_network_staticroutes4` and `openwrt_network_staticroutes6` variables. Available attributes of this list var are documented in [OpenWrt's docs](https://openwrt.org/docs/guide-user/network/routing/routes_configuration). Examples:
+
+```
+openwrt_network_staticroutes4:
+  - interface: "mgmt"
+    comment: "static route telekom"
+    target: "0.0.0.0/0"
+    gateway: "192.168.1.2"
+openwrt_network_staticroutes6:
+  - interface: "secure"
+    comment: "static route byd battery"
+    target: "192.168.16.0/24"
+    gateway: "10.123.11.2"
+```
+
 # Wireguard
+
 This role also supports configuration of wireguard interfaces. In OpenWrt they are normal interfaces that will also be assigned to a firewall zone.
 
 ## Manage Keys manually
