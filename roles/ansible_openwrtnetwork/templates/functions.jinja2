@@ -1,6 +1,9 @@
 {% macro create_staticroutes4(allroutes4) %}
 {% for route4 in allroutes4 %}
 config route
+{% if route4['comment'] is defined %}
+	# "{{ route4['comment'] }}"
+{% endif %}
 	option target "{{ route4['target'] }}"
 {% if route4['gateway'] is defined %}
 	option gateway "{{ route4['gateway'] }}"
@@ -39,6 +42,9 @@ config route
 {% macro create_staticroutes6(allroutes6) %}
 {% for route6 in allroutes6 %}
 config route6
+{% if route6['comment'] is defined %}
+	# "{{ route6['comment'] }}"
+{% endif %}
 	option target "{{ route6['target'] }}"
 {% if route6['gateway'] is defined %}
 	option gateway "{{ route6['gateway'] }}"
