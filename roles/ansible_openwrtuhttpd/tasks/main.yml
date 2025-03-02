@@ -4,13 +4,26 @@
   ansible.builtin.file:
     path: "{{ openwrt_uhttpd_deploypath }}"
     state: directory
+
 - name: search for existing certificate
+  ansible.builtin.find:
+    paths: "{{ openwrt_uhttpd_cert_searchpath | dirname }}"
+    file_type: directory
+    patterns: "{{ inventory_hostname }}*"
+  register: certdirs
+
+- name: Set the first matching certificate directory (if exists)
+  ansible.builtin.set_fact:
+    actual_cert_path: "{{ certdirs.files[0].path }}"
+  when: certdirs.matched > 0
+
+- name: search for existing cert
   ansible.builtin.stat:
-    path: "{{ openwrt_uhttpd_cert_searchpath }}/{{ inventory_hostname }}.cer"
+    path: "{{ actual_cert_path }}/{{ inventory_hostname }}.cer"
   register: searchcert
 - name: search for existing key
   ansible.builtin.stat:
-    path: "{{ openwrt_uhttpd_cert_searchpath }}/{{ inventory_hostname }}.key"
+    path: "{{ actual_cert_path }}/{{ inventory_hostname }}.key"
   register: searchkey
 - name: debug
   debug:
