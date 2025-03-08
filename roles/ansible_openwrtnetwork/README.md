@@ -297,6 +297,7 @@ openwrt_network_staticroutes6:
 
 This role supports configuration of wireguard interfaces. In OpenWrt they are normal interfaces that will also be assigned to a firewall zone.
 Here are the most important options for
+
 **Peer**
 | Option | Description |
 | - | - |
@@ -307,8 +308,37 @@ Here are the most important options for
 | managekeys | Makes sure peer's keypairs are generated and managed by this role. If set to false make sure to generate and maintain your keys manually. See also [here](#ansible-manages-keys) |
 | generateclientconfig | When set to yes it will generate your clientconfig in the directory defined in `openwrt_network_wg_keypath`. Only set this to true when `managekeys` is also set to true |
 | mtu | self explanatory |
-| keepalive | self explanatory |
+| persistent_keepalive | self explanatory |
 | setpsk | If you set `setpsk` to `true` an additional PSK (Preshared Key)  will be used. |
+| route_allowed_ips | self explanatory |
+| allowed_ips | (list) self explanatory |
+| description | self explanatory |
+| public_key | public key of the remote remote peer. Only set when `managkeys` is set to false |
+| preshared_key | preshared key for extra security. Only set manually when setpsk is set to false |
+
+**Interface**
+| Option | Description | Default |
+| wg_private_key | Private key of your host used for wireguard | has no default |
+| wg_listen_port | listening port | has no default |
+| wg_addresses | (list) give ip addresses for the tunnel interface of your host | has no default |
+| wg_peerdns | ? | ? |
+| wg_nohostroute | if true (1)  no entries for routing table will be made | false (0) |
+| wg_disabled | if set to true (1) wireguard interface will be disabled | false (0) |
+| wg_auto | if set to false (0) interface won't come up automatically on boot | has no default |
+| wg_force_link | Set interface properties regardless of the link carrier (If set, carrier sense events do not invoke hotplug handlers) | false (0) |
+| wg_fwmark | Optional. 32-bit mark for packets during firewall processing. Enter value in hex, starting with 0x | has no default |
+| wg_defaultroute | If set to false (0), no default route is configured | true (1) |
+| wg_dns | (list) IP addresses of nameservers used | has no default |
+| wg_dns_metric | The DNS server entries in the local resolv.conf are primarily sorted by the weight specified here | 0 |
+| wg_metric | Metric is an ordinal, where a gateway with 1 is chosen 1st, 2 is chosen 2nd, 3 is chosen 3rd, etc | 0 |
+| wg_ip4table | Override IPv4 routing table | by default main table will be used |
+| wg_ip6table | Override IPv4 routing table | by default main table will be used |
+| wg_delegate | Enable downstream delegation of IPv6 prefixes available on this interface | true (1) |
+| wg_ip6assign | Assign a part of given length of every public IPv6-prefix to this interface | disabled (1) | 
+| wg_ip6hint | Only set if wg_ip6assign is set too. Choose your prefix ID. Has to fit to the delegated prefix | has no default |
+| wg_ip6class | Choose from which upstream interface the prefix is delegated from | has no default |
+| wg_ip6ifaceid | Optional. Allowed values: 'eui64', 'random', fixed value like '::1' or '::1:2'. When IPv6 prefix (like 'a:b:c:d::') is received from a delegating server, use the suffix (like '::1') to form the IPv6 address ('a:b:c:d::1') for the interface | ::1 |
+| wg_ip6weight | When delegating prefixes to multiple downstreams, interfaces with a higher preference value are considered first when allocating subnets. | 0 |
 
 ## Manage Keys manually
 Example for a wireguard interface:
@@ -413,7 +443,8 @@ If you want additional routes inserted into the client config, use the `routes_t
 
 ### Site 2 Site VPN
 
-Managing keys in a Site 2 Site (S2S) setup is different. In `openwrt_network_wireguardpeers` the flag `s2s` needs to be `true`:
+Managing keys in a Site 2 Site (S2S) setup is different. Ansible will fully manage configuration and keys for both sites for you.
+In `openwrt_network_wireguardpeers` the flag `s2s` needs to be `true`:
 
 ```yaml
   remotepeer1.example.com:
