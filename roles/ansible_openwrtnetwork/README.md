@@ -1,7 +1,7 @@
 # imp1sh.ansible_managemynetwork.ansible_openwrtnetwork
 
+> [!WARNING]  
 > python3-netaddr needs to be installed for this role
-{.is-warning}
 
 This role configures network interfaces in OpenWrt while not all interface types are supported just yet. This is me trying to assemble a list of what's supported so far. The most comprehensive list so far is [this](https://openwrt.org/docs/guide-user/network/wan/wan_interface_protocols).
 - static
@@ -358,16 +358,6 @@ openwrt_network_interfaceshost:
       - "2a00:123:456:22::1/64"
 ```
 
-List of parameters:
-- wg_private_key
-- wg_listen_port
-- wg_myendpoint
-- wg_managekeys
-- wg_addresses
-- wg_peerdns
-- wg_nohostroute
-
-
 This is an example for a wireguard peer:
 ```yaml
 openwrt_network_wireguardpeers:
@@ -382,12 +372,12 @@ openwrt_network_wireguardpeers:
       - "2a00:123:688:11::2/128"
       - "10.10.100.2/32"
 ```
+> [!WARNING]  
 > The interface attribute above references an interface name, specified in `openwrt_network_interfaces`.
-{.is-warning}
 
 ## Ansible manages keys
+> [!WARNING]  
 > If you would like to use that you need the wireguard tools installed on the Ansible host.
-{.is-warning}
 
 Since 0.1.4 this role is able to manage the keys within Ansible. Keys are being stored on the ansible host.
 You can specify the directory with this variable:`openwrt_network_wg_keypath`.
@@ -409,8 +399,8 @@ If you would like to import keys, store them within the `wg_keypath` directory.
 ./<<wireguard Interfacename>>/<<peername>>.psk
 ./<<wireguard Interfacename>>/<<peername>>.conf
 ```
+> [!WARNING]  
 > Your private keys are sensitive. Use secure permissions. Make sure they can't be accessed by third parties.
-{.is-warning}
 
 If you would like to let Ansible manage keys, set the `managekeys` var to true.
 
