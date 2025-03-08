@@ -318,6 +318,7 @@ Here are the most important options for
 
 **Interface**
 | Option | Description | Default |
+| - | - | - |
 | wg_private_key | Private key of your host used for wireguard | has no default |
 | wg_listen_port | listening port | has no default |
 | wg_addresses | (list) give ip addresses for the tunnel interface of your host | has no default |
