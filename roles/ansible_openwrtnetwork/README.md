@@ -64,13 +64,6 @@ openwrt_network_interfacesgroup:
       ip6assign: 64
 ```
 
-This role fully manages networking. These are the sub sections:
-* Devices
-* Interfaces
-* bridge-vlan devices	
-
-Keep in mind that there were some changes since [OpenWrt 21.02 and newer]((https://openwrt.org/docs/guide-user/network/dsa/start)).
-
 # Global Parameters
 You can define ULA IPv6 and global packet steering on a global level.
 ```yaml
