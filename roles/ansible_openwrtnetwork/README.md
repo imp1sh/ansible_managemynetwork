@@ -304,7 +304,7 @@ Here are the most important options for
 | remote_peer | This is only needed when Ansible manages the remote peer as well. This option will fetch the remote peer's public key for your config. |
 | endpoint_host | Only needed when host is initiating the connection. Defines the host address to connect to. |
 | endpoint_port | Only needed when host is initiating the connection. Defines the host port to connect to. |
-| managekeys | Makes sure peer's keypairs are generated and managed by this role. If set to false make sure to generate and maintain your keys manually. See also [here](#Ansible manages keys) |
+| managekeys | Makes sure peer's keypairs are generated and managed by this role. If set to false make sure to generate and maintain your keys manually. See also [here](#ansible-manages-keys) |
 | generateclientconfig | When set to yes it will generate your clientconfig in the directory defined in `openwrt_network_wg_keypath`. Only set this to true when `managekeys` is also set to true |
 | mtu | self explanatory |
 | keepalive | self explanatory |
