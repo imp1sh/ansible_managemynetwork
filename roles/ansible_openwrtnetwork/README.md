@@ -295,7 +295,20 @@ openwrt_network_staticroutes6:
 
 # Wireguard
 
-This role also supports configuration of wireguard interfaces. In OpenWrt they are normal interfaces that will also be assigned to a firewall zone.
+This role supports configuration of wireguard interfaces. In OpenWrt they are normal interfaces that will also be assigned to a firewall zone.
+Here are the most important options for
+**Peer**
+| Option | Description |
+| - | - |
+| interface | You need to reference a wireguard interface. Without that a peer definition is useless. |
+| remote_peer | This is only needed when Ansible manages the remote peer as well. This option will fetch the remote peer's public key for your config. |
+| endpoint_host | Only needed when host is initiating the connection. Defines the host address to connect to. |
+| endpoint_port | Only needed when host is initiating the connection. Defines the host port to connect to. |
+| managekeys | Makes sure peer's keypairs are generated and managed by this role. If set to false make sure to generate and maintain your keys manually. See also [here](#Ansible manages keys) |
+| generateclientconfig | When set to yes it will generate your clientconfig in the directory defined in `openwrt_network_wg_keypath`. Only set this to true when `managekeys` is also set to true |
+| mtu | self explanatory |
+| keepalive | self explanatory |
+| setpsk | If you set `setpsk` to `true` an additional PSK (Preshared Key)  will be used. |
 
 ## Manage Keys manually
 Example for a wireguard interface:
@@ -341,11 +354,8 @@ openwrt_network_wireguardpeers:
 > The interface attribute above references an interface name, specified in `openwrt_network_interfaces`.
 {.is-warning}
 
-## Ansible verwaltet keys
+## Ansible manages keys
 > If you would like to use that you need the wireguard tools installed on the Ansible host.
-{.is-warning}
-
-> If you use the Ansible environment onn different hosts, they need synced manually, otherwise they would be recreated by Ansible and overwritten on the target.
 {.is-warning}
 
 Since 0.1.4 this role is able to manage the keys within Ansible. Keys are being stored on the ansible host.
@@ -397,9 +407,6 @@ openwrt_network_interfaceshost:
       - "10.10.100.97/27"
       - "2a00:123:456:22::1/64"
 ```
-
-If you set `setpsk` to `true` an additional PSK (Preshared Key)  will be used.
-If you would like the client config to be generated, set `generateclientconfig` to `true`. Those files will be in the directory set in `openwrt_network_wg_keypath`.
 
 The MTU is at 1420 as a default. I can be overwritten with the `mtu` property.
 If you want additional routes inserted into the client config, use the `routes_to` variable (list).
