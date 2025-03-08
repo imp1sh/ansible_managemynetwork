@@ -276,8 +276,8 @@ config interface "{{ key }}"
 	option listen_port "{{ value['wg_listen_port'] }}"
 {% endif %}
 {% if value['wg_addresses'] is defined %}
-{% for wglistenaddress in value['wg_addresses'] %}
-	list addresses "{{ wglistenaddress }}"
+{% for wg_tunnel_address in value['wg_addresses'] %}
+	list addresses "{{ wg_tunnel_address }}"
 {% endfor %}
 {% endif %}
 {% if value['wg_peerdns'] is defined %}
@@ -285,6 +285,53 @@ config interface "{{ key }}"
 {% endif %}
 {% if value['wg_nohostroute'] is defined %}
 	option nohostroute "{{ value['wg_nohostroute'] }}"
+{% endif %}
+{% if value['wg_disabled'] is defined %}
+	option disabled "{{ value['wg_disabled'] }}"
+{% endif %}
+{% if value['wg_auto'] is defined %}
+	option auto "{{ value['wg_auto'] }}"
+{% endif %}
+{% if value['wg_fwmark'] is defined %}
+	option fwmark "{{ value['wg_fwmark'] }}"
+{% endif %}
+{% if value['wg_defaultroute'] is defined %}
+	option defaultroute "{{ value['wg_defaultroute'] }}"
+{% endif %}
+{% if value['wg_dns'] is defined %}
+{% for dnsrecord in value['wg_dns'] %}
+	list dns "{{ dnsrecord }}"
+{% endfor %}
+{% endif %}
+{% if value['wg_dns_metric'] is defined %}
+	option dns_metric "{{ value['wg_dns_metric'] }}"
+{% endif %}
+{% if value['wg_metric'] is defined %}
+	option metric "{{ value['wg_metric'] }}"
+{% endif %}
+{% if value['wg_ip4table'] is defined %}
+	option ip4table "{{ value['wg_ip4table'] }}"
+{% endif %}
+{% if value['wg_ip6table'] is defined %}
+	option ip6table "{{ value['wg_ip6table'] }}"
+{% endif %}
+{% if value['wg_delegate'] is defined %}
+	option delegate "{{ value['wg_delegate'] }}"
+{% endif %}
+{% if value['wg_ip6assign'] is defined %}
+	option ip6assign "{{ value['wg_ip6assign'] }}"
+{% endif %}
+{% if value['wg_ip6hint'] is defined %}
+	option ip6hint "{{ value['wg_ip6hint'] }}"
+{% endif %}
+{% if value['wg_ip6class'] is defined %}
+	option ip6class "{{ value['wg_ip6class'] }}"
+{% endif %}
+{% if value['wg_ip6ifaceid'] is defined %}
+	option ip6ifaceid "{{ value['wg_ip6ifaceid'] }}"
+{% endif %}
+{% if value['wg_ip6weight'] is defined %}
+	option ip6weight "{{ value['wg_ip6weight'] }}"
 {% endif %}
         # CONFIG OPTIONS WIREGUARD END
 {% endif %}
