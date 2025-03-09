@@ -36,7 +36,7 @@ Some roles support Debian and OpenWrt at the same time.
 
 
 
-> This Collection is grew over time and contains LOTS of different roles. Only consider the documented roles to be in a *ready for production* state.
+> This Collection grew over time and contains LOTS of different roles. Only consider the documented roles to be in a *ready for production* state.
 > All other roles will be removed or lifted to the same quality standard in the future.
 > Until that point is not reached released version will stay below 1.x.
 
