@@ -32,9 +32,9 @@
   loop_control:
     loop_var:  clusternode
 # hier sollte ich einen schalter einbauen entweder boostrap (--insecure) oder apply auf running cluster
-- name: MMN Talos - Deyploy controlplane hosts
+- name: MMN Talos - Deploy controlplane hosts
   ansible.builtin.command:
-    cmd: "talosctl apply-config --insecure --nodes {{ clusternode.name }} --endpoints {{ clusternode.ip4[0] | ansible.utils.ipaddr('address') }} --file {{ talos_config_path }}/controlplane_{{ clusternode.name }}.yaml"
+    cmd: "talosctl apply-config --insecure --nodes {{ clusternode.ip4[0] | ansible.utils.ipaddr('address') }} --endpoints {{ clusternode.ip4[0] | ansible.utils.ipaddr('address') }} --file {{ talos_config_path }}/controlplane_{{ clusternode.name }}.yaml"
   loop: "{{ talos_cluster.value.hosts_controlplane }}"
   loop_control:
     loop_var: clusternode

@@ -1,0 +1,31 @@
+---
+# CHECK HOSTS
+#- name: debug
+#  debug:
+#    msg: "Knoten {{ cpnode.ip4[0] | ansible.utils.ipaddr('address') }}"
+#  loop: "{{ talos_cluster.value.hosts_controlplane }}"
+#  loop_control:
+#    loop_var:  cpnode
+- name: MMN Talos - Implicitly check the control plane node's availability
+  ansible.builtin.command: "talosctl get disks --insecure -n {{ cpnode.ip4[0] | ansible.builtin.ipaddr('address') }}"
+  loop: "{{ talos_cluster.value.hosts_controlplane }}"
+  loop_control:
+    loop_var:  cpnode
+  changed_when: false
+    #- name: MMN Talos - Parse and store disk device paths per node
+    #  ansible.builtin.set_fact:
+    #    disks_per_node: "{{ disks_per_node | default({}) | combine({
+    #      item.item.ip4[0]: item.stdout | from_json
+    #    }) }}"
+    #  loop: "{{ disks_output.results }}"
+    #  loop_control:
+    #    label: "{{ item.item.ip4[0] }}"
+    #- name: debug
+    #  debug:
+    #    var: disks_per_node
+- name: MMN Talos - Implicitly check the worker node's availability
+  ansible.builtin.command: "talosctl get disks --insecure -n {{ workernode.ip4[0] | ansible.builtin.ipaddr('address') }}"
+  loop: "{{ talos_cluster.value.hosts_worker }}"
+  loop_control:
+    loop_var:  workernode
+  changed_when: false

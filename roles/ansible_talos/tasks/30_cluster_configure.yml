@@ -1,0 +1,16 @@
+---
+- name: MMN Talos - Check if secret file is already there
+  ansible.builtin.stat:
+    path: "{{ talos_config_path }}/{{ talos_secrets_file }}"
+  register: talos_secrets_stat_result
+- name: MMN Talos - Generate secrets file for cluster "{{ talos_cluster.key }}"
+  ansible.builtin.command: "talosctl gen secrets -o {{ talos_config_path }}/{{ talos_secrets_file }}"
+  when: "not talos_secrets_stat_result.stat.exists"
+- name: MMN Talos - Check if config file is already there
+  ansible.builtin.stat:
+    path: "{{ talos_config_path }}/controlplane.yaml"
+  register: talos_stat_result
+- name: MMN Talos - Generate config file for cluster "{{ talos_cluster.key }}"
+  ansible.builtin.command: "talosctl gen config --with-secrets {{ talos_config_path }}/{{ talos_secrets_file }} {{ talos_cluster.key }} https://{{ talos_cluster.value.api_fqdn }}:6443 --output-dir {{ talos_config_path }} --install-disk {{ talos_global_disk | default('/dev/sda') }} --install-image ghcr.io/siderolabs/installer:{{ talos_cluster.value.talos_version | default(talos_version) }}"
+  when: "not talos_stat_result.stat.exists"
+  changed_when: true

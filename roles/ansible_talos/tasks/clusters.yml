@@ -1,15 +1,18 @@
 ---
+- name: MMN Talos - Check hosts
+  ansible.builtin.include_tasks: 10_check_hosts.yml
+
 - name: MMN Talos - Setup vars
-  ansible.builtin.include_tasks: 01_vars.yml
+  ansible.builtin.include_tasks: 20_vars.yml
 
 - name: MMN Talos - Configure Cluster
-  ansible.builtin.include_tasks: 02_cluster_configure.yml
+  ansible.builtin.include_tasks: 30_cluster_configure.yml
 
 - name: MMN Talos - Apply Config
-  ansible.builtin.include_tasks: 03_config_apply.yml
+  ansible.builtin.include_tasks: 40_config_apply.yml
 
 - name: MMN Talos - Export Talosctl Config
-  ansible.builtin.include_tasks: 04_config_export.yml
+  ansible.builtin.include_tasks: 50_config_export.yml
 
     #- name: MMN Talos - Reset Cluster
     #  ansible.builtin.include_tasks: 10_cluster_reset.yml

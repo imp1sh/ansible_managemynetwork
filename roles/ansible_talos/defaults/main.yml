@@ -1,6 +1,7 @@
 ---
 # defaults file for ansible_talos
-talos_version: "v1.8.2"
+talos_version: "v1.9.2"
 talos_talosctl_version: "{{ talos_version }}"
+talos_secrets_file: "secrets.yaml"
 # this is the file name where the patches for the controlplanes go into, not to confuse with talos_filename_controlplane_patch
 talos_filename_controlplane_patched: "controlplane_patched.yaml"
