@@ -16,6 +16,20 @@
     check_implicit_admin: true
     name: "{{ mariadb_databases }}"
     state: present
-    login_user: "root"
-    login_password: "{{ mariadb_rootpw }}"
+      #login_user: "root"
+      #login_password: "{{ mariadb_rootpw }}"
+    login_unix_socket: "/var/run/mysqld/mysqld.sock"
+    config_file: "/etc/mysql/my.cnf"
   when: mariadb_databases is defined
+- name: "MMN mariadb - Manage users"
+  community.mysql.mysql_user:
+    name: "{{ mariadbuser.name }}"
+    password: "{{ mariadbuser.password }}"
+    priv: "{{ mariadbuser.priv }}"
+    state: "{{ mariadbuser.state }}"
+    login_unix_socket: "{{ mariadbuser.login_unix_socket }}"
+    host: "{{ mariadbuser.host }}"
+  loop: "{{ mariadb_users }}"
+  loop_control:
+    loop_var: mariadbuser
+  when: mariadb_users is defined
