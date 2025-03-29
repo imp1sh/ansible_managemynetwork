@@ -16,10 +16,10 @@ AllowedIPs   = {{ hostvars[inventory_hostname]['openwrt_network_interfaceshost']
 AllowedIPs   = {{ hostvars[inventory_hostname]['openwrt_network_interfaceshost'][item.value.interface]['wg_addresses'] | ipaddr('network/prefix') | join(', ') }}
 {% endif %}
 
-{% if item.value.endpoint is not defined %}
+{% if item.value.endpoint_host is not defined %}
 Endpoint     = {{ hostvars[inventory_hostname]['openwrt_network_interfaces'][item.value.interface]['wg_myendpoint']}}:{{ hostvars[inventory_hostname]['openwrt_network_interfaces'][item.value.interface]['wg_listen_port']}}
 {% else %}
-Endpoint     = {{ item.value.endpoint }}:{{ item.value.endpointport }}
+Endpoint     = {{ item.value.endpoint_host }}:{{ item.value.endpoint_port }}
 {% endif %}
 {% if item.value.keepalive is defined %}
 PersistentKeepalive = {{ item.value.keepalive }}
