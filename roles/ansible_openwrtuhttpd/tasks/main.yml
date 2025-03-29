@@ -11,28 +11,38 @@
     file_type: directory
     patterns: "{{ inventory_hostname }}*"
   register: certdirs
+  when: not openwrt_uhttpd_runimagebuilder | default(false)
 
 - name: Set the first matching certificate directory (if exists)
   ansible.builtin.set_fact:
     actual_cert_path: "{{ certdirs.files[0].path }}"
-  when: certdirs.matched > 0
+  when:
+    - not openwrt_uhttpd_runimagebuilder | default(false)
+    - certdirs.matched > 0
 
 - name: search for existing cert
   ansible.builtin.stat:
     path: "{{ actual_cert_path }}/{{ inventory_hostname }}.cer"
   register: searchcert
+  when:
+    - actual_cert_path is defined
+    - not openwrt_uhttpd_runimagebuilder | default(false)
 - name: search for existing key
   ansible.builtin.stat:
     path: "{{ actual_cert_path }}/{{ inventory_hostname }}.key"
   register: searchkey
+  when:
+    - not openwrt_uhttpd_runimagebuilder | default(false)
 - name: debug
   debug:
     msg: "Cert found? {{ searchcert }}"
+  when: actual_cert_path is defined
 - name: overwrite defaults with found cert and key
   ansible.builtin.set_fact:
     openwrt_uhttpd_main_cert: "{{ searchcert.stat.path }}"
     openwrt_uhttpd_main_key: "{{ searchkey.stat.path }}"
   when:
+    - not openwrt_uhttpd_runimagebuilder | default(false)
     - searchkey is defined
     - searchcert is defined
     - searchkey.stat.exists
@@ -42,3 +52,5 @@
     src: "uhttpd.jinja2"
     dest: "{{ openwrt_uhttpd_deploypath }}/{{ openwrt_uhttpd_deployfile }}"
   notify: restart uhttpd
+  when:
+    - not openwrt_uhttpd_runimagebuilder | default(false)
