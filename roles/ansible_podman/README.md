@@ -89,6 +89,20 @@ podman_secrets:
           636638633633343336663639623766373231263313333663562663131303865326162
 ```
 
+## Networks
+Manage podman networks for you, see this example:
+```yaml
+podman_networks:
+  - name: podmannetGUA
+    driver: bridge
+    ipv6: True
+    net_config:
+      - subnet: "10.10.151.0/24"
+        gateway: "10.10.151.1"
+      - subnet: "20ae:17c:fb6:1002::/64"
+        gateway: "20ae:17c:fb6:1002::1"
+```
+
 ## Plugins
 This is supposed to work as a plugin system of sorts. The idea is to not only deploy a working container but also deploy the configuration for that very target application. The idea is to achieve an Infrastructure as Code (IaC) mode for this role.
 Supported plugin:
