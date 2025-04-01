@@ -1,0 +1,26 @@
+---
+- name: "MMN psqlserver - Provide postgres config for container"
+  ansible.builtin.template:
+    src: "{{ psqlserver_configtemplate }}"
+    dest: "{{ psqlserver_instance.value.configpath | default(psqlserver_configpath) }}/{{ psqlserver_instance.value.configname | default(psqlserver_configname) }}"
+    mode: 0600
+    owner: "{{ psqlserver_owner }}"
+    group: "{{ psqlserver_group }}"
+- name: "MMN psqlserver - make sure pg_hby directories are there"
+  ansible.builtin.file:
+    state: directory
+    path: "{{ item.dest | basename }}"
+    mode: '0755'
+  loop: "{{ psqlserver_instance.value.hba }}"
+- name: "MMN psqlserver - Setup pg_hba"
+  community.postgresql.postgresql_pg_hba:
+    dest: "{{ item['dest']}}"
+    contype: "{{ item['contype'] }}"
+    create: "{{ item['create'] | default('false') }}"
+    users: "{{ item['users'] }}"
+    source: "{{ item['source'] | default(omit) }}"
+    databases: "{{ item['databases'] }}"
+    method: "{{ item['method'] }}"
+    state: "{{ item['state'] }}"
+  loop: "{{ psqlserver_instance.value.hba }}"
+

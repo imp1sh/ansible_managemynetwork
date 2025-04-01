@@ -1,0 +1,61 @@
+---
+- name: "MMN psqlserver - Provide postgres config"
+  ansible.builtin.template:
+    src: "{{ psqlserver_configtemplate }}"
+    dest: "{{ psqlserver_instance.value.configpath | default(psqlserver_configpath) }}/{{ psqlserver_instance.value.configname | default(psqlserver_configname) }}"
+    mode: 0600
+    owner: "{{ psqlserver_owner }}"
+    group: "{{ psqlserver_group }}"
+  loop: "{{ psqlserver_instances | dict2items }}"
+  loop_control:
+    loop_var: "psqlserver_instance"
+  notify: reload postgres
+- name: "MMN psqlserver - Setup pg_hba"
+  community.postgresql.postgresql_pg_hba:
+    dest: "{{ item['dest']}}"
+    contype: "{{ item['contype'] }}"
+    users: "{{ item['users'] }}"
+    source: "{{ item['source'] | default(omit) }}"
+    databases: "{{ item['databases'] }}"
+    method: "{{ item['method'] }}"
+    state: "{{ item['state'] }}"
+  loop: "{{ psqlserver_instance.value.hba }}"
+  when: psqlserver_instance.value.hba is defined
+  notify: reload postgres
+- name: "MMN psqlserver - Setup databases"
+  community.general.postgresql_db:
+    name: "{{ item['dbname'] }}"
+    lc_ctype: "{{ item['lc_ctype'] | default(omit) }}"
+    lc_collate: "{{ item['lc_collate'] | default(omit) }}"
+  loop: "{{ psqlserver_instance.value.dbs }}"
+  when:
+    - psqlserver_instance.value.dbs is defined
+    - psqlserver_containermode is not defined or (psqlserver_containermode is defined and not psqlserver_containermode)
+- name: "MMN psqlserver - Install postgresql roles"
+  postgresql_user:
+    name: "{{ item.rolename }}"
+    db: "{{ item.db }}"
+    password: "{{ item.password }}"
+    priv: "{{ item.priv }}"
+  loop: "{{ psqlserver_instance.value.roles }}"
+  when:
+    - psqlserver_instance.value.roles is defined
+    - psqlserver_containermode is not defined or (psqlserver_containermode is defined and not psqlserver_containermode)
+- name: "MMN psqlserver - Setup additional privileges"
+  postgresql_privs:
+    database: "{{ item.dbname }}"
+    state: present
+    privs: "{{ item.privs | join(',') }}"
+    type: "{{ item.type }}"
+    objs: "{{ item.objs }}"
+    schema: "{{ item.schema }}"
+    roles: "{{ item.roles | join(',') }}"
+  loop: "{{ psqlserver_instance.value.privs }}"
+  when:
+    - psqlserver_instance.value.privs is defined
+    - psqlserver_containermode is not defined or (psqlserver_containermode is defined and not psqlserver_containermode)
+- name: "MMN psqlserver - Enable postgresql service"
+  ansible.builtin.service:
+    name: "{{ psqlserver_servicename }}"
+    enabled: true
+    state: started

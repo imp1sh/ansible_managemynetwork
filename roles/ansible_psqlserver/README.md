@@ -1,38 +1,112 @@
-Role Name
-=========
+# imp1sh.ansible_managemynetwork.ansible_psqlserver
+This role will setup postgresql server.
 
-A brief description of the role goes here.
+## OS support
+- Debian
 
-Requirements
-------------
+## Usage
+Define databases like this:
+```yaml
+psqlserver_instances:
+  main: 
+    listenips: "*"
+    max_connections: "500"
+    wal_level: "replica"
+    wal_log_hints: "on"
+    max_wal_senders: "5"
+    wal_keep_size: "8192"
+    max_wal_size: "12GB"
+    dbs:
+      - dbname: "linkwarden0"
+      - dbname: "immich0"
+    roles:
+      - rolename: "linkwarden_user"
+        password: !vault |
+              $ANSIBLE_VAULT;1.1;AES256
+              [...]
+              6633366337333634300a623966386430323637323931323633626330393534656366373335323961
+              3463
+        db: "linkwarden0"
+        priv: "ALL"
+      - rolename: "immich0_user"
+        password: !vault |
+              $ANSIBLE_VAULT;1.1;AES256
+              36333362613231623862366464356238663037366338326664396539383030353839383035393961
+              3531353233623164663066336435616263373137326534300a303263313131653564343030653038
+              62336561386463343362663137326331366561636264356564353934643837386465356666373234
+              6331373331383333390a343239393163303234393466306234626463666537323566656331613666
+              3663
+        db: "immich0"
+        priv: "ALL"
+    hba:
+      - dest: "{{ psqlserver_hbafile }}"
+        contype: "host"
+        users: "linkwarden_user"
+        source: "{{ nb_vms['cntr-ofden1.libcom.de']['primary_ip6'] | ansible.utils.ipaddr('address') }}"
+        databases: "linkwarden0"
+        method: "md5"
+        state: "present"
+      - dest: "{{ psqlserver_hbafile }}"
+        contype: "host"
+        users: "immich0_user"
+        source: "{{ nb_vms['cntr-ofden1.libcom.de']['primary_ip6'] | ansible.utils.ipaddr('address') }}"
+        databases: "immich0"
+        method: "md5"
+        state: "present"
+```
+Having more than one instance is untested for non podman environments.
 
-Any pre-requisites that may not be covered by Ansible itself or the role should be mentioned here. For instance, if the role uses the EC2 module, it may be a good idea to mention in this section that the boto package is required.
+## Containermode
+This very role will be called by ansible_podman when the plugin is activated (see ansible_podman role for documentation). The ansible_podman role will set the variable `psqlserver_containermode` to *true*. In this mode this ansible_psqlserver role will setup a postgresql server in a podman container.
 
-Role Variables
---------------
+You can imagine with containers you might want to have more than one postgresql instance running on your podman host. To account for that this role will work with dictionaries so you can define a flexible amount of databases for your target host.
 
-A description of the settable variables for this role should go here, including any variables that are in defaults/main.yml, vars/main.yml, and any variables that can/should be set via parameters to the role. Any variables that are read from other roles and/or the global scope (ie. hostvars, group vars, etc.) should be mentioned here as well.
+This is how a container definition might look like (excerpt).
+```yaml
+podman_containers:
+  - name: psql0
+    plugin: psql  
+    state: started
+    network: podmannetGUA
+    [...]
+```
 
-Dependencies
-------------
+> ⚠️ Make sure to name the dictionary key the same as the podman container name from ansible_podman role (see above).
+This is an example psqlserver instance definition.
 
-A list of other roles hosted on Galaxy should go here, plus any details in regards to parameters that may need to be set for other roles, or variables that are used from other roles.
-
-Example Playbook
-----------------
-
-Including an example of how to use your role (for instance, with variables passed in as parameters) is always nice for users too:
-
-    - hosts: servers
-      roles:
-         - { role: username.rolename, x: 42 }
-
-License
--------
-
-BSD
-
-Author Information
-------------------
-
-An optional section for the role authors to include contact information, or a website (HTML is not allowed).
+```yaml
+psqlserver_instances:
+  psql0:
+    configpath: "/mnt/cntr/unsynced/psql/0/data/"
+    listenips: "*"
+    max_connections: "500"
+    wal_level: "replica"
+    wal_log_hints: "on"
+    max_wal_senders: "5"
+    wal_keep_size: "8192"
+    max_wal_size: "12GB"
+      #hbafile: "/mnt/cntr/unsynced/psql/0/data/pg_hba.conf"
+    dbs:
+      - dbname: "linkwarden0"
+    hba:
+      - dest: "/mnt/cntr/unsynced/psql/0/data/pg_hba.conf"
+        contype: "host"
+        create: true
+        users: "linkwarden_user"
+        source: "{{ nb_vms['cntr-ofden1.libcom.de']['primary_ip6'] | ansible.utils.ipaddr('address') }}"
+        databases: "linkwarden0"
+        method: "md5"
+        state: "present"
+    initscripts:
+      - name: "1_pdns_init.sh"
+        targetpath: "/mnt/cntr/unsynced/psql/0/init"
+        content: |
+          #!/usr/bin/env bash
+          set -e
+          psql -U $POSTGRES_USER -c "CREATE ROLE replication WITH REPLICATION LOGIN PASSWORD '$(cat /run/secrets/psql0_replicationuser_password)';"
+          psql -v ON_ERROR_STOP=1 -U "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-EOSQL
+              CREATE USER pdns;
+              CREATE DATABASE pdns;
+              GRANT ALL PRIVILEGES ON DATABASE pdns TO pdns;
+          EOSQL
+```

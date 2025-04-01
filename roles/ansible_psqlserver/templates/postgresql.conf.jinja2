@@ -1,20 +1,20 @@
 #------------------------------------------------------------------------------
 # FILE LOCATIONS
 #------------------------------------------------------------------------------
-{% if psqlserver_datadir is defined %}
-data_directory = '{{ psqlserver_datadir }}'
+{% if psqlserver_instance.value.datadir is defined %}
+data_directory = '{{ psqlserver_instance.value.datadir }}'
 {% endif %}
 #data_directory = 'ConfigDir'		# use data in another directory
-{% if psqlserver_hbafile is defined %}
-hba_file = '{{ psqlserver_hbafile }}'
+{% if psqlserver_instance.value.hbafile is defined %}
+hba_file = '{{ psqlserver_instance.value.hbafile }}'
 {% endif %}
 #hba_file = 'ConfigDir/pg_hba.conf'	# host-based authentication file
-{% if psqlserver_identfile is defined %}
-ident_file = '{{ psqlserver_identfile }}'
+{% if psqlserver_instance.value.identfile is defined %}
+ident_file = '{{ psqlserver_instance.value.identfile }}'
 {% endif %}
 #ident_file = 'ConfigDir/pg_ident.conf'	# ident configuration file
-{% if psqlserver_externalpidfile is defined %}
-external_pid_file = '{{ psqlserver_externalpidfile }}'
+{% if psqlserver_instance.value.externalpidfile is defined %}
+external_pid_file = '{{ psqlserver_instance.value.externalpidfile }}'
 {% endif %}
 
 #------------------------------------------------------------------------------
@@ -22,68 +22,68 @@ external_pid_file = '{{ psqlserver_externalpidfile }}'
 #------------------------------------------------------------------------------
 # - Connection Settings -
 #listen_addresses = 'localhost'		# what IP address(es) to listen on;
-listen_addresses = '{{ psqlserver_listenips | default('localhost', true) }}'
+listen_addresses = '{{ psqlserver_instance.value.listenips | default('localhost', true) }}'
 #port = 5432				# (change requires restart)
-{% if psqlserver_port is defined %}
-port = {{ psqlserver_port }}
+{% if psqlserver_instance.value.port is defined %}
+port = {{ psqlserver_instance.value.port }}
 {% endif %}
-max_connections = {{ psqlserver_max_connections | default(100, true) }}
+max_connections = {{ psqlserver_instance.value.max_connections | default(100, true) }}
 #unix_socket_directories = '/tmp'	# comma-separated list of directories
-{% if psqlserver_unixsocketdirectories is defined %}
-unix_socket_directories = '{{ psqlserver_unixsocketdirectories }}'
+{% if psqlserver_instance.value.unixsocketdirectories is defined %}
+unix_socket_directories = '{{ psqlserver_instance.value.unixsocketdirectories }}'
 {% endif %}
 
 # - SSL -
-{% if psqlserver_ssl is defined %}
-ssl = {{ psqlserver_ssl }}
+{% if psqlserver_instance.value.ssl is defined %}
+ssl = {{ psqlserver_instance.value.ssl }}
 {% endif %}
 #ssl = off
-{% if psqlserver_cafile is defined %}
-ssl_ca_file = '{{ psqlserver_cafile }}'
+{% if psqlserver_instance.value.cafile is defined %}
+ssl_ca_file = '{{ psqlserver_instance.value.cafile }}'
 {% endif %}
 #ssl_ca_file = ''
-{% if psqlserver_certfile is defined %}
-ssl_cert_file = '{{ psqlserver_certfile }}'
+{% if psqlserver_instance.value.certfile is defined %}
+ssl_cert_file = '{{ psqlserver_instance.value.certfile }}'
 {% endif %}
 #ssl_cert_file = 'server.crt'
-{% if psqlserver_crlfile is defined %}
-ssl_crl_file = '{{ psqlserver_crlfile }}'
+{% if psqlserver_instance.value.crlfile is defined %}
+ssl_crl_file = '{{ psqlserver_instance.value.crlfile }}'
 {% endif %}
 #ssl_crl_file = ''
-{% if psqlserver_keyfile is defined %}
-ssl_key_file = '{{ psqlserver_keyfile }}'
+{% if psqlserver_instance.value.keyfile is defined %}
+ssl_key_file = '{{ psqlserver_instance.value.keyfile }}'
 {% endif %}
 #ssl_key_file = 'server.key'
-{% if psqlserver_ciphers is defined %}
-ssl_ciphers = '{{ psqlserver_ciphers }}'
+{% if psqlserver_instance.value.ciphers is defined %}
+ssl_ciphers = '{{ psqlserver_instance.value.ciphers }}'
 {% endif %}
 #ssl_ciphers = 'HIGH:MEDIUM:+3DES:!aNULL' # allowed SSL ciphers
-{% if psqlserver_preferserverciphers is defined %}
-ssl_prefer_server_ciphers = {{ psqlserver_preferserverciphers }}
+{% if psqlserver_instance.value.preferserverciphers is defined %}
+ssl_prefer_server_ciphers = {{ psqlserver_instance.value.preferserverciphers }}
 {% endif %}
 #ssl_prefer_server_ciphers = on
-{% if psqlserver_ecdhcurve is defined %}
-ssl_ecdh_curve = '{{ psqlserver_ecdhcurve }}'
+{% if psqlserver_instance.value.ecdhcurve is defined %}
+ssl_ecdh_curve = '{{ psqlserver_instance.value.ecdhcurve }}'
 {% endif %}
 #ssl_ecdh_curve = 'prime256v1'
-{% if psqlserver_minprotocolversion is defined %}
-ssl_min_protocol_version = '{{ psqlserver_minprotocolversion }}'
+{% if psqlserver_instance.value.minprotocolversion is defined %}
+ssl_min_protocol_version = '{{ psqlserver_instance.value.minprotocolversion }}'
 {% endif %}
 #ssl_min_protocol_version = 'TLSv1'
-{% if psqlserver_maxprotocolversion is defined %}
-ssl_max_protocol_version = '{{ psqlserver_maxprotocolversion }}'
+{% if psqlserver_instance.value.maxprotocolversion is defined %}
+ssl_max_protocol_version = '{{ psqlserver_instance.value.maxprotocolversion }}'
 {% endif %}
 #ssl_max_protocol_version = ''
-{% if psqlserver_dhparamsfile is defined %}
-ssl_dh_params_file = '{{ psqlserver_dhparamsfile }}'
+{% if psqlserver_instance.value.dhparamsfile is defined %}
+ssl_dh_params_file = '{{ psqlserver_instance.value.dhparamsfile }}'
 {% endif %}
 #ssl_dh_params_file = ''
-{% if psqlserver_passphrasecommand is defined %}
-ssl_passphrase_command ='{{ psqlserver_passphrasecommand }}'
+{% if psqlserver_instance.value.passphrasecommand is defined %}
+ssl_passphrase_command ='{{ psqlserver_instance.value.passphrasecommand }}'
 {% endif %}
 #ssl_passphrase_command = ''
-{% if psqlserver_passphrasecommandsupportsreload is defined %}
-ssl_passphrase_command_supports_reload = {{ psqlserver_passphrasecommandsupportsreload }}
+{% if psqlserver_instance.value.passphrasecommandsupportsreload is defined %}
+ssl_passphrase_command_supports_reload = {{ psqlserver_instance.value.passphrasecommandsupportsreload }}
 {% endif %}
 #ssl_passphrase_command_supports_reload = off
 
@@ -93,144 +93,144 @@ ssl_passphrase_command_supports_reload = {{ psqlserver_passphrasecommandsupports
 #------------------------------------------------------------------------------
 # - Memory -
 #shared_buffers = 128MB			# min 128kB
-shared_buffers = {{ psqlserver_sharedbuffers | default('128MB', true) }}
+shared_buffers = {{ psqlserver_instance.value.sharedbuffers | default('128MB', true) }}
 #dynamic_shared_memory_type = posix	# the default is the first option
-dynamic_shared_memory_type = {{ psqlserver_sharedmemorytype | default('posix', true) }}
+dynamic_shared_memory_type = {{ psqlserver_instance.value.sharedmemorytype | default('posix', true) }}
 # - Checkpoints -
 
 #checkpoint_timeout = 5min		# range 30s-1d
-max_wal_size = {{ psqlserver_max_wal_size | default('1GB', true) }}
-min_wal_size = {{ psqlserver_min_wal_size | default('80MB', true) }}
+max_wal_size = {{ psqlserver_instance.value.max_wal_size | default('1GB', true) }}
+min_wal_size = {{ psqlserver_instance.value.min_wal_size | default('80MB', true) }}
 
 #------------------------------------------------------------------------------
 # REPLICATION SENDING SERVER
 #------------------------------------------------------------------------------
-{% if psqlserver_max_wal_senders is defined %}
-max_wal_senders = {{ psqlserver_max_wal_senders }}
+{% if psqlserver_instance.value.max_wal_senders is defined %}
+max_wal_senders = {{ psqlserver_instance.value.max_wal_senders }}
 {% endif %}
-{% if psqlserver_max_replication_slots is defined %}
-max_replication_slots = {{ psqlserver_max_replication_slots }}
+{% if psqlserver_instance.value.max_replication_slots is defined %}
+max_replication_slots = {{ psqlserver_instance.value.max_replication_slots }}
 {% endif %}
-{% if psqlserver_wal_keep_size is defined %}
-wal_keep_size = {{ psqlserver_wal_keep_size }}
+{% if psqlserver_instance.value.wal_keep_size is defined %}
+wal_keep_size = {{ psqlserver_instance.value.wal_keep_size }}
 {% endif %}
-{% if psqlserver_max_slot_wal_keep_size is defined %}
-max_slot_wal_keep_size = {{ psqlserver_max_slot_wal_keep_size }}
+{% if psqlserver_instance.value.max_slot_wal_keep_size is defined %}
+max_slot_wal_keep_size = {{ psqlserver_instance.value.max_slot_wal_keep_size }}
 {% endif %}
-{% if psqlserver_wal_sender_timeout is defined %}
-wal_sender_timeout = {{ psqlserver_wal_sender_timeout }}
+{% if psqlserver_instance.value.wal_sender_timeout is defined %}
+wal_sender_timeout = {{ psqlserver_instance.value.wal_sender_timeout }}
 {% endif %}
-{% if psqlserver_track_commit_timestamp is defined %}
-track_commit_timestamp = {{ psqlserver_track_commit_timestamp }}
+{% if psqlserver_instance.value.track_commit_timestamp is defined %}
+track_commit_timestamp = {{ psqlserver_instance.value.track_commit_timestamp }}
 {% endif %}
 
 #------------------------------------------------------------------------------
 # REPLICATION PRIMARY SERVER
 #------------------------------------------------------------------------------
-{% if psqlserver_synchronous_standby_names is defined %}
-synchronous_standby_names = {{ psqlserver_synchronous_standby_names }}
+{% if psqlserver_instance.value.synchronous_standby_names is defined %}
+synchronous_standby_names = {{ psqlserver_instance.value.synchronous_standby_names }}
 {% endif %}
-{% if psqlserver_vacuum_defer_cleanup_age is defined %}
-vacuum_defer_cleanup_age = {{ psqlserver_vacuum_defer_cleanup_age }}
+{% if psqlserver_instance.value.vacuum_defer_cleanup_age is defined %}
+vacuum_defer_cleanup_age = {{ psqlserver_instance.value.vacuum_defer_cleanup_age }}
 {% endif %}
 
 #------------------------------------------------------------------------------
 # REPLICATION STANDBY SERVER
 #------------------------------------------------------------------------------
-{% if psqlserver_primary_conninfo is defined %}
-primary_conninfo = '{{ psqlserver_primary_conninfo }}'
+{% if psqlserver_instance.value.primary_conninfo is defined %}
+primary_conninfo = '{{ psqlserver_instance.value.primary_conninfo }}'
 {% endif %}
-{% if psqlserver_primary_slot_name is defined %}
-primary_slot_name = {{ psqlserver_primary_slot_name }}
+{% if psqlserver_instance.value.primary_slot_name is defined %}
+primary_slot_name = {{ psqlserver_instance.value.primary_slot_name }}
 {% endif %}
-{% if psqlserver_promote_trigger_file is defined %}
-promote_trigger_file = {{ psqlserver_promote_trigger_file }}
+{% if psqlserver_instance.value.promote_trigger_file is defined %}
+promote_trigger_file = {{ psqlserver_instance.value.promote_trigger_file }}
 {% endif %}
-{% if psqlserver_hot_standby is defined %}
-hot_standby = {{ psqlserver_hot_standby }}
+{% if psqlserver_instance.value.hot_standby is defined %}
+hot_standby = {{ psqlserver_instance.value.hot_standby }}
 {% endif %}
-{% if psqlserver_max_standby_archive_delay is defined %}
-max_standby_archive_delay = {{ psqlserver_max_standby_archive_delay }}
+{% if psqlserver_instance.value.max_standby_archive_delay is defined %}
+max_standby_archive_delay = {{ psqlserver_instance.value.max_standby_archive_delay }}
 {% endif %}
-{% if psqlserver_max_standby_streaming_delay is defined %}
-max_standby_streaming_delay = {{ psqlserver_max_standby_streaming_delay }}
+{% if psqlserver_instance.value.max_standby_streaming_delay is defined %}
+max_standby_streaming_delay = {{ psqlserver_instance.value.max_standby_streaming_delay }}
 {% endif %}
-{% if psqlserver_wal_receiver_create_temp_slot is defined %}
-wal_receiver_create_temp_slot = {{ psqlserver_wal_receiver_create_temp_slot }}
+{% if psqlserver_instance.value.wal_receiver_create_temp_slot is defined %}
+wal_receiver_create_temp_slot = {{ psqlserver_instance.value.wal_receiver_create_temp_slot }}
 {% endif %}
-{% if psqlserver_wal_receiver_status_interval is defined %}
-wal_receiver_status_interval = {{ psqlserver_wal_receiver_status_interval }}
+{% if psqlserver_instance.value.wal_receiver_status_interval is defined %}
+wal_receiver_status_interval = {{ psqlserver_instance.value.wal_receiver_status_interval }}
 {% endif %}
-{% if psqlserver_hot_standby_feedback is defined %}
-hot_standby_feedback = {{ psqlserver_hot_standby_feedback }}
+{% if psqlserver_instance.value.hot_standby_feedback is defined %}
+hot_standby_feedback = {{ psqlserver_instance.value.hot_standby_feedback }}
 {% endif %}
-{% if psqlserver_wal_receiver_timeout is defined %}
-wal_receiver_timeout = {{ psqlserver_wal_receiver_timeout }}
+{% if psqlserver_instance.value.wal_receiver_timeout is defined %}
+wal_receiver_timeout = {{ psqlserver_instance.value.wal_receiver_timeout }}
 {% endif %}
-{% if psqlserver_wal_retrieve_retry_interval is defined %}
-wal_retrieve_retry_interval = {{ psqlserver_wal_retrieve_retry_interval }}
+{% if psqlserver_instance.value.wal_retrieve_retry_interval is defined %}
+wal_retrieve_retry_interval = {{ psqlserver_instance.value.wal_retrieve_retry_interval }}
 {% endif %}
-{% if psqlserver_recovery_min_apply_delay is defined %}
-recovery_min_apply_delay = {{ psqlserver_recovery_min_apply_delay }}
+{% if psqlserver_instance.value.recovery_min_apply_delay is defined %}
+recovery_min_apply_delay = {{ psqlserver_instance.value.recovery_min_apply_delay }}
 {% endif %}
 
 #------------------------------------------------------------------------------
 # REPLICATION SUBSCRIBERS
 #------------------------------------------------------------------------------
-{% if psqlserver_max_logical_replication_workers is defined %}
-max_logical_replication_workers = {{ psqlserver_max_logical_replication_workers }}
+{% if psqlserver_instance.value.max_logical_replication_workers is defined %}
+max_logical_replication_workers = {{ psqlserver_instance.value.max_logical_replication_workers }}
 {% endif %}
-{% if psqlserver_max_sync_workers_per_subscription is defined %}
-max_sync_workers_per_subscription = {{ psqlserver_max_sync_workers_per_subscription }}
+{% if psqlserver_instance.value.max_sync_workers_per_subscription is defined %}
+max_sync_workers_per_subscription = {{ psqlserver_instance.value.max_sync_workers_per_subscription }}
 {% endif %}
 
 #------------------------------------------------------------------------------
 # WAL
 #------------------------------------------------------------------------------
-{% if psqlserver_wal_level is defined %}
-wal_level = {{ psqlserver_wal_level }}
+{% if psqlserver_instance.value.wal_level is defined %}
+wal_level = {{ psqlserver_instance.value.wal_level }}
 {% endif %}
-{% if psqlserver_fsync is defined %}
-fsync = {{ psqlserver_fsync }}
+{% if psqlserver_instance.value.fsync is defined %}
+fsync = {{ psqlserver_instance.value.fsync }}
 {% endif %}
-{% if psqlserver_synchronous_commit is defined %}
-synchronous_commit = {{ psqlserver_synchronous_commit }}
+{% if psqlserver_instance.value.synchronous_commit is defined %}
+synchronous_commit = {{ psqlserver_instance.value.synchronous_commit }}
 {% endif %}
-{% if psqlserver_wal_sync_method is defined %}
-wal_sync_method = {{ psqlserver_wal_sync_method }}
+{% if psqlserver_instance.value.wal_sync_method is defined %}
+wal_sync_method = {{ psqlserver_instance.value.wal_sync_method }}
 {% endif %}
-{% if psqlserver_full_page_writes is defined %}
-full_page_writes = {{ psqlserver_full_page_writes }}
+{% if psqlserver_instance.value.full_page_writes is defined %}
+full_page_writes = {{ psqlserver_instance.value.full_page_writes }}
 {% endif %}
-{% if psqlserver_wal_log_hints is defined %}
-wal_log_hints = {{ psqlserver_wal_log_hints }}
+{% if psqlserver_instance.value.wal_log_hints is defined %}
+wal_log_hints = {{ psqlserver_instance.value.wal_log_hints }}
 {% endif %}
-{% if psqlserver_wal_compression is defined %}
-wal_compression = {{ psqlserver_wal_compression }}
+{% if psqlserver_instance.value.wal_compression is defined %}
+wal_compression = {{ psqlserver_instance.value.wal_compression }}
 {% endif %}
-{% if psqlserver_wal_init_zero is defined %}
-wal_init_zero = {{ psqlserver_wal_init_zero }}
+{% if psqlserver_instance.value.wal_init_zero is defined %}
+wal_init_zero = {{ psqlserver_instance.value.wal_init_zero }}
 {% endif %}
-{% if psqlserver_wal_recycle is defined %}
-wal_recycle = {{ psqlserver_wal_recycle }}
+{% if psqlserver_instance.value.wal_recycle is defined %}
+wal_recycle = {{ psqlserver_instance.value.wal_recycle }}
 {% endif %}
-{% if psqlserver_wal_buffers is defined %}
-wal_buffers = {{ psqlserver_wal_buffers }}
+{% if psqlserver_instance.value.wal_buffers is defined %}
+wal_buffers = {{ psqlserver_instance.value.wal_buffers }}
 {% endif %}
-{% if psqlserver_wal_writer_delay is defined %}
-wal_writer_delay = {{ psqlserver_wal_writer_delay }}
+{% if psqlserver_instance.value.wal_writer_delay is defined %}
+wal_writer_delay = {{ psqlserver_instance.value.wal_writer_delay }}
 {% endif %}
-{% if psqlserver_wal_writer_flush_after is defined %}
-wal_writer_flush_after = {{ psqlserver_wal_writer_flush_after }}
+{% if psqlserver_instance.value.wal_writer_flush_after is defined %}
+wal_writer_flush_after = {{ psqlserver_instance.value.wal_writer_flush_after }}
 {% endif %}
-{% if psqlserver_wal_skip_threshold is defined %}
-wal_skip_threshold = {{ psqlserver_wal_skip_threshold }}
+{% if psqlserver_instance.value.wal_skip_threshold is defined %}
+wal_skip_threshold = {{ psqlserver_instance.value.wal_skip_threshold }}
 {% endif %}
-{% if psqlserver_commit_delay is defined %}
-commit_delay = {{ psqlserver_commit_delay }}
+{% if psqlserver_instance.value.commit_delay is defined %}
+commit_delay = {{ psqlserver_instance.value.commit_delay }}
 {% endif %}
-{% if psqlserver_commit_siblings is defined %}
-commit_siblings = {{ psqlserver_commit_siblings }}
+{% if psqlserver_instance.value.commit_siblings is defined %}
+commit_siblings = {{ psqlserver_instance.value.commit_siblings }}
 {% endif %}
 
 #------------------------------------------------------------------------------
@@ -243,64 +243,64 @@ commit_siblings = {{ psqlserver_commit_siblings }}
 #------------------------------------------------------------------------------
 # - Where to Log -
 #log_destination = 'syslog'
-{% if psqlserver_logdestination is defined %}
-log_destination = '{{ psqlserver_logdestination }}'
+{% if psqlserver_instance.value.logdestination is defined %}
+log_destination = '{{ psqlserver_instance.value.logdestination }}'
 {% endif %}
 
-{% if psqlserver_loglineprefix is defined %}
-log_line_prefix = '{{ psqlserver_loglineprefix }}'
+{% if psqlserver_instance.value.loglineprefix is defined %}
+log_line_prefix = '{{ psqlserver_instance.value.loglineprefix }}'
 {% endif %}
 #log_timezone = 'Europe/Berlin'
-{% if psqlserver_logtimezone is defined %}
-log_timezone = '{{ psqlserver_logtimezone }}'
+{% if psqlserver_instance.value.logtimezone is defined %}
+log_timezone = '{{ psqlserver_instance.value.logtimezone }}'
 {% endif %}
 
 #------------------------------------------------------------------------------
 # PROCESS TITLE
 #------------------------------------------------------------------------------
-{% if psqlserver_clustername is defined %}
-cluster_name ='{{ psqlserver_clustername }}'
+{% if psqlserver_instance.value.clustername is defined %}
+cluster_name ='{{ psqlserver_instance.value.clustername }}'
 {% endif %}
 #cluster_name = ''
 
 # On FreeBSD, this is a performance hog, so keep it off when you need speed
-{% if psqlserver_updateprocesstitle is defined %}
-update_process_title = {{ psqlserver_updateprocesstitle }}
+{% if psqlserver_instance.value.updateprocesstitle is defined %}
+update_process_title = {{ psqlserver_instance.value.updateprocesstitle }}
 {% endif %}
 
 
 #------------------------------------------------------------------------------
 # STATISTICS
 #------------------------------------------------------------------------------
-{% if psqlserver_statstempdir is defined %}
-stats_temp_directory = '{{ psqlserver_statstempdir }}'
+{% if psqlserver_instance.value.statstempdir is defined %}
+stats_temp_directory = '{{ psqlserver_instance.value.statstempdir }}'
 {% endif %}
 
 #------------------------------------------------------------------------------
 # CLIENT CONNECTION DEFAULTS
 #------------------------------------------------------------------------------
 # - Locale and Formatting -
-datestyle = '{{ psqlserver_datestyle | default('iso, mdy') }}'
-{% if psqlserver_timezone is defined %}
-timezone = '{{ psqlserver_timezone }}'
+datestyle = '{{ psqlserver_instance.value.datestyle | default('iso, mdy') }}'
+{% if psqlserver_instance.value.timezone is defined %}
+timezone = '{{ psqlserver_instance.value.timezone }}'
 {% endif %}
 
-{% if psqlserver_default_transaction_read_only is defined %}
-default_transaction_read_only = '{{ psqlserver_default_transaction_read_only }}'
+{% if psqlserver_instance.value.default_transaction_read_only is defined %}
+default_transaction_read_only = '{{ psqlserver_instance.value.default_transaction_read_only }}'
 {% endif %}
 
 # These settings are initialized by initdb, but they can be changed.
-lc_messages = '{{ psqlserver_lcmessages | default('C') }}'			# locale for system error message
+lc_messages = '{{ psqlserver_instance.value.lcmessages | default('C') }}'			# locale for system error message
 					# strings
-lc_monetary = '{{ psqlserver_lcmonetary | default('C') }}'			# locale for monetary formatting
-lc_numeric = '{{ psqlserver_lcnumeric | default('C') }}'			# locale for number formatting
-lc_time = '{{ psqlserver_lctime | default('C') }}'				# locale for time formatting
+lc_monetary = '{{ psqlserver_instance.value.lcmonetary | default('C') }}'			# locale for monetary formatting
+lc_numeric = '{{ psqlserver_instance.value.lcnumeric | default('C') }}'			# locale for number formatting
+lc_time = '{{ psqlserver_instance.value.lctime | default('C') }}'				# locale for time formatting
 
 # default configuration for text search
-default_text_search_config = '{{ psqlserver_textsearchconfig | default('pg_catalog.english') }}'
+default_text_search_config = '{{ psqlserver_instance.value.textsearchconfig | default('pg_catalog.english') }}'
 
 #include = '...'			# include file
-{% if psqlserver_includedir is defined %}
-include_dir = '{{ psqlserver_includedir }}'
+{% if psqlserver_instance.value.includedir is defined %}
+include_dir = '{{ psqlserver_instance.value.includedir }}'
 {% endif %}
 

@@ -4,3 +4,7 @@
   ansible.builtin.service:
     name: "{{ psqlserver_servicename }}"
     state: restarted
+- name: reload postgres
+  ansible.builtin.service:
+    name: "{{ psqlserver_servicename }}"
+    state: reloaded

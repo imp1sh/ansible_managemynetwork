@@ -1,0 +1,22 @@
+---
+- name: "MMN psqlserver - Make sure config path is present for container"
+  ansible.builtin.file:
+    path: "{{ psqlserver_instance.value.configpath }}"
+    state: directory
+
+- name: "MMN psqlserver - Prepare init script path"
+  ansible.builtin.file:
+    state: directory
+    path: "{{ initscript.targetpath }}"
+    mode: '0755'
+  loop: "{{ psqlserver_instance.value.initscripts }}"
+  loop_control:
+    loop_var: "initscript"
+- name: "MMN psqlserver - Place init scripts and sql files"
+  ansible.builtin.copy:
+    dest: "{{ initscript.targetpath }}/{{ initscript.name }}"
+    content: "{{ initscript.content }}"
+    mode: '0755'
+  loop: "{{ psqlserver_instance.value.initscripts }}"
+  loop_control:
+    loop_var: "initscript"

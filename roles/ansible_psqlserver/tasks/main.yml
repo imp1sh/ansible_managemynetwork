@@ -1,77 +1,36 @@
 ---
-- name: include OS vars
-  include_vars: "{{ ansible_distribution }}.yml"
-- name: Run package role
-  ansible.builtin.include_role:
-    name: imp1sh.ansible_managemynetwork.ansible_packages
-  vars:
-    packages_installrole: "{{ psqlserver_packages }}"
-- name: "Setup pg_hba"
-  postgresql_pg_hba:
-    dest: "{{ item['dest']}}"
-    contype: "{{ item['contype'] }}"
-    users: "{{ item['users'] }}"
-    source: "{{ item['source'] | default(omit) }}"
-    databases: "{{ item['databases'] }}"
-    method: "{{ item['method'] }}"
-    state: "{{ item['state'] }}"
-  with_items:
-    - "{{ psqlserver_hba }}"
-  when: psqlserver_hba is defined
-  notify: restart postgres
-- name: "Check if DB is initialized"
-  stat:
-    path: "{{ psqlserver_datadir }}"
-  register: dbinit
-  when: ansible_distribution == "FreeBSD"
-- name: "Initialize DB"
-  command: "{{ psqlserver_initbinpath }} initdb"
+- name: "MMN psqlserver - non container tasks"
   when:
-    - ansible_distribution == "FreeBSD"
-    - dbinit is defined and not dbinit.stat.exists
-- name: "Provide postgres config"
-  template:
-    src: "{{ psqlserver_configtemplate }}"
-    dest: "{{ psqlserver_configpath }}/{{ psqlserver_configname }}"
-    mode: 0600
-    owner: "{{ psqlserver_owner }}"
-    group: "{{ psqlserver_group }}"
-  notify: restart postgres
-- name: "Enable postgresql service"
-  ansible.builtin.service:
-    name: "{{ psqlserver_servicename }}"
-    enabled: true
-    state: started
-- name: "Setup databases"
-  community.general.postgresql_db:
-    name: "{{ item['dbname'] }}"
-    lc_ctype: "{{ item['lc_ctype'] | default(omit) }}"
-    lc_collate: "{{ item['lc_collate'] | default(omit) }}"
-  with_items:
-    - "{{ psqlserver_dbs }}"
-  when: psqlserver_dbs is defined
-  notify: restart postgres
-- name: "Install postgresql roles"
-  postgresql_user:
-    name: "{{ item.rolename }}"
-    db: "{{ item.db }}"
-    password: "{{ item.password }}"
-    priv: "{{ item.priv }}"
-  with_items:
-    - "{{ psqlserver_roles }}"
-  when: psqlserver_roles is defined
-- name: "Setup additional privileges"
-  postgresql_privs:
-    database: "{{ item.dbname }}"
-    state: present
-    privs: "{{ item.privs | join(',') }}"
-    type: "{{ item.type }}"
-    objs: "{{ item.objs }}"
-    schema: "{{ item.schema }}"
-    roles: "{{ item.roles | join(',') }}"
-  with_items:
-    - "{{ psqlserver_privs }}"
-  when: psqlserver_privs is defined
+    - psqlserver_containermode is not defined or (psqlserver_containermode is defined and not psqlserver_containermode)
+  block:
+    - name: MMN psqlserver - include OS vars
+      include_vars: "{{ ansible_distribution }}.yml"
+    - name: MMN psqlserver - Run package role
+      ansible.builtin.include_role:
+        name: imp1sh.ansible_managemynetwork.ansible_packages
+      vars:
+        packages_installrole: "{{ psqlserver_packages }}"
+    - name: "MMN psqlserver - Iterate over psqlserver_instances"
+      ansible.builtin.include_tasks:
+        file: notcontainer.yml
+      loop: "{{ psqlserver_instances | dict2items }}"
+      loop_control:
+        loop_var: "psqlserver_instance"
+
+- name: "MMN psqlserver - Container tasks"
+  when: 
+    - psqlserver_containermode is defined 
+    - psqlserver_containermode
+  block:
+    - name: MMN psqlserver - include Container vars
+      include_vars: "Container.yml"
+    - name: "MMN psqlserver - Container tasks"
+      ansible.builtin.include_tasks:
+        file: container.yml
+      loop: "{{ psqlserver_instances | dict2items }}"
+      loop_control:
+        loop_var: "psqlserver_instance"
+
 # make this optional, since borgmatic also makes db backups
 #- name: "Setup full sql backup"
 #  cron:
