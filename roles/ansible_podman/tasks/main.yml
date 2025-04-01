@@ -4,31 +4,31 @@
   ansible.builtin.include_tasks:
     file: 0install.yml
 
-- name: MMN Podman - Network
+- name: MMN Podman - Network and more
   ansible.builtin.include_tasks:
     file: 1prepare.yml
 
-- name: MMN Podman - Login docker.io
-  containers.podman.podman_login:
-    registry: docker.io
-    username: "{{ podman_dockerio_username }}"
-    password: "{{ podman_dockerio_password }}"
+      #- name: MMN Podman - Manage secrets
+      #  containers.podman.podman_secret:
+      #    name: "{{ item.name }}"
+      #    state: "{{ item.state }}"
+      #    data: "{{ item.data }}"
+      #    path: "{{ item.path | default(omit) }}"
+      #    debug: "{{ item.debug | default(omit) }}"
+      #    driver: "{{ item.driver | default('file') }}"
+      #    driver_opts: "{{ item.driver_opts | default(omit) }}"
+      #    env: "{{ item.env | default(omit) }}"
+      #    executable: "{{ item.executable | default(omit) }}"
+      #    force: "{{ item.force | default(omit) }}"
+      #    labels: "{{ item.labels | default(omit) }}"
+      #    skip_existing: "{{ item.skip_existing | default(omit) }}"
+      #  loop: "{{ podman_secrets }}"
 
-- name: MMN Podman - Manage secrets
-  containers.podman.podman_secret:
-    name: "{{ item.name }}"
-    state: "{{ item.state }}"
-    data: "{{ item.data }}"
-    path: "{{ item.path | default(omit) }}"
-    debug: "{{ item.debug | default(omit) }}"
-    driver: "{{ item.driver | default('file') }}"
-    driver_opts: "{{ item.driver_opts | default(omit) }}"
-    env: "{{ item.env | default(omit) }}"
-    executable: "{{ item.executable | default(omit) }}"
-    force: "{{ item.force | default(omit) }}"
-    labels: "{{ item.labels | default(omit) }}"
-    skip_existing: "{{ item.skip_existing | default(omit) }}"
-  loop: "{{ podman_secrets }}"
+- name: "MMN Podman - Deploy application configuration for supported plugin"
+  ansible.builtin.include_tasks:
+    file: 2plugins.yml
+  when:
+    - podman_container_plugins is defined
 
 - name: MMN Podman - Create containers
   containers.podman.podman_containers:
@@ -36,7 +36,14 @@
   when:
     - podman_containers is defined
 
+- name: "MMN Podman - Deploy application configuration for supported plugin"
+  ansible.builtin.include_tasks:
+    file: 2plugins2.yml
+  when:
+    - podman_container_plugins is defined
+
 - name: MMN Podman - Post tasks
   ansible.builtin.include_tasks:
     file: 4post.yml
   when: podman_containers is defined
+

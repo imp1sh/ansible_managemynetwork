@@ -1,0 +1,5 @@
+# PSQL
+- name: "MMN Podman - Plugin psql"
+  ansible.builtin.include_tasks:
+    file: plugin_psql.yml
+  when: "'psql' in podman_container_plugins"

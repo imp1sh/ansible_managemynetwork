@@ -18,3 +18,9 @@
     state: directory
   when: podman_containers is defined
   loop: "{{ podman_containers | subelements('volume', 'skip_missing=True') }}"
+- name: MMN Podman - Login docker.io
+  containers.podman.podman_login:
+    registry: docker.io
+    username: "{{ podman_dockerio_username }}"
+    password: "{{ podman_dockerio_password }}"
+

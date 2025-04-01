@@ -1,0 +1,13 @@
+# PSQL
+- name: "MMN Podman - prepare calling psqlserver role"
+  ansible.builtin.set_fact:
+    psqlserver_containermode: true
+  when: "'psql' in podman_container_plugins"
+- name: "MMN Podman - Calling psqlserver role"
+  ansible.builtin.include_role:
+    name: imp1sh.ansible_managemynetwork.ansible_psqlserver 
+    tasks_from: container_2.yml
+  loop: "{{ psqlserver_instances | dict2items }}"
+  loop_control:
+    loop_var: "psqlserver_instance"
+  when: "'psql' in podman_container_plugins"
