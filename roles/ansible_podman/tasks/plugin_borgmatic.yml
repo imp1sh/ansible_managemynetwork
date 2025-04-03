@@ -1,0 +1,7 @@
+---
+- name: "MMN Podman - prepare calling borgmatic role"
+  ansible.builtin.set_fact:
+    borgmatic_containermode: true
+- name: "MMN Podman - Calling borgmatic role"
+  ansible.builtin.include_role:
+    name: imp1sh.ansible_managemynetwork.ansible_borgmatic

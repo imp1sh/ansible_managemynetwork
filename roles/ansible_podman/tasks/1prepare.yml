@@ -1,5 +1,5 @@
 ---
-- name: MMN Podman - Create networks
+- name: "MMN Podman - Create networks"
   containers.podman.podman_network:
     name: "{{ item.name }}"
     driver: "{{ item.driver }}"
@@ -8,17 +8,17 @@
     dns: "{{ item.dns | default(omit) }}"
     net_config: "{{ item.net_config | default(omit) }}"
   loop: "{{ podman_networks }}"
-- name: MMN Podman - Select subset of containers, because you asked for it
+- name: "MMN Podman - Select subset of containers, because you asked for it"
   ansible.builtin.set_fact:
     podman_containers: "{{ podman_containers | selectattr('name', 'in', podman_limited_containers) | list }}"
   when: podman_limited_containers is defined
-- name: MMN podman - Ensure podman container directories
+- name: "MMN podman - Ensure podman container directories"
   ansible.builtin.file:
     path: "{{ item.1 | split(':') | first | ansible.builtin.dirname }}"
     state: directory
   when: podman_containers is defined
   loop: "{{ podman_containers | subelements('volume', 'skip_missing=True') }}"
-- name: MMN Podman - Login docker.io
+- name: "MMN Podman - Login docker.io"
   containers.podman.podman_login:
     registry: docker.io
     username: "{{ podman_dockerio_username }}"

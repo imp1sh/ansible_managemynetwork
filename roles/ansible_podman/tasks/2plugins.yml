@@ -2,4 +2,18 @@
 - name: "MMN Podman - Plugin psql"
   ansible.builtin.include_tasks:
     file: plugin_psql.yml
-  when: "'psql' in podman_container_plugins"
+  when:
+    - podman_container_plugin_psql is defined
+    - podman_containers | map(attribute='name') | select('in', podman_container_plugin_psql) | list | length > 0
+      #- podman_containers | selectattr('name', 'in', podman_containers_plugin_psql) | list | length > 0
+      #-  podman_containers | map(attribute='name') | map('trim') | list | intersect(podman_container_plugin_psql | map('trim') | list) | length > 0
+      # - podman_containers | map(attribute='name') | intersect(podman_container_plugin_psql) | length > 0
+      #- podman_container_plugin_psql | select('in', podman_containers | map(attribute='name') | list) | list | length > 0
+
+# BORGMATIC
+- name: "MMN Podman - Plugin borgmatic"
+  ansible.builtin.include_tasks:
+    file: plugin_borgmatic.yml
+  when:
+    - podman_container_plugin_borgmatic is defined
+    - podman_containers | map(attribute='name') | select('in', podman_container_plugin_borgmatic) | list | length > 0
