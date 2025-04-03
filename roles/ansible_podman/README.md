@@ -23,10 +23,10 @@ Supporting the following roles from the [containers.podman collection](https://g
   - Installing podman secrets
 **2plugins.yml**:
   - Calls all the diffent plugin files, e.g. *plugin_psql.yaml*. This calls another role from MMN that has been modified to work with managing the configuration of a podman container.
-  - For this to work in each podman_containers element you need to set what plugins to use:
+  - For this to work you need to set what plugins shall be run on what container instances, here the psql plugin will be run on the psql0 host.
 ```yaml
-podman_container_plugins:
-  - "psql"
+podman_container_plugin_psql:
+  - "psql0"
 ```
   - For detailed information for each plugin, look into the README of the corresponding role, e.g. `ansible_psqlserver` for the plugin `psql`.
 ```
@@ -42,7 +42,7 @@ podman_containers:
 **main.yml**
   - Creating containers with the *podman_containers* role.
 **2plugins2.yml**
-  - Some pluggins require to run the plugin's role a second time as psql for example expects an empty data dir at first initialization. After the containers has been initialized only then we can place the target configuration files.
+  - Some pluggins require to run the plugin's role a second time as psql for example expects an empty data dir at first initialization. After the containers have been initialized, only then we can place the target configuration files.
 **4post.yml**
 Handling service state for the container. Possible state values for your container element definition:
 - started
@@ -108,5 +108,5 @@ This is supposed to work as a plugin system of sorts. The idea is to not only de
 Supported plugin:
 | Plugin name | Related Ansible role | Description |
 | - | - | - |
-| psql | imp1sh.ansible_managemynetwork.ansible_psqlserver | |
- 
+| psql | [imp1sh.ansible_managemynetwork.ansible_psqlserver](https://github.com/imp1sh/ansible_managemynetwork/tree/main/roles/ansible_psqlserver) | |
+| borgmatic | [imp1sh.ansible_managemynetwork.ansible_borgmatic](https://github.com/imp1sh/ansible_managemynetwork/tree/main/roles/ansible_borgmatic) | | 
