@@ -65,6 +65,7 @@ borgmatic_postgresdbs:
   - name: "all"
     hostname: "psql0"
     username: "postgres"
+    format: "custom" # for seperate restore files, much easier to handle than one big dump file with all databases in it
 ```
 It would be advisable to set the backup target in a group var for your site.
 ```yaml
@@ -149,3 +150,8 @@ borgmatic_apprise_password: !vault |
           6137
 ```
 The roomid might look something like this: zEWDASjFsFzJwNIhN:envs.net"
+
+## Restore
+There are multiple approaches. You could create another container only fore restoring that has a restore target RW mounted. You could as well just mount the /mnt/source RW instead of readonly and then use common borgmatic commands within the container in order to restore. Another options to add a bind mount volume to the existing container and restore into that directory.
+
+For a hint how to define ad dedicated restore container, have a look into the ansible_podman docs. Just don't forget to stop the restore container when finished. Otherwise cron jobs might conflict with the actual backup container.
