@@ -10,6 +10,7 @@ Supporting the following roles from the [containers.podman collection](https://g
 - podman_containers
 - podman_secrets ([WiP](https://github.com/containers/ansible-podman-collections/issues/692))
 - podman network
+- Run not only all containers (default) but set a limited by entering the container name into `podman_limited_containers`
 
 # Worflow
 - Handling all the common podman stuff like:
