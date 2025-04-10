@@ -22,22 +22,19 @@ Supporting the following roles from the [containers.podman collection](https://g
 **main.yml**:
   - Installing podman secrets
 **2plugins.yml**:
-  - Calls all the diffent plugin files, e.g. *plugin_psql.yaml*. This calls another role from MMN that has been modified to work with managing the configuration of a podman container.
-  - For this to work you need to set what plugins shall be run on what container instances, here the psql plugin will be run on the psql0 host.
+  - Meta task that will delegate further to the specific plugin files, e.g. *plugin_psql.yaml*. This calls another role from MMN that has been modified to work with managing the configuration of a podman container.
+  - For this to work you need to set what plugins shall be run on what container instances, here the psql plugin will be run for the psql0 podman container instance.
 ```yaml
 podman_container_plugin_psql:
   - "psql0"
 ```
-  - For detailed information for each plugin, look into the README of the corresponding role, e.g. `ansible_psqlserver` for the plugin `psql`.
-```
+  - For detailed information for each plugin, look into the README of the corresponding role, for instance `ansible_psqlserver` for the plugin `psql`.
+```yaml
 podman_containers:
   - name: psql0 
     plugin: psql
     state: started
-    network: podmannetGUA
-    ip: 10.10.151.74
-    ip6: 2001:67c:fb8:1002::59
-    image: docker.io/postgres:17.4-bookworm
+    [...]
 ```
 **main.yml**
   - Creating containers with the *podman_containers* role.
@@ -106,7 +103,43 @@ podman_networks:
 ## Plugins
 This is supposed to work as a plugin system of sorts. The idea is to not only deploy a working container but also deploy the configuration for that very target application. The idea is to achieve an Infrastructure as Code (IaC) mode for this role.
 Supported plugin:
+
 | Plugin name | Related Ansible role | Description |
 | - | - | - |
 | psql | [imp1sh.ansible_managemynetwork.ansible_psqlserver](https://github.com/imp1sh/ansible_managemynetwork/tree/main/roles/ansible_psqlserver) | |
-| borgmatic | [imp1sh.ansible_managemynetwork.ansible_borgmatic](https://github.com/imp1sh/ansible_managemynetwork/tree/main/roles/ansible_borgmatic) | | 
+| borgmatic | [imp1sh.ansible_managemynetwork.ansible_borgmatic](https://github.com/imp1sh/ansible_managemynetwork/tree/main/roles/ansible_borgmatic) | |
+
+### borgmatic
+Here's a typial `podman_containers` excerpt for how a borgmatic container definition could look like:
+
+```yaml
+podman_containers:
+  - name: borgmatic_cntr-ofden1
+    state: started
+    network: podmannetGUA
+    image: ghcr.io/borgmatic-collective/borgmatic
+    volume:
+      - "/mnt/cntr/unsynced/borgmatic/0/repository/:/mnt/borg-repository/"
+      - "/mnt/cntr/unsynced/borgmatic/0/borgmatic.d/:/etc/borgmatic.d/"
+      - "/mnt/cntr/unsynced/borgmatic/0/config/:/root/.config/borg/"
+      - "/mnt/cntr/unsynced/borgmatic/0/ssh/:/root/.ssh/"
+      - "/mnt/cntr/unsynced/borgmatic/0/root/:/root/.local/state/borgmatic/"
+      - "/mnt/cntr/unsynced/:/mnt/source/:ro"
+    env:
+      TZ: "Europe/Berlin"
+  - name: borgmatic_cntr-ofden1_restore
+    state: stopped
+    network: podmannetGUA
+    image: ghcr.io/borgmatic-collective/borgmatic
+    volume:
+      - "/mnt/cntr/unsynced/borgmatic/0/repository/:/mnt/borg-repository/"
+      - "/mnt/cntr/unsynced/borgmatic/0/borgmatic.d/:/etc/borgmatic.d/"
+      - "/mnt/cntr/unsynced/borgmatic/0/config/:/root/.config/borg/"
+      - "/mnt/cntr/unsynced/borgmatic/0/ssh/:/root/.ssh/"
+      - "/mnt/cntr/unsynced/borgmatic/0/root/:/root/.local/state/borgmatic/"
+      - "/mnt/cntr/unsynced/:/mnt/source/"
+    env:
+      TZ: "Europe/Berlin"
+```
+The restore container is there in standby only in case you would want to restore something.
+Look into the `ansible_borgmatic` role's docs in order to find out about how to set borgmatic variables specific to running in a container.
