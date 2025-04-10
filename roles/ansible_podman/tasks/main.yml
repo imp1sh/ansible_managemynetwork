@@ -27,7 +27,7 @@
 - name: "MMN Podman - Deploy application configuration for supported plugin"
   ansible.builtin.include_tasks:
     file: 2plugins.yml
-  when: ( podman_container_plugin_psql is defined ) or ( podman_container_plugin_borgmatic is defined )
+  when: ( podman_container_plugin_psql is defined ) or ( podman_container_plugin_borgmatic is defined ) or ( podman_container_plugin_pdnsauth is defined )
   # add or condition for additional plugins, I need to list them all here
 
 - name: "MMN Podman - Create containers"

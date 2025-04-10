@@ -109,6 +109,7 @@ Supported plugin:
 | - | - | - |
 | psql | [imp1sh.ansible_managemynetwork.ansible_psqlserver](https://github.com/imp1sh/ansible_managemynetwork/tree/main/roles/ansible_psqlserver) | |
 | borgmatic | [imp1sh.ansible_managemynetwork.ansible_borgmatic](https://github.com/imp1sh/ansible_managemynetwork/tree/main/roles/ansible_borgmatic) | |
+| pdnsauth | [imp1sh.ansible_managemynetwork.ansible_pdnsauth](https://github.com/imp1sh/ansible_managemynetwork/tree/main/roles/ansible_pdnsauth) | |
 
 ### borgmatic
 Here's a typial `podman_containers` excerpt for how a borgmatic container definition could look like:
@@ -146,3 +147,28 @@ podman_containers:
 ```
 The restore container is there in standby only in case you would want to restore something.
 Look into the `ansible_borgmatic` role's docs in order to find out about how to set borgmatic variables specific to running in a container.
+
+### psql
+Here's an example of a postgresql container when when using the psql plugin.
+```
+podman_containers:
+  - name: "psql0"
+    state: started
+    network: podmannetGUA
+    image: docker.io/postgres:17.4-bookworm
+    command: |
+      postgres
+      -c max_connections=500
+    volume:
+      - "/mnt/cntr/unsynced/psql/0/data/:/var/lib/postgresql/data/"
+      - "/mnt/cntr/unsynced/psql/0/init/1_pdns_init.sh:/docker-entrypoint-initdb.d/1_pdns_init.sh"
+      - "/mnt/cntr/unsynced/psql/0/init/2_pdns_47.sql:/docker-entrypoint-initdb.d/2_pdns_47.sql"
+    env:
+      POSTGRES_PASSWORD: !vault |
+          $ANSIBLE_VAULT;1.1;AES256
+          35636565373238333965313735306138326633356365653137323037383962323638656434343531
+          [...]
+          6161
+```
+
+### pdnsauth
