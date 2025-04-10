@@ -15,3 +15,4 @@
   when:
     - podman_container_plugin_psql is defined
     - podman_containers | map(attribute='name') | select('in', podman_container_plugin_psql) | list | length > 0
+

@@ -27,8 +27,7 @@
 - name: "MMN Podman - Deploy application configuration for supported plugin"
   ansible.builtin.include_tasks:
     file: 2plugins.yml
-  when: podman_container_plugin_psql is defined or
-        podman_container_plugin_borgmatic is defined
+  when: ( podman_container_plugin_psql is defined ) or ( podman_container_plugin_borgmatic is defined )
   # add or condition for additional plugins, I need to list them all here
 
 - name: "MMN Podman - Create containers"
@@ -48,3 +47,11 @@
     file: 4post.yml
   when: podman_containers is defined
 
+# BORGMATIC
+- name: "MMN Podman - Calling borgmatic role"
+  ansible.builtin.include_role:
+    name: imp1sh.ansible_managemynetwork.ansible_borgmatic
+    tasks_from: "init_container.yml"
+  when:
+    - podman_container_plugin_borgmatic is defined
+    - podman_containers | map(attribute='name') | intersect(podman_container_plugin_borgmatic) | length > 0
