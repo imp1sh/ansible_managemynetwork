@@ -89,6 +89,7 @@ borgmatic_ssh_manage: False
 
 
 ## Container specific settings
+When running borgmatic in a container you need to run the `ansible_podman` role and enable the borgmatic plugin. The `ansible_podman` role then will also run the `ansible_borgmatic` role and take care of everything.
 ```yaml
 # what is the container name (needed for restarts etc.)
 borgmatic_containername: "borgmatic_cntr-ofden1"
