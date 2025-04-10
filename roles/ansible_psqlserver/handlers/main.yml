@@ -8,3 +8,17 @@
   ansible.builtin.service:
     name: "{{ psqlserver_servicename }}"
     state: reloaded
+- name: restart postgres container
+  ansible.builtin.service:
+    name: "container-{{ psqlserver_instance.key }}"
+    state: restarted
+- name: reload postgres container
+  containers.podman.podman_container_exec:
+    name: "{{ psqlserver_instance.key }}"
+    argv:
+      - "/usr/lib/postgresql/17/bin/pg_ctl"
+      - "reload"
+      - "-D"
+      - "/var/lib/postgresql/data"
+      #command: ["/usr/lib/postgresql/17/bin/pg_ctl", "reload", "-D", "/var/lib/postgresql/data"]
+    user: postgres

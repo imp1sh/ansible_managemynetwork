@@ -4,13 +4,16 @@
     src: "{{ psqlserver_configtemplate }}"
     dest: "{{ psqlserver_instance.value.configpath | default(psqlserver_configpath) }}/{{ psqlserver_instance.value.configname | default(psqlserver_configname) }}"
     mode: 0600
-    owner: "{{ psqlserver_owner }}"
-    group: "{{ psqlserver_group }}"
+    owner: "999"
+    group: "999"
+  notify: restart postgres container
 - name: "MMN psqlserver - make sure pg_hby directories are there"
   ansible.builtin.file:
     state: directory
     path: "{{ item.dest | basename }}"
     mode: '0755'
+    owner: "999"
+    group: "999"
   loop: "{{ psqlserver_instance.value.hba }}"
 - name: "MMN psqlserver - Setup pg_hba"
   community.postgresql.postgresql_pg_hba:
@@ -22,5 +25,7 @@
     databases: "{{ item['databases'] }}"
     method: "{{ item['method'] }}"
     state: "{{ item['state'] }}"
+    owner: "999"
+    group: "999"
   loop: "{{ psqlserver_instance.value.hba }}"
-
+  notify: reload postgres container
