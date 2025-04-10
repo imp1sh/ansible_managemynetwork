@@ -118,6 +118,7 @@ podman_containers:
   - name: borgmatic_cntr-ofden1
     state: started
     network: podmannetGUA
+    hostname: "{{ inventory_hostname }}"
     image: ghcr.io/borgmatic-collective/borgmatic
     volume:
       - "/mnt/cntr/unsynced/borgmatic/0/repository/:/mnt/borg-repository/"
@@ -131,6 +132,7 @@ podman_containers:
   - name: borgmatic_cntr-ofden1_restore
     state: stopped
     network: podmannetGUA
+    hostname: "{{ inventory_hostname }}"
     image: ghcr.io/borgmatic-collective/borgmatic
     volume:
       - "/mnt/cntr/unsynced/borgmatic/0/repository/:/mnt/borg-repository/"
