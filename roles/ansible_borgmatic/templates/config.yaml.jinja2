@@ -153,6 +153,7 @@ keep_monthly: {{ borgmatic_keepmonthly }}
 {% if borgmatic_keepyearly is defined %}
 keep_yearly: {{ borgmatic_keepyearly }}
 {% endif %}
+{################ POSTGRESQL ##################}
 {% if borgmatic_postgresdbs is defined or borgmatic_borgmatic_mysqldbs is defined or borgmatic_borgmatic_hooks_on_error is defined %}
 {% endif %}
 {% if borgmatic_hooks_on_error is defined %}
