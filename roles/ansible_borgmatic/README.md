@@ -93,6 +93,8 @@ When running borgmatic in a container you need to run the `ansible_podman` role 
 ```yaml
 # what is the container name (needed for restarts etc.)
 borgmatic_containername: "borgmatic_cntr-ofden1"
+# Enable containermode so when running this role on a host in containermode won't break thins
+borgmatic_containermode: True
 # the cronfile is to be expected in a specific dir
 borgmatic_cronfile: "/mnt/cntr/unsynced/borgmatic/0/borgmatic.d/crontab.txt"
 borgmatic_cronstate: "present"
