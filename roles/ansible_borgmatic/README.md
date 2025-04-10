@@ -128,16 +128,23 @@ borgmatic_systemd_manage: False
 The container uses cron instead. You can still use the same `borgmatic_timer_*` variables though in order to define execution timers. When you change the cron timer the container will restart in order to adjust to the new settings.
 
 ## Apprise notification
-Since borgmatic 1.8.3 apprise integration has gotten much better so my old method is now deprecated.
-It is a good idea to get notified when something goes wrong during the backup process. That's why there is optional apprise support.
-Set `borgmatic_apprise` to `true` and [apprise](https://github.com/caronc/apprise) will be setup. Apprise is IMHO the best notification wrapper currently. It supports an incredible number of services to get you notified. My Ansible implementation though currently only supports notifications via [Matrix chat](https://matrix.org/). (Pull requests welcome).
-
-For matrix notification via apprise to work you would also want to set those variables
+Since borgmatic 1.8.3 [apprise](https://github.com/caronc/apprise) integration has gotten much better so my old method is now deprecated.
+It is a good idea to get notified when something goes wrong during the backup process.
+Just define a dict var carrying the apprise parameters
+```yaml
+borgmatic_apprise:
+  services:
+    - url: "matrixs://username:{{ borgmatic_apprise_password }}@matrix.example.com/!roomid
+      label: "Matrix"
+      fail:
+        title: "Borgmatic backup fail event"
+        body: "Failed borgmatic backup on host {{ inventory_hostname }}"
+      states:
+        - fail
+borgmatic_apprise_password: !vault |
+          $ANSIBLE_VAULT;1.1;AES256
+          33336534653530626531356330616333343135363831396632303133633430643430636332666531
+          [...]
+          6137
 ```
-tags_allhosts.yml:borgmatic_apprise: true
-tags_allhosts.yml:borgmatic_apprise_user: "notify"
-tags_allhosts.yml:borgmatic_apprise_password: "secretpassword"
-tags_allhosts.yml:borgmatic_apprise_hostname: "matrix.libcom.de"
-tags_allhosts.yml:borgmatic_apprise_matrixroom: "!uRQiJBDsdfjiJHJKHuSDFLY:libcom.de"
-```
-
+The roomid might look something like this: zEWDASjFsFzJwNIhN:envs.net"
