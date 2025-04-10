@@ -1,0 +1,5 @@
+- name: "MMN borgmatic - Init repository"
+  containers.podman.podman_container_exec:
+    name: "{{ borgmatic_containername }}"
+    command: "borgmatic -c /etc/borgmatic.d/{{ borgmatic_fileconfig }} init --encryption repokey"
+  register: borgmatic_init_success

@@ -1,5 +1,9 @@
 ---
 # handlers file for ansible_borgmatic
-- name: Reload systemd
+- name: reload systemd
   ansible.builtin.systemd:
     daemon_reload: yes
+- name: restart borgmatic container
+  ansible.builtin.service:
+    name: "container-{{ borgmatic_containername }}"
+    state: restarted

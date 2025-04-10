@@ -1,9 +1,0 @@
----
-- name: MMN borgmatic - Setup cronjob
-  ansible.builtin.cron:
-    name: "borgmatic"
-      #hour: "{{ borgmatic_cron_hour }}"
-      #minute: "{{ borgmatic_cron_minute }}"
-    user: "root"
-    job: "{{ borgmatic_venv_wrapper }} -c {{ borgmatic_pathconfig }}/{{ borgmatic_fileconfig }} --syslog-verbosity 1"
-    state: absent

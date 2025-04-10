@@ -4,14 +4,14 @@ borgmatic_apprise_via_pip: true
 borgmatic_packageapprisepip: "apprise"
 borgmatic_path_apprise_script: "/usr/local/bin"
 borgmatic_ssh_manage: True
-borgmatic_systemd_hourrange_end: 6
-borgmatic_systemd_hourrange_start: 1
 borgmatic_systemd_manage: True
-borgmatic_systemd_minuterange_end: 59
-borgmatic_systemd_minuterange_start: 1
-borgmatic_systemd_hour: "{{ borgmatic_systemd_hourrange_end | random(start=borgmatic_systemd_hourrange_start, seed=inventory_hostname) }}"
-borgmatic_systemd_minute: "{{ borgmatic_systemd_minuterange_end | random(start=borgmatic_systemd_minuterange_start, seed=inventory_hostname) }}"
 borgmatic_systemd_servicefile: "/etc/systemd/system/borgmatic-backup.service"
+borgmatic_timer_hour: "{{ borgmatic_timer_hourrange_end | random(start=borgmatic_timer_hourrange_start, seed=inventory_hostname) }}"
+borgmatic_timer_hourrange_end: 6
+borgmatic_timer_hourrange_start: 1
+borgmatic_timer_minute: "{{ borgmatic_timer_minuterange_end | random(start=borgmatic_timer_minuterange_start, seed=inventory_hostname) }}"
+borgmatic_timer_minuterange_end: 59
+borgmatic_timer_minuterange_start: 1
 borgmatic_venv_wrapper: "/usr/local/sbin/borgmatic_venv"
 borgmatic_venvdir: "/opt/venv/borgmatic"
 borgmatic_via_pip: true

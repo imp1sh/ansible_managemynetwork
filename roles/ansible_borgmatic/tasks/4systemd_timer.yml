@@ -16,7 +16,7 @@
       [Install]
       WantedBy=multi-user.target
   notify:
-    - Reload systemd
+    - reload systemd
 
 # Create the borgmatic backup systemd timer file
 - name: MMN borgmatic - Create borgmatic backup systemd timer
@@ -27,13 +27,13 @@
       Description=Run Borgmatic Backup
 
       [Timer]
-      OnCalendar={{ borgmatic_systemd_schedule | default("*-*-* " + borgmatic_systemd_hour + ":" + borgmatic_systemd_minute + ":00") }}
+      OnCalendar={{ borgmatic_timer_schedule | default("*-*-* " + borgmatic_timer_hour + ":" + borgmatic_timer_minute + ":00") }}
       Persistent=true
 
       [Install]
       WantedBy=timers.target
   notify:
-    - Reload systemd
+    - reload systemd
 
 # Enable and start the timer
 - name: MMN borgmatic - Enable and start the borgmatic timer

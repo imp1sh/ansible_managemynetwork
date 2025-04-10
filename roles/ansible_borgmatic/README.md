@@ -1,37 +1,59 @@
 # imp1sh.ansible_managemynetwork.ansible_borgmatic
 
-[Source Code on GitHub](https://github.com/imp1sh/ansible_managemynetwork/tree/main/roles/ansible_borgmatic)
-
-This role fully automates the setup process of [borg backup](https://www.borgbackup.org/), using [borgmatic](https://torsion.org/borgmatic/). Borgmatic is a wrapper for borg that makes several tasks much easier, for example backing up MySQL / MariaDB or PostgreSQL databases.
+This role fully automates the setup process of [borg backup](https://www.borgbackup.org/), using [borgmatic](https://torsion.org/borgmatic/). Borgmatic is a wrapper for borg that makes several tasks much easier, for example backing up MySQL / MariaDB or PostgreSQL databases or integrating notifications.
 
 Supported OS:
 - Debian
-- Ubuntu (best effort)
-- FreeBSD (best effort)
+- Container
+- ~~FreeBSD~~ Cannot support it any more
 - ~~Alpine~~ (May work but basically deprecated)
 - ~~Arch~~ (May work but basically deprecated)
 - ~~Fedora~~ (May work but basically deprecated)
 
+> This role supports running on Debian as well as on a a container (tested on podman).
+> For container see also docs of the [imp1sh.ansible_managemynetwork.ansible_podman](https://github.com/imp1sh/ansible_managemynetwork/tree/main/roles/ansible_openwrtpodman) role.
+> If running on normal OS this role installs borg / borgmatic via pip. The command will be `borgmatic_venv`. This is the recommended way to use pip. If you don't want to use pip set `borgmatic_via_pip: false` and `apprise_via_pip: false` as well.
 
-> This role used to install borg / borgmatic via pip which is deprecated. You might try this method but generally speaking you should set `borgmatic_via_pip: false` and `apprise_via_pip: false`
-{.is-warning}
-
-Requirements:
+Requirements  (mandatory):
 - [imp1sh.ansible_managemynetwork.ansible_packages](https://wiki.junicast.de/en/junicast/docs/AnsibleManagemynetworkCollection/rolePackages)
-- [imp1sh.ansible_managemynetwork.ansible_apprise](https://wiki.junicast.de/en/junicast/docs/AnsibleManagemynetworkCollection/roleApprise) (optional)
+Recommendations (optional):
+- [imp1sh.ansible_managemynetwork.ansible_apprise](https://wiki.junicast.de/en/junicast/docs/AnsibleManagemynetworkCollection/roleApprise)
 
-When using **ssh** as backend this role will also handles the necessary key based tasks, so Ansible needs access to the backup target machine.
+When using **ssh** as backend this role can also handle the necessary key based tasks, so Ansible needs access to the backup target machine as well.
 
-## SSH target
-Here is a sample config. This is from group_vars/all.yml so every host has the same config. 
+## Configuration
+Here is a sample config for a case using SSH based authentication.
 
 ```yaml
-borgmatic_compression: "zstd"
+# better encrypt your passphrase!
+borgmatic_encpassphrase: !vault |
+          $ANSIBLE_VAULT;1.1;AES256
+          62373162376264353131353664303738303866346532303966616261336366306461653234363164
+          [...]
+          61373138303266333139
+
+borgmatic_compression: "zstd" # zstd more efficient but slightly slower than default lzo
+
+# Source directories, what to backup.
+borgmatic_srcdirs:
+  - "/mnt/source"
+
+# Then again you might want to exlude stuff again
+borgmatic_excludepatterns:
+  - "/mnt/source/elasticsearch/1/index"
+  - "/mnt/source/loki/rx1/data/chunks"
+  - "/mnt/source/prometheus/libcom/data"
+  - "/mnt/source/kiwix/0/data"
+
+# How long you wanto to keep your backup (retention)
 borgmatic_keepdaily: 9
 borgmatic_keepweekly: 2
 borgmatic_keepmonthly: 2
-borgmatic_systemd_hourrange_start: 2
-borgmatic_systemd_hourrange_end: 4
+# The range in which between is randomized you can define
+borgmatic_timer_hourrange_start: 2
+borgmatic_timer_hourrange_end: 4
+
+# apprise integration is being overhauled currently
 borgmatic_apprise: true
 borgmatic_apprise_user: "notify"
 borgmatic_apprise_password: "secret"
@@ -39,10 +61,12 @@ borgmatic_apprise_hostname: "matrix.libcom.de"
 borgmatic_apprise_matrixroom: "!uRjlIhFDS39DSRztLY:libcom.de"
 borgmatic_hooks_on_error:
   - "/usr/local/bin/apprise_borgmatic.sh \"{configuration_filename}\" \"{repository}\" \"{error}\""
-```
-You an then set the encryption passphrase individually per host like this:
-```yaml
-borgmatic_encpassphrase: "yoursupersecurepassphrase"
+
+# you can also include databases, e.g. postgresql
+borgmatic_postgresdbs:
+  - name: "all"
+    hostname: "psql0"
+    username: "postgres"
 ```
 It would be advisable to set the backup target in a group var for your site.
 ```yaml
@@ -60,31 +84,51 @@ borgmatic_repositories:
     subdir: somedir
     enabled: false
 ```
-If you don't want to manage the ssh key port maybe because you just cannot integrate the backup target machine into Ansible, set
+If you don't want to manage the ssh keys maybe because you just lack control over backup target machine, set
 ```yaml
 borgmatic_ssh_manage: False
 ```
 
-## Schedule
-Backups are scheduled via systemd timer. By default the time when it will run will be daily randomized between 1 and 6 in the morning. You can override the time directly
+
+## Container specific settings
 ```yaml
-borgmatic_systemd_hour: 1
-borgmatic_systemd_minute: 3
+# what is the container name (needed for restarts etc.)
+borgmatic_containername: "borgmatic_cntr-ofden1"
+# the cronfile is to be expected in a specific dir
+borgmatic_cronfile: "/mnt/cntr/unsynced/borgmatic/0/borgmatic.d/crontab.txt"
+borgmatic_cronstate: "present"
+# here the ssh keys and stuff are in
+borgmatic_sshdir: "/mnt/cntr/unsynced/borgmatic/0/ssh/"
+# config directory, also cron file normaly is put here
+borgmatic_confdir: "/mnt/cntr/unsynced/borgmatic/0/borgmatic.d/"
+```
+
+
+## Schedule (non Container)
+Backups are scheduled via systemd timer by default. The time when it will run will be daily randomized between 1 and 6 in the morning. You can override the time directly. It's recommended to define static values, otherwise each ansible run new timers will be randomized which might be unwanted.
+```yaml
+borgmatic_timer_hour: 1
+borgmatic_timer_minute: 3
 ```
 or define another range within which the time will be randomized
 ```yaml
-borgmatic_systemd_hourrange_start: 1
-borgmatic_systemd_hourrange_end: 6
-borgmatic_systemd_minuterange_start: 1
-borgmatic_systemd_minuterange_end: 59
+borgmatic_timer_hourrange_start: 1
+borgmatic_tiimer_hourrange_end: 6
+borgmatic_tiimer_minuterange_start: 1
+borgmatic_tiimer_minuterange_end: 59
 ```
-You can also define the OnCalender value directly by setting the var `borgmatic_systemd_schedule`. [Look Arch wiki](https://wiki.archlinux.org/title/Systemd/Timers#Realtime_timer) for more information on the format.
+You can also define the OnCalender value directly by setting the var `borgmatic_timer_schedule`. [Look Arch wiki](https://wiki.archlinux.org/title/Systemd/Timers#Realtime_timer) for more information on the format.
 If you don't want to have the systemd job managed via the role, set
 ```yaml
 borgmatic_systemd_manage: False
 ```
 
+## Schedule (Container)
+
+The container uses cron instead. You can still use the same `borgmatic_timer_*` variables though in order to define execution timers. When you change the cron timer the container will restart in order to adjust to the new settings.
+
 ## Apprise notification
+Since borgmatic 1.8.3 apprise integration has gotten much better so my old method is now deprecated.
 It is a good idea to get notified when something goes wrong during the backup process. That's why there is optional apprise support.
 Set `borgmatic_apprise` to `true` and [apprise](https://github.com/caronc/apprise) will be setup. Apprise is IMHO the best notification wrapper currently. It supports an incredible number of services to get you notified. My Ansible implementation though currently only supports notifications via [Matrix chat](https://matrix.org/). (Pull requests welcome).
 

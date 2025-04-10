@@ -1,0 +1,19 @@
+---
+- name: "MMN borgmatic - SSH tasks"
+  when: targetrepo.value['type'] == "ssh://"
+  block:
+    - name: "MMN borgmatic - Provide root user's public key to destination machine"
+      ansible.posix.authorized_key:
+        user: "{{ targetrepo.value['targetuser'] }}"
+        state: present
+        key: "{{ sshkey['public_key'] }}"
+      delegate_to: "{{ targetrepo.value['targethost'] }}"
+    - name: "MMN borgmatic - Register remote host key"
+      command: "ssh-keyscan -tssh-ed25519 {{ targetrepo.value['targethost'] }}"
+      register: hostkey
+    - name: "MMN borgmatic - Install target hosts fingerprint to known hosts"
+      ansible.builtin.known_hosts:
+        path: "{{ borgmatic_sshdir }}known_hosts"
+        key: "{{ hostkey.stdout }}"
+        name: "{{ targetrepo.value['targethost'] }}"
+        state: present

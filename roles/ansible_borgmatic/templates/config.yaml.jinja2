@@ -1,31 +1,134 @@
+{################ CONSTANTS ##################}
+{% if borgmatic_constants is defined %}
+constants:
+{% for key, value in borgmatic_constants.items() %}
+  {{ key }}: {{ value }}
+{% endfor %}
+{% endif %}
+{################ SOURCE DIRECTORIES ##################}
 source_directories:
 {% for directory in borgmatic_srcdirs | default(borgmatic_default_srcdirs) %}
   - {{ directory }}
 {% endfor %}
-
+{################ REPOSITORIES ##################}
 repositories:
 {% for key, value in borgmatic_repositories.items() %}
 {% if value['enabled'] %}
   - path: "{{ value['type'] | default('')}}{{ value['targetuser'] }}@{{ value['targethost'] }}/{% if value['subdir'] is defined %}./{{ value['subdir'] }}/{% endif %}{{ inventory_hostname }}"
-    label: "{{ key }}"
+    label: "{{ value['label'] | default(key) }}"
+{% if value['encryption'] is defined %}
+    encryption: {{ value['encryption'] }}
+{% endif %}
+{% if value['append_only'] is defined %}
+    append_only: {{ value['append_only'] }}
+{% endif %}
+{% if value['storage_quota'] is defined %}
+    storage_quota: {{ value['storage_quota'] }}
+{% endif %}
+{% if value['make_parent_directories'] is defined %}
+    make_parent_directories: {{ value['make_parent_directories'] }}
+{% endif %}
 {% endif %}
 {% endfor %}
-
+{################ OTHER STUFF ##################}
+{% if borgmatic_working_directory is defined %}
+    working_directory: {{ borgmatic_working_directory }}
+{% endif %}
+{% if borgmatic_one_file_system is defined %}
+    one_file_system: {{ borgmatic_one_file_system }}
+{% endif %}
+{% if borgmatic_numeric_ids is defined %}
+    numeric_ids: {{ borgmatic_numeric_ids }}
+{% endif %}
+{% if borgmatic_atime is defined %}
+    atime: {{ borgmatic_atime }}
+{% endif %}
+{% if borgmatic_ctime is defined %}
+    ctime: {{ borgmatic_ctime }}
+{% endif %}
+{% if borgmatic_birthtime is defined %}
+    birthtime: {{ borgmatic_birthtime }}
+{% endif %}
+{% if borgmatic_read_special is defined %}
+    read_special: {{ borgmatic_read_special }}
+{% endif %}
+{% if borgmatic_flags is defined %}
+    flags: {{ borgmatic_flags }}
+{% endif %}
+{% if borgmatic_files_cache is defined %}
+    files_cache: {{ borgmatic_files_cache }}
+{% endif %}
+{% if borgmatic_local_path is defined %}
+    local_path: {{ borgmatic_local_path }}
+{% endif %}
+{% if borgmatic_remote_path is defined %}
+    remote_path: {{ borgmatic_remote_path }}
+{% endif %}
+{################ PATTERNS ##################}
+{% if borgmatic_patterns is defined %}
+patterns:
+{% for pattern in borgmatic_patterns %}
+  - {{ pattern }}
+{% endfor %}
+{% endif %}
+{% if borgmatic_patterns_from is defined %}
+patterns_from:
+{% for patternfrom in borgmatic_patterns_from %}
+  - {{ patternfrom }}
+{% endfor %}
+{% endif %}
 {% if borgmatic_excludepatterns is defined %}
 exclude_patterns:
 {% for excludepattern in borgmatic_excludepatterns %}
   - "{{ excludepattern }}"
 {% endfor %}
 {% endif %}
-
+{% if borgmatic_exclude_from is defined %}
+exclude_from:
+{% for excludefrom in borgmatic_exclude_from %}
+  - {{ excludefrom }}
+{% endfor %}
+{% endif %}
+{################ OTHER STUFF ##################}
+{% if borgmatic_exclude_caches is defined %}
+    exclude_caches: {{ borgmatic_exclude_caches }}
+{% endif %}
+{% if borgmatic_exclude_if_present is defined %}
+exclude_if_present:
+{% for excludeifpresent in borgmatic_exclude_if_present %}
+  - {{ excludeifpresent }}
+{% endfor %}
+{% endif %}
+{% if borgmatic_keep_exclude_tags is defined %}
+    keep_exclude_tags: {{ borgmatic_keep_exclude_tags }}
+{% endif %}
+{% if borgmatic_exclude_nodump is defined %}
+    exclude_nodump: {{ borgmatic_exclude_nodump }}
+{% endif %}
+{% if borgmatic_source_directory is defined %}
+    source_directory: {{ borgmatic_borgmatic_source_directory }}
+{% endif %}
+{% if borgmatic_user_runtime_directory is defined %}
+    user_runtime_directory: {{ borgmatic_user_runtime_directory }}
+{% endif %}
+{% if borgmatic_user_state_directory is defined %}
+    user_state_directory: {{ borgmatic_user_state_directory }}
+{% endif %}
+{% if borgmatic_source_directories_must_exist is defined %}
+    source_directories_must_exist: {{ borgmatic_source_directories_must_exist }}
+{% endif %}
+{% if borgmatic_encryption_passcommand is defined %}
+    encryption_passcommand: {{ borgmatic_encryption_passcommand }}
+{% endif %}
 {% if borgmatic_encpassphrase is defined %}
 encryption_passphrase: "{{ borgmatic_encpassphrase }}"
+{% elif borgmatic_encpassphrase_global is defined %}
+encryption_passphrase: "{{ borgmatic_encpassphrase_global }}"
 {% endif %}
 {% if borgmatic_sshcommand is defined %}
 ssh_command: {{ borgmatic_sshcommand }}
 {% endif %}
 compression: {{ borgmatic_compression | default('lz4', true) }}
-
 {% if borgmatic_keepwithin is defined %}
 keep_within: {{ borgmatic_keepwithin }}
 {% endif %}
@@ -38,7 +141,9 @@ keep_minutely: {{ borgmatic_keepminutely }}
 {% if borgmatic_keephourly is defined %}
 keep_hourly: {{ borgmatic_keephourly }}
 {% endif %}
+{% if borgmatic_keepdaily is defined %}
 keep_daily: {{ borgmatic_keepdaily | default('7', true) }}
+{% endif %}
 {% if borgmatic_keepweekly is defined %}
 keep_weekly: {{ borgmatic_keepweekly }}
 {% endif %}
@@ -48,8 +153,7 @@ keep_monthly: {{ borgmatic_keepmonthly }}
 {% if borgmatic_keepyearly is defined %}
 keep_yearly: {{ borgmatic_keepyearly }}
 {% endif %}
-
-{% if borgmatic_postgresdbs is defined or borgmatic_mysqldbs is defined or borgmatic_hooks_on_error is defined %}
+{% if borgmatic_postgresdbs is defined or borgmatic_borgmatic_mysqldbs is defined or borgmatic_borgmatic_hooks_on_error is defined %}
 {% endif %}
 {% if borgmatic_hooks_on_error is defined %}
 on_error:
@@ -107,4 +211,38 @@ mysql_databases:
     hostname: {{ mysqldb['hostname'] }}
 {% endif %}
 {% endfor %}
+{% endif %}
+{################ OTHER STUFF ##################}
+{% if borgmatic_apprise is defined %}
+apprise:
+{% if borgmatic_apprise.services is defined %}
+  services:
+{% for service in borgmatic_apprise.services %}
+    - url: "{{ service.url }}"
+{% if service.label is defined %}
+      label: "{{ service.label }}"
+{% endif %}
+{% if service.start is defined %}
+  start:
+    title: {{ service.start.title }}
+    body: {{ service.start.body }}
+{% endif %}
+{% if service.finish is defined %}
+  finish:
+    title: {{ service.finish.title }}
+    body: {{ service.finish.body }}
+{% endif %}
+{% if service.fail is defined %}
+  fail:
+    title: {{ service.fail.title }}
+    body: {{ service.fail.body }}
+{% endif %}
+{% if service.states is defined %}
+  states:
+{% for state in service.states %}
+    - {{ state }}
+{% endfor %}
+{% endif %}
+{% endfor %}
+{% endif %}
 {% endif %}

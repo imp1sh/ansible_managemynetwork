@@ -44,12 +44,6 @@
         name: "{{ borgmatic_packageapprisepip  }}"
         virtualenv: "{{ borgmatic_venvdir }}"
       when: borgmatic_apprise_via_pip
-    - name: MMN borgmatic - Install borgmatic template (optional)
-      ansible.builtin.template:
-        src: apprise_borgmatic.sh.jinja2
-        dest: "{{ borgmatic_path_apprise_script }}/apprise_borgmatic.sh"
-        mode: 0750
-        owner: root
   when: borgmatic_apprise
 # Wrapper script
 - name: MMN borgmatic - Deploy wrapper script to use venv

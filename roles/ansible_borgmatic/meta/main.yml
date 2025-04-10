@@ -2,7 +2,7 @@
 galaxy_info:
   role_name: ansible_borgmatic
   author: Jochen Demmer
-  description: Configures borg backup using borgmatic wrapper
+  description: Configures borg backup using borgmatic wrapper (also works in container mode.
   company: libcom.de
   issue_tracker_url: https://github.com/imp1sh/ansible_managemynetwork/issues
   license: BSD-3-Clause
@@ -12,5 +12,5 @@ galaxy_info:
       versions:
         - "bookworm"
         - "bullseye"
-  galaxy_tags: [borg, borgmatic, backup, restore]
+  galaxy_tags: [borg, borgmatic, backup, restore, apprise, database]
 dependencies: []
