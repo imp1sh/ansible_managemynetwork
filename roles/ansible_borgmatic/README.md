@@ -16,8 +16,6 @@ Supported OS:
 
 Requirements  (mandatory):
 - [imp1sh.ansible_managemynetwork.ansible_packages](https://wiki.junicast.de/en/junicast/docs/AnsibleManagemynetworkCollection/rolePackages)
-Recommendations (optional):
-- [imp1sh.ansible_managemynetwork.ansible_apprise](https://wiki.junicast.de/en/junicast/docs/AnsibleManagemynetworkCollection/roleApprise)
 
 When using **ssh** as backend this role can also handle the necessary key based tasks, so Ansible needs access to the backup target machine as well.
 
