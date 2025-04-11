@@ -7,16 +7,64 @@
 - name: "MMN psqlserver - Prepare init script path"
   ansible.builtin.file:
     state: directory
-    path: "{{ initscript.targetpath }}"
+      #path: "{{ initscript.targetpath }}"
+    path: "{{ psqlserver_instance.value.templatespath_destination }}"
     mode: '0755'
-  loop: "{{ psqlserver_instance.value.initscripts }}"
-  loop_control:
-    loop_var: "initscript"
-- name: "MMN psqlserver - Place init scripts and sql files"
-  ansible.builtin.copy:
-    dest: "{{ initscript.targetpath }}/{{ initscript.name }}"
-    content: "{{ initscript.content }}"
-    mode: '0755'
-  loop: "{{ psqlserver_instance.value.initscripts }}"
-  loop_control:
-    loop_var: "initscript"
+
+# INIT SCRIPTS AND SQL FILES 
+# FOLDERCHECKS
+- name: "MMN psqlserver - Init files deployment"
+  when: 
+    - psqlserver_instance.value.templatespath_source is defined
+    - psqlserver_instance.value.templatespath_destination is defined
+  block:
+    - name: "MMN psqlserver - Check if template SOURCE directory exists (on control node)"
+      delegate_to: localhost
+      become: false
+      run_once: true
+      stat:
+        path: "{{ psqlserver_instance.value.templatespath_source }}"
+      register: stat_templatespath_source
+    - name: "MMN psqlserver - Check if template TARGET directory exists (on target node)"
+      run_once: true
+      stat:
+        path: "{{ psqlserver_instance.value.templatespath_destination }}"
+      register: stat_templatespath_destination
+    # SHELL SCRIPTS
+    - name: "MMN psqlserver - Place init script files"
+      ansible.builtin.template:
+        src: "{{ item }}"
+        dest: "{{ psqlserver_instance.value.templatespath_destination }}/{{ item | basename | regex_replace('\\.j2$', '') }}"
+      with_fileglob:
+        - "{{ psqlserver_instance.value.templatespath_source }}/*.sh.j2"
+      when:
+        - ( stat_templatespath_source.stat.exists is defined ) and ( stat_templatespath_source.stat.exists )
+        - ( stat_templatespath_destination.stat.exists is defined ) and ( stat_templatespath_destination.stat.exists )
+    # SQL FILES
+    - name: "MMN psqlserver - Place sql files"
+      ansible.builtin.template:
+        src: "{{ item }}"
+        dest: "{{ psqlserver_instance.value.templatespath_destination }}/{{ item | basename | regex_replace('\\.j2$', '') }}"
+      with_fileglob:
+        - "{{ psqlserver_instance.value.templatespath_source }}/*.sql.j2"
+      when:
+        - ( stat_templatespath_source.stat.exists is defined ) and ( stat_templatespath_source.stat.exists )
+        - ( stat_templatespath_destination.stat.exists is defined ) and ( stat_templatespath_destination.stat.exists )
+    # SQL.GZ FILES
+    - name: "MMN psqlserver - Place sql.gz files"
+      ansible.builtin.copy:
+        src: "{{ item }}"
+        dest: "{{ psqlserver_instance.value.templatespath_destination }}/{{ item | basename }}"
+      with_fileglob:
+        - "{{ psqlserver_instance.value.templatespath_source }}/*.sql.gz"
+      when:
+        - ( stat_templatespath_source.stat.exists is defined ) and ( stat_templatespath_source.stat.exists )
+        - ( stat_templatespath_destination.stat.exists is defined ) and ( stat_templatespath_destination.stat.exists )
+      #- name: "MMN psqlserver - Place init scripts and sql files"
+      #  ansible.builtin.copy:
+      #    dest: "{{ initscript.targetpath }}/{{ initscript.name }}"
+      #    content: "{{ initscript.content | template }}"
+      #    mode: '0755'
+      #  loop: "{{ psqlserver_instance.value.initscripts }}"
+      #  loop_control:
+      #    loop_var: "initscript"
