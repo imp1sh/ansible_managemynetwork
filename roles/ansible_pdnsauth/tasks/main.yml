@@ -1,48 +1,65 @@
 ---
-- name: Install Powerdns packages
-  ansible.builtin.include_role:
-    name: imp1sh.ansible_managemynetwork.ansible_packages
-  vars:
-    packages_installrole:
-      - 'pdns-server'
-      - 'pdns-tools'
-      - 'pdns-backend-pgsql'
-      - 'postgresql'
-      - 'postgresql-client'
-- name: Deploy pdns config file
-  ansible.builtin.template:
-    src: pdns.conf.j2
-    dest: /etc/powerdns/pdns.conf
-    owner: "{{ pdnssetuid }}"
-    group: "{{ pdnssetgid }}"
-    mode: 0640
-    backup: true
-  notify: restart powerdns
-# Move all the pdns tasks to the pdns role
-# and call it from here!!!!!
-# - name: create pdns db
-#  command: "psql -c 'CREATE DATABASE pdns;'
-#  become: yes
-#  become_user: postgres
-- name: Enable PostgreSQL Service
-  ansible.builtin.service:
-    name: postgresql
-    enabled: true
-    state: started
-- name: Enable pdns Service
-  ansible.builtin.service:
-    name: pdns
-    enabled: true
-- name: create pgsql backup directory in /opt/pg_dump
-  ansible.builtin.file:
-    path: /opt/pg_dump
-    state: directory
-    owner: postgres
-    group: root
-    mode: '0770'
-- name: Setup pgsql cron job runbackup
-  ansible.builtin.cron:
-    name: runbackup
-    minute: 0
-    hour: 0
-    job: sudo -u postgres /usr/bin/pg_dump pdns > /opt/pg_dump/pdns_backup.sql
+- name: "MMN pdnsauth - non Container tasks"
+  when:
+    - (pdns_containermode is not defined) or ( pdns_containermode is defined and not pdns_containermode )
+  block:
+    - name: "MMN pdnsauth - include OS vars"
+      include_vars: "{{ ansible_distribution }}.yml"
+    - name: Install Powerdns packages
+      ansible.builtin.include_role:
+        name: imp1sh.ansible_managemynetwork.ansible_packages
+      vars:
+        packages_installrole:
+          - 'pdns-server'
+          - 'pdns-tools'
+          - 'pdns-backend-pgsql'
+          - 'postgresql'
+          - 'postgresql-client'
+    - name: "MMN pdnsauth - Enable PostgreSQL Service"
+      ansible.builtin.service:
+        name: postgresql
+        enabled: true
+        state: started
+    - name: "MMN pdnsauth - Deploy pdns config file"
+      ansible.builtin.template:
+        src: pdns.conf.j2
+        dest: "{{ pdns_path_config }}{{ pdns_filename_config }}"
+        owner: "{{ pdnssetuid }}"
+        group: "{{ pdnssetgid }}"
+        mode: 0640
+        backup: true
+      notify: restart powerdns
+    - name: "MMN pdnsauth - Enable pdns Service"
+      ansible.builtin.service:
+        name: pdns
+        enabled: true
+    - name: "MMN pdnsauth - Create pgsql backup directory in /opt/pg_dump"
+      ansible.builtin.file:
+        path: /opt/pg_dump
+        state: directory
+        owner: postgres
+        group: root
+        mode: '0770'
+    - name: "MMN pdnsauth - Setup pgsql cron job runbackup"
+      ansible.builtin.cron:
+        name: runbackup
+        minute: 0
+        hour: 0
+        job: sudo -u postgres /usr/bin/pg_dump pdns > /opt/pg_dump/pdns_backup.sql
+
+- name: "MMN pdnsauth - Container tasks"
+  when:
+    - pdns_containermode is defined
+    - pdns_containermode
+  block: 
+    - name: "MMN pdnsauth - include Container vars"
+      include_vars: "Container.yml"
+    - name: MMN pdnsauth - Deploy pdns config file
+      ansible.builtin.template:
+        src: pdns.conf.j2
+        dest: "{{ pdns_path_config }}/{{ pdns_filename_config }}"
+        owner: "953"
+        group: "953"
+        mode: 0640
+        backup: true
+      notify: restart powerdns container

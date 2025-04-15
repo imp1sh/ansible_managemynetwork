@@ -77,6 +77,7 @@
       - 'CA:TRUE'
   register: cacert_ca_csr
   delegate_to: localhost
+  changed_when: false
 
 - name: "MMN cacert - Create CA cert from CA CSR"
   community.crypto.x509_certificate_pipe:

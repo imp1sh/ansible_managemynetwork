@@ -1,2 +1,4 @@
 ---
 pdns_psql_schemafile: "/usr/share/pdns-backend-pgsql/schema/schema.pgsql.sql"
+pdns_path_config: "/etc/powerdns/"
+pdns_filename_config: "pdns.conf"

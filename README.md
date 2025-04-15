@@ -40,6 +40,7 @@ Some roles support Debian and OpenWrt at the same time.
 > All other roles will be removed or lifted to the same quality standard in the future.
 > Until that point is not reached released version will stay below 1.x.
 
+## General roles
 
   - [:leftwards_arrow_with_hook: imp1sh.ansible_managemynetwork.ansible_borgmatic](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_borgmatic/README.md)
   - [:leftwards_arrow_with_hook: imp1sh.ansible_managemynetwork.ansible_chrony](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_chrony/README.md)
@@ -51,6 +52,7 @@ Some roles support Debian and OpenWrt at the same time.
   - [:leftwards_arrow_with_hook: imp1sh.ansible_managemynetwork.ansible_nsupdate_bash](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_nsupdate_bash/README.md)
   - [:leftwards_arrow_with_hook: imp1sh.ansible_managemynetwork.ansible_ohmyzsh](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_ohmyzsh/README.md)
   - [:leftwards_arrow_with_hook: imp1sh.ansible_managemynetwork.ansible_packages](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_packages/README.md)
+  - [:leftwards_arrow_with_hook: imp1sh.ansible_managemynetwork.ansible_podman](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_podman/README.md)
   - [:leftwards_arrow_with_hook: imp1sh.ansible_managemynetwork.ansible_qemuagent](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_qemuagent/README.md)
   - [:leftwards_arrow_with_hook: imp1sh.ansible_managemynetwork.ansible_restic](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_restic/README.md)
   - [:leftwards_arrow_with_hook: imp1sh.ansible_managemynetwork.ansible_sshkeys](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_sshkeys/README.md)
@@ -58,6 +60,7 @@ Some roles support Debian and OpenWrt at the same time.
   - [:leftwards_arrow_with_hook: imp1sh.ansible_managemynetwork.ansible_users](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_users/README.md)
   - [:leftwards_arrow_with_hook: imp1sh.ansible_managemynetwork.ansible_zabbixagent](https://github.com/imp1sh/ansible_managemynetwork/tree/main/roles/ansible_zabbixagent)
 
+## OpenWrt specific roles
   - [:leftwards_arrow_with_hook: imp1sh.ansible_managemynetwork.ansible_openwrtacme](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_openwrtacme/README.md)
   - [:leftwards_arrow_with_hook: imp1sh.ansible_managemynetwork.ansible_openwrtbabeld](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_openwrtbabeld/README.md)
   - [:leftwards_arrow_with_hook: imp1sh.ansible_managemynetwork.ansible_openwrtdhcp](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_openwrtdhcp/README.md)
@@ -79,11 +82,9 @@ Some roles support Debian and OpenWrt at the same time.
   - [:leftwards_arrow_with_hook: imp1sh.ansible_managemynetwork.ansible_openwrtwireless](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_openwrtwireless/README.md)
 
 
-# OpenWrt specific roles
-
 The roles starting with *ansible_openwrt\** are OpenWrt specific. The goal is to be able to manage every aspect of OpenWrt centrally with Ansible.
 
-## Advantages of imp1sh OpenWrt roles
+### Advantages of imp1sh OpenWrt roles
 
 The roles contained in this collection are pretty powerful. There are even some options that are not accessible through the LUCI Webinterface. In contrast to using LUCI, multiple OpenWrt devices can be managed with Ansible centrally. With it you are able to deploy settings individually, on a group basis or even for every device in your environment.
 
@@ -93,7 +94,7 @@ It is targeted towards Service Providers, Hosters or Cloud Providers but it's al
 Use Ansible properties to your needs, e.g. defining variables once and use them often. This simplifies management fundamentally.
 At the same time you can access the expandibility and flexibility of OpenWrt and its packages.
 
-## Hardware requirements OpenWrt device
+### Hardware requirements OpenWrt device
 
 The openwrt roles in this collection us **python** which is not installed on stock OpenWrt. You will need quite a lot of storage so you can install it. Those are the minimum device properties.
 
@@ -226,3 +227,14 @@ Variable names are constructed by using the role name which is at the same time 
 |imp1sh.ansible_managemynetwork.ansible_**restic** | `openwrt_restic_*` |
 |imp1sh.ansible_managemynetwork.ansible_openwrt**dhcp** |`openwrt_dhcp_*` |
 |imp1sh.ansible_managemynetwork.ansible_openwrt**acme** | `openwrt_acme_*` |
+
+## Development / Contribution Conventions
+- Ansible task names start with `MMN <<rolename>> - Text that describes the task brief but sufficient`
+- Ansible task descriptions start with Capital letter
+- Maintain meta information for role
+- Maintain README.md for every role
+- Seperation of Duty. Every role works in their scope and in their scope only. Diverge only if no other way possible
+- Test your stuff. Don't only look at main case but at least most pressing corner cases
+- Use consistent variable names and put them in roles namespace like start the var name with e.g. `psql_` for postgresql role.
+- Only be opinionated when your opinion is strong and validated. Don't do opinionated due to lazyness
+- Make your role so that it can esily be fitted for additional OSes. Best practice is to have OS dependant vars and load them automatically. This way you can adjust to different package or folder names more easily.

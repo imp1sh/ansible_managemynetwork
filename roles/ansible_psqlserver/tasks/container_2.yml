@@ -1,4 +1,11 @@
 ---
+- name: "MMN psqlserver - Wait for psqlserver to become reachable"
+  ansible.builtin.wait_for:
+    host: "{{ inventory_hostname }}"
+    port: 5432
+    delay: 5         # Wait 5 seconds before starting
+    timeout: 60      # Try for up to 60 seconds
+    state: started   # Wait for the port to be open
 - name: "MMN psqlserver - Provide postgres config for container"
   ansible.builtin.template:
     src: "{{ psqlserver_configtemplate }}"
@@ -15,6 +22,7 @@
     owner: "999"
     group: "999"
   loop: "{{ psqlserver_instance.value.hba }}"
+  when: psqlserver_instance.value.hba is defined
 - name: "MMN psqlserver - Setup pg_hba"
   community.postgresql.postgresql_pg_hba:
     dest: "{{ item['dest']}}"
@@ -28,4 +36,5 @@
     owner: "999"
     group: "999"
   loop: "{{ psqlserver_instance.value.hba }}"
+  when: psqlserver_instance.value.hba is defined
   notify: reload postgres container

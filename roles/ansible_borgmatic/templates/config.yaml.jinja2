@@ -213,7 +213,7 @@ mysql_databases:
 {% endif %}
 {% endfor %}
 {% endif %}
-{################ OTHER STUFF ##################}
+{################ APPRISE NOTIFICATIONS ##################}
 {% if borgmatic_apprise is defined %}
 apprise:
 {% if borgmatic_apprise.services is defined %}
@@ -246,4 +246,16 @@ apprise:
 {% endif %}
 {% endfor %}
 {% endif %}
+{% endif %}
+{################ LOKI LOGS ##################}
+{% if borgmatic_loki is defined %}
+loki:
+{% for instance in borgmatic_loki %}
+  url: {{ instance.url }}
+{% if instance.labels is defined %}
+  labels:
+    app: {{ instance.labels.app }}
+    hostname: {{ instance.labels.hostname }}
+{% endif %}
+{% endfor %}
 {% endif %}

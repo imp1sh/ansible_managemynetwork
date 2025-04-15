@@ -3,3 +3,19 @@
   ansible.builtin.service:
     name: pdns
     state: restarted
+
+- name: restart powerdns container
+  ansible.builtin.service:
+    name: "container-{{ pdns_containername }}"
+    state: restarted
+
+- name: reload powerdns container
+  ansible.builtin.service:
+    name: "container-{{ pdns_containername }}"
+    state: reloaded
+
+- name: reload powerdns container
+  containers.podman.podman_container:
+    name: "{{ pdns_containername }}"
+    signal: HUP
+    state: started

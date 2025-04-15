@@ -16,7 +16,7 @@
   become: True
   community.crypto.openssl_privatekey:
     path: "{{ cacert_path_server_key }}"
-    passphrase: "{{ cacert_servercert_passphrase }}"
+    passphrase: "{{ cacert_servercert_passphrase|default(omit) }}"
     size: 4096
     mode: 0600
 
@@ -24,7 +24,7 @@
   become: True
   community.crypto.openssl_csr_pipe:
     privatekey_path: "{{ cacert_path_server_key }}"
-    privatekey_passphrase: "{{ cacert_servercert_passphrase }}"
+    privatekey_passphrase: "{{ cacert_servercert_passphrase | default(omit) }}"
     common_name: "{{ cacert_servercert_common_name | default(inventory_hostname) }}"
     organization_name: "{{ cacert_servercert_organization_name | default(omit) }}"
     organizational_unit_name: "{{ cacert_servercert_organizational_unit_name | default(omit) }}"
@@ -36,6 +36,7 @@
       {{ (cacert_servercert_altnames | map(attribute='prefix') | zip(cacert_servercert_altnames | map(attribute='name')) | map('join', ':') | list)
          if cacert_servercert_altnames is defined else omit }}
   register: csr_server
+  changed_when: false
 
 - name: "MMN cacert - Check if cert exists"
   ansible.builtin.stat:
@@ -67,4 +68,5 @@
     dest: "{{ cacert_path_server_cert }}"
     content: "{{ certificate_server.certificate }}"
     backup: True
+  when: certificate_server is changed
       #when: cacert_ca_cert is changed # FIXME replace with cert var 
