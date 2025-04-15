@@ -1,0 +1,7 @@
+---
+# defaults file for ansible_cacert
+cacert_ca_keyfile: ca.key
+cacert_ca_certfile: ca.crt
+cacert_ca_validity_days: 900 
+cacert_tag_privatekey: "privatekey"
+cacert_tag_certificate: "certificate"

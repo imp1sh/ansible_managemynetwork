@@ -1,0 +1,155 @@
+---
+- name: "MMN cacert - Build CA path variables"
+  ansible.builtin.include_tasks: paths_ca.yml
+
+    #- name: "MMN cacert - Pathos info"
+    #  ansible.builtin.debug:
+    #    msg: >
+    #      Workdir is {{ cacert_path_ca }}
+    #      CA Certpath is {{ cacert_path_ca_cert }}
+    #      CA Keypath is {{ cacert_path_ca_key }}
+
+- name: "MMN cacert - Make sure CA dir exists"
+  ansible.builtin.file:
+    path: "{{ cacert_path_ca }}"
+    state: directory
+    mode: 0740
+  delegate_to: localhost
+  when:
+    - cacert_workdir is defined
+    - cacert_ca.value.state == 'present'
+
+- name: "MMN cacert - Check if CA cert exists"
+  ansible.builtin.stat:
+    path: "{{ cacert_path_ca_cert }}"
+  register: stat_certificate_ca
+  delegate_to: localhost
+
+- name: "MMN cacert - Read existing certificate"
+  ansible.builtin.slurp:
+    src: "{{ cacert_path_ca_cert }}"
+  register: certificate_ca
+  when: stat_certificate_ca.stat.exists
+  delegate_to: localhost
+
+- name: "MMN cacert - Make sure CA private key is there"
+  community.crypto.openssl_privatekey:
+    backup: "{{ cacert_ca.value.key.backup | default(omit) }}"
+    cipher: "{{ cacert_ca.value.key.cipher | default(omit) }}"
+    curve: "{{ cacert_ca.value.key.curve | default(omit) }}"
+    force: "{{ cacert_ca.value.key.force | default(omit) }}"
+    format: "{{ cacert_ca.value.key.format | default(omit) }}"
+    format_mismatch: "{{ cacert_ca.value.key.format_mismatch | default(omit) }}"
+    group: "{{ cacert_ca.value.key.group | default(omit) }}"
+    mode: "{{ cacert_ca.value.key.mode | default('0600') }}"
+    owner: "{{ cacert_ca.value.key.owner | default(omit) }}"
+    passphrase: "{{ cacert_ca.value.key.passphrase | default(omit) }}"
+    path: "{{ cacert_path_ca_key }}"
+    regenerate: "{{ cacert_ca.value.key.regenerate | default(omit) }}"
+    return_content: "{{ cacert_ca.value.key.return_content | default(omit) }}"
+    select_crypto_backend: "{{ cacert_ca.value.key.select_crypto_backend | default(omit) }}"
+    selevel: "{{ cacert_ca.value.key.selevel | default(omit) }}"
+    serole: "{{ cacert_ca.value.key.serole | default(omit) }}"
+    setype: "{{ cacert_ca.value.key.setype | default(omit) }}"
+    seuser: "{{ cacert_ca.value.key.seuser | default(omit) }}"
+    size: "{{ cacert_ca.value.key.size | default(omit) }}"
+    state: "{{ cacert_ca.value.key.state | default(omit) }}"
+    type: "{{ cacert_ca.value.key.type | default(omit) }}"
+    unsafe_writes: "{{ cacert_ca.value.key.unsafe_writes | default(omit) }}"
+  delegate_to: localhost
+
+- name: "MMN cacert - Create CSR for CA cert"
+  community.crypto.openssl_csr_pipe:
+    privatekey_path: "{{ cacert_path_ca_key }}"
+    privatekey_passphrase: "{{ cacert_ca.value.key.passphrase | default(omit) }}"
+    common_name: "{{ cacert_ca.value.common_name }}"
+    organization_name: "{{ cacert_ca.value.organization_name | default(omit) }}"
+    organizational_unit_name: "{{ cacert_ca.value.organizational_unit_name | default(omit) }}"
+    state_or_province_name: "{{ cacert_ca.value.state_or_province_name | default(omit) }}"
+    locality_name: "{{ cacert_ca.value.locality_name | default(omit) }}"
+    country_name: "{{ cacert_ca.value.country_name | default(omit) }}"
+    email_address: "{{ cacert_ca.value.email_address | default(omit) }}"
+    basic_constraints_critical: True
+    key_usage_critical: true
+    key_usage:
+      - keyCertSign
+    basic_constraints:
+      - 'CA:TRUE'
+  register: cacert_ca_csr
+  delegate_to: localhost
+
+- name: "MMN cacert - Create CA cert from CA CSR"
+  community.crypto.x509_certificate_pipe:
+    csr_content: "{{ cacert_ca_csr.csr }}"
+    content: "{{ (certificate_ca.content | b64decode) if stat_certificate_ca.stat.exists else omit }}"
+    privatekey_path: "{{ cacert_path_ca_key }}"
+    privatekey_passphrase: "{{ cacert_ca.value.key.passphrase | default(omit) }}"
+    ownca_not_after: "{{ cacert_ca.value.not_after | default('+10y') }}"
+    ownca_not_before: "{{ cacert_ca.value.not_before | default('-1d') }}"
+    provider: "selfsigned"
+  delegate_to: localhost
+  register: cacert_ca_cert
+
+- name: "MMN cacert - Write CA cert to file"
+  ansible.builtin.copy:
+    dest: "{{ cacert_path_ca_cert }}"
+    content: "{{ cacert_ca_cert.certificate }}"
+    backup: "{{ cacert_ca.value.cert.backup | default(omit) }}"
+  when: cacert_ca_cert is changed
+  delegate_to: localhost
+
+    #- name: "MMN cacert - Make sure CA cert is there"
+    #  community.crypto.x509_certificate:
+    #    acme_accountkey_path: "{{ cacert_ca.value.acme_accountkey_path | default(omit) }}"
+    #    acme_chain: "{{ cacert_ca.value.acme_chain | default(omit) }}"
+    #    acme_challenge_path: "{{ cacert_ca.value.acme_challenge_path | default(omit) }}"
+    #    acme_directory: "{{ cacert_ca.value.acme_directory | default(omit) }}"
+    #    attributes: "{{ cacert_ca.value.attributes | default(omit) }}"
+    #    backup: "{{ cacert_ca.value.backup | default(omit) }}"
+    #    csr_content: "{{ cacert_ca.value.csr_content | default(omit) }}"
+    #    csr_path: "{{ cacert_ca.value.csr_path | default(omit) }}"
+    #    entrust_api_client_cert_key_path: "{{ cacert_ca.value.entrust_api_client_cert_key_path | default(omit) }}"
+    #    entrust_api_client_cert_path: "{{ cacert_ca.value.entrust_api_client_cert_path | default(omit) }}"
+    #    entrust_api_key: "{{ cacert_ca.value.entrust_api_key | default(omit) }}"
+    #    entrust_api_specification_path: "{{ cacert_ca.value.entrust_api_specification_path | default(omit) }}"
+    #    entrust_api_user: "{{ cacert_ca.value.entrust_api_user | default(omit) }}"
+    #    entrust_cert_type: "{{ cacert_ca.value.entrust_cert_type | default(omit) }}"
+    #    entrust_not_after: "{{ cacert_ca.value.entrust_not_after | default(omit) }}"
+    #    entrust_requester_email: "{{ cacert_ca.value.entrust_requester_email | default(omit) }}"
+    #    entrust_requester_name: "{{ cacert_ca.value.entrust_requester_name | default(omit) }}"
+    #    entrust_requester_phone: "{{ cacert_ca.value.entrust_requester_phone | default(omit) }}"
+    #    force: "{{ cacert_ca.value.force | default(omit) }}"
+    #    group: "{{ cacert_ca.value.group | default(omit) }}"
+    #    ignore_timestamps: "{{ cacert_ca.value.ignore_timestamps | default(omit) }}"
+    #    mode: "{{ cacert_ca.value.mode | default(omit) }}"
+    #    ownca_content: "{{ cacert_ca.value.ownca_content | default(omit) }}"
+    #    ownca_create_authority_key_identifier: "{{ cacert_ca.value.ownca_create_authority_key_identifier | default(omit) }}"
+    #    ownca_create_subject_key_identifier: "{{ cacert_ca.value.ownca_create_subject_key_identifier | default(omit) }}"
+    #    ownca_digest: "{{ cacert_ca.value.ownca_digest | default(omit) }}"
+    #    ownca_not_after: "{{ cacert_ca.value.ownca_not_after | default(omit) }}"
+    #    ownca_not_before: "{{ cacert_ca.value.ownca_not_before | default(omit) }}"
+    #    ownca_path: "{{ cacert_ca.value.ownca_path | default(omit) }}"
+    #    ownca_privatekey_content: "{{ cacert_ca.value.ownca_privatekey_content | default(omit) }}"
+    #    ownca_privatekey_passphrase: "{{ cacert_ca.value.ownca_privatekey_passphrase | default(omit) }}"
+    #    ownca_privatekey_path: "{{ cacert_ca.value.ownca_privatekey_path | default(omit) }}"
+    #    ownca_version: "{{ cacert_ca.value.ownca_version | default(omit) }}"
+    #    owner: "{{ cacert_ca.value.owner | default(omit) }}"
+    #    path: "{{ cacert_ca.value.path | default(omit) }}"
+    #    privatekey_content: "{{ cacert_ca.value.privatekey_content | default(omit) }}"
+    #    privatekey_passphrase: "{{ cacert_ca.value.privatekey_passphrase | default(omit) }}"
+    #    privatekey_path: "{{ cacert_ca.value.privatekey_path | default(omit) }}"
+    #    provider: "{{ cacert_ca.value.provider | default(omit) }}"
+    #    return_content: "{{ cacert_ca.value.return_content | default(omit) }}"
+    #    select_crypto_backend: "{{ cacert_ca.value.select_crypto_backend | default(omit) }}"
+    #    selevel: "{{ cacert_ca.value.selevel | default(omit) }}"
+    #    selfsigned_create_subject_key_identifier: "{{ cacert_ca.value.selfsigned_create_subject_key_identifier | default(omit) }}"
+    #    selfsigned_digest: "{{ cacert_ca.value.selfsigned_digest | default(omit) }}"
+    #    selfsigned_not_after: "{{ cacert_ca.value.selfsigned_not_after | default(omit) }}"
+    #    selfsigned_not_before: "{{ cacert_ca.value.selfsigned_not_before | default(omit) }}"
+    #    selfsigned_version: "{{ cacert_ca.value.selfsigned_version | default(omit) }}"
+    #    serole: "{{ cacert_ca.value.serole | default(omit) }}"
+    #    setype: "{{ cacert_ca.value.setype | default(omit) }}"
+    #    seuser: "{{ cacert_ca.value.seuser | default(omit) }}"
+    #    state: "{{ cacert_ca.value.state | default(omit) }}"
+    #    unsafe_writes: "{{ cacert_ca.value.unsafe_writes | default(omit) }}"
+

@@ -1,0 +1,9 @@
+---
+- name: "MMN cacert - Assemble ca path"
+  ansible.builtin.set_fact:
+    cacert_path_ca: "{{ cacert_workdir }}/{{ cacert_ca.key }}"
+- name: "MMN cacert - Assemble more vars"
+  ansible.builtin.set_fact:
+    cacert_path_ca_cert: "{{ cacert_path_ca }}/{{ cacert_ca.key }}_ca_{{ cacert_tag_certificate }}.pem"
+    cacert_path_ca_key: "{{ cacert_path_ca }}/{{ cacert_ca.key }}_ca_{{ cacert_tag_privatekey }}.pem"
+

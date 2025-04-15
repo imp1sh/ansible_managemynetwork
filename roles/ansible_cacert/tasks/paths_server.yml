@@ -1,0 +1,8 @@
+---
+- name: "MMN cacert - CA cert destination path"
+  ansible.builtin.set_fact:
+    cacert_path_ca_destination: "{{ cacert_openssl_path_certificates }}/{{ cacert_ca.key }}_ca_{{ cacert_tag_certificate }}.pem"
+- name: "MMN cacert - Server cert and key path"
+  ansible.builtin.set_fact:
+    cacert_path_server_cert: "{{ cacert_openssl_path_certificates }}/{{ cacert_ca.key }}_{{ inventory_hostname }}_{{ cacert_tag_certificate }}.pem"
+    cacert_path_server_key: "{{ cacert_openssl_path_keys }}/{{ cacert_ca.key }}_{{inventory_hostname }}_{{ cacert_tag_privatekey }}.pem"
