@@ -5,25 +5,65 @@
 - name: "MMN cacert - Build Server path variables"
   ansible.builtin.include_tasks: paths_server.yml
 
+- name: "MMN cacert - Check if CA cert exists"
+  ansible.builtin.stat:
+    path: "{{ cacert_path_cacert }}"
+  register: stat_certificate_ca
+
 - name: "MMN cacert - Make sure CA cert is installed to target host"
   become: True
   ansible.builtin.copy:
-    dest: "{{ cacert_path_ca_destination }}"
+    dest: "{{ cacert_path_cacert }}"
     content: "{{ cacert_ca_cert.certificate }}"
     backup: True
+  when: not stat_certificate_ca.stat.exists
+
+- name: "MMN cacert - Check for existing private key"
+  become: True
+  stat:
+    path: "{{ cacert_path_serverkey }}"
+  register: stat_key_server
+
+- name: "MMN cacert - Load existing server key"
+  become: True
+  slurp:
+    src: "{{ cacert_path_serverkey }}"
+  register: key_server_existing
+  when: stat_key_server.stat.exists
+
+- name: "MMN cacert | Set existing key content as fact"
+  ansible.builtin.set_fact:
+    key_server:
+      privatekey: "{{ key_server_existing.content | b64decode }}"
+  when: stat_key_server.stat.exists
 
 - name: "MMN cacert - Manage server private keys"
   become: True
-  community.crypto.openssl_privatekey:
-    path: "{{ cacert_path_server_key }}"
+  community.crypto.openssl_privatekey_pipe:
     passphrase: "{{ cacert_servercert_passphrase|default(omit) }}"
     size: 4096
+  register: key_server_generated
+  when: not stat_key_server.stat.exists
+
+- name: "MMN cacert - Set key_server fact from generated key"
+  ansible.builtin.set_fact:
+    key_server:
+      privatekey: "{{ key_server_generated.privatekey }}"
+  when: not stat_key_server.stat.exists
+
+- name: "MMN cacert - Write server key to file"
+  become: true
+  ansible.builtin.copy:
+    dest: "{{ cacert_path_serverkey }}"
+    content: "{{ key_server.privatekey }}"
     mode: 0600
+    backup: True
+  when: key_server is changed
 
 - name: "MMN cacert - Manage server CSRs"
   become: True
   community.crypto.openssl_csr_pipe:
-    privatekey_path: "{{ cacert_path_server_key }}"
+    privatekey_path: "{{ cacert_path_serverkey }}"
     privatekey_passphrase: "{{ cacert_servercert_passphrase | default(omit) }}"
     common_name: "{{ cacert_servercert_common_name | default(inventory_hostname) }}"
     organization_name: "{{ cacert_servercert_organization_name | default(omit) }}"
@@ -40,33 +80,72 @@
 
 - name: "MMN cacert - Check if cert exists"
   ansible.builtin.stat:
-    path: "{{ cacert_path_server_cert }}"
+    path: "{{ cacert_path_servercert }}"
   register: stat_certificate_server
 
 - name: "MMN cacert - Read existing certificate"
   ansible.builtin.slurp:
-    src: "{{ cacert_path_server_cert }}"
+    src: "{{ cacert_path_servercert }}"
   register: certificate_server
   when: stat_certificate_server.stat.exists
 
 - name: "MMN cacert - Sign certificate with our CA"
+  become: True
+  delegate_to: "{{ cacert_ca_manager_host }}"
   community.crypto.x509_certificate_pipe:
     csr_content: "{{ csr_server.csr }}"
     content: "{{ (certificate_server.content | b64decode) if stat_certificate_server.stat.exists else omit }}"
     provider: ownca
-    ownca_path: "{{ cacert_path_ca_cert }}"
-    ownca_privatekey_path: "{{ cacert_path_ca_key }}"
+    ownca_path: "{{ cacert_path_cacert }}"
+    ownca_privatekey_path: "{{ cacert_path_cakey }}"
     ownca_privatekey_passphrase: "{{ cacert_ca.value.key.passphrase }}"
     ownca_not_after: "{{ cacert_servercert_not_after }}"
     ownca_not_before: "{{ cacert_servercert_not_before | default('-1d') }}" 
   register: certificate_server
-  delegate_to: localhost
 
 - name: "MMN cacert - Write server cert to file"
   become: true
   ansible.builtin.copy:
-    dest: "{{ cacert_path_server_cert }}"
+    dest: "{{ cacert_path_servercert }}"
     content: "{{ certificate_server.certificate }}"
     backup: True
   when: certificate_server is changed
-      #when: cacert_ca_cert is changed # FIXME replace with cert var 
+
+
+# ADDITIONAL PATHS
+- name: "MMN cacert - Write server cert to additional paths"
+  become: True
+  ansible.builtin.copy:
+    dest: "{{ additionalpaths.dest }}/{{ cacert_filename_servercert }}"
+    content: "{{ certificate_server.certificate }}"
+    owner: "{{ additionalpaths.user | default(omit) }}"
+    group: "{{ additionalpaths.group | default(omit) }}"
+  loop: "{{ cacert_servercert_additionalpaths }}"
+  loop_control:
+    loop_var: "additionalpaths"
+  when: cacert_servercert_additionalpaths is defined
+
+- name: "MMN cacert - Write server private keys to additional paths"
+  become: True
+  ansible.builtin.copy:
+    dest: "{{ additionalpaths.dest }}/{{ cacert_filename_serverkey }}"
+    content: "{{ key_server.privatekey }}"
+    owner: "{{ additionalpaths.user | default(omit) }}"
+    group: "{{ additionalpaths.group | default(omit) }}"
+  loop: "{{ cacert_servercert_additionalpaths }}"
+  loop_control:
+    loop_var: "additionalpaths"
+  when: cacert_servercert_additionalpaths is defined
+
+- name: "MMN cacert - Write ca cert to additional paths"
+  become: True
+  ansible.builtin.copy:
+    src: "{{ cacert_path_cacert }}"
+    dest: "{{ additionalpaths.dest }}/{{ cacert_filename_cacert }}"
+    remote_src: True
+    owner: "{{ additionalpaths.user | default(omit) }}"
+    group: "{{ additionalpaths.group | default(omit) }}"
+  loop: "{{ cacert_cacert_additionalpaths }}"
+  loop_control:
+    loop_var: "additionalpaths"
+  when: cacert_cacert_additionalpaths is defined

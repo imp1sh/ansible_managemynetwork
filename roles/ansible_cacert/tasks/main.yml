@@ -1,6 +1,6 @@
 ---
 - name: "MMN cacert - Setting OS variables"
-  ansible.builtin.include_vars: "{{lookup('ansible.builtin.first_found', params)}}"
+  ansible.builtin.include_vars: "{{ lookup('ansible.builtin.first_found', params) }}"
   vars:
     params:
       files:
@@ -9,11 +9,13 @@
         - "default.yml"
       paths:
         - "vars"
+
 - name: "MMN cacert - Manage CA key and cert"
   ansible.builtin.include_tasks: cacert.yml
   loop: "{{ cacert_cas | dict2items }}"
   loop_control:
     loop_var: "cacert_ca"
+
 - name: "MMN cacert - Manage server certs"
   ansible.builtin.include_tasks: servercert.yml
   loop: "{{ cacert_cas | dict2items }}"

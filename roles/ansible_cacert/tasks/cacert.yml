@@ -2,37 +2,9 @@
 - name: "MMN cacert - Build CA path variables"
   ansible.builtin.include_tasks: paths_ca.yml
 
-    #- name: "MMN cacert - Pathos info"
-    #  ansible.builtin.debug:
-    #    msg: >
-    #      Workdir is {{ cacert_path_ca }}
-    #      CA Certpath is {{ cacert_path_ca_cert }}
-    #      CA Keypath is {{ cacert_path_ca_key }}
-
-- name: "MMN cacert - Make sure CA dir exists"
-  ansible.builtin.file:
-    path: "{{ cacert_path_ca }}"
-    state: directory
-    mode: 0740
-  delegate_to: localhost
-  when:
-    - cacert_workdir is defined
-    - cacert_ca.value.state == 'present'
-
-- name: "MMN cacert - Check if CA cert exists"
-  ansible.builtin.stat:
-    path: "{{ cacert_path_ca_cert }}"
-  register: stat_certificate_ca
-  delegate_to: localhost
-
-- name: "MMN cacert - Read existing certificate"
-  ansible.builtin.slurp:
-    src: "{{ cacert_path_ca_cert }}"
-  register: certificate_ca
-  when: stat_certificate_ca.stat.exists
-  delegate_to: localhost
-
 - name: "MMN cacert - Make sure CA private key is there"
+  become: true
+  delegate_to: "{{ cacert_ca_manager_host }}"
   community.crypto.openssl_privatekey:
     backup: "{{ cacert_ca.value.key.backup | default(omit) }}"
     cipher: "{{ cacert_ca.value.key.cipher | default(omit) }}"
@@ -44,7 +16,7 @@
     mode: "{{ cacert_ca.value.key.mode | default('0600') }}"
     owner: "{{ cacert_ca.value.key.owner | default(omit) }}"
     passphrase: "{{ cacert_ca.value.key.passphrase | default(omit) }}"
-    path: "{{ cacert_path_ca_key }}"
+    path: "{{ cacert_path_cakey }}"
     regenerate: "{{ cacert_ca.value.key.regenerate | default(omit) }}"
     return_content: "{{ cacert_ca.value.key.return_content | default(omit) }}"
     select_crypto_backend: "{{ cacert_ca.value.key.select_crypto_backend | default(omit) }}"
@@ -56,11 +28,25 @@
     state: "{{ cacert_ca.value.key.state | default(omit) }}"
     type: "{{ cacert_ca.value.key.type | default(omit) }}"
     unsafe_writes: "{{ cacert_ca.value.key.unsafe_writes | default(omit) }}"
-  delegate_to: localhost
+
+- name: "MMN cacert - Check if CA cert exists"
+  delegate_to: "{{ cacert_ca_manager_host }}"
+  ansible.builtin.stat:
+    path: "{{ cacert_path_cacert }}"
+  register: stat_certificate_ca
+
+- name: "MMN cacert - Read existing certificate"
+  delegate_to: "{{ cacert_ca_manager_host }}"
+  ansible.builtin.slurp:
+    src: "{{ cacert_path_cacert }}"
+  register: certificate_ca
+  when: stat_certificate_ca.stat.exists
 
 - name: "MMN cacert - Create CSR for CA cert"
+  become: True
+  delegate_to: "{{ cacert_ca_manager_host }}"
   community.crypto.openssl_csr_pipe:
-    privatekey_path: "{{ cacert_path_ca_key }}"
+    privatekey_path: "{{ cacert_path_cakey }}"
     privatekey_passphrase: "{{ cacert_ca.value.key.passphrase | default(omit) }}"
     common_name: "{{ cacert_ca.value.common_name }}"
     organization_name: "{{ cacert_ca.value.organization_name | default(omit) }}"
@@ -73,31 +59,33 @@
     key_usage_critical: true
     key_usage:
       - keyCertSign
+      - cRLSign
     basic_constraints:
       - 'CA:TRUE'
   register: cacert_ca_csr
-  delegate_to: localhost
   changed_when: false
 
-- name: "MMN cacert - Create CA cert from CA CSR"
+- name: "MMN cacert - Create CA cert"
+  become: True
+  delegate_to: "{{ cacert_ca_manager_host }}"
   community.crypto.x509_certificate_pipe:
-    csr_content: "{{ cacert_ca_csr.csr }}"
     content: "{{ (certificate_ca.content | b64decode) if stat_certificate_ca.stat.exists else omit }}"
-    privatekey_path: "{{ cacert_path_ca_key }}"
-    privatekey_passphrase: "{{ cacert_ca.value.key.passphrase | default(omit) }}"
+    csr_content: "{{ cacert_ca_csr.csr }}"
     ownca_not_after: "{{ cacert_ca.value.not_after | default('+10y') }}"
     ownca_not_before: "{{ cacert_ca.value.not_before | default('-1d') }}"
+    privatekey_passphrase: "{{ cacert_ca.value.key.passphrase | default(omit) }}"
+    privatekey_path: "{{ cacert_path_cakey }}"
     provider: "selfsigned"
-  delegate_to: localhost
   register: cacert_ca_cert
 
 - name: "MMN cacert - Write CA cert to file"
+  delegate_to: "{{ cacert_ca_manager_host }}"
+  become: True
   ansible.builtin.copy:
-    dest: "{{ cacert_path_ca_cert }}"
+    dest: "{{ cacert_path_cacert }}"
     content: "{{ cacert_ca_cert.certificate }}"
     backup: "{{ cacert_ca.value.cert.backup | default(omit) }}"
   when: cacert_ca_cert is changed
-  delegate_to: localhost
 
     #- name: "MMN cacert - Make sure CA cert is there"
     #  community.crypto.x509_certificate:
