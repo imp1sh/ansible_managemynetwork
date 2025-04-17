@@ -38,28 +38,28 @@ unix_socket_directories = '{{ psqlserver_instance.value.unixsocketdirectories }}
 ssl = {{ psqlserver_instance.value.ssl }}
 {% endif %}
 #ssl = off
-{% if psqlserver_instance.value.cafile is defined %}
-ssl_ca_file = '{{ psqlserver_instance.value.cafile }}'
+{% if psqlserver_instance.value.ssl_ca_file is defined %}
+ssl_ca_file = '{{ psqlserver_instance.value.ssl_ca_file }}'
 {% endif %}
 #ssl_ca_file = ''
-{% if psqlserver_instance.value.certfile is defined %}
-ssl_cert_file = '{{ psqlserver_instance.value.certfile }}'
+{% if psqlserver_instance.value.ssl_cert_file is defined %}
+ssl_cert_file = '{{ psqlserver_instance.value.ssl_cert_file }}'
 {% endif %}
 #ssl_cert_file = 'server.crt'
-{% if psqlserver_instance.value.crlfile is defined %}
-ssl_crl_file = '{{ psqlserver_instance.value.crlfile }}'
+{% if psqlserver_instance.value.ssl_crl_file is defined %}
+ssl_crl_file = '{{ psqlserver_instance.value.ssl_crl_file }}'
 {% endif %}
 #ssl_crl_file = ''
-{% if psqlserver_instance.value.keyfile is defined %}
-ssl_key_file = '{{ psqlserver_instance.value.keyfile }}'
+{% if psqlserver_instance.value.ssl_key_file is defined %}
+ssl_key_file = '{{ psqlserver_instance.value.ssl_key_file }}'
 {% endif %}
 #ssl_key_file = 'server.key'
-{% if psqlserver_instance.value.ciphers is defined %}
-ssl_ciphers = '{{ psqlserver_instance.value.ciphers }}'
+{% if psqlserver_instance.value.ssl_ciphers is defined %}
+ssl_ciphers = '{{ psqlserver_instance.value.ssl_ciphers }}'
 {% endif %}
 #ssl_ciphers = 'HIGH:MEDIUM:+3DES:!aNULL' # allowed SSL ciphers
-{% if psqlserver_instance.value.preferserverciphers is defined %}
-ssl_prefer_server_ciphers = {{ psqlserver_instance.value.preferserverciphers }}
+{% if psqlserver_instance.value.ssl_prefer_server_ciphers is defined %}
+ssl_prefer_server_ciphers = {{ psqlserver_instance.value.ssl_prefer_server_ciphers }}
 {% endif %}
 #ssl_prefer_server_ciphers = on
 {% if psqlserver_instance.value.ecdhcurve is defined %}
