@@ -1,0 +1,254 @@
+---
+- name: "MMN cacert - Build CA path variables"
+  ansible.builtin.include_tasks: paths_ca.yml
+- name: "MMN cacert - Build Server path variables"
+  ansible.builtin.include_tasks: paths_server.yml
+
+
+
+# FIRST HANDLE CA CERTS ON CA MANAGER HOST AND ON TARGET HOSTS
+
+- name: "MMN cacert - Make sure CA private key is there"
+  become: true
+  delegate_to: "{{ cacert_ca_manager_host }}"
+  community.crypto.openssl_privatekey:
+    backup: "{{ cacert_ca.value.key.backup | default(omit) }}"
+    cipher: "{{ cacert_ca.value.key.cipher | default(omit) }}"
+    curve: "{{ cacert_ca.value.key.curve | default(omit) }}"
+    force: "{{ cacert_ca.value.key.force | default(omit) }}"
+    format: "{{ cacert_ca.value.key.format | default(omit) }}"
+    format_mismatch: "{{ cacert_ca.value.key.format_mismatch | default(omit) }}"
+    group: "{{ cacert_ca.value.key.group | default(omit) }}"
+    mode: "{{ cacert_ca.value.key.mode | default('0600') }}"
+    owner: "{{ cacert_ca.value.key.owner | default(omit) }}"
+    passphrase: "{{ cacert_ca.value.key.passphrase | default(omit) }}"
+    path: "{{ cacert_path_cakey }}"
+    regenerate: "{{ cacert_ca.value.key.regenerate | default(omit) }}"
+    return_content: "{{ cacert_ca.value.key.return_content | default(omit) }}"
+    select_crypto_backend: "{{ cacert_ca.value.key.select_crypto_backend | default(omit) }}"
+    selevel: "{{ cacert_ca.value.key.selevel | default(omit) }}"
+    serole: "{{ cacert_ca.value.key.serole | default(omit) }}"
+    setype: "{{ cacert_ca.value.key.setype | default(omit) }}"
+    seuser: "{{ cacert_ca.value.key.seuser | default(omit) }}"
+    size: "{{ cacert_ca.value.key.size | default(omit) }}"
+    state: "{{ cacert_ca.value.key.state | default(omit) }}"
+    type: "{{ cacert_ca.value.key.type | default(omit) }}"
+    unsafe_writes: "{{ cacert_ca.value.key.unsafe_writes | default(omit) }}"
+
+- name: "MMN cacert - Check if CA cert exists"
+  delegate_to: "{{ cacert_ca_manager_host }}"
+  ansible.builtin.stat:
+    path: "{{ cacert_path_cacert }}"
+  register: stat_certificate_ca
+
+- name: "MMN cacert - Read existing certificate"
+  delegate_to: "{{ cacert_ca_manager_host }}"
+  ansible.builtin.slurp:
+    src: "{{ cacert_path_cacert }}"
+  register: existing_certificate_ca
+  when: stat_certificate_ca.stat.exists
+
+- name: "MMN cacert - Create CSR for CA cert"
+  become: True
+  delegate_to: "{{ cacert_ca_manager_host }}"
+  community.crypto.openssl_csr_pipe:
+    privatekey_path: "{{ cacert_path_cakey }}"
+    privatekey_passphrase: "{{ cacert_ca.value.key.passphrase | default(omit) }}"
+    common_name: "{{ cacert_ca.value.common_name }}"
+    organization_name: "{{ cacert_ca.value.organization_name | default(omit) }}"
+    organizational_unit_name: "{{ cacert_ca.value.organizational_unit_name | default(omit) }}"
+    state_or_province_name: "{{ cacert_ca.value.state_or_province_name | default(omit) }}"
+    locality_name: "{{ cacert_ca.value.locality_name | default(omit) }}"
+    country_name: "{{ cacert_ca.value.country_name | default(omit) }}"
+    email_address: "{{ cacert_ca.value.email_address | default(omit) }}"
+    basic_constraints_critical: True
+    key_usage_critical: true
+    key_usage:
+      - keyCertSign
+      - cRLSign
+    basic_constraints:
+      - 'CA:TRUE'
+  register: cacert_ca_csr
+  changed_when: false
+
+- name: "MMN cacert - Create CA cert"
+  become: True
+  delegate_to: "{{ cacert_ca_manager_host }}"
+  community.crypto.x509_certificate_pipe:
+    content: "{{ (existing_certificate_ca.content | b64decode) if stat_certificate_ca.stat.exists else omit }}"
+    csr_content: "{{ cacert_ca_csr.csr }}"
+    ownca_not_after: "{{ cacert_ca.value.not_after | default('+10y') }}"
+    ownca_not_before: "{{ cacert_ca.value.not_before | default('-1d') }}"
+    privatekey_passphrase: "{{ cacert_ca.value.key.passphrase | default(omit) }}"
+    privatekey_path: "{{ cacert_path_cakey }}"
+    provider: "selfsigned"
+  register: cacert_ca_cert
+
+- name: "MMN cacert - Write CA cert to file"
+  delegate_to: "{{ cacert_ca_manager_host }}"
+  become: True
+  ansible.builtin.copy:
+    dest: "{{ cacert_path_cacert }}"
+    content: "{{ cacert_ca_cert.certificate }}"
+    backup: "{{ cacert_ca.value.cert.backup | default(omit) }}"
+  when: cacert_ca_cert is changed
+
+- name: "MMN cacert - Update trust store"
+  delegate_to: "{{ cacert_ca_manager_host }}"
+  become: True
+  ansible.builtin.command: update-ca-certificates
+  when:
+    - cacert_ca_cert is changed
+    - ansible_distribution != 'OpenWrt'
+
+- name: "MMN cacert - Make sure CA cert is installed to target host"
+  become: True
+  ansible.builtin.copy:
+    dest: "{{ cacert_path_cacert }}"
+    content: "{{ cacert_ca_cert.certificate }}"
+    backup: True
+
+- name: "MMN cacert - Write ca cert to additional paths"
+  become: True
+  ansible.builtin.copy:
+    content: "{{ cacert_ca_cert.certificate }}"
+    dest: "{{ additionalpaths.dest }}/{{ cacert_filename_cacert }}"
+    remote_src: True
+    owner: "{{ additionalpaths.user | default(omit) }}"
+    group: "{{ additionalpaths.group | default(omit) }}"
+  loop: "{{ cacert_cacert_additionalpaths }}"
+  loop_control:
+    loop_var: "additionalpaths"
+  when: cacert_cacert_additionalpaths is defined
+
+
+
+# PRIVATE KEY FOR SERVER CERT
+
+- name: "MMN cacert - Check for existing private key"
+  become: True
+  stat:
+    path: "{{ cacert_path_serverkey }}"
+  register: stat_key_server
+
+- name: "MMN cacert - Load existing server key"
+  become: True
+  slurp:
+    src: "{{ cacert_path_serverkey }}"
+  register: key_server_existing
+  when: stat_key_server.stat.exists
+
+- name: "MMN cacert | Set existing key content as fact"
+  ansible.builtin.set_fact:
+    key_server:
+      privatekey: "{{ key_server_existing.content | b64decode }}"
+  when: stat_key_server.stat.exists
+
+- name: "MMN cacert - Create new server private keys"
+  become: True
+  community.crypto.openssl_privatekey_pipe:
+    passphrase: "{{ cacert_servercert_passphrase|default(omit) }}"
+    size: "{{ cacert_servercert_bitsize | default('4096') }}"
+  register: key_server_generated
+  when: not stat_key_server.stat.exists
+
+- name: "MMN cacert - Set key_server fact from generated key"
+  ansible.builtin.set_fact:
+    key_server:
+      privatekey: "{{ key_server_generated.privatekey }}"
+  when: not stat_key_server.stat.exists
+
+- name: "MMN cacert - Write server key to file"
+  become: true
+  ansible.builtin.copy:
+    dest: "{{ cacert_path_serverkey }}"
+    content: "{{ key_server.privatekey }}"
+    mode: 0600
+    backup: True
+  when: ( key_server is changed ) or ( not stat_key_server.stat.exists )
+
+- name: "MMN cacert - Write server private keys to additional paths"
+  become: True
+  ansible.builtin.copy:
+    dest: "{{ additionalpaths.dest }}/{{ cacert_filename_serverkey }}"
+    content: "{{ key_server.privatekey }}"
+    owner: "{{ additionalpaths.user | default(omit) }}"
+    group: "{{ additionalpaths.group | default(omit) }}"
+  loop: "{{ cacert_servercert_additionalpaths }}"
+  loop_control:
+    loop_var: "additionalpaths"
+  when: cacert_servercert_additionalpaths is defined
+
+
+
+# CREATE SERVER CERT
+
+- name: "MMN cacert - Check if server cert exists"
+  ansible.builtin.stat:
+    path: "{{ cacert_path_servercert }}"
+  register: stat_certificate_server
+
+- name: "MMN cacert - Read existing certificate"
+  ansible.builtin.slurp:
+    src: "{{ cacert_path_servercert }}"
+  register: certificate_server
+  when: stat_certificate_server.stat.exists
+
+- name: "MMN cacert - Manage server CSRs"
+  become: True
+  community.crypto.openssl_csr_pipe:
+    privatekey_path: "{{ cacert_path_serverkey }}"
+    privatekey_passphrase: "{{ cacert_servercert_passphrase | default(omit) }}"
+    common_name: "{{ cacert_servercert_common_name | default(inventory_hostname) }}"
+    organization_name: "{{ cacert_servercert_organization_name | default(omit) }}"
+    organizational_unit_name: "{{ cacert_servercert_organizational_unit_name | default(omit) }}"
+    state_or_province_name: "{{ cacert_servercert_state_or_province_name | default(omit) }}"
+    locality_name: "{{ cacert_servercert_locality_name | default(omit) }}"
+    country_name: "{{ cacert_servercert_country_name | default(omit) }}"
+    email_address: "{{ cacert_servercert_email_address | default(omit) }}"
+    subject_alt_name: >-
+      {{ (cacert_servercert_altnames | map(attribute='prefix') | zip(cacert_servercert_altnames | map(attribute='name')) | map('join', ':') | list)
+         if cacert_servercert_altnames is defined else omit }}
+  register: csr_server
+  changed_when: false
+
+- name: "MMN cacert - Sign certificate with our CA"
+  become: True
+  delegate_to: "{{ cacert_ca_manager_host }}"
+  community.crypto.x509_certificate_pipe:
+    csr_content: "{{ csr_server.csr }}"
+    content: "{{ (certificate_server.content | b64decode) if stat_certificate_server.stat.exists else omit }}"
+    provider: ownca
+    ownca_path: "{{ cacert_path_cacert }}"
+    ownca_privatekey_path: "{{ cacert_path_cakey }}"
+    ownca_privatekey_passphrase: "{{ cacert_ca.value.key.passphrase }}"
+    ownca_not_after: "{{ cacert_servercert_not_after }}"
+    ownca_not_before: "{{ cacert_servercert_not_before | default('-1d') }}" 
+  register: certificate_server
+
+- name: "MMN cacert - Write server cert to file"
+  become: true
+  ansible.builtin.copy:
+    dest: "{{ cacert_path_servercert }}"
+    content: "{{ certificate_server.certificate }}"
+    backup: True
+  when: certificate_server is changed
+
+# ADDITIONAL PATHS
+- name: "MMN cacert - Write server cert to additional paths"
+  become: True
+  ansible.builtin.copy:
+    dest: "{{ additionalpaths.dest }}/{{ cacert_filename_servercert }}"
+    content: "{{ certificate_server.certificate }}"
+    owner: "{{ additionalpaths.user | default(omit) }}"
+    group: "{{ additionalpaths.group | default(omit) }}"
+  loop: "{{ cacert_servercert_additionalpaths }}"
+  loop_control:
+    loop_var: "additionalpaths"
+  when: cacert_servercert_additionalpaths is defined
+
+- name: "MMN cacert - Update trust store"
+  become: True
+  ansible.builtin.command: update-ca-certificates
+  when: ansible_distribution != 'OpenWrt'
+    #when: cacert_ca_cert is changed # wrong condition

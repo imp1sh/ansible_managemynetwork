@@ -1,0 +1,5 @@
+---
+cacert_openssl_path_certificates: "/etc/ssl/certs"
+cacert_openssl_path_keys: "/etc/ssl/private"
+cacert_packages:
+  - "python3-cryptography"

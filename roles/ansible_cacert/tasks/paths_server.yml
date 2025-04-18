@@ -1,5 +1,5 @@
 ---
-- name: "MMN cacert - filenames"
+- name: "MMN cacert - Filename vars"
   ansible.builtin.set_fact:
     cacert_filename_servercert: "{{ cacert_ca.key }}_{{ inventory_hostname }}_{{ cacert_tag_certificate }}.pem"
     cacert_filename_serverkey: "{{ cacert_ca.key }}_{{inventory_hostname }}_{{ cacert_tag_privatekey }}.pem"
