@@ -1,0 +1,3 @@
+---
+# pdns_path_config: "/etc/powerdns/" # no default as this needs to be set by the user in containermode
+pdns_filename_config: "pdns.conf"

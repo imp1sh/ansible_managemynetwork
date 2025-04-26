@@ -305,12 +305,15 @@ include-dir=/etc/powerdns/pdns.d
 # launch	Which backends to launch and order to query them in
 #
 # launch=
-launch={{ pdns_launch | default() }}
+launch={{ pdns_launch | default('') }}
 {% if pdns_launch == "gpgsql" %}
 gpgsql-host={{ pdns_gpgsql_host }}
 gpgsql-dbname={{ pdns_gpgsql_dbname }}
 gpgsql-user={{ pdns_gpgsql_user }}
 gpgsql-password={{ pdns_gpgsql_password }}
+{% if pdns_gpgsql_extra_connection_parameters is defined %}
+gpgsql-extra-connection-parameters={{ pdns_gpgsql_extra_connection_parameters }}
+{% endif %}
 {% endif %}
 
 #################################
