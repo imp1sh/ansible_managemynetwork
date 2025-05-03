@@ -128,6 +128,7 @@ borgmatic_srcdirs:
 
 Here's also an example of a podman definition so you can see how the mounting typically goes.
 ```yaml
+podman_containers:
   - name: borgmatic_nasofden1
     state: started
     network: podmannetGUA
