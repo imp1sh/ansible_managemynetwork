@@ -10,12 +10,12 @@ Supported OS:
 - ~~Arch~~ (May work but basically deprecated)
 - ~~Fedora~~ (May work but basically deprecated)
 
-> This role supports running on Debian as well as on a a container (tested on podman).
-> For container see also docs of the [imp1sh.ansible_managemynetwork.ansible_podman](https://github.com/imp1sh/ansible_managemynetwork/tree/main/roles/ansible_openwrtpodman) role.
-> If running on normal OS this role installs borg / borgmatic via pip. The command will be `borgmatic_venv`. This is the recommended way to use pip. If you don't want to use pip set `borgmatic_via_pip: false` and `apprise_via_pip: false` as well.
-
-Requirements  (mandatory):
+Requirements:
 - [imp1sh.ansible_managemynetwork.ansible_packages](https://wiki.junicast.de/en/junicast/docs/AnsibleManagemynetworkCollection/rolePackages)
+
+This role supports running on Debian as well as in a container (tested on podman).
+For container see also docs of the [imp1sh.ansible_managemynetwork.ansible_podman](https://github.com/imp1sh/ansible_managemynetwork/tree/main/roles/ansible_openwrtpodman) role.
+If running on normal OS this role installs borg / borgmatic via pip. The command will be `borgmatic_venv`. Using pip is the recommended way. If you don't want to use pip set `borgmatic_via_pip: false` and `apprise_via_pip: false` as well.
 
 When using **ssh** as backend this role can also handle the necessary key based tasks, so Ansible needs access to the backup target machine as well.
 
@@ -88,9 +88,79 @@ If you don't want to manage the ssh keys maybe because you just lack control ove
 borgmatic_ssh_manage: False
 ```
 
+## Repositories examples
+Here's an example for a *hetzner* backup:
+```yaml
+borgmatic_repositories:
+  u200000@u200000.your-storagebox.de:
+    type: "ssh://"
+    targetuser: u200000
+    targethost: u200000.your-storagebox.de
+    subdir: fsn1
+    enabled: true
+```
+This one is for [borgbase - a really nice and affordable backup target storage provider](https://www.borgbase.com/). Have this role installed as well. [adhawkins.borgbase](https://github.com/adhawkins/ansible-borgbase). This role wil setup ssh keys and borgbase repos for you automatically.
 
-## Container specific settings
+
+
+## Containermode
+
+Instead of running borgmatic on the host itself it can also be run within a container. Set those vars:
+```yaml
+# Enable containermode
+borgmatic_containermode: True
+# Set the path for the crontab file
+borgmatic_cronfile: "/mnt/cntr/unsynced/borgmatic/0/borgmatic.d/crontab.txt"
+# Enable or disable cronjob with this
+borgmatic_cronstate: "present"
+# This is where the ssh keys will be put
+borgmatic_sshdir: "/mnt/cntr/unsynced/borgmatic/0/ssh/"
+# This is where borgmatic config will be put
+borgmatic_confdir: "/mnt/cntr/unsynced/borgmatic/0/borgmatic.d/"
+# This parameter is not container specific but this is the default mount point where you mount into your container so it will be backed up.
+borgmatic_srcdirs:
+  - "/mnt/source"
+
+Here's also an example of a podman definition so you can see how the mounting typically goes.
+```yaml
+  - name: borgmatic_nasofden1
+    state: started
+    network: podmannetGUA
+    # this is quite important so your repository carry a speaking name
+    hostname: "{{ inventory_hostname }}"
+    image: ghcr.io/borgmatic-collective/borgmatic
+    volume:
+      - "/mnt/cntr/unsynced/borgmatic/0/repository/:/mnt/borg-repository/"
+      - "/mnt/cntr/unsynced/borgmatic/0/borgmatic.d/:/etc/borgmatic.d/"
+      - "/mnt/cntr/unsynced/borgmatic/0/config/:/root/.config/borg/"
+      - "/mnt/cntr/unsynced/borgmatic/0/ssh/:/root/.ssh/"
+      - "/mnt/cntr/unsynced/borgmatic/0/root/:/root/.local/state/borgmatic/"
+      - "/mnt/cntr/unsynced/:/mnt/source/:ro"
+      # I added those because borgmatic is no more running on the host but I also want those host's folders backed up
+      - "/etc/:/mnt/source/etc/:ro"
+      - "/opt/:/mnt/source/opt/:ro"
+      - "/home/:/mnt/source/home/:ro"
+      - "/root/:/mnt/source/root/:ro"
+    env:
+      TZ: "Europe/Berlin"
+```
+
+```
 When running borgmatic in a container you need to run the `ansible_podman` role and enable the borgmatic plugin. The `ansible_podman` role then will also run the `ansible_borgmatic` role and take care of everything.
+This is an example of calling the podman role. It will also setup borgmatic within that very run so no need to call the borgmatic role directly.
+```
+ansible-playbook playbooks/podman.yml -l nas1.libcom.de -e podman_limited_containers=borgmatic_nasofden1 --ask-vault-pass
+```
+
+This is my playbook file:
+```yaml
+- name: "MMN Podman Role"
+  hosts: tags_podman
+  become: true
+  roles:
+    - imp1sh.ansible_managemynetwork.ansible_podman
+```
+
 ```yaml
 # what is the container name (needed for restarts etc.)
 borgmatic_containername: "borgmatic_cntr-ofden1"
@@ -106,8 +176,9 @@ borgmatic_confdir: "/mnt/cntr/unsynced/borgmatic/0/borgmatic.d/"
 ```
 
 
-## Schedule (non Container)
-Backups are scheduled via systemd timer by default. The time when it will run will be daily randomized between 1 and 6 in the morning. You can override the time directly. It's recommended to define static values, otherwise each ansible run new timers will be randomized which might be unwanted.
+## Scheduling
+
+Backups are scheduled via systemd timer by default. When running borgmatic in containermode it will use cron. The time when it will run will be daily randomized between 1 and 6 in the morning. You can override the time directly. It's recommended to define static values, otherwise each ansible run new timers will be randomized which might be unwanted.
 ```yaml
 borgmatic_timer_hour: 1
 borgmatic_timer_minute: 3
@@ -125,14 +196,11 @@ If you don't want to have the systemd job managed via the role, set
 borgmatic_systemd_manage: False
 ```
 
-## Schedule (Container)
-
-The container uses cron instead. You can still use the same `borgmatic_timer_*` variables though in order to define execution timers. When you change the cron timer the container will restart in order to adjust to the new settings.
-
 ## Apprise notification
 Since borgmatic 1.8.3 [apprise](https://github.com/caronc/apprise) integration has gotten much better so my old method is now deprecated.
 It is a good idea to get notified when something goes wrong during the backup process.
 Just define a dict var carrying the apprise parameters
+
 ```yaml
 borgmatic_apprise:
   services:

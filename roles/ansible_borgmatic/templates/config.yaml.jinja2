@@ -13,9 +13,17 @@ source_directories:
 {################ REPOSITORIES ##################}
 repositories:
 {% for key, value in borgmatic_repositories.items() %}
+{############}
+{# BORGBASE #}
+{############}
 {% if value['enabled'] %}
+{% if value['type'] == 'borgbase' %}
+  - path: "ssh://{{ borgbase_repo['repo_id'] }}@{{ borgbase_repo['repo_id'] }}.repo.borgbase.com/./repo"
+    label: "{{ inventory_hostname }}_{{ key }}"
+{% else %}
   - path: "{{ value['type'] | default('')}}{{ value['targetuser'] }}@{{ value['targethost'] }}/{% if value['subdir'] is defined %}./{{ value['subdir'] }}/{% endif %}{{ inventory_hostname }}"
     label: "{{ value['label'] | default(key) }}"
+{% endif %}
 {% if value['encryption'] is defined %}
     encryption: {{ value['encryption'] }}
 {% endif %}
