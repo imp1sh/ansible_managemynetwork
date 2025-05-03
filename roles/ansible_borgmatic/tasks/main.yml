@@ -1,6 +1,8 @@
 ---
-# tasks file for ansible_borgmatic not container
-- name: "MMN borgmatic - not container tasks"
+# 
+# tasks file for ansible_borgmatic NOT CONTAINER
+#
+- name: "MMN borgmatic - Not container tasks"
   when:
     - borgmatic_containermode is not defined or (borgmatic_containermode is defined and not borgmatic_containermode)
   block:
@@ -14,20 +16,22 @@
       ansible.builtin.set_fact:
         borgmatic_package_state: present
       when: not borgmatic_via_pip
+
     - name: "MMN borgmatic - include install tasks"
       include_tasks: 1install.yml
-        #- name: "MMN borgmatic - Include cron tasks"
-        #  include_tasks: 3cron.yml
+
     - name: "MMN borgmatic - Include systemd timer task"
       include_tasks: 4systemd_timer.yml
       when: borgmatic_systemd_manage
-    - name: "MMN borgmatic - Include ssh tasks"
+
+    - name: "MMN borgmatic - Include ssh tasks for repo"
       include_tasks: 5ssh.yml
       loop: "{{ borgmatic_repositories | dict2items }}"
       loop_control:
         loop_var: borgmatic_repository
       when:
         - borgmatic_ssh_manage
+
     - name: "MMN borgmatic - Provide borgmatic config"
       ansible.builtin.template:
         src: config.yaml.jinja2
@@ -35,10 +39,14 @@
         owner: "{{ borgmatic_fileconfig_owner }}"
         group: "{{ borgmatic_fileconfig_group }}"
         mode: 0740
-    - name: MMN borgmatic - Init repository
+
+    - name: "MMN borgmatic - Init repository"
       ansible.builtin.command: "{{ borgmatic_venv_wrapper }} -c {{ borgmatic_pathconfig }}/{{ borgmatic_fileconfig }} init --encryption repokey"
       register: borgmatic_init_success
 
+# 
+# tasks file for ansible_borgmatic CONTAINER? YES!
+#
 - name: "MMN borgmatic - Container tasks"
   when: 
     - borgmatic_containermode is defined 
@@ -46,22 +54,16 @@
   block:
     - name: "MMN borgmatic - Container include vars"
       include_vars: "Container.yml"
-        #- name: debug
-        #  debug:
-        #    var: borgmatic_instance
-        #  loop: "{{ borgmatic_instances | dict2items }}"
-        #  loop_control:
-        #    loop_var: "borgmatic_instance"
-    - name: "MMN borgmatic - Container ssh"
-      ansible.builtin.include_tasks: "5ssh_container_basics.yml"
-          #- name: debug
-          #  debug:
-          #    msg: "Key is {{ borgmatic_instance.key }} and value is {{ borgmatic_instance.value }}"
-          #  loop: "{{ borgmatic_instances | dict2items }}"
-          #  loop_control:
-          #    loop_var: "borgmatic_instance"
+
+    - name: "MMN borgmatic - Iterate over target repositories"
+      ansible.builtin.include_tasks: "5ssh_container_repositories.yml"
+      loop: "{{ borgmatic_repositories | dict2items }}"
+      loop_control:
+        loop_var: "targetrepo"
+
     - name: "MMN borgmatic - Container cron tasks"
       include_tasks: 6cron_container.yml
+
     - name: "MMN borgmatic - Container provide borgmatic config"
       ansible.builtin.template:
         src: config.yaml.jinja2

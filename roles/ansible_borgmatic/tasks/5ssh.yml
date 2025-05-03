@@ -1,11 +1,47 @@
 ---
-- name: MMN borgmatic - ssh block
+- name: "MMN borgmatic - Borgbase Make sure root user has ssh public key"
+  ansible.builtin.user:
+    name: "root"
+    generate_ssh_key: True
+  register: rootuser
+
+# BORGBASE
+- name: "MMN borgmatic - Not container borgbase block"
+  when: borgmatic_repository.value.type == "borgbase"
   block:
-    - name: MMN borgmatic - Make sure root user has ssh public key
-      user:
-        name: "root"
-        generate_ssh_key: yes
-      register: rootuser
+    - name: "MMN borgmatic - Create key at borgbase using the apikey"
+      adhawkins.borgbase.borgbase_ssh:
+        state: present
+        apikey: "{{ borgmatic_borgbase_apikey }}"
+        name: "{{ inventory_hostname }}_{{ borgmatic_repository.key }}"
+        key: "{{ rootuser['ssh_public_key'] }}"
+      register: borgbase_key
+    - name: "MMN borgmatic - Create repo at borgbase"
+      adhawkins.borgbase.borgbase_repo:
+        state: present
+        apikey: "{{ borgmatic_borgbase_apikey }}"
+          #email: "{{ borgbase_email }}"
+          #password: "{{ borgbase_password }}"
+        name: "{{ ansible_hostname }}"
+        full_access_keys: [ "{{ borgbase_key.key_id }}" ]
+        quota_enabled: false
+        alert_days: 2
+      register: borgbase_repo
+    - name: MMN borgmatic - Register remote host key
+      command: "ssh-keyscan -tssh-ed25519 {{ borgbase_repo['repo_id'] }}.repo.borgbase.com"
+      register: hostkey
+    - name: "MMN borgmatic - Install target hosts fingerprint to known hosts"
+      ansible.builtin.known_hosts:
+        path: "{{ borgmatic_file_sshknownhosts }}"
+        key: "{{ hostkey.stdout }}"
+        name: "{{ borgbase_repo['repo_id'] }}.repo.borgbase.com"
+        state: present
+
+# SSH
+- name: MMN borgmatic - ssh block
+  when:
+    borgmatic_repository.value['type'] == "ssh://"
+  block:
     - name: MMN borgmatic - Provide root user's public key to destination machine
       authorized_key:
         user: "{{ borgmatic_repository.value['targetuser'] }}"
@@ -28,4 +64,3 @@
           #    key: "{{ lookup('pipe', 'ssh-keyscan -trsa ' + borgmatic_sshkey_targethost) }}"
           #    name: "{{ borgmatic_sshkey_targethost }}"
           #    state: present
-  when: borgmatic_repository.value['type'] == "ssh://"

@@ -1,5 +1,44 @@
 ---
-- name: "MMN borgmatic - SSH tasks"
+- name: "MMN borgmatic - Make sure ssh keys are present"
+  community.crypto.openssh_keypair:
+    type: "ed25519"
+    path: "{{ borgmatic_sshdir }}id_ed25519"
+  register: sshkey
+
+# BORGBASE
+- name: "MMN borgmatic - Container Borgbase tasks"
+  when: targetrepo.value['type'] == "borgbase"
+  block:
+    - name: "MMN borgmatic - Create key at borgbase using the apikey"
+      adhawkins.borgbase.borgbase_ssh:
+        state: present
+        apikey: "{{ borgmatic_borgbase_apikey }}"
+        name: "{{ inventory_hostname }}_{{ targetrepo.key }}"
+        key: "{{ sshkey['public_key'] }}"
+      register: borgbase_key
+    - name: "MMN borgmatic - Create repo at borgbase"
+      adhawkins.borgbase.borgbase_repo:
+        state: present
+        apikey: "{{ borgmatic_borgbase_apikey }}"
+          #email: "{{ borgbase_email }}"
+          #password: "{{ borgbase_password }}"
+        name: "{{ ansible_hostname }}"
+        full_access_keys: [ "{{ borgbase_key.key_id }}" ]
+        quota_enabled: false
+        alert_days: 2
+      register: borgbase_repo
+    - name: MMN borgmatic - Register remote host key
+      command: "ssh-keyscan -tssh-ed25519 {{ borgbase_repo['repo_id'] }}.repo.borgbase.com"
+      register: hostkey
+    - name: "MMN borgmatic - Install target hosts fingerprint to known hosts"
+      ansible.builtin.known_hosts:
+        path: "{{ borgmatic_sshdir }}known_hosts"
+        key: "{{ hostkey.stdout }}"
+        name: "{{ borgbase_repo['repo_id'] }}.repo.borgbase.com"
+        state: present
+
+# SSH              
+- name: "MMN borgmatic - Container SSH tasks"
   when: targetrepo.value['type'] == "ssh://"
   block:
     - name: "MMN borgmatic - Provide root user's public key to destination machine"

@@ -4,7 +4,8 @@
     name: "{{ borgmatic_package_requirements }}"
     state: present
   when: borgmatic_package_requirements is defined
-# package manager
+
+# PACKAGE MANAGER
 - name: MMN borgmatic - Package manager block
   block:
     - name: MMN borgmatic - Borg backup via package manager
@@ -16,7 +17,8 @@
         name: "{{ borgmatic_packagename_borgmatic }}"
         state: "{{ borgmatic_package_state }}"
   when: not borgmatic_via_pip
-# pip 
+
+# PIP 
 - name: MMN borgmatic - pip block 
   block:
     - name: MMN borgmatic - Install pip for pip installation
@@ -36,6 +38,7 @@
         name: borgbackup
         virtualenv: "{{ borgmatic_venvdir }}"
   when: borgmatic_via_pip
+
 # Apprise
 - name: MMN borgmatic - Apprise block
   block:
@@ -45,14 +48,16 @@
         virtualenv: "{{ borgmatic_venvdir }}"
       when: borgmatic_apprise_via_pip
   when: borgmatic_apprise
-# Wrapper script
+
+# WRAPPER SCRIPT FOR EXECUTION borgmatic_env
 - name: MMN borgmatic - Deploy wrapper script to use venv
   ansible.builtin.template:
     src: borgmatic_venv_wrapper.sh.jinja2
     dest: "{{ borgmatic_venv_wrapper }}"
     mode: 0740
     owner: root
-# config dir
+
+# CREATE CONFIG DIR
 - name: MMN borgmatic - Make sure borgmatic config dir exists
   file:
     path: "{{ borgmatic_pathconfig }}"
