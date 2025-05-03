@@ -100,8 +100,12 @@ borgmatic_repositories:
     enabled: true
 ```
 This one is for [borgbase - a really nice and affordable backup target storage provider](https://www.borgbase.com/). Have this role installed as well. [adhawkins.borgbase](https://github.com/adhawkins/ansible-borgbase). This role wil setup ssh keys and borgbase repos for you automatically.
-
-
+```yaml
+borgmatic_repositories:
+  borgbase0:
+    type: "borgbase"
+    enabled: true
+```
 
 ## Containermode
 
