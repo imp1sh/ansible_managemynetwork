@@ -124,6 +124,7 @@ borgmatic_confdir: "/mnt/cntr/unsynced/borgmatic/0/borgmatic.d/"
 # This parameter is not container specific but this is the default mount point where you mount into your container so it will be backed up.
 borgmatic_srcdirs:
   - "/mnt/source"
+```
 
 Here's also an example of a podman definition so you can see how the mounting typically goes.
 ```yaml
