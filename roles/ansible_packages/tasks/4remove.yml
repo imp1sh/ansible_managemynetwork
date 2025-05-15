@@ -8,7 +8,7 @@
     state: absent
   when:
     - packages_remove
-    - ansible_distribution != 'OpenWrt'
+    - ansible_distribution != 'OpenWrt' and ansible_distribution != 'LEDE'
     - not packages_runimagebuilder | default(false)
 - name: MMN Packages - Uninstalling packages OpenWrt
   ansible.builtin.opkg:
@@ -17,5 +17,5 @@
     update_cache: true
   when:
     - packages_remove
-    - ansible_distribution == 'OpenWrt'
+    - ansible_distribution == 'OpenWrt' or ansible_distribution == 'LEDE'
     - not packages_runimagebuilder | default(false)
