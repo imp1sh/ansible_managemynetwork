@@ -1,0 +1,16 @@
+---
+system_users_additional_packages:
+  - "shadow-useradd"
+  - "sudo"
+shells:
+  "zsh": "/usr/bin/zsh"
+  "sh": "/bin/sh"
+  "bash": "/bin/bash"
+  "fish": "/usr/bin/fish"
+  "false": "/bin/false"
+shellpackages:
+  zsh: "zsh"
+  sh: "bash"
+  bash: "bash"
+  fish: "fish"
+  "false": "bash"
