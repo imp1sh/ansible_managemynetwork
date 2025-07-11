@@ -5,7 +5,7 @@ system_users_additional_packages:
 shells:
   "zsh": "/usr/bin/zsh"
   "sh": "/bin/sh"
-  "bash": "in/bash"
+  "bash": "/bin/bash"
   "fish": "/usr/bin/fish"
   "false": "/bin/false"
 shellpackages:
