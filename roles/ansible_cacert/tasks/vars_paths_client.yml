@@ -1,0 +1,5 @@
+---
+- name: "MMN cacert - Filename vars"
+  ansible.builtin.set_fact:
+    cacert_filename_clientcert_suffix: "_{{ cacert_ca.key }}_{{ inventory_hostname }}_{{ cacert_tag_clientcert }}.pem"
+    cacert_filename_clientkey_suffix: "_{{ cacert_ca.key }}_{{ inventory_hostname }}_{{ cacert_tag_clientkey }}.pem"

@@ -5,5 +5,5 @@
     cacert_filename_serverkey: "{{ cacert_ca.key }}_{{inventory_hostname }}_{{ cacert_tag_privatekey }}.pem"
 - name: "MMN cacert - Server cert and key path"
   ansible.builtin.set_fact:
-    cacert_path_servercert: "{{ cacert_openssl_path_certificates }}/{{ cacert_filename_servercert }}"
+    cacert_path_servercert: "{{ cacert_openssl_path_certificates_server }}/{{ cacert_filename_servercert }}"
     cacert_path_serverkey: "{{ cacert_openssl_path_keys }}/{{ cacert_filename_serverkey }}"

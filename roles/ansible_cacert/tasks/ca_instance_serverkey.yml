@@ -1,0 +1,54 @@
+---
+# PRIVATE KEY FOR SERVER CERT
+
+- name: "MMN cacert - Private Key for server cert block"
+  when: cacert_ca.value.state | default('present') == 'present'
+  block:
+    - name: "MMN cacert - Create server private keys"
+      become: True
+      community.crypto.openssl_privatekey:
+        path: "{{ cacert_path_key_server }}"
+        passphrase: "{{ cacert_servercert_passphrase|default(omit) }}"
+        size: "{{ cacert_servercert_bitsize | default('4096') }}"
+        type: "{{ cacert_servercert_type | default('RSA') }}"
+        curve: "{{ cacert_servercert_curve | default(omit) }}"
+
+    - name: "MMN cacert - Make sure additional paths exist"
+      become: true
+      ansible.builtin.file:
+        state: directory
+        path: "{{ additionalpaths.dest }}"
+      loop: "{{ cacert_serverkey_additionalpaths }}"
+      loop_control:
+        loop_var: "additionalpaths"
+      when:
+        - cacert_serverkey_additionalpaths is defined
+        - additionalpaths.state | default('present') == 'present'
+
+    - name: "MMN cacert - Write server private keys to additional paths"
+      become: True
+      ansible.builtin.copy:
+        src: "{{ cacert_path_serverkey }}"
+        remote_src: True
+        dest: "{{ additionalpaths.dest }}/{{ cacert_filename_serverkey }}"
+        mode: 0600
+        owner: "{{ additionalpaths.user | default(omit) }}"
+        group: "{{ additionalpaths.group | default(omit) }}"
+      loop: "{{ cacert_serverkey_additionalpaths }}"
+      loop_control:
+        loop_var: "additionalpaths"
+      when:
+        - cacert_serverkey_additionalpaths is defined
+        - additionalpaths.state | default('present') == 'present'
+
+- name: "MMN cacert - Remove server private key from additional paths"
+  become: true
+  ansible.builtin.file:
+    path: "{{ additionalpaths.dest }}/{{ cacert_filename_serverkey }}"
+    state: absent
+  loop: "{{ cacert_serverkey_additionalpaths }}"
+  loop_control:
+    loop_var: "additionalpaths"
+  when:
+    - cacert_serverkey_additionalpaths is defined
+    - additionalpaths.state | default('present') == 'absent'

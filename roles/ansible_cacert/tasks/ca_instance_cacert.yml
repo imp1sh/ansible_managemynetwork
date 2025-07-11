@@ -1,0 +1,82 @@
+---
+# CA CERT TASKS 
+- name: "MMN cacert - Check if CA cert exists"
+  delegate_to: "{{ cacert_ca_manager_host }}"
+  ansible.builtin.stat:
+    path: "{{ cacert_path_cacert }}"
+  register: stat_certificate_ca
+  run_once: True
+
+# EXISTING CA NEEDS TO BE READ IN ORDER FOR THE CERT TASK TO BE IDEMPOTENT
+- name: "MMN cacert - Read existing CA certificate"
+  delegate_to: "{{ cacert_ca_manager_host }}"
+  ansible.builtin.slurp:
+    src: "{{ cacert_path_cacert }}"
+  when: stat_certificate_ca.stat.exists
+  run_once: true
+  register: cacert_ca_cert_existing
+
+- name: "MMN cacert - Remove ca cert"
+  delegate_to: "{{ cacert_ca_manager_host }}"
+  become: true
+  ansible.builtin.file:
+    path: "{{ cacert_path_cacert }}"
+    state: absent
+  when:
+    - stat_certificate_ca.stat.exists
+    - cacert_ca.value.state | default('present') == 'absent'
+  run_once: True
+
+- name: "MMN cacert - Block to sign CA cert"
+  when:
+    - cacert_ca.value.state | default('present') == 'present'
+  block:
+    - name: "MMN cacert - Create CSR for CA cert"
+      become: True
+      delegate_to: "{{ cacert_ca_manager_host }}"
+      community.crypto.openssl_csr_pipe:
+        privatekey_path: "{{ cacert_path_cakey }}"
+        privatekey_passphrase: "{{ cacert_ca.value.key.passphrase | default(omit) }}"
+        common_name: "{{ cacert_ca.value.common_name }}"
+        organization_name: "{{ cacert_ca.value.organization_name | default(omit) }}"
+        organizational_unit_name: "{{ cacert_ca.value.organizational_unit_name | default(omit) }}"
+        state_or_province_name: "{{ cacert_ca.value.state_or_province_name | default(omit) }}"
+        locality_name: "{{ cacert_ca.value.locality_name | default(omit) }}"
+        country_name: "{{ cacert_ca.value.country_name | default(omit) }}"
+        email_address: "{{ cacert_ca.value.email_address | default(omit) }}"
+        basic_constraints_critical: True
+        key_usage_critical: true
+        key_usage:
+          - keyCertSign
+          - cRLSign
+        basic_constraints:
+          - 'CA:TRUE'
+      register: cacert_ca_csr
+      changed_when: false
+      run_once: True
+
+    # IF CERT EXISTS IT IS ONLY BEING RECRETAED IF IT'S DIFFERENT    
+    - name: "MMN cacert - Create CA cert"
+      become: True
+      delegate_to: "{{ cacert_ca_manager_host }}"
+      community.crypto.x509_certificate_pipe:
+        content: "{{ (cacert_ca_cert_existing.content | b64decode) if stat_certificate_ca.stat.exists else omit }}"
+        csr_content: "{{ cacert_ca_csr.csr }}"
+        ownca_not_after: "{{ cacert_ca.value.not_after | default('+10y') }}"
+        ownca_not_before: "{{ cacert_ca.value.not_before | default('-1d') }}"
+        privatekey_passphrase: "{{ cacert_ca.value.key.passphrase | default(omit) }}"
+        privatekey_path: "{{ cacert_path_cakey }}"
+        provider: "selfsigned"
+      run_once: True
+      register: cacert_ca_cert
+
+    - name: "MMN cacert - Write CA cert to file"
+      delegate_to: "{{ cacert_ca_manager_host }}"
+      become: True
+      ansible.builtin.copy:
+        dest: "{{ cacert_path_cacert }}"
+        content: "{{ cacert_ca_cert.certificate }}"
+        backup: "{{ cacert_ca.value.cert.backup | default(omit) }}"
+      when:
+        - cacert_ca_cert is changed
+

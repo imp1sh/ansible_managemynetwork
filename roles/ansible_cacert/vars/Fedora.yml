@@ -1,0 +1,4 @@
+---
+cacert_openssl_path_certificates: "/etc/pki/tls/certs"
+cacert_openssl_path_keys: "/etc/pki/tls/private"
+cacert_command_updatetruststore: "update-ca-trust"

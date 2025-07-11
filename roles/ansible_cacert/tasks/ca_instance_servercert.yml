@@ -1,0 +1,95 @@
+---
+- name: "MMN cacert - Server Cert block"
+  when: cacert_ca.value.state | default('present') == 'present'
+  block:
+    - name: "MMN cacert - Check if server cert exists"
+      ansible.builtin.stat:
+        path: "{{ cacert_path_servercert }}"
+      register: stat_servercert
+    
+    - name: "MMN cacert - Read existing certificate"
+      ansible.builtin.slurp:
+        src: "{{ cacert_path_servercert }}"
+      register: cacert_servercert_existing
+      when: stat_servercert.stat.exists
+    
+    - name: "MMN cacert - Manage server CSRs"
+      become: True
+      community.crypto.openssl_csr_pipe:
+        privatekey_path: "{{ cacert_path_serverkey }}"
+        privatekey_passphrase: "{{ cacert_servercert_passphrase | default(omit) }}"
+        common_name: "{{ cacert_servercert_common_name | default(inventory_hostname) }}"
+        organization_name: "{{ cacert_servercert_organization_name | default(omit) }}"
+        organizational_unit_name: "{{ cacert_servercert_organizational_unit_name | default(omit) }}"
+        state_or_province_name: "{{ cacert_servercert_state_or_province_name | default(omit) }}"
+        locality_name: "{{ cacert_servercert_locality_name | default(omit) }}"
+        country_name: "{{ cacert_servercert_country_name | default(omit) }}"
+        email_address: "{{ cacert_servercert_email_address | default(omit) }}"
+        subject_alt_name: >-
+          {{ (cacert_servercert_altnames | map(attribute='prefix') | zip(cacert_servercert_altnames | map(attribute='name')) | map('join', ':') | list)
+             if cacert_servercert_altnames is defined else omit }}
+      register: csr_server
+      changed_when: false
+
+    - name: "MMN cacert - Sign certificate with our CA"
+      become: True
+      delegate_to: "{{ cacert_ca_manager_host }}"
+      community.crypto.x509_certificate_pipe:
+        csr_content: "{{ csr_server.csr }}"
+        content: "{{ (cacert_servercert_existing.content | b64decode) if stat_servercert.stat.exists else omit }}"
+        provider: ownca
+        ownca_path: "{{ cacert_path_cacert }}"
+        ownca_privatekey_path: "{{ cacert_path_cakey }}"
+        ownca_privatekey_passphrase: "{{ cacert_ca.value.key.passphrase }}"
+        ownca_not_after: "{{ cacert_servercert_not_after }}"
+        ownca_not_before: "{{ cacert_servercert_not_before | default('-1d') }}" 
+      when: cacert_ca.value.state | default('present') == 'present'
+      register: cacert_server_cert
+
+    - name: "MMN cacert - Write server cert to file"
+      become: True
+      ansible.builtin.copy:
+        dest: "{{ cacert_path_servercert }}"
+        content: "{{ cacert_server_cert.certificate }}"
+      when:
+        - cacert_server_cert is changed
+    
+    # ADDITIONAL PATHS
+    - name: "MMN cacert - Make sure additional paths exist"
+      become: true
+      ansible.builtin.file:
+        state: directory
+        path: "{{ additionalpaths.dest }}"
+      loop: "{{ cacert_servercert_additionalpaths }}"
+      loop_control:
+        loop_var: "additionalpaths"
+      when:
+        - cacert_servercert_additionalpaths is defined
+        - additionalpaths.state | default('present') == 'present'
+
+    - name: "MMN cacert - Write server cert to additional paths"
+      become: True
+      ansible.builtin.copy:
+        src: "{{ cacert_path_servercert }}"
+        remote_src: True
+        dest: "{{ additionalpaths.dest }}/{{ cacert_filename_servercert }}"
+        owner: "{{ additionalpaths.user | default(omit) }}"
+        group: "{{ additionalpaths.group | default(omit) }}"
+      loop: "{{ cacert_servercert_additionalpaths }}"
+      loop_control:
+        loop_var: "additionalpaths"
+      when:
+        - cacert_servercert_additionalpaths is defined
+        - additionalpaths.state | default('present') == 'present'
+
+- name: "MMN cacert - Remove server cert from additional paths"
+  become: true
+  ansible.builtin.file:
+    path: "{{ additionalpaths.dest }}/{{ cacert_filename_servercert }}"
+    state: absent
+  loop: "{{ cacert_servercert_additionalpaths }}"
+  loop_control:
+    loop_var: "additionalpaths"
+  when:
+    - cacert_servercert_additionalpaths is defined
+    - additionalpaths.state | default('present') == 'absent'

@@ -1,0 +1,35 @@
+---
+- name: "MMN cacert - Server Cert block"
+  when: cacert_ca.value.state | default('present') == 'present'
+  block:
+    # COPY SERVERCERT ALSO TO OTHER HOSTS     
+    - name: "MMN cacert - Additional hosts for cert block"
+      when:
+        - cacert_servercert_additionalhosts is defined
+      block:
+        - name: "MMN cacert - Other host paths must exist"
+          delegate_to: "{{ cacert_servercert_additionalhost.targethost }}"
+          become: True
+          ansible.builtin.file:
+            state: directory
+            path: "{{ cacert_servercert_additionalhost.targethostpath }}"
+            owner: "{{ cacert_servercert_additionalhost.targethostuser | default(omit) }}"
+            group: "{{ cacert_servercert_additionalhost.targethostgroup | default(omit) }}"
+          loop: "{{ cacert_servercert_additionalhosts }}"
+          loop_control:
+            loop_var: "cacert_servercert_additionalhost"
+          when:
+            - cacert_servercert_additionalhost.state == 'present'
+
+        - name: "MMN cacert - Copy cert also to other hosts"
+          delegate_to: "{{ cacert_servercert_additionalhost.targethost }}"
+          become: True
+          ansible.builtin.copy:
+            content: "{{ cacert_servercert_existing.content | b64decode }}"
+            dest: "{{ cacert_servercert_additionalhost.targethostpath }}/{{ cacert_filename_servercert }}"
+            owner: "{{ cacert_servercert_additionalhost.targethostuser | default(omit) }}"
+            group: "{{ cacert_servercert_additionalhost.targethostgroup | default(omit) }}"
+          loop: "{{ cacert_servercert_additionalhosts }}"
+          loop_control:
+            loop_var: "cacert_servercert_additionalhost"
+          when: cacert_servercert_additionalhost.state == 'present'

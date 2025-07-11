@@ -5,3 +5,5 @@ cacert_ca_certfile: ca.crt
 cacert_ca_validity_days: 900 
 cacert_tag_privatekey: "privatekey"
 cacert_tag_certificate: "certificate"
+cacert_tag_clientcert: "clientcert"
+cacert_tag_clientkey: "clientkey"

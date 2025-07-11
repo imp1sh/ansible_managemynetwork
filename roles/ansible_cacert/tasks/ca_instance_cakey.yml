@@ -1,0 +1,41 @@
+---
+# PRIVATE KEY
+- name: "MMN cacert - Remove ca private key"
+  delegate_to: "{{ cacert_ca_manager_host }}"
+  become: true
+  ansible.builtin.file:
+    path: "{{ cacert_path_cakey }}"
+    state: absent
+  when: cacert_ca.value.state | default('present') == 'absent'
+  run_once: True
+
+- name: "MMN cacert - Make sure CA private key is there"
+  become: true
+  delegate_to: "{{ cacert_ca_manager_host }}"
+  community.crypto.openssl_privatekey:
+    backup: "{{ cacert_ca.value.key.backup | default(omit) }}"
+    cipher: "{{ cacert_ca.value.key.cipher | default(omit) }}"
+    curve: "{{ cacert_ca.value.key.curve | default(omit) }}"
+    force: "{{ cacert_ca.value.key.force | default(omit) }}"
+    format: "{{ cacert_ca.value.key.format | default(omit) }}"
+    format_mismatch: "{{ cacert_ca.value.key.format_mismatch | default(omit) }}"
+    group: "{{ cacert_ca.value.key.group | default(omit) }}"
+    mode: "{{ cacert_ca.value.key.mode | default('0600') }}"
+    owner: "{{ cacert_ca.value.key.owner | default(omit) }}"
+    passphrase: "{{ cacert_ca.value.key.passphrase | default(omit) }}"
+    path: "{{ cacert_path_cakey }}"
+    regenerate: "{{ cacert_ca.value.key.regenerate | default(omit) }}"
+    return_content: "{{ cacert_ca.value.key.return_content | default(omit) }}"
+    select_crypto_backend: "{{ cacert_ca.value.key.select_crypto_backend | default(omit) }}"
+    selevel: "{{ cacert_ca.value.key.selevel | default(omit) }}"
+    serole: "{{ cacert_ca.value.key.serole | default(omit) }}"
+    setype: "{{ cacert_ca.value.key.setype | default(omit) }}"
+    seuser: "{{ cacert_ca.value.key.seuser | default(omit) }}"
+    size: "{{ cacert_ca.value.key.size | default(omit) }}"
+    state: "{{ cacert_ca.value.key.state | default(omit) }}"
+    type: "{{ cacert_ca.value.key.type | default(omit) }}"
+    unsafe_writes: "{{ cacert_ca.value.key.unsafe_writes | default(omit) }}"
+  register: cacert_ca_privatekey
+  run_once: True
+  when:
+    - cacert_ca.value.state | default('present') == 'present'

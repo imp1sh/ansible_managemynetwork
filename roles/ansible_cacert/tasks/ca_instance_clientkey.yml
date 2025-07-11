@@ -1,0 +1,40 @@
+---
+# PRIVATE KEY FOR CLIENT CERT
+
+# This needs of course to be outside of the block and the same amount of course it shall NOT
+# use `cacert_clientkey.common_name`.
+- name: "MMN cacert - Define filename vars"
+  ansible.builtin.set_fact:
+    cacert_filename_clientkey: "{{ cacert_clientcert.common_name }}{{ cacert_filename_clientkey_suffix }}"
+    cacert_filename_clientcert: "{{ cacert_clientcert.common_name }}{{ cacert_filename_clientcert_suffix }}"
+- name: "MMN cacert - Define path vars"
+  ansible.builtin.set_fact:
+    cacert_path_clientkey: "{{ cacert_clientcert.dest }}/{{ cacert_clientcert.common_name }}{{ cacert_filename_clientkey_suffix }}"
+    cacert_path_clientcert: "{{ cacert_clientcert.dest }}/{{ cacert_clientcert.common_name }}{{ cacert_filename_clientcert_suffix }}"
+
+- name: "MMN cacert - Make sure key path exist"
+  become: true
+  ansible.builtin.file:
+    state: directory
+    path: "{{ cacert_path_clientkey | basename }}"
+
+- name: "MMN cacert - Create new client private key"
+  become: True
+  community.crypto.openssl_privatekey:
+    path: "{{ cacert_path_clientkey }}"
+    passphrase: "{{ cacert_clientcert_passphrase|default(omit) }}"
+    size: "{{ cacert_clientcert_bitsize | default('4096') }}"
+    type: "{{ cacert_clientcert_type | default('RSA') }}"
+    curve: "{{ cacert_clientcert_curve | default(omit) }}"
+    owner: "{{ cacert_clientcert.user | default(omit) }}"
+    group: "{{ cacert_clientcert.group | default(omit) }}"
+    mode: 0600
+    backup: True
+      #register: privatekey_result
+    
+- name: "MMN cacert - Remove client private key from paths"
+  become: true
+  ansible.builtin.file:
+    path: "{{ cacert_path_clientkey }}"
+    state: absent
+  when: cacert_clientcert.state | default('present') == 'absent'

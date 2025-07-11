@@ -1,0 +1,84 @@
+---
+- name: "MMN cacert - Client Cert shall be present block"
+  when:
+    - cacert_ca.value.state | default('present') == 'present'
+  block:
+    - name: "MMN cacert - Check if client cert exists"
+      become: True
+      ansible.builtin.stat:
+        path: "{{ cacert_path_clientcert }}"
+      register: stat_certificate_client
+    
+    - name: "MMN cacert - Read existing certificate"
+      become: True
+      ansible.builtin.slurp:
+        src: "{{ cacert_path_clientcert }}"
+      register: certificate_client
+      when: stat_certificate_client.stat.exists
+    
+    - name: "MMN cacert - Manage client CSRs"
+      become: True
+      community.crypto.openssl_csr_pipe:
+        privatekey_path: "{{ cacert_path_clientkey }}"
+          #privatekey_content: "{{ privatekey_result.privatekey }}"
+        privatekey_passphrase: "{{ cacert_clientcert_passphrase | default(omit) }}"
+        common_name: "{{ cacert_clientcert.common_name | default(inventory_hostname) }}"
+          #organization_name: "{{ cacert_clientcert.organization_name | default(cacert_clientcert_organization_name) | default(omit) }}"
+          #organizational_unit_name: "{{ cacert_clientcert.organizational_unit_name | default(cacert_clientcert_organizational_unit_name) | default(omit) }}"
+          #state_or_province_name: "{{ cacert_clientcert.state_or_province_name | default(cacert_clientcert_state_or_province_name) | default(omit) }}"
+          #locality_name: "{{ cacert_clientcert.locality_name | default(cacert_clientcert_locality_name) | default(omit) }}"
+          #country_name: "{{ cacert_clientcert.country_name | default(cacert_clientcert_country_name) | default(omit) }}"
+          #email_address: "{{ cacert_clientcert.email_address | default(cacert_clientcert_email_address) | default(omit) }}"
+        #subject_alt_name: >-
+          #{{ (cacert_clientcert.altnames | map(attribute='prefix') | zip(cacert_clientcert.altnames | map(attribute='name')) | map('join', ':') | list)
+          #   if cacert_clientcert.altnames is defined else omit }}
+      register: csr_client
+      changed_when: false
+
+    - name: "MMN cacert - Sign client certificate with our CA"
+      become: True
+      delegate_to: "{{ cacert_ca_manager_host }}"
+      community.crypto.x509_certificate_pipe:
+        #path: "{{ cacert_path_clientcert }}"
+        csr_content: "{{ csr_client.csr }}"
+        content: "{{ (certificate_client.content | b64decode) if stat_certificate_client.stat.exists else omit }}"
+        provider: ownca
+        ownca_path: "{{ cacert_path_cacert }}"
+        ownca_privatekey_path: "{{ cacert_path_cakey }}"
+        ownca_privatekey_passphrase: "{{ cacert_ca.value.key.passphrase }}"
+        ownca_not_after: "{{ cacert_clientcert.not_after | default(cacert_clientcert_not_after) | default('+54w') }}"
+        ownca_not_before: "{{ cacert_clientcert.not_before | default(cacert_clientcert_not_before) | default('-1d') }}" 
+      register: cacert_clientcert_result
+      when:
+        - cacert_ca.value.state | default('present') == 'present'
+        - (client_key_was_generated is defined and client_key_was_generated) or not stat_certificate_client.stat.exists
+
+    - name: "MMN cacert - Write client cert to file"
+      become: True
+      ansible.builtin.copy:
+        dest: "{{ cacert_path_clientcert }}"
+      when:
+        - cacert_clientcert is changed
+    
+    - name: "MMN cacert - Make sure cert path exist"
+      become: true
+      ansible.builtin.file:
+        state: directory
+        path: "{{ cacert_path_clientcert | basename }}"
+
+    - name: "MMN cacert - Write client cert to file"
+      become: true
+      ansible.builtin.copy:
+        content: "{{ cacert_clientcert_result.certificate }}"
+        dest: "{{ cacert_path_clientcert }}"
+        owner: "{{ cacert_clientcert.user | default(omit) }}"
+        group: "{{ cacert_clientcert.group | default(omit) }}"
+        backup: True
+      when: ( certificate_client is changed ) or ( not stat_certificate_client.stat.exists )
+
+- name: "MMN cacert - Remove client cert from path"
+  become: true
+  ansible.builtin.file:
+    path: "{{ cacert_path_clientcert }}"
+    state: absent
+  when: cacert_clientcert.state | default('present') == 'absent'

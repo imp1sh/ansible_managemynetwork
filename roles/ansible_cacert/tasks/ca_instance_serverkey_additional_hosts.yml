@@ -1,0 +1,24 @@
+---
+- name: "MMN cacert - Private Key for server cert block"
+  when: cacert_ca.value.state | default('present') == 'present'
+  block:
+    # COPY SERVERKEY ALSO TO OTHER HOSTS     
+    - name: "MMN cacert - Additional hosts for key block"
+      when:
+        - cacert_servercert_additionalhosts is defined
+        - cacert_servercert_additionalhosts | selectattr('alsokey', 'defined') | selectattr('alsokey', 'equalto', true) | list | length > 0
+      block:
+        - name: "MMN cacert - Get key from file into var"
+          become: True
+          ansible.builtin.slurp:
+            src: "{{ cacert_path_serverkey }}"
+          register: cacert_serverkey_existing
+
+        - name: "MMN cacert - Iterate over additional hosts"
+          ansible.builtin.include_tasks: ca_instance_serverkey_additional_hosts_instance.yml
+          loop: "{{ cacert_servercert_additionalhosts }}"
+          loop_control:
+            loop_var: "cacert_serverkey_additionalhost"
+          when:
+            - cacert_serverkey_additionalhost.state == 'present'
+            - cacert_serverkey_additionalhost.alsokey | default(False)

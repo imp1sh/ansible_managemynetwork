@@ -1,0 +1,11 @@
+# tasks/load_os_vars.yml
+- name: "MMN cacert - Load OS vars"
+  include_vars: "{{ lookup('ansible.builtin.first_found', params) }}"
+  vars:
+    params:
+      files:
+        - "{{ distro }}.yml"
+        - "{{ osfam }}.yml"
+        - "default.yml"
+      paths:
+        - "vars"

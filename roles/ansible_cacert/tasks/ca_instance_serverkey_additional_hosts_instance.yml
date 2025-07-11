@@ -1,0 +1,19 @@
+---
+- name: "MMN cacert - Copy other host paths must exist"
+  delegate_to: "{{ cacert_serverkey_additionalhost.targethost }}"
+  become: True
+  ansible.builtin.file:
+    state: directory
+    path: "{{ cacert_serverkey_additionalhost.targethostpath }}"
+    owner: "{{ cacert_serverkey_additionalhost.targethostuser | default(omit) }}"
+    group: "{{ cacert_serverkey_additionalhost.targethostgroup | default(omit) }}"
+
+- name: "MMN cacert - Copy key also to other hosts"
+  delegate_to: "{{ cacert_serverkey_additionalhost.targethost }}"
+  become: True
+  ansible.builtin.copy:
+    content: "{{ cacert_serverkey_existing.content | b64decode }}"
+    dest: "{{ cacert_serverkey_additionalhost.targethostpath }}/{{ cacert_filename_serverkey }}"
+    mode: "0600"
+    owner: "{{ cacert_serverkey_additionalhost.targethostuser | default(omit) }}"
+    group: "{{ cacert_serverkey_additionalhost.targethostgroup | default(omit) }}"

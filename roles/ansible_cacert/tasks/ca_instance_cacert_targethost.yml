@@ -1,0 +1,47 @@
+---
+- name: "MMN cacert - Make sure CA cert is installed to target host"
+  become: True
+  ansible.builtin.copy:
+    content: "{{ cacert_ca_cert.certificate }}"
+    dest: "{{ cacert_path_cacert_targethost }}"
+    backup: True
+  when: cacert_ca.value.state | default('present') == 'present'
+
+# ADDITIONAL PATH
+- name: "MMN cacert - Additional paths block"
+  when:
+    - cacert_cacert_additionalpaths is defined
+    - additionalpaths.state | default('present') == 'present'
+  block:
+    - name: "MMN cacert - Make sure additional paths exist"
+      become: true
+      ansible.builtin.file:
+        state: directory
+        path: "{{ additionalpaths.dest }}"
+      loop: "{{ cacert_cacert_additionalpaths }}"
+      loop_control:
+        loop_var: "additionalpaths"
+    
+    - name: "MMN cacert - Write ca cert to additional paths"
+      become: True
+      ansible.builtin.copy:
+        content: "{{ cacert_ca_cert.certificate }}"
+        dest: "{{ additionalpaths.dest }}/{{ cacert_filename_cacert }}"
+        remote_src: True
+        owner: "{{ additionalpaths.user | default(omit) }}"
+        group: "{{ additionalpaths.group | default(omit) }}"
+      loop: "{{ cacert_cacert_additionalpaths }}"
+      loop_control:
+        loop_var: "additionalpaths"
+
+- name: "MMN cacert - Remove ca cert from additional paths"
+  become: true
+  ansible.builtin.file:
+    path: "{{ additionalpaths.dest }}/{{ cacert_filename_cacert }}"
+    state: absent
+  loop: "{{ cacert_cacert_additionalpaths }}"
+  loop_control:
+    loop_var: "additionalpaths"
+  when:
+    - cacert_cacert_additionalpaths is defined
+    - additionalpaths.state | default('present') == 'absent'
