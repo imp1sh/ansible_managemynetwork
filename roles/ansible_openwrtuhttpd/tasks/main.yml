@@ -32,6 +32,7 @@
     path: "{{ actual_cert_path }}/{{ inventory_hostname }}.key"
   register: searchkey
   when:
+    - actual_cert_path is defined
     - not openwrt_uhttpd_runimagebuilder | default(false)
 - name: debug
   debug:
@@ -45,6 +46,7 @@
     - not openwrt_uhttpd_runimagebuilder | default(false)
     - searchkey is defined
     - searchcert is defined
+    - searchkey.stat is defined
     - searchkey.stat.exists
     - searchcert.stat.exists
 - name: Deploy uhttpd config
