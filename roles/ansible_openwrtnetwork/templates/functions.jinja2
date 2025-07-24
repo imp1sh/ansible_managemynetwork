@@ -460,7 +460,7 @@ config interface "{{ key }}"
 {% endif %}
 {% if value['ipaddr'] is defined %}
 {% for singleip in value['ipaddr'] %}
-	list ipaddr "{{ singleip }}"
+	option ipaddr "{{ singleip }}"
 {% endfor %}
 {% endif %}
 {% if value['ip6assign'] is defined %}
