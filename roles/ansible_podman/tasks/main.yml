@@ -8,6 +8,7 @@
   ansible.builtin.include_tasks:
     file: 1prepare.yml
 
+      # FIXME Currently broken, see https://github.com/containers/ansible-podman-collections/issues/924#issuecomment-2807192548
       #- name: MMN Podman - Manage secrets
       #  containers.podman.podman_secret:
       #    name: "{{ item.name }}"
@@ -24,7 +25,7 @@
       #    skip_existing: "{{ item.skip_existing | default(omit) }}"
       #  loop: "{{ podman_secrets }}"
 
-- name: "MMN Podman - Deploy application configuration for supported plugin"
+- name: "MMN Podman - Deploy application configuration for supported plugin 1st run"
   ansible.builtin.include_tasks:
     file: 2plugins.yml
   when: ( podman_container_plugin_psql is defined ) or ( podman_container_plugin_borgmatic is defined ) or ( podman_container_plugin_pdnsauth is defined )
@@ -36,7 +37,7 @@
   when:
     - podman_containers is defined
 
-- name: "MMN Podman - Deploy application configuration for supported plugin"
+- name: "MMN Podman - Deploy application configuration for supported plugin 2nd run"
   ansible.builtin.include_tasks:
     file: 2plugins2.yml
   when: podman_container_plugin_psql is defined

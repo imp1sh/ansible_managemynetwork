@@ -5,3 +5,6 @@
 - name: "MMN Podman - Calling pdnsauth role"
   ansible.builtin.include_role:
     name: imp1sh.ansible_managemynetwork.ansible_pdnsauth
+- name: "MMN Podman - Calling cacert role"
+  ansible.builtin.include_role:
+    name: imp1sh.ansible_managemynetwork.ansible_cacert

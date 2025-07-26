@@ -1,4 +1,10 @@
 # PSQL
+- name: "MMN Podman - Safety wait for psql first start"
+  ansible.builtin.pause:
+    seconds: "{{ podman_container_plugin_psql_waittime | default('10') }}"
+  when:
+    - podman_container_plugin_psql is defined
+    - podman_containers | map(attribute='name') | select('in', podman_container_plugin_psql) | list | length > 0
 - name: "MMN Podman - Prepare calling psqlserver role"
   ansible.builtin.set_fact:
     psqlserver_containermode: true
@@ -15,4 +21,4 @@
   when:
     - podman_container_plugin_psql is defined
     - podman_containers | map(attribute='name') | select('in', podman_container_plugin_psql) | list | length > 0
-
+    - not psqlserver_isreplica | default(False)
