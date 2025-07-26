@@ -121,7 +121,7 @@ borgmatic_cronstate: "present"
 borgmatic_sshdir: "/mnt/cntr/unsynced/borgmatic/0/ssh/"
 # This is where borgmatic config will be put
 borgmatic_confdir: "/mnt/cntr/unsynced/borgmatic/0/borgmatic.d/"
-# This parameter is not container specific but this is the default mount point where you mount into your container so it will be backed up.
+# This parameter is not container specific but this is the default mount point where you mount into your container so it will be backed up. Normally you don't have to give any other dir, just mount everything you want to backup into this dir in the container. Don't forget to define excludes based on this dir
 borgmatic_srcdirs:
   - "/mnt/source"
 ```
@@ -152,10 +152,14 @@ podman_containers:
 ```
 
 ```
-When running borgmatic in a container you need to run the `ansible_podman` role and enable the borgmatic plugin. The `ansible_podman` role then will also run the `ansible_borgmatic` role and take care of everything.
+When running borgmatic in a container you need to run the `ansible_podman` role and enable the borgmatic plugin. The `ansible_podman` role then will also run the `ansible_borgmatic` role and take care of everything. This is how you enable the plugin for the container borgmatic0. I keep naming the container for backup the same on every host so I can define this on a group var scope in ansible
+```
+podman_container_plugin_borgmatic:
+  - "borgmatic0"
+```
 This is an example of calling the podman role. It will also setup borgmatic within that very run so no need to call the borgmatic role directly.
 ```
-ansible-playbook playbooks/podman.yml -l nas1.libcom.de -e podman_limited_containers=borgmatic_nasofden1 --ask-vault-pass
+ansible-playbook playbooks/podman.yml -l nas1.libcom.de -e podman_limited_containers=borgmatic0 --ask-vault-pass
 ```
 
 This is my playbook file:
@@ -166,10 +170,11 @@ This is my playbook file:
   roles:
     - imp1sh.ansible_managemynetwork.ansible_podman
 ```
+Those vars I typically define on a group scope level, so this is the same for every host that will run borgmatic in a container.
 
 ```yaml
 # what is the container name (needed for restarts etc.)
-borgmatic_containername: "borgmatic_cntr-ofden1"
+borgmatic_containername: "borgmatic0"
 # Enable containermode so when running this role on a host in containermode won't break thins
 borgmatic_containermode: True
 # the cronfile is to be expected in a specific dir
@@ -179,6 +184,8 @@ borgmatic_cronstate: "present"
 borgmatic_sshdir: "/mnt/cntr/unsynced/borgmatic/0/ssh/"
 # config directory, also cron file normaly is put here
 borgmatic_confdir: "/mnt/cntr/unsynced/borgmatic/0/borgmatic.d/"
+# name the container the borg runs in
+borgmatic_containername: "borgmatic0"
 ```
 
 
