@@ -10,6 +10,7 @@
       #path: "{{ initscript.targetpath }}"
     path: "{{ psqlserver_instance.value.templatespath_destination }}"
     mode: '0755'
+  when: psqlserver_instance.value.templatespath_destination is defined
 
 # INIT SCRIPTS AND SQL FILES 
 # FOLDERCHECKS
@@ -60,11 +61,14 @@
       when:
         - ( stat_templatespath_source.stat.exists is defined ) and ( stat_templatespath_source.stat.exists )
         - ( stat_templatespath_destination.stat.exists is defined ) and ( stat_templatespath_destination.stat.exists )
-      #- name: "MMN psqlserver - Place init scripts and sql files"
-      #  ansible.builtin.copy:
-      #    dest: "{{ initscript.targetpath }}/{{ initscript.name }}"
-      #    content: "{{ initscript.content | template }}"
-      #    mode: '0755'
-      #  loop: "{{ psqlserver_instance.value.initscripts }}"
-      #  loop_control:
-      #    loop_var: "initscript"
+
+          # I believe this is too early to put it here as db possibly needs to initialize first
+          #- name: "MMN psqlserver - Provide postgres config for container"
+          #  ansible.builtin.template:
+          #    src: "{{ psqlserver_configtemplate }}"
+          #    dest: "{{ psqlserver_instance.value.configpath | default(psqlserver_configpath) }}/{{ psqlserver_instance.value.configname | default(psqlserver_configname) }}"
+          #    mode: 0600
+          #    owner: "999"
+          #    group: "999"
+          #  when: not psqlserver_isreplica | default(False)
+          #  notify: restart postgres container
