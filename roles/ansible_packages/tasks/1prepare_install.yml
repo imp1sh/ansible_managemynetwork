@@ -21,4 +21,3 @@
 - name: MMN Packages - Remove duplicates from packages_install list
   ansible.builtin.set_fact:
     packages_install: "{{ packages_install | unique }}"
-
