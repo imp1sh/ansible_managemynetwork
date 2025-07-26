@@ -1,4 +1,8 @@
 ---
+- name: "MMN borgmatic - Make sure ssh key dir is present"
+  ansible.builtin.file:
+    path: "{{ borgmatic_sshdir }}"
+    state: directory
 - name: "MMN borgmatic - Make sure ssh keys are present"
   community.crypto.openssh_keypair:
     type: "ed25519"
