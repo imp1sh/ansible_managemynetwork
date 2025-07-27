@@ -1,4 +1,9 @@
 ---
+- name: "MMN Podman - Enable and start podman.socket for Docker-compatible API"
+  ansible.builtin.systemd:
+    name: podman.socket
+    enabled: true
+    state: started
 - name: "MMN Podman - Create networks"
   containers.podman.podman_network:
     name: "{{ item.name }}"
