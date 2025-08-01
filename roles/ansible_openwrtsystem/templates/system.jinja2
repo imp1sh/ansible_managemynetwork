@@ -114,5 +114,11 @@ config led "{{ system_led.itemname }}"
 	list port "{{ system_port }}"
 {% endfor %}
 {% endif %}
+{% if system_led.mode is defined %}
+	option mode "{{ system_led.mode }}"
+{% endif %}
+{% if system_led.dev is defined %}
+	option dev "{{ system_led.dev }}"
+{% endif %}
 {% endfor %}
 {% endif %}
