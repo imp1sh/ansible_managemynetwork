@@ -177,6 +177,9 @@ postgresql_databases:
 {% if postgresdb['username'] is defined %}
     username: {{ postgresdb['username'] }}
 {% endif %}
+{% if postgresdb['password'] is defined %}
+    password: {{ postgresdb['password'] }}
+{% endif %}
 {% if postgresdb['port'] is defined %}
     port: {{ postgresdb['port'] }}
 {% endif %}
@@ -201,6 +204,9 @@ postgresql_databases:
 {% if postgresdb['ssl_crl'] is defined %}
     ssl_crl: {{ postgresdb['ssl_crl'] }}
 {% endif %}
+{% if postgresdb['options'] is defined %}
+    options: "{{ postgresdb['options'] }}"
+{% endif %}
 {% endfor %}
 {% endif %}
 {% if borgmatic_mysqldbs is defined %}
@@ -218,6 +224,12 @@ mysql_databases:
 {% endif %}
 {%if mysqldb['hostname'] is defined %}
     hostname: {{ mysqldb['hostname'] }}
+{% endif %}
+{% if mysqldb['options'] is defined %}
+    options: "{{ mysqldb['options'] }}"
+{% endif %}
+{% if mysqldb['tls'] is defined %}
+    tls: {{ mysqldb['tls'] }}
 {% endif %}
 {% endfor %}
 {% endif %}
