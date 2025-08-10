@@ -1,6 +1,7 @@
 ---
 podman_packages:
   - "podman"
+  - "podman-docker"
   - "conmon"
   - "aardvark-dns"
   - "netavark"
