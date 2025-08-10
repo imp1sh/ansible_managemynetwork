@@ -542,6 +542,12 @@ config interface "{{ key }}"
 {% if value['defaultroute'] is defined %}
 	option defaultroute "{{ value['defaultroute'] }}"
 {% endif %}
+{% if value['_orig_ifname'] is defined %}
+	option _orig_ifname "{{ value['_orig_ifname'] }}"
+{% endif %}
+{% if value['_orig_bridge'] is defined %}
+	option _orig_bridge "{{ value['_orig_bridge'] }}"
+{% endif %}
         # CONFIG OPTIONS PPPOE END
 {% endif %}
 {% endfor %}

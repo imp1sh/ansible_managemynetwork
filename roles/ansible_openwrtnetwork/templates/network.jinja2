@@ -31,6 +31,23 @@ config globals "globals"
 {{ functions.create_wireguardpeers(openwrt_network_wireguardpeers) }}
 {% endif %}
 
+# DSL options
+{% if openwrt_network_dsl is defined %}
+config dsl "dsl"
+{% endif %}
+{% if openwrt_network_dsl.annex is defined %}
+       option annex "{{ openwrt_network_dsl.annex }}"
+{% endif %}
+{% if openwrt_network_dsl.tone is defined %}
+       option tone "{{ openwrt_network_dsl.tone }}"
+{% endif %}
+{% if openwrt_network_dsl.ds_snr_offset is defined %}
+       option ds_snr_offset "{{ openwrt_network_dsl.ds_snr_offset }}"
+{% endif %}
+{% if openwrt_network_dsl.xfer_mode is defined %}
+       option xfer_mode "{{ openwrt_network_dsl.xfer_mode }}"
+{% endif %}
+
 # Static routes
 # IPv4
 {% if openwrt_network_staticroutes4 is defined %}
