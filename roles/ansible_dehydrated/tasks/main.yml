@@ -108,6 +108,13 @@
     mode: 0755
     owner: "{{ dehydrated_user }}"
     group: "{{ dehydrated_group }}"
+- name: Fetch lexicon dns hook script from url
+  get_url:
+    url: https://raw.githubusercontent.com/dns-lexicon/dns-lexicon/refs/heads/main/examples/dehydrated.default.sh
+    dest: "{{ dehydrated_basedir }}/dehydrated.default.sh"
+    mode: 0755
+    owner: "{{ dehydrated_user }}"
+    group: "{{ dehydrated_group }}"
 - name: Install dehydrated domains.txt
   template:
     src: domains.j2
