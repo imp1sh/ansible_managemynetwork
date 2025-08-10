@@ -27,7 +27,8 @@
       Description=Run Borgmatic Backup
 
       [Timer]
-      OnCalendar={{ borgmatic_timer_schedule | default("*-*-* " + borgmatic_timer_hour + ":" + borgmatic_timer_minute + ":00") }}
+      OnCalendar={{ borgmatic_timer_schedule  | default('*-*-* ' ~ ('%02d' | format(borgmatic_timer_hour | int)) ~ ':' ~ ('%02d' | format(borgmatic_timer_minute | int)) ~ ':00') }}
+
       Persistent=true
 
       [Install]
