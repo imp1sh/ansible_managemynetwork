@@ -115,6 +115,11 @@ config zone
 	list network "{{ interface }}"
 {% endfor %}
 {% endif %}
+{% if value['subnets'] is defined %}
+{% for subnet in value['subnets'] %}
+	list subnet "{{ subnet }}"
+{% endfor %}
+{% endif %}
 {% if value['masq_src'] is defined %}
 {% for masq_src in value['masq_src'] %}
 	list masq_src "{{ masq_src }}"
