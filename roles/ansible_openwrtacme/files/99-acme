@@ -1,1 +1,1 @@
-/etc/init.d/acme restart
+/etc/init.d/acme renew
