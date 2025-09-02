@@ -4,3 +4,5 @@
   ansible.builtin.service:
     state: restarted
     name: "{{ openwrtprometheus_node_exporter_lua_servicename }}"
+  when:
+    not openwrt_prometheus_node_exporter_lua_runimagebuilder | default(false)
