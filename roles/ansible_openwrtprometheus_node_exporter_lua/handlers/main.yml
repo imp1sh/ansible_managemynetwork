@@ -3,6 +3,7 @@
 - name: Restart prometheus-node-exporter-lua
   ansible.builtin.service:
     state: restarted
-    name: "{{ openwrtprometheus_node_exporter_lua_servicename }}"
+    name: "{{ openwrt_prometheus_node_exporter_lua_servicename }}"
+    enabled: true
   when:
-    not openwrt_prometheus_node_exporter_lua_runimagebuilder | default(false)
+    not openwrt_prometheus_node_exporter_lua_runimagebuilder
