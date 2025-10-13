@@ -4,7 +4,6 @@ dehydrated_group: "dehydrated"
 dehydrated_packages:
   - "curl"
   - "dehydrated"
-  - "lexicon"
 dehydrated_basedir: "/var/lib/dehydrated"
 dehydrated_binpath: "/usr/bin/dehydrated"
 dehydrated_confdir: "/etc/dehydrated"
