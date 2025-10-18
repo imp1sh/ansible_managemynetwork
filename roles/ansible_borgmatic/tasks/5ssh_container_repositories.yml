@@ -30,15 +30,18 @@
         full_access_keys: [ "{{ borgbase_key.key_id }}" ]
         quota_enabled: false
         alert_days: 2
-      register: borgbase_repo
+      register: borgbase_repodata
+    - name: "MMN borgmatic - Make borgbase_repo data persistent"
+      set_fact:
+        borgbase_repo: "{{ borgbase_repodata }}"
     - name: MMN borgmatic - Register remote host key
-      command: "ssh-keyscan -tssh-ed25519 {{ borgbase_repo['repo_id'] }}.repo.borgbase.com"
+      command: "ssh-keyscan -tssh-ed25519 {{ borgbase_repodata['repo_id'] }}.repo.borgbase.com"
       register: hostkey
     - name: "MMN borgmatic - Install target hosts fingerprint to known hosts"
       ansible.builtin.known_hosts:
         path: "{{ borgmatic_sshdir }}known_hosts"
         key: "{{ hostkey.stdout }}"
-        name: "{{ borgbase_repo['repo_id'] }}.repo.borgbase.com"
+        name: "{{ borgbase_repodata['repo_id'] }}.repo.borgbase.com"
         state: present
 
 # SSH              
