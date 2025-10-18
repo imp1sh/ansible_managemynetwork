@@ -10,6 +10,9 @@ config globals "globals"
 {% if openwrt_network_globals_packet_steering is defined %}
 	option packet_steering "{{ openwrt_network_globals_packet_steering }}"
 {% endif %}
+{% if openwrt_network_globals_steering_flows is defined %}
+	option steering_flows "{{ openwrt_network_globals_steering_flows }}"
+{% endif %}
 
 # Devices
 {% if openwrt_network_devices is defined %}
