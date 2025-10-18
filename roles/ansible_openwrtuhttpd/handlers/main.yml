@@ -1,7 +1,7 @@
 ---
 # handlers file for ansible_uhttpd
-- name: restart uhttpd
+- name: Restart uhttpd
   ansible.builtin.service:
     name: uhttpd
     state: restarted
-  when: not openwrt_uhttpd_runimagebuilder | default(false)
+  when: not openwrt_uhttpd_runimagebuilder

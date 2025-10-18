@@ -1,58 +1,25 @@
 ---
 # tasks file for ansible_uhttpd
+- name: Detect imagebuilder
+  ansible.builtin.set_fact:
+    openwrt_uhttpd_deployroot: "{{ openwrt_imagebuilder_deployroot }}"
+    openwrt_uhttpd_runimagebuilder: true
+  when: openwrt_imagebuilder_deployroot is defined
+
 - name: Make sure deploypath is present
   ansible.builtin.file:
     path: "{{ openwrt_uhttpd_deploypath }}"
     state: directory
+    mode: "0755"
 
-- name: search for existing certificate
-  ansible.builtin.find:
-    paths: "{{ openwrt_uhttpd_cert_searchpath | dirname }}"
-    file_type: directory
-    patterns: "{{ inventory_hostname }}*"
-  register: certdirs
-  when: not openwrt_uhttpd_runimagebuilder | default(false)
+- name: Include cert lookup
+  ansible.builtin.include_tasks:
+    file: cert_lookup.yml
+  when: not openwrt_uhttpd_runimagebuilder
 
-- name: Set the first matching certificate directory (if exists)
-  ansible.builtin.set_fact:
-    actual_cert_path: "{{ certdirs.files[0].path }}"
-  when:
-    - not openwrt_uhttpd_runimagebuilder | default(false)
-    - certdirs.matched > 0
-
-- name: search for existing cert
-  ansible.builtin.stat:
-    path: "{{ actual_cert_path }}/{{ inventory_hostname }}.cer"
-  register: searchcert
-  when:
-    - actual_cert_path is defined
-    - not openwrt_uhttpd_runimagebuilder | default(false)
-- name: search for existing key
-  ansible.builtin.stat:
-    path: "{{ actual_cert_path }}/{{ inventory_hostname }}.key"
-  register: searchkey
-  when:
-    - actual_cert_path is defined
-    - not openwrt_uhttpd_runimagebuilder | default(false)
-- name: debug
-  debug:
-    msg: "Cert found? {{ searchcert }}"
-  when: actual_cert_path is defined
-- name: overwrite defaults with found cert and key
-  ansible.builtin.set_fact:
-    openwrt_uhttpd_main_cert: "{{ searchcert.stat.path }}"
-    openwrt_uhttpd_main_key: "{{ searchkey.stat.path }}"
-  when:
-    - not openwrt_uhttpd_runimagebuilder | default(false)
-    - searchkey is defined
-    - searchcert is defined
-    - searchkey.stat is defined
-    - searchkey.stat.exists
-    - searchcert.stat.exists
 - name: Deploy uhttpd config
   ansible.builtin.template:
     src: "uhttpd.jinja2"
     dest: "{{ openwrt_uhttpd_deploypath }}/{{ openwrt_uhttpd_deployfile }}"
-  notify: restart uhttpd
-  when:
-    - not openwrt_uhttpd_runimagebuilder | default(false)
+    mode: "0644"
+  notify: Restart uhttpd
