@@ -1,4 +1,6 @@
 ---
+# This task is only called from within the ansible_podman role.
+# This is being executed after the container with postgresql has actually being spawned
 - name: "MMN psqlserver - Wait for PostgreSQL to become ready inside container"
   containers.podman.podman_container_exec:
     name: "{{ psqlserver_instance.key }}"
@@ -9,23 +11,39 @@
   delay: 5
   until: pg_ready.rc == 0
   changed_when: false
+
+- name: "MMN psqlserver - add temporary port forward"
+  containers.podman.podman_container:
+    name: "pfwd-{{ psqlserver_instance.key }}"
+    image: "docker.io/alpine/socat:latest"
+    state: started
+    detach: true
+    rm: true
+    network: podmannet
+    publish:
+      - "127.0.0.1:55432:5432"
+    command:
+      - "tcp-listen:5432,fork,reuseaddr"
+      - "tcp-connect:{{ psqlserver_instance.key }}:5432"
+
 - name: "MMN psqlserver - Provide postgres config for container"
   ansible.builtin.template:
     src: "{{ psqlserver_configtemplate }}"
     dest: "{{ psqlserver_instance.value.configpath | default(psqlserver_configpath) }}/{{ psqlserver_instance.value.configname | default(psqlserver_configname) }}"
     mode: 0600
-    owner: "999"
-    group: "999"
+    owner: "70"
+    group: "70"
   notify: restart postgres container
-- name: "MMN psqlserver - make sure pg_hby directories are there"
+
+- name: "MMN psqlserver - make sure pg_hba directory exists"
   ansible.builtin.file:
     state: directory
-    path: "{{ item.dest | basename }}"
+    path: "{{ psqlserver_instance.value.hbafile_outside_container | basename }}"
     mode: '0755'
-    owner: "999"
-    group: "999"
-  loop: "{{ psqlserver_instance.value.hba }}"
-  when: psqlserver_instance.value.hba is defined
+    owner: "70"
+    group: "70"
+  when: psqlserver_instance.value.hbafile_outside_container is defined
+
 - name: "MMN psqlserver - Setup pg_hba"
   community.postgresql.postgresql_pg_hba:
     dest: "{{ item['dest']}}"
@@ -40,4 +58,81 @@
     group: "999"
   loop: "{{ psqlserver_instance.value.hba }}"
   when: psqlserver_instance.value.hba is defined
-  notify: reload postgres container
+
+- name: "MMN psqlserver - Reload postgres container now"
+  containers.podman.podman_container_exec:
+    name: "{{ psqlserver_instance.key }}"
+    argv:
+      - "/usr/local/bin/pg_ctl"
+      - "reload"
+      - "-D"
+      - "/var/lib/postgresql/data"
+    user: postgres
+
+- name: "MMN psqlserver - Setup databases"
+  community.general.postgresql_db:
+    login_port: 55432
+    login_host: localhost
+    login_user: postgres
+    login_password: !vault |
+            $ANSIBLE_VAULT;1.1;AES256
+            35636565373238333965313735306138326633356365653137323037383962323638656434343531
+            3639613165386230616332333866386238653531636538380a653437303061663730363130653933
+            62393366323931396237313331623238313431656561356361623037643066383035323233613131
+            3633303137353632350a326335356561373164363664306533393664313238333039636134316139
+            6161
+    name: "{{ item['dbname'] }}"
+    lc_ctype: "{{ item['lc_ctype'] | default(omit) }}"
+    lc_collate: "{{ item['lc_collate'] | default(omit) }}"
+  loop: "{{ psqlserver_instance.value.dbs }}"
+  when:
+    - psqlserver_instance.value.dbs is defined
+
+- name: "MMN psqlserver - Install postgresql roles"
+  community.general.postgresql_user:
+    login_port: 55432
+    login_host: localhost
+    login_user: postgres
+    login_password: !vault |
+            $ANSIBLE_VAULT;1.1;AES256
+            35636565373238333965313735306138326633356365653137323037383962323638656434343531
+            3639613165386230616332333866386238653531636538380a653437303061663730363130653933
+            62393366323931396237313331623238313431656561356361623037643066383035323233613131
+            3633303137353632350a326335356561373164363664306533393664313238333039636134316139
+            6161
+    name: "{{ item.rolename }}"
+    db: "{{ item.db }}"
+    password: "{{ item.password }}"
+    priv: "{{ item.priv }}"
+  loop: "{{ psqlserver_instance.value.roles }}"
+  when:
+    - psqlserver_instance.value.roles is defined
+
+- name: "MMN psqlserver - Setup additional privileges"
+  postgresql_privs:
+    login_port: 55432
+    login_host: localhost
+    login_user: postgres
+    login_password: !vault |
+            $ANSIBLE_VAULT;1.1;AES256
+            35636565373238333965313735306138326633356365653137323037383962323638656434343531
+            3639613165386230616332333866386238653531636538380a653437303061663730363130653933
+            62393366323931396237313331623238313431656561356361623037643066383035323233613131
+            3633303137353632350a326335356561373164363664306533393664313238333039636134316139
+            6161
+    database: "{{ item.dbname }}"
+    state: present
+    privs: "{{ item.privs | join(',') }}"
+    type: "{{ item.type }}"
+    objs: "{{ item.objs }}"
+    schema: "{{ item.schema | default(omit) }}"
+    roles: "{{ item.roles | join(',') }}"
+  loop: "{{ psqlserver_instance.value.privs }}"
+  when:
+    - psqlserver_instance.value.privs is defined
+
+- name: "MMN psqlserver - Stop and remove port-forward container"
+  containers.podman.podman_container:
+    name: "pfwd-{{ psqlserver_instance.key }}"
+    state: absent
+  ignore_errors: true
