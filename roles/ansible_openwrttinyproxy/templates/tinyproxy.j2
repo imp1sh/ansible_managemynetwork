@@ -1,19 +1,19 @@
 # This file is handled by Ansible, do not edit
 config tinyproxy
-        option User "{{ openwrt_tinyproxy_user | default('nobody') }}"
-        option Group "{{ openwrt_tinyproxy_group | default('nogroup') }}"
-        option Port "{{ openwrt_tinyproxy_port | default('8888') }}"
-        option Timeout "{{ openwrt_tinyproxy_timeout | default('600') }}"
-        option DefaultErrorFile "{{ openwrt_tinyproxy_defaulterrorfile | default('/usr/share/tinyproxy/default.html') }}"
-        option StatFile "{{ openwrt_tinyproxy_statfile | default('/usr/share/tinyproxy/stats.html') }}"
-        option LogLevel "{{ openwrt_tinyproxy_loglevel | default('Info') }}"
-        option MaxClients "{{ openwrt_tinyproxy_maxclients | default('100') }}"
-        option MinSpareServers "{{ openwrt_tinyproxy_minspareservers | default('5') }}"
-        option MaxSpareServers "{{ openwrt_tinyproxy_maxspareservers | default('20') }}"
-        option StartServers "{{ openwrt_tinyproxy_startservers | default('10') }}"
-        option MaxRequestsPerChild "{{ openwrt_tinyproxy_maxrequestsperchild | default('0') }}"
-        option ViaProxyName "{{ openwrt_tinyproxy_viaproxyname | default('tinyproxy') }}"
-        option enabled "{{ openwrt_tinyproxy_enabled | default('1') }}"
+	option User "{{ openwrt_tinyproxy_user | default('nobody') }}"
+	option Group "{{ openwrt_tinyproxy_group | default('nogroup') }}"
+	option Port "{{ openwrt_tinyproxy_port | default('8888') }}"
+	option Timeout "{{ openwrt_tinyproxy_timeout | default('600') }}"
+	option DefaultErrorFile "{{ openwrt_tinyproxy_defaulterrorfile | default('/usr/share/tinyproxy/default.html') }}"
+	option StatFile "{{ openwrt_tinyproxy_statfile | default('/usr/share/tinyproxy/stats.html') }}"
+	option LogLevel "{{ openwrt_tinyproxy_loglevel | default('Info') }}"
+	option MaxClients "{{ openwrt_tinyproxy_maxclients | default('100') }}"
+	option MinSpareServers "{{ openwrt_tinyproxy_minspareservers | default('5') }}"
+	option MaxSpareServers "{{ openwrt_tinyproxy_maxspareservers | default('20') }}"
+	option StartServers "{{ openwrt_tinyproxy_startservers | default('10') }}"
+	option MaxRequestsPerChild "{{ openwrt_tinyproxy_maxrequestsperchild | default('0') }}"
+	option ViaProxyName "{{ openwrt_tinyproxy_viaproxyname | default('tinyproxy') }}"
+	option enabled "{{ openwrt_tinyproxy_enabled | default('1') }}"
 {% if openwrt_tinyproxy_listen is defined %}
 	option Listen "{{ openwrt_tinyproxy_listen }}"
 {% endif %}
@@ -55,13 +55,13 @@ config tinyproxy
 	list ConnectPort "{{ connectport }}"
 {% endfor %}
 {% else %}
-        list ConnectPort "443"
-        list ConnectPort "563"
+	list ConnectPort "443"
+	list ConnectPort "563"
 {% endif %}
 {% if openwrt_tinyproxy_logfile is defined %}
 	option LogFile "{{ openwrt_tinyproxy_logfile }}"
 {% elif openwrt_tinyproxy_Syslog is defined %}
-        option Syslog "{{ openwrt_tinyproxy_syslog }}"
+	option Syslog "{{ openwrt_tinyproxy_syslog }}"
 {% else %}
 	option LogFile "/var/log/tinyproxy.log"
 {% endif %}
