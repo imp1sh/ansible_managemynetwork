@@ -1,15 +1,15 @@
 config system 'system'
-        # Configuration distributed by Ansible
-        # Basic Node configuration
-        option hostname "{{ openwrt_system_hostname | default('OpenWrt', true) }}"
+	# Configuration distributed by Ansible
+	# Basic Node configuration
+	option hostname "{{ openwrt_system_hostname | default('OpenWrt', true) }}"
 {% if openwrt_system_maintainer is defined %}
-        option maintainer "{{ openwrt_system_maintainer }}"
+	option maintainer "{{ openwrt_system_maintainer }}"
 {% endif %}
 {% if openwrt_system_description is defined %}
-        option description "{{ openwrt_system_description }}"
+	option description "{{ openwrt_system_description }}"
 {% endif %}
 {% if openwrt_system_notes is defined %}
-        option notes "{{ openwrt_system_notes }}"
+	option notes "{{ openwrt_system_notes }}"
 {% endif %}
 {% if openwrt_system_ttylogin is defined %}
 	option ttylogin "{{ openwrt_system_ttylogin }}"
@@ -18,9 +18,9 @@ config system 'system'
 	option urandom_seed "{{ openwrt_system_urandom_seed }}"
 {% endif %}
 
-        # System Logging Settings
+	# System Logging Settings
 {% if openwrt_system_log_proto is defined %}
-        option log_proto "{{ openwrt_system_log_proto }}"
+	option log_proto "{{ openwrt_system_log_proto }}"
 {% endif %}
 {% if openwrt_system_log_trailer_null is defined %}
 	option log_trailer_null "{{ openwrt_system_log_trailer_null }}"
@@ -29,10 +29,10 @@ config system 'system'
 	option log_type "{{ openwrt_system_log_type }}"
 {% endif %}
 {% if openwrt_system_cronloglevel is defined %}
-        option cronloglevel "{{ openwrt_system_cronloglevel }}"
+	option cronloglevel "{{ openwrt_system_cronloglevel }}"
 {% endif %}
 {% if openwrt_system_conloglevel is defined %}
-        option conloglevel "{{ openwrt_system_conloglevel }}"
+	option conloglevel "{{ openwrt_system_conloglevel }}"
 {% endif %}
 {% if openwrt_system_buffersize is defined %}
 	option buffersize "{{ openwrt_system_buffersize }}"
@@ -44,10 +44,10 @@ config system 'system'
 	option log_buffer_size "{{ openwrt_system_log_buffer_size }}"
 {% endif %}
 {% if openwrt_system_logsize is defined %}
-        option log_size "{{ openwrt_system_logsize }}"
+	option log_size "{{ openwrt_system_logsize }}"
 {% endif %}
 {% if openwrt_system_log_ip is defined %}
-        option log_ip "{{ openwrt_system_log_ip }}"
+	option log_ip "{{ openwrt_system_log_ip }}"
 {% endif %}
 {% if openwrt_system_log_hostname is defined %}
 	option log_hostname "{{ openwrt_system_log_hostname }}"
@@ -57,23 +57,23 @@ config system 'system'
 {% endif %}
 {% if openwrt_system_log_port is defined %}
 {% if openwrt_system_log_port is number %}
-        option log_port "{{ openwrt_system_log_port }}"
+	option log_port "{{ openwrt_system_log_port }}"
 {% else %}
 # option log_port not set, because it is not a number but {{ openwrt_system_log_port }}
 {% endif %}
 {% endif %}
 {% if openwrt_system_logfile is defined %}
-        option log_file "{{ openwrt_system_logfile }}"
+	option log_file "{{ openwrt_system_logfile }}"
 {% endif %}
 {% if openwrt_system_log_prefix is defined %}
 	option log_prefix "{{ openwrt_system_log_prefix }}"
 {% endif %}
 	# System Timezone Information
 {% if openwrt_system_timezone is defined %}
-        option timezone "{{ openwrt_system_timezone }}"
+	option timezone "{{ openwrt_system_timezone }}"
 {% endif %}
 {% if openwrt_system_zonename is defined %}
-        option zonename "{{ openwrt_system_zonename }}"
+	option zonename "{{ openwrt_system_zonename }}"
 {% endif %}
 {% if openwrt_system_zram_comp_algo is defined %}
 	option zram_comp_algo "{{ openwrt_system_system_zram_comp_algo }}"
@@ -85,13 +85,13 @@ config system 'system'
 {% if openwrt_system_ntp_server is defined %}
 config timeserver 'ntp'
 {% for ntpserver in openwrt_system_ntp_server %}
-        list server "{{ ntpserver }}"
+	list server "{{ ntpserver }}"
 {% endfor %}
 {% if openwrt_system_ntp_enable_server is defined %}
-        option enable_server "{{ openwrt_system_ntp_enable_server }}"
+	option enable_server "{{ openwrt_system_ntp_enable_server }}"
 {% endif %}
 {% if openwrt_system_ntp_use_dhcp is defined %}
-        option use_dhcp "{{ openwrt_system_ntp_use_dhcp }}"
+	option use_dhcp "{{ openwrt_system_ntp_use_dhcp }}"
 {% endif %}
 {% if openwrt_system_ntp_enabled is defined %}
 	option enabled "{{ openwrt_system_ntp_enabled }}"
