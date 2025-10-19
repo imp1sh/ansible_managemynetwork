@@ -141,13 +141,13 @@ config forwarding
 	option src "{{ forwarding['src'] }}"
 	option dest "{{ forwarding['dest'] }}"
 {% if forwarding['name'] is defined %}
-        option name "{{ forwarding['name'] }}"
+	option name "{{ forwarding['name'] }}"
 {% endif %}
 {% if forwarding['family'] is defined %}
-        option family "{{ forwarding['family'] }}"
+	option family "{{ forwarding['family'] }}"
 {% endif %}
 {% if forwarding['enabled'] is defined %}
-        option enabled "{{ forwarding['enabled'] }}"
+	option enabled "{{ forwarding['enabled'] }}"
 {% endif %}
 {% endif %}
 {% endfor %}
