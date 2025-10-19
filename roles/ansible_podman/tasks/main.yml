@@ -8,22 +8,21 @@
   ansible.builtin.include_tasks:
     file: 1prepare.yml
 
-      # FIXME Currently broken, see https://github.com/containers/ansible-podman-collections/issues/924#issuecomment-2807192548
-      #- name: MMN Podman - Manage secrets
-      #  containers.podman.podman_secret:
-      #    name: "{{ item.name }}"
-      #    state: "{{ item.state }}"
-      #    data: "{{ item.data }}"
-      #    path: "{{ item.path | default(omit) }}"
-      #    debug: "{{ item.debug | default(omit) }}"
-      #    driver: "{{ item.driver | default('file') }}"
-      #    driver_opts: "{{ item.driver_opts | default(omit) }}"
-      #    env: "{{ item.env | default(omit) }}"
-      #    executable: "{{ item.executable | default(omit) }}"
-      #    force: "{{ item.force | default(omit) }}"
-      #    labels: "{{ item.labels | default(omit) }}"
-      #    skip_existing: "{{ item.skip_existing | default(omit) }}"
-      #  loop: "{{ podman_secrets }}"
+- name: MMN Podman - Manage secrets
+  containers.podman.podman_secret:
+    name: "{{ item.name }}"
+    state: "{{ item.state }}"
+    data: "{{ item.data }}"
+    path: "{{ item.path | default(omit) }}"
+    debug: "{{ item.debug | default(omit) }}"
+    driver: "{{ item.driver | default('file') }}"
+    driver_opts: "{{ item.driver_opts | default(omit) }}"
+    env: "{{ item.env | default(omit) }}"
+    executable: "{{ item.executable | default(omit) }}"
+    force: "{{ item.force | default(omit) }}"
+    labels: "{{ item.labels | default(omit) }}"
+    skip_existing: "{{ item.skip_existing | default(omit) }}"
+  loop: "{{ podman_secrets }}"
 
 - name: "MMN Podman - Deploy application configuration for supported plugin 1st run"
   ansible.builtin.include_tasks:
