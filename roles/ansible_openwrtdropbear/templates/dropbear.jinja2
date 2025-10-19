@@ -1,5 +1,5 @@
 config dropbear
-        # Configuration distributed by Ansible
+	# Configuration distributed by Ansible
 {% if openwrt_dropbear_verbose is defined %}
 	option verbose "{{ openwrt_dropbear_verbose }}"
 {% endif %}
@@ -7,22 +7,22 @@ config dropbear
 	option BannerFile "{{ openwrt_dropbear_bannerfile }}"
 {% endif %}
 {% if openwrt_dropbear_passwordauth is defined %}
-        option PasswordAuth "{{ openwrt_dropbear_passwordauth }}"
+	option PasswordAuth "{{ openwrt_dropbear_passwordauth }}"
 {% endif %}
 {% if openwrt_dropbear_port is defined %}
 	option Port "{{ openwrt_dropbear_port }}"
 {% endif %}
 {% if openwrt_dropbear_rootpasswordauth is defined %}
-        option RootPasswordAuth "{{ openwrt_dropbear_rootpasswordauth }}"
+	option RootPasswordAuth "{{ openwrt_dropbear_rootpasswordauth }}"
 {% endif %}
 {% if openwrt_dropbear_rootlogin is defined%}
 	option RootLogin "{{ openwrt_dropbear_rootlogin }}"
 {% endif %}
 {% if openwrt_dropbear_gatewayports is defined %}
-        option GatewayPorts "{{ openwrt_dropbear_gatewayports }}"
+	option GatewayPorts "{{ openwrt_dropbear_gatewayports }}"
 {% endif %}
 {% if openwrt_dropbear_interface is defined %}
-        option Interface "{{ openwrt_dropbear_interface }}"
+	option Interface "{{ openwrt_dropbear_interface }}"
 {% endif %}
 {% if openwrt_dropbear_keyfile is defined %}
 	option keyfile "{{ openwrt_dropbear_keyfile }}"
