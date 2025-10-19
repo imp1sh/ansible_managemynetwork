@@ -5,7 +5,7 @@
 # Global configuration
 config globals "globals"
 {% if openwrt_network_globals_ula is defined %}
-        option ula_prefix "{{ openwrt_network_globals_ula }}"
+	option ula_prefix "{{ openwrt_network_globals_ula }}"
 {% endif %}
 {% if openwrt_network_globals_packet_steering is defined %}
 	option packet_steering "{{ openwrt_network_globals_packet_steering }}"
@@ -39,16 +39,16 @@ config globals "globals"
 config dsl "dsl"
 {% endif %}
 {% if openwrt_network_dsl.annex is defined %}
-       option annex "{{ openwrt_network_dsl.annex }}"
+	option annex "{{ openwrt_network_dsl.annex }}"
 {% endif %}
 {% if openwrt_network_dsl.tone is defined %}
-       option tone "{{ openwrt_network_dsl.tone }}"
+	option tone "{{ openwrt_network_dsl.tone }}"
 {% endif %}
 {% if openwrt_network_dsl.ds_snr_offset is defined %}
-       option ds_snr_offset "{{ openwrt_network_dsl.ds_snr_offset }}"
+	option ds_snr_offset "{{ openwrt_network_dsl.ds_snr_offset }}"
 {% endif %}
 {% if openwrt_network_dsl.xfer_mode is defined %}
-       option xfer_mode "{{ openwrt_network_dsl.xfer_mode }}"
+	option xfer_mode "{{ openwrt_network_dsl.xfer_mode }}"
 {% endif %}
 
 # Static routes

@@ -126,7 +126,7 @@ config bridge-vlan
 config device
 {% if value.type is defined %}
 {% if value.type == "8021q" %}
-        # VLAN Interface
+	# VLAN Interface
 	option name "{{ key }}"
 	option ifname "{{ value.ifname }}"
 	option type "{{ value.type }}"
@@ -136,9 +136,9 @@ config device
 {% endif %}
 {% endif %}
 {% if value.type == "bridge" %}
-        # Bridge specific configuration
-        option name "{{ key }}"
-        option type "{{ value.type }}"
+	# Bridge specific configuration
+	option name "{{ key }}"
+	option type "{{ value.type }}"
 {% if value.vlan_filtering is defined %}
 	option vlan_filtering "{{ value.vlan_filtering }}"
 {% endif %}
@@ -185,47 +185,47 @@ config device
 	option bridge_empty "{{ value.bridge_empty }}"
 {% endif %}
 {% for port in value.ports %}
-        list ports "{{ port }}"
+	list ports "{{ port }}"
 {% endfor %}
 {% endif %}
 {% else %}
-        option name "{{ key }}"
+	option name "{{ key }}"
 {% endif %}
 {% if value.mtu is defined %}
-        option mtu "{{ value.mtu }}"
+	option mtu "{{ value.mtu }}"
 {% endif %}
 {% if value.mtu6 is defined %}
-        option mtu6 "{{ value.mtu6 }}"
+	option mtu6 "{{ value.mtu6 }}"
 {% endif %}
 {% if value.txqueuelen is defined %}
-        option txqueuelen "{{ value.txqueuelen }}"
+	option txqueuelen "{{ value.txqueuelen }}"
 {% endif %}
 {% if value.macaddr is defined %}
-        option macaddr "{{ value.macaddr }}"
+	option macaddr "{{ value.macaddr }}"
 {% endif %}
 {% if value.dadtransmits is defined %}
-        option dadtransmits "{{ value.dadtransmits }}"
+	option dadtransmits "{{ value.dadtransmits }}"
 {% endif %}
 {% if value.promisc is defined %}
-        option promisc "{{ value.promisc }}"
+	option promisc "{{ value.promisc }}"
 {% endif %}
 {% if value.rpfilter is defined %}
-        option rpfilter "{{ value.rpfilter }}"
+	option rpfilter "{{ value.rpfilter }}"
 {% endif %}
 {% if value.acceptlocal is defined %}
-        option acceptlocal "{{ value.acceptlocal }}"
+	option acceptlocal "{{ value.acceptlocal }}"
 {% endif %}
 {% if value.sendredirects is defined %}
-        option sendredirects "{{ value.sendredirects }}"
+	option sendredirects "{{ value.sendredirects }}"
 {% endif %}
 {% if value.neighreachabletime is defined %}
-        option neighreachabletime "{{ value.neighreachabletime }}"
+	option neighreachabletime "{{ value.neighreachabletime }}"
 {% endif %}
 {% if value.neighgcstaletime is defined %}
-        option neighgcstaletime "{{ value.neighgcstaletime }}"
+	option neighgcstaletime "{{ value.neighgcstaletime }}"
 {% endif %}
 {% if value.neighlocktime is defined %}
-        option neighlocktime "{{ value.neighlocktime }}"
+	option neighlocktime "{{ value.neighlocktime }}"
 {% endif %}
 {% if value.multicast is defined %}
 	option multicast "{{ value.multicast }}"
@@ -242,35 +242,35 @@ config device
 {% macro create_interfaces(allinterfaces) %}
 {% for key, value in allinterfaces.items() %}
 config interface "{{ key }}"
-        # CONFIG OPTIONS ALL START
+	# CONFIG OPTIONS ALL START
 {% if value['auto'] is defined %}
-        option auto "{{ value['auto'] }}"
+	option auto "{{ value['auto'] }}"
 {% endif %}
 {% if value['device'] is defined %}
-        option device "{{ value['device'] }}"
+	option device "{{ value['device'] }}"
 {% endif %}
-        option proto "{{ value['proto'] }}"
+	option proto "{{ value['proto'] }}"
 {% if value['mtu'] is defined %}
-        option mtu "{{ value['mtu'] }}"
+	option mtu "{{ value['mtu'] }}"
 {% endif %}
 {% if value['ipv6'] is defined %}
-        option ipv6 "{{ value['ipv6'] }}"
+	option ipv6 "{{ value['ipv6'] }}"
 {% endif %}
 {% if value['force_link'] is defined %}
-        option force_link "{{ value['force_link'] }}"
+	option force_link "{{ value['force_link'] }}"
 {% endif %}
 {% if value['disabled'] is defined %}
-        option disabled "{{ value['disabled'] }}"
+	option disabled "{{ value['disabled'] }}"
 {% endif %}
 {% if value['ip4table'] is defined %}
-        option ip4table "{{ value['ip4table'] }}"
+	option ip4table "{{ value['ip4table'] }}"
 {% endif %}
 {% if value['ip6table'] is defined %}
-        option ip6table "{{ value['ip6table'] }}"
+	option ip6table "{{ value['ip6table'] }}"
 {% endif %}
-        # CONFIG OPTIONS ALL END
+	# CONFIG OPTIONS ALL END
 {% if value['proto'] == "wireguard" %}
-        # CONFIG OPTIONS WIREGUARD START
+	# CONFIG OPTIONS WIREGUARD START
 	option private_key "{{ value['wg_private_key'] }}"
 {% if value['wg_listen_port'] is defined %}
 	option listen_port "{{ value['wg_listen_port'] }}"
@@ -333,10 +333,10 @@ config interface "{{ key }}"
 {% if value['wg_ip6weight'] is defined %}
 	option ip6weight "{{ value['wg_ip6weight'] }}"
 {% endif %}
-        # CONFIG OPTIONS WIREGUARD END
+	# CONFIG OPTIONS WIREGUARD END
 {% endif %}
 {% if value['proto'] == "dhcp" %}
-        # CONFIG OPTIONS DHCP START
+	# CONFIG OPTIONS DHCP START
 {% if value['hostname'] is defined %}
 	option hostname "{{ value['hostname'] }}"
 {% endif %}
@@ -346,15 +346,15 @@ config interface "{{ key }}"
 {% if value['vendorid'] is defined %}
 	option vendorid "{{ value['vendorid'] }}"
 {% endif %}
-        # CONFIG OPTIONS DHCP END
+	# CONFIG OPTIONS DHCP END
 {% endif %}
 {% if value['proto'] == "dhcpv6" %}
-        # CONFIG OPTIONS DHCPV6 START
+	# CONFIG OPTIONS DHCPV6 START
 {% if value['reqaddress'] is defined %}
-        option reqaddress "{{ value['reqaddress'] }}"
+	option reqaddress "{{ value['reqaddress'] }}"
 {% endif %}
 {% if value['reqprefix'] is defined %}
-        option reqprefix "{{ value['reqprefix'] }}"
+	option reqprefix "{{ value['reqprefix'] }}"
 {% endif %}
 {% if value['norelease'] is defined %}
 	option norelease "{{ value['norelease'] }}"
@@ -368,10 +368,10 @@ config interface "{{ key }}"
 {% if value['ip6weight'] is defined %}
 	option ip6weight "{{ value['ip6weight'] }}"
 {% endif %}
-        # CONFIG OPTIONS DHCPV6 END
+	# CONFIG OPTIONS DHCPV6 END
 {% endif %}
 {% if value['proto'] == "dhcp" or value['proto'] == "dhcpv6" %}
-        # CONFIG OPTIONS MIXED DHCP AND DHVPV6 START
+	# CONFIG OPTIONS MIXED DHCP AND DHVPV6 START
 {% if value['clientid'] is defined %}
 	option clientid "{{ value['clientid'] }}"
 {% endif %}
@@ -392,7 +392,7 @@ config interface "{{ key }}"
 	list dns "{{ dns }}"
 {% endfor %}
 {% endif %}
-        # CONFIG OPTIONS MIXED DHCP AND DHVPV6 START
+	# CONFIG OPTIONS MIXED DHCP AND DHVPV6 START
 {% if value['reqopts'] is defined %}
 {% for reqopt in value['reqopts'] %}
 	list reqopts "{{ value['reqopts'] }}"
@@ -410,7 +410,7 @@ config interface "{{ key }}"
 {% if value['ip6prefix'] is defined %}
 	option ip6prefix "{{ value['ip6prefix'] }}"
 {% endif %}
-        # CONFIG OPTIONS MIXED DHCP AND DHVPV6 END
+	# CONFIG OPTIONS MIXED DHCP AND DHVPV6 END
 {% endif %}
 {# CONFIG OPTIONS WITH UNKNOWN ASSOCIATION START #}
 {% if value['iface_dslite'] is defined %}
@@ -454,9 +454,9 @@ config interface "{{ key }}"
 {% endif %}
 {# CONFIG OPTIONS WITH UNKNOWN ASSOCIATION END #}
 {% if value['proto'] == "static" %}
-        # CONFIG OPTIONS STATIC START
+	# CONFIG OPTIONS STATIC START
 {% if value['gateway'] is defined %}
-        option gateway "{{ value['gateway'] }}"
+	option gateway "{{ value['gateway'] }}"
 {% endif %}
 {% if value['ipaddr'] is defined %}
 {% for singleip in value['ipaddr'] %}
@@ -471,73 +471,73 @@ config interface "{{ key }}"
 {% endif %}
 {% if value['ip6addr'] is defined %}
 {% for singleaddr in value['ip6addr'] %}
-        list ip6addr "{{ singleaddr }}"
+	list ip6addr "{{ singleaddr }}"
 {% endfor %}
 {% endif %}
 {% if value['ip6ifaceid'] is defined %}
 	option ip6ifaceid "{{ value['ip6ifaceid'] }}"
 {% endif %}
 {% if value['ip6gw'] is defined %}
-        option ip6gw "{{ value['ip6gw'] }}"
+	option ip6gw "{{ value['ip6gw'] }}"
 {% endif %}
 {% if value['ip6prefix'] is defined %}
-        option ip6prefix "{{ value['ip6prefix'] }}"
+	option ip6prefix "{{ value['ip6prefix'] }}"
 {% endif %}
 {% if value['ip6class'] is defined %}
 {% for ip6class in value['ip6class'] %}
-        list ip6class "{{ ip6class }}"
+	list ip6class "{{ ip6class }}"
 {% endfor %}
 {% endif %}
 {% if value.dnssearch is defined %}
 {% for dnssearch in value.dnssearch %}
-        list dns_search "{{ dnssearch }}"
+	list dns_search "{{ dnssearch }}"
 {% endfor %}
 {% endif %}
 {% if value.dns is defined %}
 {% for resolver in value.dns %}
-        list dns "{{ resolver }}"
+	list dns "{{ resolver }}"
 {% endfor %}
 {% endif %}
 {% if value['metric'] is defined %}
 	option metric "{{ value['metric'] }}"
 {% endif %}
-        # CONFIG OPTIONS STATIC END
+	# CONFIG OPTIONS STATIC END
 {% endif %}
 {% if value['proto'] == "none" %}
-        # CONFIG OPTIONS UNMANAGED START *and* END
+	# CONFIG OPTIONS UNMANAGED START *and* END
 {% endif %}
 {% if value['proto'] == "ppp" %}
-        # CONFIG OPTIONS PPP START
+	# CONFIG OPTIONS PPP START
 {% if value['ipv6'] is not defined %}
-        option ipv6 "auto"
+	option ipv6 "auto"
 {% endif %}
 {% if value['device'] is defined %}
-        option device "{{ value['device'] }}"
+	option device "{{ value['device'] }}"
 {% endif %}
 {% if value['username'] is defined %}
-        option username "{{ value['username'] }}"
+	option username "{{ value['username'] }}"
 {% endif %}
 {% if value['password'] is defined %}
-        option password "{{ value['password'] }}"
+	option password "{{ value['password'] }}"
 {% endif %}
-        # CONFIG OPTIONS PPP END
+	# CONFIG OPTIONS PPP END
 {% endif %}
 {% if value['proto'] == "pppoe" %}
-        # CONFIG OPTIONS PPPOE START
+	# CONFIG OPTIONS PPPOE START
 {% if value['ipv6'] is not defined %}
-        option ipv6 "auto"
+	option ipv6 "auto"
 {% endif %}
 {% if value['username'] is defined %}
-        option username "{{ value['username'] }}"
+	option username "{{ value['username'] }}"
 {% endif %}
 {% if value['password'] is defined %}
-        option password "{{ value['password'] }}"
+	option password "{{ value['password'] }}"
 {% endif %}
 {% if value['ac'] is defined %}
-        option ac "{{ value['ac'] }}"
+	option ac "{{ value['ac'] }}"
 {% endif %}
 {% if value['service'] is defined %}
-        option service "{{ value['service'] }}"
+	option service "{{ value['service'] }}"
 {% endif %}
 {% if value['defaultroute'] is defined %}
 	option defaultroute "{{ value['defaultroute'] }}"
@@ -548,7 +548,7 @@ config interface "{{ key }}"
 {% if value['_orig_bridge'] is defined %}
 	option _orig_bridge "{{ value['_orig_bridge'] }}"
 {% endif %}
-        # CONFIG OPTIONS PPPOE END
+	# CONFIG OPTIONS PPPOE END
 {% endif %}
 {% endfor %}
 {% endmacro %}
@@ -562,49 +562,49 @@ config rule '{{ key }}'
 config rule6 '{{ key }}'
 {% endif %}
 {% if value['in'] is defined %}
-        option in "{{ value['in'] }}"
+	option in "{{ value['in'] }}"
 {% endif %}
 {% if value['out'] is defined %}
-        option out "{{ value['out'] }}"
+	option out "{{ value['out'] }}"
 {% endif %}
 {% if value['src'] is defined %}
-        option src "{{ value['src'] }}"
+	option src "{{ value['src'] }}"
 {% endif %}
 {% if value['dest'] is defined %}
-        option dest "{{ value['dest'] }}"
+	option dest "{{ value['dest'] }}"
 {% endif %}
 {% if value['tos'] is defined %}
-        option tos "{{ value['tos'] }}"
+	option tos "{{ value['tos'] }}"
 {% endif %}
 {% if value['mark'] is defined %}
-        option mark "{{ value['mark'] }}"
+	option mark "{{ value['mark'] }}"
 {% endif %}
 {% if value['uidrange'] is defined %}
-        option uidrange "{{ value['uidrange'] }}"
+	option uidrange "{{ value['uidrange'] }}"
 {% endif %}
 {% if value['suppress_prefixlength'] is defined %}
-        option suppress_prefixlength "{{ value['suppress_prefixlength'] }}"
+	option suppress_prefixlength "{{ value['suppress_prefixlength'] }}"
 {% endif %}
 {% if value['ipproto'] is defined %}
 	option ipproto "{{ value['ipproto'] }}"
 {% endif %}
 {% if value['invert'] is defined %}
-        option invert "{{ value['invert'] }}"
+	option invert "{{ value['invert'] }}"
 {% endif %}
 {% if value['priority'] is defined %}
-        option priority "{{ value['priority'] }}"
+	option priority "{{ value['priority'] }}"
 {% endif %}
 {% if value['lookup'] is defined %}
-        option lookup "{{ value['lookup'] }}"
+	option lookup "{{ value['lookup'] }}"
 {% endif %}
 {% if value['goto'] is defined %}
-        option goto "{{ value['goto'] }}"
+	option goto "{{ value['goto'] }}"
 {% endif %}
 {% if value['action'] is defined %}
-        option action "{{ value['action'] }}"
+	option action "{{ value['action'] }}"
 {% endif %}
 {% if value['disabled'] is defined %}
-        option disabled "{{ value['disabled'] }}"
+	option disabled "{{ value['disabled'] }}"
 {% endif %}
 {% endfor %}
 {% endmacro %}
