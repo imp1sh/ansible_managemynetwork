@@ -238,3 +238,5 @@ Variable names are constructed by using the role name which is at the same time 
 - Use consistent variable names and put them in roles namespace like start the var name with e.g. `psql_` for postgresql role.
 - Only be opinionated when your opinion is strong and validated. Don't do opinionated due to lazyness
 - Make your role so that it can esily be fitted for additional OSes. Best practice is to have OS dependant vars and load them automatically. This way you can adjust to different package or folder names more easily.
+- After each Ansible task there is a free line for easier readability
+- For easy debugging implement debug tasks that will print vars and other information so problems can be debugged easier. Global var name is **mmn_verbose** (bool).
