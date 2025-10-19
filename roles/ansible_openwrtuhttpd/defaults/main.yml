@@ -2,7 +2,11 @@
 openwrt_uhttpd_deployroot: "/"
 openwrt_uhttpd_deploypath: "{{ openwrt_uhttpd_deployroot }}etc/config"
 openwrt_uhttpd_deployfile: "uhttpd"
-openwrt_uhttpd_cert_searchpath: "{{ openwrt_uhttpd_deployroot }}etc/acme/{{ inventory_hostname }}"
+openwrt_uhttpd_cert_searchpaths:
+  - "{{ openwrt_uhttpd_deployroot }}etc/acme/{{ inventory_hostname }}"
+  - "{{ openwrt_uhttpd_deployroot }}etc/acme/*.{{ inventory_hostname | community.dns.get_registrable_domain }}"
+  - "{{ openwrt_uhttpd_deployroot }}etc/acme/{{ inventory_hostname }}_ecc"
+  - "{{ openwrt_uhttpd_deployroot }}etc/acme/*.{{ inventory_hostname | community.dns.get_registrable_domain }}_ecc"
 openwrt_uhttpd_main_listen_http:
   - "0.0.0.0:80"
   - "[::]:80"
