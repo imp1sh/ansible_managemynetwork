@@ -10,6 +10,7 @@
   loop_control:
     loop_var: "psqlserver_instance"
   notify: reload postgres
+
 - name: "MMN psqlserver - Setup pg_hba"
   community.postgresql.postgresql_pg_hba:
     dest: "{{ item['dest']}}"
@@ -22,6 +23,7 @@
   loop: "{{ psqlserver_instance.value.hba }}"
   when: psqlserver_instance.value.hba is defined
   notify: reload postgres
+
 - name: "MMN psqlserver - Setup databases"
   community.general.postgresql_db:
     name: "{{ item['dbname'] }}"
@@ -31,6 +33,7 @@
   when:
     - psqlserver_instance.value.dbs is defined
     - psqlserver_containermode is not defined or (psqlserver_containermode is defined and not psqlserver_containermode)
+
 - name: "MMN psqlserver - Install postgresql roles"
   postgresql_user:
     name: "{{ item.rolename }}"
@@ -41,6 +44,7 @@
   when:
     - psqlserver_instance.value.roles is defined
     - psqlserver_containermode is not defined or (psqlserver_containermode is defined and not psqlserver_containermode)
+
 - name: "MMN psqlserver - Setup additional privileges"
   postgresql_privs:
     database: "{{ item.dbname }}"
@@ -54,6 +58,7 @@
   when:
     - psqlserver_instance.value.privs is defined
     - psqlserver_containermode is not defined or (psqlserver_containermode is defined and not psqlserver_containermode)
+
 - name: "MMN psqlserver - Enable postgresql service"
   ansible.builtin.service:
     name: "{{ psqlserver_servicename }}"
