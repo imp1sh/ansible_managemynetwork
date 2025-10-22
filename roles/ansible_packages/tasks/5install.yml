@@ -7,15 +7,15 @@
     name: "{{ packages_install }}"
     state: present
   when:
-    - packages_install
+    - packages_install is truthy
     - ansible_distribution != 'OpenWrt'
-    - not packages_runimagebuilder | default(false)
+    - not packages_runimagebuilder | default(false) | bool
 - name: MMN Packages - Installing packages OpenWrt
   ansible.builtin.opkg:
     name: "{{ packages_install | join(packages_separator) }}"
     state: present
     update_cache: true
   when:
-    - packages_install
+    - packages_install is truthy
     - ansible_distribution == 'OpenWrt'
-    - not packages_runimagebuilder | default(false)
+    - not packages_runimagebuilder | default(false) | bool

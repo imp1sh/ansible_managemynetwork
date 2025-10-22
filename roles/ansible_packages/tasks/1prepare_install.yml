@@ -8,11 +8,11 @@
 - name: MMN Packages - Set seperator for OpenWrt imagebuilder run
   ansible.builtin.set_fact:
     packages_separator: ' '
-  when: packages_runimagebuilder | default(false)
+  when: packages_runimagebuilder | default(false) | bool
 - name: MMN Packages - Set separator if not imagebuilder
   ansible.builtin.set_fact:
     packages_separator: ','
-  when: not packages_runimagebuilder | default(false)
+  when: not packages_runimagebuilder | default(false) | bool
 
 # Merge into one list and remove duplicates
 - name: MMN Packages - Combine lists into packages_install var

@@ -8,7 +8,7 @@
 - name: MMN Packages - Updating caches if possible
   include_tasks: "3cache.yml"
   when: ( packages_runimagebuilder is not defined ) or
-        ( packages_runimagebuilder is defined and not packages_runimagebuilder )
+        ( packages_runimagebuilder is defined and not packages_runimagebuilder | default(false) | bool )
 
 - name: MMN Packages - Remove tasks
   include_tasks: "4remove.yml"
