@@ -1,14 +1,17 @@
 ---
 system_users_additional_packages:
   - "shadow-useradd"
+  - "shadow-usermod"
   - "sudo"
 shells:
+  "ash": "/bin/ash"
   "zsh": "/usr/bin/zsh"
   "sh": "/bin/sh"
   "bash": "/bin/bash"
   "fish": "/usr/bin/fish"
   "false": "/bin/false"
 shellpackages:
+  ash: "busybox"
   zsh: "zsh"
   sh: "bash"
   bash: "bash"
