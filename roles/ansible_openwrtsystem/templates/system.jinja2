@@ -17,6 +17,9 @@ config system 'system'
 {% if openwrt_system_urandom_seed is defined %}
 	option urandom_seed "{{ openwrt_system_urandom_seed }}"
 {% endif %}
+{% if openwrt_system_compat_version is defined %}
+	option compat_version "{{ openwrt_system_compat_version }}"
+{% endif %}
 
 	# System Logging Settings
 {% if openwrt_system_log_proto is defined %}
