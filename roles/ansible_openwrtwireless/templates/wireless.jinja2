@@ -113,6 +113,32 @@ config wifi-device "{{ key }}"
 {% if value.band is defined %}
 	option band "{{ value.band }}"
 {% endif %}
+{#% HT capabilities %#}
+{#%  802.11n capabilities %#}
+{% if value.ldpc is defined %}
+	option ldpc "{{ value.ldpc }}"
+{% endif %}
+{% if value.greenfield is defined %}
+	option greenfield "{{ value.greenfield }}"
+{% endif %}
+{% if value.short_gi_20 is defined %}
+	option short_gi_20 "{{ value.short_gi_20 }}"
+{% endif %}
+{% if value.short_gi_40 is defined %}
+	option short_gi_40 "{{ value.short_gi_40 }}"
+{% endif %}
+{% if value.tx_stbc is defined %}
+	option tx_stbc "{{ value.tx_stbc }}"
+{% endif %}
+{% if value.rx_stbc is defined %}
+	option rx_stbc "{{ value.rx_stbc }}"
+{% endif %}
+{% if value.max_amsdu is defined %}
+	option max_amsdu "{{ value.max_amsdu }}"
+{% endif %}
+{% if value.dsss_cck_40 is defined %}
+	option dsss_cck_40 "{{ value.dsss_cck_40 }}"
+{% endif %}
 
 {% endfor %}
 # Wifi interfaces
