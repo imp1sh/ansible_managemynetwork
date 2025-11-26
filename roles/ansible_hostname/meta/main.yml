@@ -12,6 +12,10 @@ galaxy_info:
       versions:
         - "bookworm"
         - "bullseye"
+        - "trixie"
+    - name: Fedora
+      version:
+        - all
     - name: FreeBSD
       versions:
         - all

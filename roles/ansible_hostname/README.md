@@ -5,6 +5,7 @@
 This role sets the hostname of a host.
 It currently supports these Operating Systems:
 - Debian
+- Fedora
 - Ubuntu (best effort)
 - FreeBSD (best effort)
 - ~~Alpine~~ (probably works but no longer supported)
