@@ -5,12 +5,14 @@
   when:
     - podman_container_plugin_psql is defined
     - podman_containers | map(attribute='name') | select('in', podman_container_plugin_psql) | list | length > 0
+
 - name: "MMN Podman - Prepare calling psqlserver role"
   ansible.builtin.set_fact:
     psqlserver_containermode: true
   when:
     - podman_container_plugin_psql is defined
     - podman_containers | map(attribute='name') | select('in', podman_container_plugin_psql) | list | length > 0
+
 - name: "MMN Podman - Calling psqlserver role"
   ansible.builtin.include_role:
     name: imp1sh.ansible_managemynetwork.ansible_psqlserver 

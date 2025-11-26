@@ -1,7 +1,7 @@
 # PSQL
 - name: "MMN Podman - Plugin psql"
   ansible.builtin.include_tasks:
-    file: plugin_psql.yml
+    file: plugin_psql_run1.yml
   when:
     - podman_container_plugin_psql is defined
       # Below filter is needed so the plugin only runs when the choosen container images are related to the plugin

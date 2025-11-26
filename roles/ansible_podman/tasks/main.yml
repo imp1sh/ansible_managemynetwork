@@ -8,7 +8,7 @@
   ansible.builtin.include_tasks:
     file: 1prepare.yml
 
-- name: MMN Podman - Manage secrets
+- name: "MMN Podman - Manage secrets"
   containers.podman.podman_secret:
     name: "{{ item.name }}"
     state: "{{ item.state }}"
@@ -23,10 +23,11 @@
     labels: "{{ item.labels | default(omit) }}"
     skip_existing: "{{ item.skip_existing | default(omit) }}"
   loop: "{{ podman_secrets }}"
+  when: podman_secrets is defined
 
 - name: "MMN Podman - Deploy application configuration for supported plugin 1st run"
   ansible.builtin.include_tasks:
-    file: 2plugins.yml
+    file: 2plugin_chooser.yml
   when: ( podman_container_plugin_psql is defined ) or ( podman_container_plugin_borgmatic is defined ) or ( podman_container_plugin_pdnsauth is defined )
   # add or condition for additional plugins, I need to list them all here
 
@@ -38,9 +39,8 @@
 
 - name: "MMN Podman - Deploy application configuration for supported plugin 2nd run"
   ansible.builtin.include_tasks:
-    file: 2plugins2.yml
+    file: plugin_psql_run2.yml
   when: podman_container_plugin_psql is defined
-  # add or condition for additional plugins, I need to list them all here
 
 - name: "MMN Podman - Post tasks"
   ansible.builtin.include_tasks:
