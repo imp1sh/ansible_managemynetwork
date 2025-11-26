@@ -1,3 +1,294 @@
 #SPDX-License-Identifier: MIT-0
 ---
-# defaults file for ansible_sway
+# Configuration location
+# Set to true to use user config (~/.config/sway/config), false for system config (/etc/sway/config)
+sway_userconfig: true
+
+# Target user(s) for configuration
+# - If undefined/null: uses the user Ansible connects as (ansible_user)
+# - If a string: configures for that single user
+# - If a list: configures for all users in the list
+# Example: sway_users: "alice"
+# Example: sway_users: ["alice", "bob"]
+sway_users: null
+
+# Modifier key (Mod1=Alt, Mod4=Super/Windows key)
+sway_mod_key: "Mod4"
+
+# Terminal emulator
+sway_terminal: "alacritty"
+
+# Application launcher/menu
+sway_menu: "$rofi_cmd -show combi -combi-modes drun#run -modes combi"
+
+# Output configuration
+# List of output configurations, each with name and optional settings
+sway_outputs: []
+# Example:
+# sway_outputs:
+#   - name: "*"
+#     background: "/usr/share/backgrounds/sway/sway_wallpaper.png"
+#     mode: "1920x1080"
+#     position: "0,0"
+#     scale: null
+#     transform: null
+
+# Input configuration
+# List of input configurations
+sway_inputs: []
+# Example:
+# sway_inputs:
+#   - identifier: "*"
+#     xkb_layout: "us"
+#     xkb_variant: null
+#     xkb_options: null
+#     xkb_numlock: null
+#     xkb_capslock: null
+#     repeat_delay: null
+#     repeat_rate: null
+#     natural_scroll: null
+#     scroll_method: null
+#     scroll_button: null
+#     left_handed: null
+#     accel_profile: null
+#     pointer_accel: null
+#     tap: null
+#     tap_button_map: null
+#     drag: null
+#     drag_lock: null
+
+# Seat configuration
+sway_seats: []
+# Example:
+# sway_seats:
+#   - name: "*"
+#     fallback: null
+#     cursor: null
+#     hide_cursor_when_typing: null
+
+# Window configuration
+sway_window_border: 2
+sway_window_titlebar: true
+sway_window_floating_border: 2
+sway_window_floating_titlebar: true
+sway_window_hide_edge_borders: null
+sway_window_hide_edge_borders_smart: null
+sway_window_hide_edge_borders_when_only: null
+
+# Window gaps
+sway_gaps_inner: 0
+sway_gaps_outer: 0
+sway_gaps_smart_borders: null
+sway_gaps_smart_gaps: null
+
+# Colors
+sway_colors_background: "#ffffff"
+sway_colors_statusline: "#000000"
+sway_colors_separator: "#666666"
+sway_colors_focused_background: "#4c7899"
+sway_colors_focused_statusline: "#ffffff"
+sway_colors_focused_separator: "#888888"
+sway_colors_focused_border: "#4c7899"
+sway_colors_focused_child_border: "#4c7899"
+sway_colors_focused_indicator: "#2e9ef4"
+sway_colors_focused_text: "#ffffff"
+sway_colors_focused_workspace_border: "#4c7899"
+sway_colors_focused_workspace_background: "#4c7899"
+sway_colors_focused_workspace_text: "#ffffff"
+sway_colors_inactive_background: "#222222"
+sway_colors_inactive_statusline: "#888888"
+sway_colors_inactive_separator: "#666666"
+sway_colors_inactive_border: "#333333"
+sway_colors_inactive_child_border: "#333333"
+sway_colors_inactive_indicator: "#484e50"
+sway_colors_inactive_text: "#888888"
+sway_colors_inactive_workspace_border: "#333333"
+sway_colors_inactive_workspace_background: "#222222"
+sway_colors_inactive_workspace_text: "#888888"
+sway_colors_urgent_background: "#900000"
+sway_colors_urgent_statusline: "#ffffff"
+sway_colors_urgent_separator: "#666666"
+sway_colors_urgent_border: "#2f343a"
+sway_colors_urgent_child_border: "#900000"
+sway_colors_urgent_indicator: "#900000"
+sway_colors_urgent_text: "#ffffff"
+sway_colors_urgent_workspace_border: "#900000"
+sway_colors_urgent_workspace_background: "#900000"
+sway_colors_urgent_workspace_text: "#ffffff"
+sway_colors_binding_mode_background: "#900000"
+sway_colors_binding_mode_statusline: "#ffffff"
+sway_colors_binding_mode_separator: "#666666"
+sway_colors_binding_mode_border: "#2f343a"
+sway_colors_binding_mode_indicator: "#900000"
+sway_colors_binding_mode_text: "#ffffff"
+
+# Font
+sway_font: "pango:Monospace 10"
+
+# Workspaces
+# List of workspace numbers/names
+sway_workspaces: []
+# Example:
+# sway_workspaces:
+#   - number: 1
+#     output: null
+#   - number: 2
+#     output: null
+#   - number: "3:mail"
+#     output: null
+
+# Keybindings
+# List of keybindings, each with keys and command
+sway_keybindings: []
+# Example:
+# sway_keybindings:
+#   - keys: "$mod+Return"
+#     command: "exec $term"
+#   - keys: "$mod+Shift+q"
+#     command: "kill"
+#   - keys: "$mod+d"
+#     command: "exec $menu"
+
+# Mode keybindings
+# List of modes with their keybindings
+sway_modes: []
+# Example:
+# sway_modes:
+#   - name: "resize"
+#     keybindings:
+#       - keys: "Left"
+#         command: "resize shrink width 10 px or 10 ppt"
+#       - keys: "Right"
+#         command: "resize grow width 10 px or 10 ppt"
+
+# Bar configuration
+sway_bar_enabled: true
+sway_bar_id: "bar0"
+sway_bar_mode: null
+sway_bar_hidden_state: null
+sway_bar_modifier: null
+sway_bar_position: "bottom"
+sway_bar_status_command: null
+sway_bar_font: null
+sway_bar_wrap_scroll: null
+sway_bar_workspace_buttons: null
+sway_bar_strip_workspace_numbers: null
+sway_bar_binding_mode_indicator: null
+sway_bar_separator_symbol: null
+sway_bar_tray_output: null
+sway_bar_tray_padding: null
+sway_bar_colors: null
+sway_bar_swaybar_command: null
+
+# Assignments (window rules)
+# List of window assignments
+sway_assignments: []
+# Example:
+# sway_assignments:
+#   - criteria: "class:Firefox"
+#     workspace: "1"
+#   - criteria: "class:Thunderbird"
+#     workspace: "2"
+
+# Window commands (for_window)
+# List of window commands
+sway_window_commands: []
+# Example:
+# sway_window_commands:
+#   - criteria: "class:Firefox"
+#     command: "floating enable"
+#   - criteria: "title:.*"
+#     command: "border pixel 2"
+
+# Floating windows
+# List of floating window criteria
+sway_floating_criteria: []
+# Example:
+# sway_floating_criteria:
+#   - criteria: "class:Pavucontrol"
+#   - criteria: "class:nm-applet"
+
+# Exec commands (startup applications)
+# List of commands to execute on startup
+sway_exec_commands: []
+# Example:
+# sway_exec_commands:
+#   - command: "swaybg -i /usr/share/backgrounds/sway/sway_wallpaper.png"
+#   - command: "waybar"
+#   - command: "mako"
+
+# Focus wrapping
+sway_focus_wrapping: null
+
+# Focus on window activation
+sway_focus_on_window_activation: null
+
+# Mouse warping
+sway_mouse_warping: null
+
+# Popup during fullscreen
+sway_popup_during_fullscreen: null
+
+# Focus child
+sway_focus_child: null
+
+# Focus parent
+sway_focus_parent: null
+
+# Smart gaps
+sway_smart_gaps: null
+
+# Smart borders
+sway_smart_borders: null
+
+# Workspace auto back and forth
+sway_workspace_auto_back_and_forth: null
+
+# Workspace layout
+sway_workspace_layout: null
+
+# Default orientation
+sway_default_orientation: null
+
+# Default border
+sway_default_border: null
+
+# Default floating border
+sway_default_floating_border: null
+
+# Default floating size
+sway_default_floating_size: null
+
+# Default floating position center
+sway_default_floating_position_center: null
+
+# Hide cursor when typing
+sway_hide_cursor_when_typing: null
+
+# Force display power on
+sway_force_display_power_on: null
+
+# Force xwayland
+sway_force_xwayland: null
+
+# Xwayland disable
+sway_xwayland_disable: null
+
+# Xwayland scale
+sway_xwayland_scale: null
+
+# Xwayland scale filter
+sway_xwayland_scale_filter: null
+
+# Title format
+sway_title_format: null
+
+# Title align
+sway_title_align: null
+
+# Include files
+# List of additional config files to include
+sway_includes: []
+# Example:
+# sway_includes:
+#   - "~/.config/sway/extra_config"
