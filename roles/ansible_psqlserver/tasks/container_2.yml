@@ -63,14 +63,14 @@
   containers.podman.podman_container_exec:
     name: "{{ psqlserver_instance.key }}"
     argv:
-      - "/usr/local/bin/pg_ctl"
+      - "/usr/lib/postgresql/17/bin/pg_ctl"
       - "reload"
       - "-D"
       - "/var/lib/postgresql/data"
     user: postgres
 
 - name: "MMN psqlserver - Setup databases"
-  community.general.postgresql_db:
+  community.postgresql.postgresql_db:
     login_port: 55432
     login_host: localhost
     login_user: postgres
@@ -89,7 +89,7 @@
     - psqlserver_instance.value.dbs is defined
 
 - name: "MMN psqlserver - Install postgresql roles"
-  community.general.postgresql_user:
+  community.postgresql.postgresql_user:
     login_port: 55432
     login_host: localhost
     login_user: postgres
@@ -101,9 +101,10 @@
             3633303137353632350a326335356561373164363664306533393664313238333039636134316139
             6161
     name: "{{ item.rolename }}"
-    db: "{{ item.db }}"
+    db: "{{ item.db | default(omit) }}"
+    role_attr_flags: "{{ item.role_attr_flags | default(omit) }}"
     password: "{{ item.password }}"
-    priv: "{{ item.priv }}"
+    priv: "{{ item.priv | default(omit) }}"
   loop: "{{ psqlserver_instance.value.roles }}"
   when:
     - psqlserver_instance.value.roles is defined

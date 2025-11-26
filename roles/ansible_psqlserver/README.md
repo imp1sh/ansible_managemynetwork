@@ -108,3 +108,6 @@ psqlserver_instances:
               GRANT ALL PRIVILEGES ON DATABASE pdns TO pdns;
           EOSQL
 ```
+
+# TODO
+- Install required psycopg2 on target host
