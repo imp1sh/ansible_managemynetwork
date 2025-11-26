@@ -1,2 +1,8 @@
 ---
 # defaults file for ansible_groups
+# Default empty dictionaries to prevent errors when accessing keys
+system_groups_create_on_hostgroups: {}
+system_groups_create_on_hosts: {}
+
+# Enable debug output (set to true for troubleshooting)
+ansible_groups_debug: false
