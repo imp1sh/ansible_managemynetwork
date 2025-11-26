@@ -1,6 +1,7 @@
 - name: display current network interface
   ansible.builtin.debug:
     msg: "We are iterating on interface {{ item.key }}"
+
 - name: make sure key directory for interface exists
   file:
     path: "{{ openwrt_network_wg_keypath }}/{{ item.key }}"
@@ -11,6 +12,7 @@
   when:
     - item.value.proto == "wireguard"
     - item.value.wg_managekeys
+
 - name: generate private key if not there
   ansible.builtin.command: wg genkey
   args:
@@ -22,6 +24,7 @@
   when:
     - item.value.proto == "wireguard"
     - item.value.wg_managekeys
+
 - name: save private key to file if changed
   ansible.builtin.copy:
     content: "{{ server_privatekey.stdout }}"
@@ -32,6 +35,7 @@
     - item.value.proto == "wireguard"
     - server_privatekey.changed
     - item.value.wg_managekeys
+
 - name: set strict private key permissions
   file:
     path: "{{ openwrt_network_wg_keypath }}/{{ item.key }}/{{ inventory_hostname }}_private.key"
@@ -41,6 +45,7 @@
   when:
     - item.value.proto == "wireguard"
     - item.value.wg_managekeys
+
 - name: read private key from file
   ansible.builtin.slurp:
     src: "{{ openwrt_network_wg_keypath }}/{{ item.key }}/{{ inventory_hostname }}_private.key"
@@ -50,6 +55,7 @@
   when:
     - item.value.proto == "wireguard"
     - item.value.wg_managekeys
+
 - name: decode privatekey base64
   ansible.builtin.set_fact:
     server_privatekey_decoded: "{{ server_privatekey_data.content | b64decode | trim }}"
@@ -57,12 +63,14 @@
   when:
     - item.value.proto == "wireguard"
     - item.value.wg_managekeys
+
 - name: insert private key into dict
   ansible.builtin.set_fact:
     openwrt_network_interfaces: "{{ openwrt_network_interfaces | combine({ item.key: {'wg_private_key': server_privatekey_decoded } }, recursive=True) }}"
   when:
     - item.value.proto == "wireguard"
     - item.value.wg_managekeys
+
 - name: generate public key
   ansible.builtin.command: wg pubkey
   args:
@@ -75,6 +83,7 @@
   when:
     - item.value.proto == "wireguard"
     - item.value.wg_managekeys
+
 - name: write public key to file
   ansible.builtin.copy:
     content: "{{ server_publickey.stdout }}"
