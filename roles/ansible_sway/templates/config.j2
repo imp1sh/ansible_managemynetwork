@@ -7,22 +7,6 @@ set $term {{ sway_terminal }}
 set $menu {{ sway_menu }}
 set $rofi_cmd {{ sway_command_rofi }}
 
-# Colours
-set $bg #282828
-set $bg_2 #504945
-set $fg #ebdbb2
-set $fg_1 #FBF1C7
-set $fg_2 #D5C4A1
-set $red #cc241d
-set $green #98971a
-set $yellow #d79921
-set $blue #458588
-set $blue_faded #076678
-set $purple #b16286
-set $aqua #689d68
-set $gray #a89984
-set $darkgray #1d2021
-
 # Idle
 exec swayidle -w \
     timeout {{ sway_idle_time }} 'swaylock --image {{ sway_image_lock }} --scaling fill' \
@@ -36,10 +20,10 @@ output {{ output.name }} {
     mode "{{ output.mode }}"
 {% endif %}
 {% if output.position is defined %}
-    position "{{ output.position }}"
+    position {{ output.position }}
 {% endif %}
 {% if output.scale is defined %}
-    scale "{{ output.scale }}"
+    scale {{ output.scale }}
 {% endif %}
 {% if output.transform is defined %}
     transform "{{ output.transform }}"
@@ -63,7 +47,7 @@ output {{ output.name }} {
 # Input configuration
 {% if sway_inputs %}
 {% for input in sway_inputs %}
-input {{ input.identifier }} {
+input "{{ input.identifier }}" {
 {% if input.xkb_layout is defined %}
     xkb_layout "{{ input.xkb_layout }}"
 {% endif %}
@@ -104,10 +88,16 @@ input {{ input.identifier }} {
     pointer_accel "{{ input.pointer_accel }}"
 {% endif %}
 {% if input.tap is defined %}
-    tap {{ 'enabled' if input.tap else 'disabled' }}"
+    tap {{ 'enabled' if input.tap else 'disabled' }}
 {% endif %}
 {% if input.tap_button_map is defined %}
     tap_button_map "{{ input.tap_button_map }}"
+{% endif %}
+{% if input.dwt is defined %}
+    dwt {{ 'enabled' if input.dwt else 'disabled' }}
+{% endif %}
+{% if input.dwtp is defined %}
+    dwtp {{ 'enabled' if input.dwtp else 'disable' }}
 {% endif %}
 {% if input.drag is defined %}
     drag {{ 'enabled' if input.drag else 'disabled' }}
@@ -237,7 +227,7 @@ bindsym $mod+Shift+Left move left
 bindsym $mod+Shift+Down move down
 bindsym $mod+Shift+Up move up
 bindsym $mod+Shift+Right move right
-bindsym $mod+h split h
+bindsym $mod+b split h
 bindsym $mod+v split v
 bindsym $mod+f fullscreen toggle
 bindsym $mod+s layout stacking
@@ -277,9 +267,25 @@ mode "resize" {
 {% endif %}
 
 # Window assignments
-{% if sway_assignments %}
-{% for assignment in sway_assignments %}
-assign [{{ assignment.criteria }}] → {{ assignment.workspace }}
+# {% if sway_assignments %}
+# {% for assignment in sway_assignments %}
+# assign [{{ assignment.criteria }}] workspace {{ assignment.workspace }}
+# {% endfor %}
+# {% endif %}
+
+# Window markings and workspace assignments
+{% if sway_mark_and_workspace is defined %}
+{% for marking, rules in sway_mark_and_workspace.items() %}
+{% for rule in rules %}
+{% if rule.floating is defined and rule.floating %}
+for_window [{{ rule.criteria }}] mark {{ marking }}, floating enable
+{% else %}
+for_window [{{ rule.criteria }}] mark {{ marking }}
+{% endif %}
+{% if rule.workspace is defined and rule.workspace|int != 0 %}
+assign [{{ rule.criteria }}] workspace number {{ rule.workspace }}
+{% endif %}
+{% endfor %}
 {% endfor %}
 {% endif %}
 
@@ -291,15 +297,9 @@ for_window [{{ window_cmd.criteria }}] {{ window_cmd.command }}
 {% endif %}
 
 # Floating windows
-{% if sway_floating_criteria %}
 floating_modifier $mod
 floating_minimum_size 75 x 50
 floating_maximum_size -1 x -1
-floating_border {{ sway_window_floating_border | default(sway_window_border) }}px
-{% for floating in sway_floating_criteria %}
-for_window [{{ floating.criteria }}] floating enable
-{% endfor %}
-{% endif %}
 
 # Exec commands (startup applications)
 {% if sway_exec_commands %}
@@ -326,18 +326,6 @@ mouse_warping {{ 'output' if sway_mouse_warping == 'output' else 'container' if 
 # Popup during fullscreen
 {% if sway_popup_during_fullscreen is defined %}
 popup_during_fullscreen {{ 'smart' if sway_popup_during_fullscreen == 'smart' else ('ignore' if sway_popup_during_fullscreen == 'ignore' else 'leave_fullscreen') }}
-{% endif %}
-
-# Focus child (deprecated/removed in sway 1.10+)
-# focus_child is no longer supported in sway 1.10+
-{% if false and sway_focus_child is defined %}
-focus_child {{ 'newest' if sway_focus_child == 'newest' else 'oldest' }}
-{% endif %}
-
-# Focus parent (deprecated/removed in sway 1.10+)
-# focus_parent is no longer supported in sway 1.10+
-{% if false and sway_focus_parent is defined %}
-focus_parent {{ 'newest' if sway_focus_parent == 'newest' else 'oldest' }}
 {% endif %}
 
 # Workspace auto back and forth
