@@ -1,0 +1,48 @@
+#SPDX-License-Identifier: MIT-0
+---
+- name: MMN sway - Get getent data
+  ansible.builtin.getent:
+    database: passwd
+
+
+
+- name: MMN - When user has been found
+  when: target_user in getent_passwd
+  block:
+    - name: MMN sway - Get user's home from getent
+      ansible.builtin.set_fact:
+        target_user_home: "{{ getent_passwd[target_user][4] }}"
+    
+    - name: MMN sway - Ensure configuration directory exists for {{ target_user }}
+      ansible.builtin.file:
+        path: "{{ target_user_home }}/.config/sway"
+        state: directory
+        owner: "{{ target_user }}"
+        group: "{{ target_user }}"
+        mode: '0755'
+    
+    - name: MMN sway - Wallpaper dir
+      ansible.builtin.file:
+        path: /home/user/{{ target_user }}/.config/sway/wallpaper/
+        state: directory
+    
+    - name: MMN sway - Deploy default wallpaper
+      ansible.builtin.copy:
+        src: "Retro-Programmer.jpeg"
+        dest: "/home/{{ target_user }}/.config/sway/wallpaper/Retro-Programmer.jpeg"
+    
+    - name: MMN sway - Deploy sway configuration file for {{ target_user }}
+      ansible.builtin.template:
+        src: "{{ sway_filetemplate }}"
+        dest: "{{ target_user_home }}/.config/sway/{{ sway_fileconfig }}"
+        owner: "{{ target_user }}"
+        group: "{{ target_user }}"
+        mode: '0644'
+
+
+
+# User not on host
+- name: MMN sway - Fail if user {{ target_user }} does not exist
+  ansible.builtin.fail:
+    msg: "User {{ target_user }} does not exist on the system"
+  when: target_user not in getent_passwd

@@ -4,6 +4,10 @@
 # Set to true to use user config (~/.config/sway/config), false for system config (/etc/sway/config)
 sway_userconfig: true
 
+# Images
+sway_image_lock: "~/.config/sway/wallpaper/Retro-Programmer.jpeg"
+sway_image_wallpaper: "~/.config/sway/wallpaper/Retro-Programmer.jpeg"
+
 # Target user(s) for configuration
 # - If undefined/null: uses the user Ansible connects as (ansible_user)
 # - If a string: configures for that single user
@@ -13,13 +17,17 @@ sway_userconfig: true
 sway_users: null
 
 # Modifier key (Mod1=Alt, Mod4=Super/Windows key)
-sway_mod_key: "Mod4"
+sway_key_mod: "Mod4"
 
 # Terminal emulator
 sway_terminal: "alacritty"
 
 # Application launcher/menu
 sway_menu: "$rofi_cmd -show combi -combi-modes drun#run -modes combi"
+sway_command_rofi: "rofi -terminal '$term'"
+
+# Idle
+sway_idle_time: 360
 
 # Output configuration
 # List of output configurations, each with name and optional settings
@@ -82,45 +90,136 @@ sway_gaps_smart_borders: null
 sway_gaps_smart_gaps: null
 
 # Colors
-sway_colors_background: "#ffffff"
-sway_colors_statusline: "#000000"
-sway_colors_separator: "#666666"
-sway_colors_focused_background: "#4c7899"
-sway_colors_focused_statusline: "#ffffff"
-sway_colors_focused_separator: "#888888"
-sway_colors_focused_border: "#4c7899"
-sway_colors_focused_child_border: "#4c7899"
-sway_colors_focused_indicator: "#2e9ef4"
-sway_colors_focused_text: "#ffffff"
-sway_colors_focused_workspace_border: "#4c7899"
-sway_colors_focused_workspace_background: "#4c7899"
-sway_colors_focused_workspace_text: "#ffffff"
-sway_colors_inactive_background: "#222222"
-sway_colors_inactive_statusline: "#888888"
-sway_colors_inactive_separator: "#666666"
-sway_colors_inactive_border: "#333333"
-sway_colors_inactive_child_border: "#333333"
-sway_colors_inactive_indicator: "#484e50"
-sway_colors_inactive_text: "#888888"
-sway_colors_inactive_workspace_border: "#333333"
-sway_colors_inactive_workspace_background: "#222222"
-sway_colors_inactive_workspace_text: "#888888"
-sway_colors_urgent_background: "#900000"
-sway_colors_urgent_statusline: "#ffffff"
-sway_colors_urgent_separator: "#666666"
-sway_colors_urgent_border: "#2f343a"
-sway_colors_urgent_child_border: "#900000"
-sway_colors_urgent_indicator: "#900000"
-sway_colors_urgent_text: "#ffffff"
-sway_colors_urgent_workspace_border: "#900000"
-sway_colors_urgent_workspace_background: "#900000"
-sway_colors_urgent_workspace_text: "#ffffff"
-sway_colors_binding_mode_background: "#900000"
-sway_colors_binding_mode_statusline: "#ffffff"
-sway_colors_binding_mode_separator: "#666666"
-sway_colors_binding_mode_border: "#2f343a"
-sway_colors_binding_mode_indicator: "#900000"
-sway_colors_binding_mode_text: "#ffffff"
+sway_colors:
+  background:   "#1c1c1c"
+  statusline:   "#ffffff"
+  focused:
+    background:   "#ffaa00"
+    border:       "#ffaa00"
+    child_border: "#ffaa00"
+    indicator:    "#1c1c1c"
+    separator:    "#1c1c1c"
+    statusline:   "#1c1c1c"
+    text:         "#1c1c1c"
+  workspace:
+    border:       "#ffaa00"
+    background:   "#ffaa00"
+    text:         "#1c1c1c"
+  inactive:
+    background:           "#2d2d2d"
+    statusline:           "#bbbbbb"
+    separator:            "#3a3a3a"
+    border:               "#2d2d2d"
+    child_border:         "#2d2d2d"
+    indicator:            "#2d2d2d"
+    text:                 "#bbbbbb"
+    workspace_border:     "#2d2d2d"
+    workspace_background: "#2d2d2d"
+    workspace_text:       "#bbbbbb"
+  urgent:
+    background:           "#e63946"
+    statusline:           "#ffffff"
+    separator:            "#83343b"
+    border:               "#e63946"
+    child_border:         "#e63946"
+    indicator:            "#ffffff"
+    text:                 "#ffffff"
+    workspace_border:     "#e63946"
+    workspace_background: "#e63946"
+    workspace_text:       "#ffffff"
+  binding_mode:
+    background:              "#e63946"
+    binding_mode_statusline: "#ffffff"
+    binding_mode_separator:  "#83343b"
+    binding_mode_border:     "#e63946"
+    binding_mode_indicator:  "#ffffff"
+    binding_mode_text:       "#ffffff"
+
+# sway_colors:
+#   background:             "#ffffff"
+#   statusline:             "#000000"
+#   focused:
+#     background:           "#4c7899"
+#     border:               "#4c7899"
+#     child_border:         "#4c7899"
+#     indicator:            "#2e9ef4"
+#     separator:            "#888888"
+#     statusline:           "#ffffff"
+#     text:                 "#ffffff"
+#   workspace:
+#     border:               "#4c7899"
+#     background:           "#4c7899"
+#     text:                 "#ffffff"
+#   inactive:
+#     background:           "#222222"
+#     statusline:           "#888888"
+#     separator:            "#666666"
+#     border:               "#333333"
+#     child_border:         "#333333"
+#     indicator:            "#484e50"
+#     text:                 "#888888"
+#     workspace_border:     "#333333"
+#     workspace_background: "#222222"
+#     workspace_text:       "#888888"
+#   urgent:
+#     background:           "#900000"
+#     statusline:           "#ffffff"
+#     separator:            "#666666"
+#     border:               "#2f343a"
+#     child_border:         "#900000"
+#     indicator:            "#900000"
+#     text:                 "#ffffff"
+#     workspace_border:     "#900000"
+#     workspace_background: "#900000"
+#     workspace_text:       "#ffffff"
+#   binding_mode:
+#     background:              "#900000"
+#     binding_mode_statusline: "#ffffff"
+#     binding_mode_separator:  "#666666"
+#     binding_mode_border:     "#2f343a"
+#     binding_mode_indicator:  "#900000"
+#     binding_mode_text:       "#ffffff"
+
+# original
+# sway_colors_background: "#ffffff"
+# sway_colors_statusline: "#000000"
+# sway_colors_separator: "#666666"
+# sway_colors_focused_background: "#4c7899"
+# sway_colors_focused_statusline: "#ffffff"
+# sway_colors_focused_separator: "#888888"
+# sway_colors_focused_border: "#4c7899"
+# sway_colors_focused_child_border: "#4c7899"
+# sway_colors_focused_indicator: "#2e9ef4"
+# sway_colors_focused_text: "#ffffff"
+# sway_colors_focused_workspace_border: "#4c7899"
+# sway_colors_focused_workspace_background: "#4c7899"
+# sway_colors_focused_workspace_text: "#ffffff"
+# sway_colors_inactive_background: "#222222"
+# sway_colors_inactive_statusline: "#888888"
+# sway_colors_inactive_separator: "#666666"
+# sway_colors_inactive_border: "#333333"
+# sway_colors_inactive_child_border: "#333333"
+# sway_colors_inactive_indicator: "#484e50"
+# sway_colors_inactive_text: "#888888"
+# sway_colors_inactive_workspace_border: "#333333"
+# sway_colors_inactive_workspace_background: "#222222"
+# sway_colors_inactive_workspace_text: "#888888"
+# sway_colors_urgent_background: "#900000"
+# sway_colors_urgent_statusline: "#ffffff"
+# sway_colors_urgent_separator: "#666666"
+# sway_colors_urgent_border: "#2f343a"
+# sway_colors_urgent_child_border: "#900000"
+# sway_colors_urgent_indicator: "#900000"
+# sway_colors_urgent_text: "#ffffff"
+# sway_colors_urgent_workspace_border: "#900000"
+# sway_colors_urgent_workspace_background: "#900000"
+# sway_colors_urgent_workspace_text: "#ffffff"
+# sway_colors_binding_mode_background: "#900000"
+# sway_colors_binding_mode_statusline: "#ffffff"
+# sway_colors_binding_mode_separator: "#666666"
+# sway_colors_binding_mode_border: "#2f343a"
+# sway_colors_binding_mode_indicator: "#900000"
+# sway_colors_binding_mode_text: "#ffffff"
 
 # Font
 sway_font: "pango:Monospace 10"

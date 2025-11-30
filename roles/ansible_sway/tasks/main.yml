@@ -3,6 +3,9 @@
 - name: MMN sway - Include OS vars
   ansible.builtin.include_vars: "{{ ansible_distribution }}.yml"
 
+- name: MMN sway - Include template vars
+  ansible.builtin.include_vars: "templates.yml"
+
 - name: MMN sway - Set package name for calling packages role
   ansible.builtin.set_fact:
     packages_installrole: "{{ sway_packages }}"
@@ -23,6 +26,6 @@
     loop_var: target_user
   when: sway_userconfig | default(true)
 
-- name: MMN sway - Deploy system-wide configuration
-  ansible.builtin.include_tasks: deploy_system_config.yml
-  when: not (sway_userconfig | default(true))
+# - name: MMN sway - Deploy system-wide configuration
+#   ansible.builtin.include_tasks: deploy_system_config.yml
+#   when: not (sway_userconfig | default(true))

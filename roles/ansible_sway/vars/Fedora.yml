@@ -1,0 +1,16 @@
+#SPDX-License-Identifier: MIT-0
+---
+sway_packages:
+  - sway
+  - swaybg
+  - swayidle
+  - swaylock
+  - sway-config-fedora
+  - sddm-wayland-sway
+  - sway-systemd
+  - alacritty
+sway_fileconfig: "config"
+sway_filetemplate: "config.j2"
+sway_userconfig: true
+
+

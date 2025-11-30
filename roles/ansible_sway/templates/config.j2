@@ -2,10 +2,31 @@
 #SPDX-License-Identifier: MIT-0
 
 # Variables
-set $mod {{ sway_mod_key }}
+set $mod {{ sway_key_mod }}
 set $term {{ sway_terminal }}
 set $menu {{ sway_menu }}
-set $rofi_cmd rofi -terminal '$term'
+set $rofi_cmd {{ sway_command_rofi }}
+
+# Colours
+set $bg #282828
+set $bg_2 #504945
+set $fg #ebdbb2
+set $fg_1 #FBF1C7
+set $fg_2 #D5C4A1
+set $red #cc241d
+set $green #98971a
+set $yellow #d79921
+set $blue #458588
+set $blue_faded #076678
+set $purple #b16286
+set $aqua #689d68
+set $gray #a89984
+set $darkgray #1d2021
+
+# Idle
+exec swayidle -w \
+    timeout {{ sway_idle_time }} 'swaylock --image {{ sway_image_lock }} --scaling fill' \
+    before-sleep 'swaylock --image {{ sway_image_lock }} --scaling fill'
 
 # Output configuration
 {% if sway_outputs %}
@@ -27,23 +48,57 @@ output {{ output.name }} {
 {% if sway_inputs %}
 {% for input in sway_inputs %}
 input {{ input.identifier }} {
-{% if input.xkb_layout is defined %}    xkb_layout {{ input.xkb_layout }}{% endif %}
-{% if input.xkb_variant is defined %}    xkb_variant {{ input.xkb_variant }}{% endif %}
-{% if input.xkb_options is defined %}    xkb_options {{ input.xkb_options }}{% endif %}
-{% if input.xkb_numlock is defined %}    xkb_numlock {{ 'enable' if input.xkb_numlock else 'disable' }}{% endif %}
-{% if input.xkb_capslock is defined %}    xkb_capslock {{ 'enable' if input.xkb_capslock else 'disable' }}{% endif %}
-{% if input.repeat_delay is defined %}    repeat_delay {{ input.repeat_delay }}{% endif %}
-{% if input.repeat_rate is defined %}    repeat_rate {{ input.repeat_rate }}{% endif %}
-{% if input.natural_scroll is defined %}    natural_scroll {{ 'enabled' if input.natural_scroll else 'disabled' }}{% endif %}
-{% if input.scroll_method is defined %}    scroll_method {{ input.scroll_method }}{% endif %}
-{% if input.scroll_button is defined %}    scroll_button {{ input.scroll_button }}{% endif %}
-{% if input.left_handed is defined %}    left_handed {{ 'enabled' if input.left_handed else 'disabled' }}{% endif %}
-{% if input.accel_profile is defined %}    accel_profile {{ input.accel_profile }}{% endif %}
-{% if input.pointer_accel is defined %}    pointer_accel {{ input.pointer_accel }}{% endif %}
-{% if input.tap is defined %}    tap {{ 'enabled' if input.tap else 'disabled' }}{% endif %}
-{% if input.tap_button_map is defined %}    tap_button_map {{ input.tap_button_map }}{% endif %}
-{% if input.drag is defined %}    drag {{ 'enabled' if input.drag else 'disabled' }}{% endif %}
-{% if input.drag_lock is defined %}    drag_lock {{ 'enabled' if input.drag_lock else 'disabled' }}{% endif %}
+{% if input.xkb_layout is defined %}
+    xkb_layout "{{ input.xkb_layout }}"
+{% endif %}
+{% if input.xkb_variant is defined %}
+    xkb_variant "{{ input.xkb_variant }}"
+{% endif %}
+{% if input.xkb_options is defined %}
+    xkb_options "{{ input.xkb_options }}"
+{% endif %}
+{% if input.xkb_numlock is defined %}
+    xkb_numlock "{{ 'enable' if input.xkb_numlock else 'disable' }}"
+{% endif %}
+{% if input.xkb_capslock is defined %}
+    xkb_capslock "{{ 'enable' if input.xkb_capslock else 'disable' }}
+{% endif %}
+{% if input.repeat_delay is defined %}
+    repeat_delay "{{ input.repeat_delay }}"
+{% endif %}
+{% if input.repeat_rate is defined %}
+    repeat_rate "{{ input.repeat_rate }}"
+{% endif %}
+{% if input.natural_scroll is defined %}
+    natural_scroll "{{ 'enabled' if input.natural_scroll else 'disabled' }}
+{% endif %}
+{% if input.scroll_method is defined %}
+    scroll_method "{{ input.scroll_method }}"
+{% endif %}
+{% if input.scroll_button is defined %}
+    scroll_button "{{ input.scroll_button }}"
+{% endif %}
+{% if input.left_handed is defined %}
+    left_handed {{ 'enabled' if input.left_handed else 'disabled' }}
+{% endif %}
+{% if input.accel_profile is defined %}
+    accel_profile "{{ input.accel_profile }}"
+{% endif %}
+{% if input.pointer_accel is defined %}
+    pointer_accel "{{ input.pointer_accel }}"
+{% endif %}
+{% if input.tap is defined %}
+    tap {{ 'enabled' if input.tap else 'disabled' }}"
+{% endif %}
+{% if input.tap_button_map is defined %}
+    tap_button_map "{{ input.tap_button_map }}"
+{% endif %}
+{% if input.drag is defined %}
+    drag {{ 'enabled' if input.drag else 'disabled' }}
+{% endif %}
+{% if input.drag_lock is defined %}
+    drag_lock {{ 'enabled' if input.drag_lock else 'disabled' }}
+{% endif %}
 }
 {% endfor %}
 {% endif %}
@@ -97,12 +152,12 @@ smart_gaps {{ 'on' if sway_gaps_smart_gaps else 'off' }}
 {% endif %}
 
 # Colors
-client.focused {{ sway_colors_focused_border }} {{ sway_colors_focused_background }} {{ sway_colors_focused_text }} {{ sway_colors_focused_indicator }} {{ sway_colors_focused_child_border }}
-client.focused_inactive {{ sway_colors_inactive_border }} {{ sway_colors_inactive_background }} {{ sway_colors_inactive_text }} {{ sway_colors_inactive_indicator }} {{ sway_colors_inactive_child_border }}
-client.unfocused {{ sway_colors_inactive_border }} {{ sway_colors_inactive_background }} {{ sway_colors_inactive_text }} {{ sway_colors_inactive_indicator }} {{ sway_colors_inactive_child_border }}
-client.urgent {{ sway_colors_urgent_border }} {{ sway_colors_urgent_background }} {{ sway_colors_urgent_text }} {{ sway_colors_urgent_indicator }} {{ sway_colors_urgent_child_border }}
-client.placeholder {{ sway_colors_inactive_border }} {{ sway_colors_inactive_background }} {{ sway_colors_inactive_text }} {{ sway_colors_inactive_indicator }} {{ sway_colors_inactive_child_border }}
-client.background {{ sway_colors_background }}
+client.focused {{ sway_colors.focused.border }} {{ sway_colors.focused.background }} {{ sway_colors.focused.text }} {{ sway_colors.focused.indicator }} {{ sway_colors.focused.child_border }}
+client.focused_inactive {{ sway_colors.inactive.border }} {{ sway_colors.inactive.background }} {{ sway_colors.inactive.text }} {{ sway_colors.inactive.indicator }} {{ sway_colors.inactive.child_border }}
+client.unfocused {{ sway_colors.inactive.border }} {{ sway_colors.inactive.background }} {{ sway_colors.inactive.text }} {{ sway_colors.inactive.indicator }} {{ sway_colors.inactive.child_border }}
+client.urgent {{ sway_colors.urgent.border }} {{ sway_colors.urgent.background }} {{ sway_colors.urgent.text }} {{ sway_colors.urgent.indicator }} {{ sway_colors.urgent.child_border }}
+client.placeholder {{ sway_colors.inactive.border }} {{ sway_colors.inactive.background }} {{ sway_colors.inactive.text }} {{ sway_colors.inactive.indicator }} {{ sway_colors.inactive.child_border }}
+client.background {{ sway_colors.background }}
 
 # Font
 {% if sway_font is defined %}
@@ -150,12 +205,10 @@ bindsym $mod+Return exec $term
 bindsym $mod+Shift+q kill
 bindsym $mod+d exec $menu
 bindsym $mod+Shift+c reload
-bindsym $mod+Shift+e exec swaynag -t warning -m 'You pressed the exit shortcut. Do you really want to exit sway? This will end your Wayland session.' -b 'Yes, exit sway' 'swaymsg exit'
-bindsym $mod+Shift+r restart
-bindsym $mod+j focus left
-bindsym $mod+k focus down
-bindsym $mod+l focus up
-bindsym $mod+semicolon focus right
+bindsym $mod+Shift+e exec swaynag -t warning -m 'You pressed the exit shortcut. Do you really want to exit sway? This will end your Wayland session.' -B 'Yes, exit sway' 'swaymsg exit' --background ffaa00 --border ffaa00 --text 1c1c1c --button-background 3a3a3a --button-text 999999 --border-bottom-size 2 --message-padding 12 --button-padding 6
+# bindsym $mod+Shift+r restart
+bindsym $mod+l exec swaylock --image {{ sway_image_lock }} --scaling fill
+# bindsym $mod+semicolon focus right
 bindsym $mod+Left focus left
 bindsym $mod+Down focus down
 bindsym $mod+Up focus up
@@ -206,8 +259,6 @@ mode "resize" {
     bindsym Escape mode "default"
 }
 {% endif %}
-
-# Bar configuration (removed - use waybar instead)
 
 # Window assignments
 {% if sway_assignments %}
@@ -306,15 +357,15 @@ xwayland disable
 xwayland force
 {% endif %}
 
-# Xwayland scale
-{% if sway_xwayland_scale is defined %}
-xwayland scale {{ sway_xwayland_scale }}
-{% endif %}
-
-# Xwayland scale filter
-{% if sway_xwayland_scale_filter is defined %}
-xwayland scale_filter {{ sway_xwayland_scale_filter }}
-{% endif %}
+# # Xwayland scale
+# {% if sway_xwayland_scale is defined %}
+# xwayland scale {{ sway_xwayland_scale }}
+# {% endif %}
+# 
+# # Xwayland scale filter
+# {% if sway_xwayland_scale_filter is defined %}
+# xwayland scale_filter {{ sway_xwayland_scale_filter }}
+# {% endif %}
 
 # Title format
 {% if sway_title_format is defined and sway_title_format is not none and sway_title_format != '' %}
@@ -333,3 +384,4 @@ title_align {{ sway_title_align }}
 include {{ include_file }}
 {% endfor %}
 {% endif %}
+include '$(/usr/libexec/sway/layered-include "/usr/share/sway/config.d/*.conf" "/etc/sway/config.d/*.conf" "${XDG_CONFIG_HOME:-$HOME/.config}/sway/config.d/*.conf")'
