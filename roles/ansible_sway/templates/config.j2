@@ -32,14 +32,30 @@ exec swayidle -w \
 {% if sway_outputs %}
 {% for output in sway_outputs %}
 output {{ output.name }} {
-{% if output.mode is defined %}    mode {{ output.mode }}{% endif %}
-{% if output.position is defined %}    position {{ output.position }}{% endif %}
-{% if output.scale is defined %}    scale {{ output.scale }}{% endif %}
-{% if output.transform is defined %}    transform {{ output.transform }}{% endif %}
-{% if output.background is defined %}    background {{ output.background }} fill{% endif %}
-{% if output.adaptive_sync is defined %}    adaptive_sync {{ 'on' if output.adaptive_sync else 'off' }}{% endif %}
-{% if output.subpixel is defined %}    subpixel {{ output.subpixel }}{% endif %}
-{% if output.render_bit_depth is defined %}    render_bit_depth {{ output.render_bit_depth }}{% endif %}
+{% if output.mode is defined %}
+    mode "{{ output.mode }}"
+{% endif %}
+{% if output.position is defined %}
+    position "{{ output.position }}"
+{% endif %}
+{% if output.scale is defined %}
+    scale "{{ output.scale }}"
+{% endif %}
+{% if output.transform is defined %}
+    transform "{{ output.transform }}"
+{% endif %}
+{% if output.background is defined %}
+    background "{{ output.background }}" fill
+{% endif %}
+{% if output.adaptive_sync is defined %}
+    adaptive_sync {{ 'on' if output.adaptive_sync else 'off' }}
+{% endif %}
+{% if output.subpixel is defined %}
+    subpixel "{{ output.subpixel }}"
+{% endif %}
+{% if output.render_bit_depth is defined %}
+    render_bit_depth "{{ output.render_bit_depth }}"
+{% endif %}
 }
 {% endfor %}
 {% endif %}
