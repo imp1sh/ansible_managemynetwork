@@ -1,28 +1,25 @@
-Role Name
-=========
+# imp1sh.ansible_managemynetwork.ansible_packages
 
-ansible_sway - Ansible role for managing the Sway window manager
+Ansible role for managing the Sway window manager
 
-This role installs and configures the Sway window manager on Linux systems. It supports both Fedora and Debian-based distributions, with full support for Wayland compositors.
+This role installs and configures the Sway window manager on Linux systems. 
 
-Requirements
-------------
+## Requirements
 
-- Ansible 2.1 or higher
-- Target systems must be Fedora or Debian-based Linux distributions
+- Ansible 2.9 or higher
+- Fedora 43
 - The role depends on `imp1sh.ansible_managemynetwork.ansible_packages` for package management
 
-Role Variables
---------------
+## Role Variables
 
 ### OS-Specific Variables (defined in vars/)
 
 These variables are automatically set based on the target distribution:
 
-- `sway_packages`: List of packages to install (default: `["sway", "swaybg", "swaylock", "swayidle"]`)
-- `sway_fileconfig`: Configuration filename (default: "config")
-- `sway_filetemplate`: Template filename (default: "config.j2")
-- `sway_userconfig`: Whether to use user config (default: true)
+- `sway_packages`: List of packages to install
+- `sway_fileconfig`: Configuration filename
+- `sway_filetemplate`: Template filename
+- `sway_userconfig`: Whether to deploy user specific config (default: true)
 
 **Which users get the configuration?**
 
@@ -43,8 +40,8 @@ These variables are automatically set based on the target distribution:
 #### Basic Settings
 
 - `sway_mod_key`: Modifier key (default: "Mod4" - Super/Windows key)
-- `sway_terminal`: Terminal emulator command (default: "foot")
-- `sway_menu`: Application launcher/menu command (default: "wofi --show drun")
+- `sway_terminal`: Terminal emulator command (default: "alacritty")
+- `sway_menu`: Application launcher/menu command (default: "rofi --show drun")
 - `sway_font`: Font specification (default: "pango:Monospace 10")
 
 #### Output Configuration
@@ -54,7 +51,9 @@ Configure display outputs using the `sway_outputs` list:
 ```yaml
 sway_outputs:
   - name: "*"
-    background: "/usr/share/backgrounds/sway/sway_wallpaper.png"
+    background_image: "/usr/share/backgrounds/sway/sway_wallpaper.png"
+    background_mode: "fill" # [ fill(default) | stretch | fit | center | tile ]
+    background_color: "#000000" # alternatively you can specify a color. Image has precedence
     mode: "1920x1080"
     position: "0,0"
     scale: null
@@ -189,16 +188,56 @@ If not specified, a default resize mode is created.
 - `sway_bar_colors`: Custom bar colors dictionary (default: null)
 - `sway_bar_swaybar_command`: Swaybar command (default: null)
 
-#### Window Assignments
+#### Window Assignments, Floating, Marking
 
-Assign windows to workspaces using the `sway_assignments` list:
+Add markings, floating decision and workspace assignment in one big dictionary var.
 
-```yaml
-sway_assignments:
-  - criteria: "class:Firefox"
-    workspace: "1"
-  - criteria: "class:Thunderbird"
-    workspace: "2"
+```
+sway_window_attributes:
+  Browser:
+    - criteria: 'app_id="org.mozilla.firefox"'
+      workspace: 2
+    - criteria: 'app_id="google-chrome"'
+      workspace: 3
+    - criteria: 'app_id="librewolf"'
+      workspace: 1
+  Calendar:
+    - criteria: 'app_id="org.gnome.Calendar"'
+  Cloudsync:
+    - criteria: 'app_id="com.seafile.seafile-applet"'
+      workspace: 6
+  Conference:
+    - criteria: 'class="zoom"'
+      workspace: 4
+  Editor:
+    - criteria: 'app_id="gedit"'
+      workspace: "current"
+      floating: true
+  Filebrowser:
+    - criteria: 'app_id="Thunar"'
+      floating: true
+  IM:
+    - criteria: 'app_id="org.signal.Signal"'
+      workspace: 2
+  Mail:
+    - criteria: 'app_id="org.gnome.Evolution"'
+      workspace: 1
+    - criteria: 'app_id="net.thunderbird.Thunderbird"'
+      workspace: 1
+  Music:
+    - criteria: 'class="Spotify"'
+      workspace: 5
+  Networkconfig:
+    - criteria: 'app_id="nm-connection-editor"'
+      floating: true
+  Packagemanager:
+    - criteria: 'title=".*dnfdragora.*"'
+      floating: true
+  Soundconfig:
+    - criteria: 'app_id="org.pulseaudio.pavucontrol"'
+      floating: true
+  Terminalemulator:
+    - criteria: 'app_id="Alacritty"'
 ```
 
 #### Window Commands
@@ -291,7 +330,9 @@ With custom configuration:
         sway_gaps_outer: 5
         sway_outputs:
           - name: "*"
-            background: "/usr/share/backgrounds/sway/sway_wallpaper.png"
+            background_image: "/usr/share/backgrounds/sway/sway_wallpaper.png"
+            background_color: "#000000" # alternatively you can specify a color. Image has precedence
+            background_mode: [ fill(default) | stretch | fit | center | tile ]
             mode: "1920x1080"
         sway_inputs:
           - identifier: "*"

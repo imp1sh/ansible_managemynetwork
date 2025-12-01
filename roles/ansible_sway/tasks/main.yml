@@ -26,6 +26,7 @@
     loop_var: target_user
   when: sway_userconfig | default(true)
 
+# currently no need
 # - name: MMN sway - Deploy system-wide configuration
 #   ansible.builtin.include_tasks: deploy_system_config.yml
 #   when: not (sway_userconfig | default(true))

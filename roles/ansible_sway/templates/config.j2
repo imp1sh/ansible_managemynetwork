@@ -16,29 +16,44 @@ exec swayidle -w \
 {% if sway_outputs %}
 {% for output in sway_outputs %}
 output {{ output.name }} {
+{% if output.adaptive_sync is defined %}
+    adaptive_sync {{ 'on' if output.adaptive_sync else 'off' }}
+{% endif %}
+{% if output.background_image is defined %}
+{% if output.background_fallback_color is defined %}
+    background "{{ output.background_image }}" {{ output.background_image_mode | default("fill") }} {{ output.background_fallback_color }}
+{% else %}
+    background "{{ output.background_image }}" {{ output.background_image_mode | default("fill") }}
+{% endif %}
+{% elif output.background_color is defined  %}
+    background "{{ output.background_color }}" solid_color
+{% endif %}
+{% if output.disable is defined and output.disable %}
+    disable
+{% endif %}
+{% if output.color_profile is defined %}
+    color_profile "{{ output.color_profile }}"
+{% endif %}
 {% if output.mode is defined %}
     mode "{{ output.mode }}"
 {% endif %}
 {% if output.position is defined %}
     position {{ output.position }}
 {% endif %}
+{% if output.render_bit_depth is defined %}
+    render_bit_depth "{{ output.render_bit_depth }}"
+{% endif %}
 {% if output.scale is defined %}
     scale {{ output.scale }}
 {% endif %}
-{% if output.transform is defined %}
-    transform "{{ output.transform }}"
-{% endif %}
-{% if output.background is defined %}
-    background "{{ output.background }}" fill
-{% endif %}
-{% if output.adaptive_sync is defined %}
-    adaptive_sync {{ 'on' if output.adaptive_sync else 'off' }}
+{% if output.scale_filter is defined %}
+    scale_filter {{ output.scale_filter }}
 {% endif %}
 {% if output.subpixel is defined %}
     subpixel "{{ output.subpixel }}"
 {% endif %}
-{% if output.render_bit_depth is defined %}
-    render_bit_depth "{{ output.render_bit_depth }}"
+{% if output.transform is defined %}
+    transform "{{ output.transform }}"
 {% endif %}
 }
 {% endfor %}
@@ -48,50 +63,14 @@ output {{ output.name }} {
 {% if sway_inputs %}
 {% for input in sway_inputs %}
 input "{{ input.identifier }}" {
-{% if input.xkb_layout is defined %}
-    xkb_layout "{{ input.xkb_layout }}"
-{% endif %}
-{% if input.xkb_variant is defined %}
-    xkb_variant "{{ input.xkb_variant }}"
-{% endif %}
-{% if input.xkb_options is defined %}
-    xkb_options "{{ input.xkb_options }}"
-{% endif %}
-{% if input.xkb_numlock is defined %}
-    xkb_numlock "{{ 'enable' if input.xkb_numlock else 'disable' }}"
-{% endif %}
-{% if input.xkb_capslock is defined %}
-    xkb_capslock "{{ 'enable' if input.xkb_capslock else 'disable' }}
-{% endif %}
-{% if input.repeat_delay is defined %}
-    repeat_delay "{{ input.repeat_delay }}"
-{% endif %}
-{% if input.repeat_rate is defined %}
-    repeat_rate "{{ input.repeat_rate }}"
-{% endif %}
-{% if input.natural_scroll is defined %}
-    natural_scroll "{{ 'enabled' if input.natural_scroll else 'disabled' }}
-{% endif %}
-{% if input.scroll_method is defined %}
-    scroll_method "{{ input.scroll_method }}"
-{% endif %}
-{% if input.scroll_button is defined %}
-    scroll_button "{{ input.scroll_button }}"
-{% endif %}
-{% if input.left_handed is defined %}
-    left_handed {{ 'enabled' if input.left_handed else 'disabled' }}
-{% endif %}
 {% if input.accel_profile is defined %}
     accel_profile "{{ input.accel_profile }}"
 {% endif %}
-{% if input.pointer_accel is defined %}
-    pointer_accel "{{ input.pointer_accel }}"
+{% if input.drag is defined %}
+    drag {{ 'enabled' if input.drag else 'disabled' }}
 {% endif %}
-{% if input.tap is defined %}
-    tap {{ 'enabled' if input.tap else 'disabled' }}
-{% endif %}
-{% if input.tap_button_map is defined %}
-    tap_button_map "{{ input.tap_button_map }}"
+{% if input.drag_lock is defined %}
+    drag_lock {{ 'enabled' if input.drag_lock else 'disabled' }}
 {% endif %}
 {% if input.dwt is defined %}
     dwt {{ 'enabled' if input.dwt else 'disabled' }}
@@ -99,11 +78,59 @@ input "{{ input.identifier }}" {
 {% if input.dwtp is defined %}
     dwtp {{ 'enabled' if input.dwtp else 'disable' }}
 {% endif %}
-{% if input.drag is defined %}
-    drag {{ 'enabled' if input.drag else 'disabled' }}
+{% if input.left_handed is defined %}
+    left_handed {{ 'enabled' if input.left_handed else 'disabled' }}
 {% endif %}
-{% if input.drag_lock is defined %}
-    drag_lock {{ 'enabled' if input.drag_lock else 'disabled' }}
+{% if input.natural_scroll is defined %}
+    natural_scroll "{{ 'enabled' if input.natural_scroll else 'disabled' }}
+{% endif %}
+{% if input.pointer_accel is defined %}
+    pointer_accel "{{ input.pointer_accel }}"
+{% endif %}
+{% if input.repeat_rate is defined %}
+    repeat_rate "{{ input.repeat_rate }}"
+{% endif %}
+{% if input.repeat_delay is defined %}
+    repeat_delay "{{ input.repeat_delay }}"
+{% endif %}
+{% if input.scroll_button is defined %}
+    scroll_button "{{ input.scroll_button }}"
+{% endif %}
+{% if input.scroll_method is defined %}
+    scroll_method "{{ input.scroll_method }}"
+{% endif %}
+{% if input.tap is defined %}
+    tap {{ 'enabled' if input.tap else 'disabled' }}
+{% endif %}
+{% if input.tap_button_map is defined %}
+    tap_button_map "{{ input.tap_button_map }}"
+{% endif %}
+{% if input.xkb_file is defined %}
+    xkb_file "{{ input.xkb_file }}
+{% endif %}
+{% if input.xkb_capslock is defined %}
+    xkb_capslock "{{ 'enable' if input.xkb_capslock else 'disable' }}
+{% endif %}
+{% if input.xkb_layout is defined %}
+    xkb_layout "{{ input.xkb_layout }}"
+{% endif %}
+{% if input.xkb_model is defined %}
+    xkb_model "{{ input.xkb_model }}"
+{% endif %}
+{% if input.xkb_numlock is defined %}
+    xkb_numlock "{{ 'enable' if input.xkb_numlock else 'disable' }}"
+{% endif %}
+{% if input.xkb_options is defined %}
+    xkb_options "{{ input.xkb_options }}"
+{% endif %}
+{% if input.xkb_rules is defined %}
+    xkb_rules "{{ input.xkb_rules }}"
+{% endif %}
+{% if input.xkb_switch_layout is defined %}
+    xkb_switch_layout "{{ input.xkb_switch_layout }}"
+{% endif %}
+{% if input.xkb_variant is defined %}
+    xkb_variant "{{ input.xkb_variant }}"
 {% endif %}
 }
 {% endfor %}
@@ -266,16 +293,9 @@ mode "resize" {
 }
 {% endif %}
 
-# Window assignments
-# {% if sway_assignments %}
-# {% for assignment in sway_assignments %}
-# assign [{{ assignment.criteria }}] workspace {{ assignment.workspace }}
-# {% endfor %}
-# {% endif %}
-
-# Window markings and workspace assignments
-{% if sway_mark_and_workspace is defined %}
-{% for marking, rules in sway_mark_and_workspace.items() %}
+# Window attributes
+{% if sway_windows_attributes is defined %}
+{% for marking, rules in sway_windows_attributes.items() %}
 {% for rule in rules %}
 {% if rule.floating is defined and rule.floating %}
 for_window [{{ rule.criteria }}] mark {{ marking }}, floating enable
