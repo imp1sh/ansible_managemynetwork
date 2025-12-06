@@ -74,6 +74,14 @@
     mode: "0600"
   notify: Restart prometheus-node-exporter-lua
 
+- name: Enable prometheus-node-exporter-lua service
+  ansible.builtin.service:
+    name: prometheus-node-exporter-lua
+    state: started
+    enabled: true
+  when:
+    not openwrt_prometheus_node_exporter_lua_runimagebuilder
+
 - name: Merge role packages into packages_installimagebuilder
   ansible.builtin.set_fact:
     packages_installimagebuilder: "{{ packages_installimagebuilder + packages_installrole }}"
