@@ -52,7 +52,7 @@ openwrt_firewall_zonesdefault:
     log: 1
 # default rules
 openwrt_firewall_rulesdefault:
-  "Allow-Ping WAN to firewall":
+  "WAN Allow-Ping to firewall":
     family: "ipv4"
     icmp_type:
       - "echo-request"
@@ -60,48 +60,48 @@ openwrt_firewall_rulesdefault:
       - "icmp"
     src: "WAN"
     target: "ACCEPT"
-  "Allow-IGMP WAN to firewall":
+  "WAN Allow-IGMP to firewall":
     family: "ipv4"
     proto:
       - "igmp"
     src: "WAN"
     target: "ACCEPT"
-  "DHCPv4 NEIGHBOURS":
+  "NEIGHBOURS DHCPv4":
     dest_port: 67
     family: "ipv4"
     proto:
       - "udp"
     src: "NEIGHBOURS"
     target: "ACCEPT"
-  "DHCPv4 GUESTS":
+  "GUESTS DHCPv4":
     dest_port: 67
     family: "ipv4"
     proto:
       - "udp"
     src: "GUESTS"
     target: "ACCEPT"
-  "DHCPv4 LAN":
+  "LAN DHCPv4":
     dest_port: 67
     family: "ipv4"
     proto:
       - "udp"
     src: "LAN"
     target: "ACCEPT"
-  "DHCPv4 MGMT":
+  "MGMT DHCPv4":
     dest_port: 67
     family: "ipv4"
     proto:
       - "udp"
     src: "MGMT"
     target: "ACCEPT"
-  "DHCPv4 DMZ":
+  "DMZ DHCPv4":
     dest_port: 67
     family: "ipv4"
     proto:
       - "udp"
     src: "DMZ"
     target: "ACCEPT"
-  "DHCPv6 MGMT":
+  "MGMT DHCPv6":
     dest_port: 547
     family: "ipv6"
     proto:
@@ -110,7 +110,7 @@ openwrt_firewall_rulesdefault:
       - "fe80::/10"
     src: "MGMT"
     target: "ACCEPT"
-  "DHCPv6 GUESTS":
+  "GUESTS DHCPv6":
     dest_port: 547
     family: "ipv6"
     proto:
@@ -119,7 +119,7 @@ openwrt_firewall_rulesdefault:
       - "fe80::/10"
     src: "GUESTS"
     target: "ACCEPT"
-  "DHCPv6 LAN":
+  "LAN DHCPv6":
     dest_port: 547
     family: "ipv6"
     proto:
@@ -128,7 +128,7 @@ openwrt_firewall_rulesdefault:
       - "fe80::/10"
     src: "LAN"
     target: "ACCEPT"
-  "DHCPv6 DMZ":
+  "DMZ DHCPv6":
     dest_port: 547
     family: "ipv6"
     proto:
@@ -137,7 +137,7 @@ openwrt_firewall_rulesdefault:
       - "fe80::/10"
     src: "DMZ"
     target: "ACCEPT"
-  "DHCPv6 NEIGHBOURS":
+  "NEIGHBOURS DHCPv6":
     dest_port: 547
     family: "ipv6"
     proto:
@@ -146,18 +146,21 @@ openwrt_firewall_rulesdefault:
       - "fe80::/10"
     src: "NEIGHBOURS"
     target: "ACCEPT"
-  "Allow-DHCPv6 WAN":
-    dest_ip:
-      - "fc00::/6"
+  "WAN DHCP-Renew":
+    dest_port: 68
+    family: "ipv4"
+    proto:
+      - "udp"
+    src: "WAN"
+    target: "ACCEPT"
+  "WAN DHCPv6":
     dest_port: 546
     family: "ipv6"
     proto:
       - "udp"
     src: "WAN"
-    src_ip:
-      - "fc00::/6"
     target: "ACCEPT"
-  "Allow-MLD WAN":
+  "WAN MLD":
     family: "ipv6"
     icmp_type:
       - "130/0"
@@ -170,58 +173,51 @@ openwrt_firewall_rulesdefault:
     src_ip:
       - "fe80::/10"
     target: "ACCEPT"
-  "Allow-ICMPv6-Input":
+  "ALL Allow-ICMPv6":
     family: "ipv6"
     icmp_type:
-        - "echo-request"
-        - "echo-reply"
-        - "destination-unreachable"
-        - "packet-too-big"
-        - "time-exceeded"
         - "bad-header"
-        - "unknown-header-type"
-        - "router-solicitation"
-        - "neighbour-solicitation"
-        - "router-advertisement"
+        - "destination-unreachable"
+        - "echo-reply"
+        - "echo-request"
         - "neighbour-advertisement"
+        - "neighbour-solicitation"
+        - "packet-too-big"
+        - "router-advertisement"
+        - "router-solicitation"
+        - "time-exceeded"
+        - "unknown-header-type"
     limit: "1000/sec"
     proto:
       - "icmp"
     src: "*"
     target: "ACCEPT"
-  "Allow-ICMPv6-Forward any to any":
+  "ALL ICMPv6-Forward":
     family: "ipv6"
     icmp_type:
+      - "bad-header"
       - "destination-unreachable"
+      - "echo-reply"
+      - "echo-request"
       - "packet-too-big"
       - "time-exceeded"
-      - "parameter-problem"
-      - "echo-request"
-      - "echo-reply"
+      - "unknown-header-type"
     limit: "1000/sec"
     proto:
       - "icmp"
     src: "*"
     dest: "*"
     target: "ACCEPT"
-  "Allow-IPSec-ESP LAN":
+  "LAN IPSec-ESP":
     dest: "LAN"
     proto:
       - "esp"
     src: "WAN"
     target: "ACCEPT"
-  "Allow-ISAKMP WAN":
+  "WAN ISAKMP":
     dest: "LAN"
     proto:
       - "udp"
     dest_port: 500
     src: "WAN"
     target: "ACCEPT"
-  "Support-UDP-Traceroute WAN":
-    dest_port: "33434-33689"
-    family: "ipv4"
-    proto:
-      - "udp"
-    src: "WAN"
-    target: "REJECT"
-    enabled: "0"
