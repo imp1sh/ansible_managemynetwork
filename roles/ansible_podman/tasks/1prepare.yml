@@ -4,6 +4,7 @@
     name: podman.socket
     enabled: true
     state: started
+  when: ansible_distribution != 'OpenWrt'
 - name: "MMN Podman - Create networks"
   containers.podman.podman_network:
     name: "{{ item.name }}"
@@ -28,4 +29,10 @@
     registry: docker.io
     username: "{{ podman_dockerio_username }}"
     password: "{{ podman_dockerio_password }}"
-
+- name: "MMN Podman - Login additional registries"
+  containers.podman.podman_login:
+    registry: "{{ item.registryurl }}"
+    username: "{{ item.username }}"
+    password: "{{ item.password }}"
+  loop: "{{ podman_additional_registries }}"
+  when: podman_additional_registries is defined
