@@ -184,9 +184,11 @@ config device
 {% if value.bridge_empty is defined %}
 	option bridge_empty "{{ value.bridge_empty }}"
 {% endif %}
+{% if value.ports is defined %}
 {% for port in value.ports %}
 	list ports "{{ port }}"
 {% endfor %}
+{% endif %}
 {% endif %}
 {% else %}
 	option name "{{ key }}"
