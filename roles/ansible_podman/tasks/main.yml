@@ -54,4 +54,5 @@
     tasks_from: "init_container.yml"
   when:
     - podman_container_plugin_borgmatic is defined
+    - podman_containers is defined
     - podman_containers | map(attribute='name') | intersect(podman_container_plugin_borgmatic) | length > 0
