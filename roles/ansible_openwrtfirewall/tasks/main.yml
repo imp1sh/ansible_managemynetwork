@@ -4,7 +4,7 @@
   ansible.builtin.file:
     path: "{{ openwrt_firewall_deploypath }}"
     state: directory
-- name: MMN openwrtfirewall - Declare emtpy zone array
+- name: MMN openwrtfirewall - Declare empty zone array
   ansible.builtin.set_fact:
     openwrt_firewall_zonesactive: []
 - name: MMN openwrtfirewall - Run checks on variables
