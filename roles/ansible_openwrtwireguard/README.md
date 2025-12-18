@@ -8,5 +8,5 @@ There are some packages this dummy role will install.
 - luci-app-wireguard
 - luci-proto-wireguard
 
-Managing wireguard connections is done within the [Networking role](/junicast/docs/AnsibleOpenWrtCollection/roleNetwork).
+Managing wireguard connections is done within the [Networking role](../ansible_openwrtnetwork).
 
