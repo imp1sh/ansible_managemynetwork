@@ -11,7 +11,7 @@
     - ansible_distribution != 'OpenWrt'
     - not packages_runimagebuilder | default(false) | bool
 - name: MMN Packages - Installing packages OpenWrt
-  ansible.builtin.opkg:
+  community.general.apk:
     name: "{{ packages_install | join(packages_separator) }}"
     state: present
     update_cache: true
