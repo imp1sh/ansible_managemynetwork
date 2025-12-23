@@ -19,18 +19,15 @@ There are some paradigms every role in this collection shall conform with:
 Each role has a specific purpose. You can use them seperately to control specific application, services or on OpenWrt: UCI sections. It is desirable though to control the system as a whole with Ansible. If you do, neither make changes manually by command line nor via the webinterface on the target host directly. Changes will otherwise be overwritten by Ansible.
 If my collection lacks a feature or you find a bug, open an [issue in the git bugtracker](https://github.com/imp1sh/ansible_managemynetwork/issues).
 
-## The big OpenWrt Merge
+## Roles for OpenWrt
 
-OpenWrt roles were merged from [imp1sh.ansible_openwrt](https://github.com/imp1sh/ansible_openwrt) into imp1sh.ansible_managemynetwork in December 2023.
+> OpenWrt roles were merged from [imp1sh.ansible_openwrt](https://github.com/imp1sh/ansible_openwrt) into imp1sh.ansible_managemynetwork in December 2023.
+
 
 This collection will offer support for:
 - **Debian Linux** (main focus)
 - **OpenWrt** (main focus)
-- FreeBSD (only by popular request)
-- Ubuntu Linux (only by popular request)
-- ~~Manjaro/Arch Linux~~ (rarely supported across the roles)
-- ~~Alpine Linux~~ (may work as it had been used for years in some roles; basically deprecated)
-- ~~RedHat and Clones~~ (may work, but basically deprecated, definitively no support any longer)
+
 
 Some roles support Debian and OpenWrt at the same time.
 
@@ -84,7 +81,7 @@ Some roles support Debian and OpenWrt at the same time.
 
 The roles starting with *ansible_openwrt\** are OpenWrt specific. The goal is to be able to manage every aspect of OpenWrt centrally with Ansible.
 
-### Advantages of imp1sh OpenWrt roles
+### Overview of imp1sh OpenWrt roles
 
 The roles contained in this collection are pretty powerful. There are even some options that are not accessible through the LUCI Webinterface. In contrast to using LUCI, multiple OpenWrt devices can be managed with Ansible centrally. With it you are able to deploy settings individually, on a group basis or even for every device in your environment.
 
@@ -229,6 +226,7 @@ Variable names are constructed by using the role name which is at the same time 
 |imp1sh.ansible_managemynetwork.ansible_openwrt**acme** | `openwrt_acme_*` |
 
 ## Development / Contribution Conventions
+- Refrain from using AI / LLM
 - Ansible task names start with `MMN <<rolename>> - Text that describes the task brief but sufficient`
 - Ansible task descriptions start with Capital letter
 - Maintain meta information for role
