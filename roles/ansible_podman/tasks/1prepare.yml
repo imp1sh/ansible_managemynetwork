@@ -5,6 +5,7 @@
     enabled: true
     state: started
   when: ansible_distribution != 'OpenWrt'
+
 - name: "MMN Podman - Create networks"
   containers.podman.podman_network:
     name: "{{ item.name }}"
@@ -14,21 +15,41 @@
     dns: "{{ item.dns | default(omit) }}"
     net_config: "{{ item.net_config | default(omit) }}"
   loop: "{{ podman_networks }}"
+
 - name: "MMN Podman - Select subset of containers, because you asked for it"
   ansible.builtin.set_fact:
     podman_containers: "{{ podman_containers | selectattr('name', 'in', podman_limited_containers) | list }}"
   when: podman_limited_containers is defined
+
 - name: "MMN podman - Ensure podman container directories"
   ansible.builtin.file:
     path: "{{ item.1 | split(':') | first | ansible.builtin.dirname }}"
     state: directory
   when: podman_containers is defined
   loop: "{{ podman_containers | subelements('volume', 'skip_missing=True') }}"
+
+- name: "MMN podman - Deploy storage config"
+  ansible.builtin.template:
+    src: "storage_openwrt.conf.j2"
+    dest: "/etc/containers/storage.conf"
+    mode: 0644
+  when: ansible_distribution == 'OpenWrt'
+  notify: Restart podman openwrt
+
+- name: "MMN podman - Deploy containers config"
+  ansible.builtin.template:
+    src: "containers_openwrt.conf.j2"
+    dest: "/etc/containers/containers.conf"
+    mode: 0644
+  when: ansible_distribution == 'OpenWrt'
+  notify: Restart podman openwrt
+
 - name: "MMN Podman - Login docker.io"
   containers.podman.podman_login:
     registry: docker.io
     username: "{{ podman_dockerio_username }}"
     password: "{{ podman_dockerio_password }}"
+
 - name: "MMN Podman - Login additional registries"
   containers.podman.podman_login:
     registry: "{{ item.registryurl }}"
