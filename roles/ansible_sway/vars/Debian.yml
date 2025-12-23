@@ -1,0 +1,18 @@
+#SPDX-License-Identifier: MIT-0
+---
+sway_packages:
+  - sway
+  - swaybg
+  - swaylock
+  - swayidle
+  - xwayland
+  - greetd
+  - wlgreet
+  - qtwayland5
+  - alacritty
+  - rofi
+sway_fileconfig: "config"
+sway_filetemplate: "config.j2"
+sway_userconfig: true
+
+
