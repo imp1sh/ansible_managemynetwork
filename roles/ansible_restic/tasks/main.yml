@@ -57,7 +57,6 @@
 
 - name: MMN restic - Setup cron jobs
   include_tasks: 5cron.yml
-  when: not restic_runimagebuilder | default(false)
   loop: "{{ restic_backups }}"
   loop_control:
     loop_var: backupitem
