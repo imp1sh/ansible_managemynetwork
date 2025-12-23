@@ -1,0 +1,15 @@
+#SPDX-License-Identifier: MIT-0
+---
+- name: MMN sway - Ensure system configuration directory exists
+  ansible.builtin.file:
+    path: "/etc/sway"
+    state: directory
+    mode: '0755'
+
+- name: MMN sway - Deploy system-wide sway configuration file
+  ansible.builtin.template:
+    src: "{{ sway_filetemplate }}"
+    dest: "/etc/sway/{{ sway_fileconfig }}"
+    mode: '0644'
+
+
