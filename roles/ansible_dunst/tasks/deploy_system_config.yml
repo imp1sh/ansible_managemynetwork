@@ -1,0 +1,23 @@
+#SPDX-License-Identifier: MIT-0
+---
+- name: MMN dunst - Ensure system configuration directory exists
+  ansible.builtin.file:
+    path: "/etc/dunst"
+    state: directory
+    owner: "root"
+    group: "root"
+    mode: '0755'
+
+- name: MMN dunst - Deploy system-wide dunst configuration file
+  ansible.builtin.template:
+    src: "{{ dunst_filetemplate }}"
+    dest: "/etc/dunst/{{ dunst_fileconfig }}"
+    owner: "root"
+    group: "root"
+    mode: '0644'
+
+- name: MMN dunst - Note about system-wide configuration
+  ansible.builtin.debug:
+    msg: "System-wide dunst configuration updated. Users need to restart their dunst instances (e.g., 'dunstctl reload' or 'pkill dunst && dunst &') or log out/in for changes to take effect."
+  changed_when: false
+

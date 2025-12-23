@@ -1,0 +1,8 @@
+#SPDX-License-Identifier: MIT-0
+---
+dunst_packagename: "dunst"
+dunst_fileconfig: "dunstrc"
+dunst_servicename: "dunst"
+dunst_filetemplate: "dunstrc.j2"
+dunst_userconfig: true
+

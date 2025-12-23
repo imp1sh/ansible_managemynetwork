@@ -1,0 +1,41 @@
+#SPDX-License-Identifier: MIT-0
+---
+- name: MMN dunst - Include OS vars
+  ansible.builtin.include_vars: "{{ ansible_distribution }}.yml"
+
+- name: MMN dunst - Set package name for calling packages role
+  ansible.builtin.set_fact:
+    packages_installrole: "{{ dunst_packagename }}"
+
+- name: MMN dunst - Install required packages
+  ansible.builtin.include_role:
+    name: imp1sh.ansible_managemynetwork.ansible_packages
+
+- name: MMN dunst - Apply color scheme
+  ansible.builtin.set_fact:
+    dunst_config_global_frame_color: "{{ dunst_config_global_frame_color | default(dunst_color_schemes[dunst_color_scheme | default('dark')].global_frame_color) }}"
+    dunst_config_urgency_low_background: "{{ dunst_config_urgency_low_background | default(dunst_color_schemes[dunst_color_scheme | default('dark')].low_background) }}"
+    dunst_config_urgency_low_foreground: "{{ dunst_config_urgency_low_foreground | default(dunst_color_schemes[dunst_color_scheme | default('dark')].low_foreground) }}"
+    dunst_config_urgency_low_frame_color: "{{ dunst_config_urgency_low_frame_color | default(dunst_color_schemes[dunst_color_scheme | default('dark')].low_frame_color) }}"
+    dunst_config_urgency_normal_background: "{{ dunst_config_urgency_normal_background | default(dunst_color_schemes[dunst_color_scheme | default('dark')].normal_background) }}"
+    dunst_config_urgency_normal_foreground: "{{ dunst_config_urgency_normal_foreground | default(dunst_color_schemes[dunst_color_scheme | default('dark')].normal_foreground) }}"
+    dunst_config_urgency_normal_frame_color: "{{ dunst_config_urgency_normal_frame_color | default(dunst_color_schemes[dunst_color_scheme | default('dark')].normal_frame_color) }}"
+    dunst_config_urgency_critical_background: "{{ dunst_config_urgency_critical_background | default(dunst_color_schemes[dunst_color_scheme | default('dark')].critical_background) }}"
+    dunst_config_urgency_critical_foreground: "{{ dunst_config_urgency_critical_foreground | default(dunst_color_schemes[dunst_color_scheme | default('dark')].critical_foreground) }}"
+    dunst_config_urgency_critical_frame_color: "{{ dunst_config_urgency_critical_frame_color | default(dunst_color_schemes[dunst_color_scheme | default('dark')].critical_frame_color) }}"
+
+- name: MMN dunst - Determine target users
+  ansible.builtin.set_fact:
+    dunst_target_users: "{{ [dunst_users] if (dunst_users is string) else (dunst_users if (dunst_users is iterable and dunst_users is not string) else [ansible_user | default('root')]) }}"
+  when: dunst_userconfig | default(true)
+
+- name: MMN dunst - Deploy configuration for each user
+  ansible.builtin.include_tasks: deploy_user_config.yml
+  loop: "{{ dunst_target_users | default([ansible_user | default('root')]) }}"
+  loop_control:
+    loop_var: target_user
+  when: dunst_userconfig | default(true)
+
+- name: MMN dunst - Deploy system-wide configuration
+  ansible.builtin.include_tasks: deploy_system_config.yml
+  when: not (dunst_userconfig | default(true))

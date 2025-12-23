@@ -1,0 +1,114 @@
+#SPDX-License-Identifier: MIT-0
+---
+# Configuration location
+# Set to true to use user config (~/.config/dunst/dunstrc), false for system config (/etc/dunst/dunstrc)
+dunst_userconfig: true
+
+# Target user(s) for configuration
+# - If undefined/null: uses the user Ansible connects as (ansible_user)
+# - If a string: configures for that single user
+# - If a list: configures for all users in the list
+# Example: dunst_users: "alice"
+# Example: dunst_users: ["alice", "bob"]
+dunst_users: null
+
+# Color scheme selection
+# Options: "dark" (default), "light", "vibrant"
+# Each scheme defines colors for frame, background, and foreground for all urgency levels
+dunst_color_scheme: "dark"
+
+# Global settings
+dunst_config_global_monitor: 0
+dunst_config_global_follow: "mouse"
+dunst_config_global_geometry: "300x5-30+30"
+dunst_config_global_indicate_hidden: true
+dunst_config_global_shrink: false
+dunst_config_global_transparency: 10
+dunst_config_global_notification_height: 0
+dunst_config_global_separator_height: 2
+dunst_config_global_padding: 8
+dunst_config_global_horizontal_padding: 8
+dunst_config_global_frame_width: 3
+dunst_config_global_frame_color: null
+dunst_config_global_separator_color: "auto"
+dunst_config_global_sort: true
+dunst_config_global_idle_threshold: 120
+dunst_config_global_font: "Monospace 10"
+dunst_config_global_line_height: 0
+dunst_config_global_markup: "full"
+dunst_config_global_format: "<b>%s</b>\n%b"
+dunst_config_global_alignment: "left"
+dunst_config_global_show_age_threshold: 60
+dunst_config_global_word_wrap: true
+dunst_config_global_ignore_newline: false
+dunst_config_global_stack_duplicates: true
+dunst_config_global_hide_duplicate_count: false
+dunst_config_global_show_indicators: true
+dunst_config_global_icon_position: "left"
+dunst_config_global_max_icon_size: 64
+dunst_config_global_sticky_history: true
+dunst_config_global_history_length: 20
+dunst_config_global_dmenu: "/usr/bin/dmenu -p dunst:"
+dunst_config_global_browser: "/usr/bin/firefox -new-tab"
+dunst_config_global_always_run_script: true
+dunst_config_global_title: "Dunst"
+dunst_config_global_class: "Dunst"
+dunst_config_global_startup_notification: false
+dunst_config_global_verbosity: "mesg"
+
+# Color schemes (will be applied based on dunst_color_scheme variable)
+dunst_color_schemes:
+  dark:
+    global_frame_color: "#aaaaaa"
+    low_background: "#285577"
+    low_foreground: "#ffffff"
+    low_frame_color: "#285577"
+    normal_background: "#285577"
+    normal_foreground: "#ffffff"
+    normal_frame_color: "#285577"
+    critical_background: "#900000"
+    critical_foreground: "#ffffff"
+    critical_frame_color: "#ff0000"
+  light:
+    global_frame_color: "#666666"
+    low_background: "#e8e8e8"
+    low_foreground: "#000000"
+    low_frame_color: "#888888"
+    normal_background: "#e8e8e8"
+    normal_foreground: "#000000"
+    normal_frame_color: "#888888"
+    critical_background: "#ffcccc"
+    critical_foreground: "#000000"
+    critical_frame_color: "#ff6666"
+  vibrant:
+    global_frame_color: "#7aa2f7"
+    low_background: "#1e1e2e"
+    low_foreground: "#cdd6f4"
+    low_frame_color: "#89b4fa"
+    normal_background: "#1e1e2e"
+    normal_foreground: "#cdd6f4"
+    normal_frame_color: "#89b4fa"
+    critical_background: "#f38ba8"
+    critical_foreground: "#1e1e2e"
+    critical_frame_color: "#f38ba8"
+
+# Urgency settings (low, normal, critical)
+# These will be overridden by the selected color scheme unless explicitly set
+dunst_config_urgency_low_background: null
+dunst_config_urgency_low_foreground: null
+dunst_config_urgency_low_timeout: 10
+dunst_config_urgency_low_frame_color: null
+
+dunst_config_urgency_normal_background: null
+dunst_config_urgency_normal_foreground: null
+dunst_config_urgency_normal_timeout: 10
+dunst_config_urgency_normal_frame_color: null
+
+dunst_config_urgency_critical_background: null
+dunst_config_urgency_critical_foreground: null
+dunst_config_urgency_critical_timeout: 0
+dunst_config_urgency_critical_frame_color: null
+
+# Experimental settings (for Wayland support)
+dunst_config_experimental_per_monitor_dpi: false
+dunst_config_experimental_wayland_no_ignore_compositor: false

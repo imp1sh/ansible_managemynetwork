@@ -1,0 +1,75 @@
+#SPDX-License-Identifier: MIT-0
+---
+- name: MMN dunst - Get home directory for {{ target_user }}
+  ansible.builtin.shell: "getent passwd {{ target_user }} | cut -d: -f6"
+  register: user_home_result
+  changed_when: false
+  failed_when: false
+
+- name: MMN dunst - Fail if user {{ target_user }} does not exist
+  ansible.builtin.fail:
+    msg: "User {{ target_user }} does not exist on the system"
+  when: user_home_result.rc != 0
+
+- name: MMN dunst - Set user home directory
+  ansible.builtin.set_fact:
+    target_user_home: "{{ user_home_result.stdout }}"
+  when: user_home_result.rc == 0
+
+- name: MMN dunst - Ensure configuration directory exists for {{ target_user }}
+  ansible.builtin.file:
+    path: "{{ target_user_home }}/.config/dunst"
+    state: directory
+    owner: "{{ target_user }}"
+    group: "{{ target_user }}"
+    mode: '0755'
+
+- name: MMN dunst - Deploy dunst configuration file for {{ target_user }}
+  ansible.builtin.template:
+    src: "{{ dunst_filetemplate }}"
+    dest: "{{ target_user_home }}/.config/dunst/{{ dunst_fileconfig }}"
+    owner: "{{ target_user }}"
+    group: "{{ target_user }}"
+    mode: '0644'
+
+- name: MMN dunst - Get user ID for {{ target_user }}
+  ansible.builtin.shell: "getent passwd {{ target_user }} | cut -d: -f3"
+  register: user_id_result
+  changed_when: false
+  failed_when: false
+
+- name: MMN dunst - Reload dunst configuration for {{ target_user }} using dunstctl
+  ansible.builtin.command: dunstctl reload
+  become_user: "{{ target_user }}"
+  register: dunstctl_reload_result
+  changed_when: true
+  failed_when: false
+  when: user_id_result.rc == 0
+
+- name: MMN dunst - Restart dunst for {{ target_user }} (fallback if dunstctl not available)
+  block:
+    - name: Kill existing dunst process for {{ target_user }}
+      ansible.builtin.shell: "pkill -u {{ target_user }} -x dunst || true"
+      changed_when: false
+      failed_when: false
+
+    - name: Wait for process to terminate
+      ansible.builtin.pause:
+        seconds: 1
+
+    - name: Start dunst as {{ target_user }}
+      ansible.builtin.shell: |
+        export DISPLAY={{ ansible_env.DISPLAY | default(':0') }}
+        export WAYLAND_DISPLAY={{ ansible_env.WAYLAND_DISPLAY | default('wayland-0') }}
+        export XDG_RUNTIME_DIR=/run/user/{{ user_id_result.stdout }}
+        nohup dunst > /dev/null 2>&1 &
+      become_user: "{{ target_user }}"
+      environment:
+        DISPLAY: "{{ ansible_env.DISPLAY | default(':0') }}"
+        WAYLAND_DISPLAY: "{{ ansible_env.WAYLAND_DISPLAY | default('wayland-0') }}"
+        XDG_RUNTIME_DIR: "/run/user/{{ user_id_result.stdout }}"
+      changed_when: true
+      async: 5
+      poll: 0
+  when: user_id_result.rc == 0 and (dunstctl_reload_result.rc != 0 or dunstctl_reload_result is not defined)
+
