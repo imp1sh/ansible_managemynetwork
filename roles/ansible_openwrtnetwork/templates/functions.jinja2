@@ -394,7 +394,6 @@ config interface "{{ key }}"
 	list dns "{{ dns }}"
 {% endfor %}
 {% endif %}
-	# CONFIG OPTIONS MIXED DHCP AND DHVPV6 START
 {% if value['reqopts'] is defined %}
 {% for reqopt in value['reqopts'] %}
 	list reqopts "{{ value['reqopts'] }}"
