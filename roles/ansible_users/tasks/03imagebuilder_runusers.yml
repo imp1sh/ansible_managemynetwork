@@ -29,4 +29,5 @@
       ansible.builtin.template:
         src: imagebuilderuser.j2
         dest: "{{ system_users_setpassword_deploypath }}/{{ index }}{{ system_users_setpassword_deployfile }}-{{ user.key }}"
+      when: user.value.password is defined
   when: user.key in list_of_users
