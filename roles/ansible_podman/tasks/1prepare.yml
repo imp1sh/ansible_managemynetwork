@@ -11,7 +11,7 @@
     name: "{{ item.name }}"
     driver: "{{ item.driver }}"
     debug: "{{ item.debug | default(omit) }}"
-    ipv6: "{{ item.ipv6 }}"
+    ipv6: "{{ item.ipv6 | default(omit) }}"
     dns: "{{ item.dns | default(omit) }}"
     net_config: "{{ item.net_config | default(omit) }}"
   loop: "{{ podman_networks }}"
