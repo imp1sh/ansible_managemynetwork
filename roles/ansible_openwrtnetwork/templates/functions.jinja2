@@ -270,6 +270,9 @@ config interface "{{ key }}"
 {% if value['ip6table'] is defined %}
 	option ip6table "{{ value['ip6table'] }}"
 {% endif %}
+{% if value['sourcefilter'] is defined %}
+	option sourcefilter "{{ value['sourcefilter'] }}"
+{% endif %}
 	# CONFIG OPTIONS ALL END
 {% if value['proto'] == "wireguard" %}
 	# CONFIG OPTIONS WIREGUARD START
@@ -360,9 +363,6 @@ config interface "{{ key }}"
 {% endif %}
 {% if value['norelease'] is defined %}
 	option norelease "{{ value['norelease'] }}"
-{% endif %}
-{% if value['sourcefilter'] is defined %}
-	option sourcefilter "{{ value['sourcefilter'] }}"
 {% endif %}
 {% if value['ip6ifaceid'] is defined %}
 	option ip6ifaceid "{{ value['ip6ifaceid'] }}"
