@@ -4,6 +4,12 @@
     src: "procd.jinja2"
     dest: "{{ openwrt_podman_deploypath_initscript }}/container_{{ podman_container.name }}"
     mode: 0740
+
 - name: enable procd item
   ansible.builtin.command: "/etc/init.d/container_{{ podman_container.name }} enable"
   when: podman_container.state == "started"
+
+- name: "MMN podman - Deploy hotplug iface script"
+  ansible.builtin.template:
+    src: hotplug_network_podman_reload.j2
+    dest: "{{ openwrt_podman_deploypath_hotplug_iface }}/99-podman-reload"
