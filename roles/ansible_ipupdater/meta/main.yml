@@ -1,0 +1,18 @@
+---
+galaxy_info:
+  role_name: ansible_ipupdater
+  author: Jochen Demmer
+  description: Deploys ipupdater Skripts for updating hosts into dynamic DNS hetzner cloud
+  company: libcom.de
+  issue_tracker_url: https://github.com/imp1sh/ansible_managemynetwork/issues
+  license: BSD-3-Clause
+  min_ansible_version: "2.9"
+  platforms:
+    - name: Debian
+      versions:
+        - all
+    - name: OpenWrt
+      version:
+      - all
+  galaxy_tags: [ipupdater, dyndns]
+dependencies: []

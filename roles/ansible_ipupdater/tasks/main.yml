@@ -1,0 +1,45 @@
+---
+# tasks file for ansible_ipupdater
+
+# - name: "MMN ipupdater - Add git as install candidate"
+#   set_fact:
+#     packages_installrole: "{{ packages_installrole | default([]) + ['git', 'git-http'] }}"
+# 
+# - name: "MMN ipupdater - Run packages role"
+#   ansible.builtin.include_role:
+#     name: imp1sh.ansible_managemynetwork.ansible_packages
+
+- name: "MMN ipupdater - Deploy ipupdater repo"
+  ansible.builtin.git:
+    repo: "https://git.lpv4.net/public.thorion.org/thorion_ipupdater.git"
+    dest: "{{ ipupdater_deploypath }}"
+    version: master
+    update: yes
+
+- name: "MMN ipupdater - Deploy hetzner cloud api token"
+  ansible.builtin.template:
+    src: hetzner_cloud.sh.j2
+    dest: "{{ ipupdater_deploypath_hetzner_apitoken }}"
+  when: ipupdater_apitoken_hetzner is defined
+
+- name: "MMN ipupdater - Deploy interface ipupdater will search for openwrts own ip address"
+  ansible.builtin.template:
+    src: openwrt_owninterface.j2
+    dest: "{{ ipupdater_deploypath_openwrt_owninterface }}"
+  when:
+    - ipupdater_openwrt_owninterface_name is defined
+    - ipupdater_openwrt_owninterface_scope is defined
+
+- name: "MMN ipupdater - Deploy static interface list to search for IP addresses"
+  ansible.builtin.template:
+    src: staticinterfaces.j2
+    dest: "{{ ipupdater_deploypath_staticinterfaces }}"
+  when: ipupdater_openwrt_staticinterfaces is defined
+
+- name: "MMN ipupdater - Deploy static mac list to use for matching found IP addresses"
+  ansible.builtin.template:
+    src: staticmacs.j2
+    dest: "{{ ipupdater_deploypath_staticmacs }}"
+  when: ipupdater_openwrt_staticmacs is defined
+
+
