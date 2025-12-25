@@ -6,7 +6,7 @@
     - packages_installimagebuilder is not defined
     - openwrt_wireguard_runimagebuilder | default(false)
 
-- name: "MMN OpenWrt Wireguard - Merge role packages into packages_installimagebuilder""
+- name: "MMN OpenWrt Wireguard - Merge role packages into packages_installimagebuilder"
   set_fact:
     packages_installimagebuilder: "{{ packages_installimagebuilder + packages_installrole }}"
   when: openwrt_wireguard_runimagebuilder | default(false)
