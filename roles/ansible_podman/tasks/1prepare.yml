@@ -6,15 +6,35 @@
     state: started
   when: ansible_distribution != 'OpenWrt'
 
-- name: "MMN Podman - Create networks"
+- name: "MMN Podman - Create networks non OpenWrt"
   containers.podman.podman_network:
-    name: "{{ item.name }}"
-    driver: "{{ item.driver }}"
     debug: "{{ item.debug | default(omit) }}"
-    ipv6: "{{ item.ipv6 | default(omit) }}"
     dns: "{{ item.dns | default(omit) }}"
+    driver: "{{ item.driver }}"
+    interface_name: "{{ item.interface_name | default(omit) }}"
+    ipv6: "{{ item.ipv6 | default(omit) }}"
+    name: "{{ item.name }}"
     net_config: "{{ item.net_config | default(omit) }}"
   loop: "{{ podman_networks }}"
+  when:
+    - podman_networks is defined
+    - ansible_distribution != 'OpenWrt'
+
+- name: "MMN Podman - Generate Podman-style created timestamp (UTC, ns)"
+  ansible.builtin.set_fact:
+    podman_created_time: "{{ now(fmt='%Y-%m-%dT%H:%M:%S.%fZ') }}"
+
+# This is a workaround for OpenWrt. podman network create and podman network rm may not be used
+- name: "MMN Podman - Create networks OpenWrt"
+  ansible.builtin.template:
+    src: podman_network.j2
+    dest: "/etc/containers/networks/{{ network.name }}.json"
+  loop: "{{ podman_networks }}"
+  loop_control:
+    loop_var: "network"
+  when:
+    - podman_networks is defined
+    - ansible_distribution == 'OpenWrt'
 
 - name: "MMN Podman - Select subset of containers, because you asked for it"
   ansible.builtin.set_fact:

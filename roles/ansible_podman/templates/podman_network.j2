@@ -1,0 +1,23 @@
+{
+     "name": "{{ network.name }}",
+     "id": "{{ network.id }}",
+     "driver": "{{ network.driver }}",
+     "network_interface": "{{ network.interface_name }}",
+     "created": "{{ network.created }}",
+{% if network.net_config is defined %}
+     "subnets": [
+{% for subnetitem in network.net_config %}
+          {
+               "subnet": "{{ subnetitem.subnet }}",
+               "gateway": "{{ subnetitem.gateway }}"
+          {% if not loop.last %}},{% else %}}{% endif %}
+{% endfor %}
+     ],
+{% endif %}
+     "ipv6_enabled": true,
+     "internal": false,
+     "dns_enabled": true,
+     "ipam_options": {
+          "driver": "host-local"
+     }
+}
