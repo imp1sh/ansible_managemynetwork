@@ -1,0 +1,10 @@
+#!/usr/bin/env sh
+
+# We only want to act when interfaces are fully configured
+[ "$ACTION" = "ifup" ] || [ "$ACTION" = "ifupdate" ] || exit 0
+
+# Ensure podman is available
+command -v podman >/dev/null 2>&1 || exit 0
+
+# Run podman network reload
+podman network reload -a
