@@ -28,7 +28,7 @@
 - name: "MMN Podman - Create networks OpenWrt"
   ansible.builtin.template:
     src: podman_network.j2
-    dest: "/etc/containers/networks/{{ network.name }}.json"
+    dest: "{{ openwrt_podman_deploypath_containersconfig }}/{{ network.name }}.json"
   loop: "{{ podman_networks }}"
   loop_control:
     loop_var: "network"
