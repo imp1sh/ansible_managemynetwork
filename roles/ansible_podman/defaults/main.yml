@@ -1,6 +1,8 @@
 ---
 # defaults file for ansible_podman
-openwrt_podman_deployroot: "/"
-openwrt_podman_deploypath_initscript: "{{ openwrt_podman_deployroot }}etc/init.d"
-openwrt_podman_deploypath_containersconfig: "{{ openwrt_podman_deployroot }}etc/containers/networks"
-openwrt_podman_deploypath_hotplug_iface: "{{ openwrt_podman_deployroot }}etc/hotplug.d/iface"
+podman_deployroot: "/"
+podman_deploypath_containersconfig: "{{ podman_deployroot }}etc/containers/containers.conf"
+podman_deploypath_containersnetworks: "{{ podman_deployroot }}etc/containers/networks"
+podman_deploypath_containersstorage: "{{ podman_deployroot }}etc/containers/storage.conf"
+podman_deploypath_hotplug_iface: "{{ podman_deployroot }}etc/hotplug.d/iface"
+podman_deploypath_initscript: "{{ podman_deployroot }}etc/init.d"

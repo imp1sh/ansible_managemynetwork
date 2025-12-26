@@ -3,6 +3,7 @@
 - name: "MMN Podman - Prepare and install packagessystemd tasks"
   ansible.builtin.include_tasks:
     file: 0install.yml
+  when: not podman_runimagebuilder | default(false) | bool
 
 - name: "MMN Podman - Network and more"
   ansible.builtin.include_tasks:
@@ -23,24 +24,31 @@
     labels: "{{ item.labels | default(omit) }}"
     skip_existing: "{{ item.skip_existing | default(omit) }}"
   loop: "{{ podman_secrets }}"
-  when: podman_secrets is defined
+  when:
+    - podman_secrets is defined
+    - not podman_runimagebuilder | default(false) | bool
 
 - name: "MMN Podman - Deploy application configuration for supported plugin 1st run"
   ansible.builtin.include_tasks:
     file: 2plugin_chooser.yml
-  when: ( podman_container_plugin_psql is defined ) or ( podman_container_plugin_borgmatic is defined ) or ( podman_container_plugin_pdnsauth is defined )
-  # add or condition for additional plugins, I need to list them all here
+  when:
+    # add or condition for additional plugins, I need to list them all here
+    - ( podman_container_plugin_psql is defined ) or ( podman_container_plugin_borgmatic is defined ) or ( podman_container_plugin_pdnsauth is defined )
+    - not podman_runimagebuilder | default(false) | bool
 
 - name: "MMN Podman - Create containers"
   containers.podman.podman_containers:
     containers: "{{ podman_containers }}"
   when:
     - podman_containers is defined
+    - not podman_runimagebuilder | default(false) | bool
 
 - name: "MMN Podman - Deploy application configuration for supported plugin 2nd run"
   ansible.builtin.include_tasks:
     file: plugin_psql_run2.yml
-  when: podman_container_plugin_psql is defined
+  when:
+    - podman_container_plugin_psql is defined
+    - not podman_runimagebuilder | default(false) | bool
 
 - name: "MMN Podman - Post tasks"
   ansible.builtin.include_tasks:

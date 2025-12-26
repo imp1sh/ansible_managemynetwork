@@ -4,3 +4,5 @@
   community.general.openwrt_init:
     state: restarted
     name: podman
+  when:
+    - not podman_runimagebuilder | default(false) | bool

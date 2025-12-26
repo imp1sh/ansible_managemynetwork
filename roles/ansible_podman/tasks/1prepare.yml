@@ -1,74 +1,101 @@
 ---
-- name: "MMN Podman - Enable and start podman.socket for Docker-compatible API"
-  ansible.builtin.systemd:
-    name: podman.socket
-    enabled: true
-    state: started
+# First non OpenWrt tasks
+- name: "MMN Podman - Prepare non OpenWrt tasks"
   when: ansible_distribution != 'OpenWrt'
+  block:
+    - name: "MMN Podman - Enable and start podman.socket for Docker-compatible API"
+      ansible.builtin.systemd:
+        name: podman.socket
+        enabled: true
+        state: started
 
-- name: "MMN Podman - Create networks non OpenWrt"
-  containers.podman.podman_network:
-    debug: "{{ item.debug | default(omit) }}"
-    dns: "{{ item.dns | default(omit) }}"
-    driver: "{{ item.driver }}"
-    interface_name: "{{ item.interface_name | default(omit) }}"
-    ipv6: "{{ item.ipv6 | default(omit) }}"
-    name: "{{ item.name }}"
-    net_config: "{{ item.net_config | default(omit) }}"
-  loop: "{{ podman_networks }}"
-  when:
-    - podman_networks is defined
-    - ansible_distribution != 'OpenWrt'
+    - name: "MMN Podman - Create networks"
+      containers.podman.podman_network:
+        debug: "{{ item.debug | default(omit) }}"
+        dns: "{{ item.dns | default(omit) }}"
+        driver: "{{ item.driver }}"
+        interface_name: "{{ item.interface_name | default(omit) }}"
+        ipv6: "{{ item.ipv6 | default(omit) }}"
+        name: "{{ item.name }}"
+        net_config: "{{ item.net_config | default(omit) }}"
+      loop: "{{ podman_networks }}"
+      when:
+        - podman_networks is defined
+        - ansible_distribution != 'OpenWrt'
 
-- name: "MMN Podman - Generate Podman-style created timestamp (UTC, ns)"
-  ansible.builtin.set_fact:
-    podman_created_time: "{{ now(fmt='%Y-%m-%dT%H:%M:%S.%fZ') }}"
 
-# This is a workaround for OpenWrt. podman network create and podman network rm may not be used
-- name: "MMN Podman - Create networks OpenWrt"
-  ansible.builtin.template:
-    src: podman_network.j2
-    dest: "{{ openwrt_podman_deploypath_containersconfig }}/{{ network.name }}.json"
-  loop: "{{ podman_networks }}"
-  loop_control:
-    loop_var: "network"
-  when:
-    - podman_networks is defined
-    - ansible_distribution == 'OpenWrt'
+# Secondly OpenWrt specific tasks
+- name: "MMN Podman - Prepare OpenWrt tasks"
+  when: ansible_distribution == 'OpenWrt'
+  block:
+    - name: "MMN Podman - Generate Podman-style created timestamp (UTC, ns)"
+      ansible.builtin.set_fact:
+        podman_created_time: "{{ now(fmt='%Y-%m-%dT%H:%M:%S.%fZ') }}"
 
+    - name: "MMN Pomdan - Ensure path container networks"
+      ansible.builtin.file:
+        path: "{{ podman_deploypath_containersnetworks }}"
+        state: directory
+
+    - name: "MMN Pomdan - Ensure path container config"
+      ansible.builtin.file:
+        path: "{{ podman_deploypath_containersconfig | dirname }}"
+        state: directory
+
+    - name: "MMN Pomdan - Ensure path container storage"
+      ansible.builtin.file:
+        path: "{{ podman_deploypath_containersstorage | dirname }}"
+        state: directory
+
+    # This is a workaround for OpenWrt. podman network create and podman network rm may not be used
+    - name: "MMN Podman - Create networks OpenWrt"
+      ansible.builtin.template:
+        src: podman_network.j2
+        dest: "{{ podman_deploypath_containersnetworks }}/{{ network.name }}.json"
+      loop: "{{ podman_networks }}"
+      loop_control:
+        loop_var: "network"
+      when: podman_networks is defined
+
+    - name: "MMN podman - Deploy storage config"
+      ansible.builtin.template:
+        src: "storage_openwrt.conf.j2"
+        dest: "{{ podman_deploypath_containersstorage }}"
+        mode: 0644
+      notify: Restart podman openwrt
+    
+    - name: "MMN podman - Deploy containers config"
+      ansible.builtin.template:
+        src: "containers_openwrt.conf.j2"
+        dest: "{{ podman_deploypath_containersconfig }}"
+        mode: 0644
+      notify: Restart podman openwrt
+
+
+# Thirdly all tasks for both OpenWrt and non-OpenWrt
 - name: "MMN Podman - Select subset of containers, because you asked for it"
   ansible.builtin.set_fact:
     podman_containers: "{{ podman_containers | selectattr('name', 'in', podman_limited_containers) | list }}"
-  when: podman_limited_containers is defined
+  when:
+    - podman_limited_containers is defined
+    - not podman_runimagebuilder | default(false) | bool
 
 - name: "MMN podman - Ensure podman container directories"
   ansible.builtin.file:
     path: "{{ item.1 | split(':') | first | ansible.builtin.dirname }}"
     state: directory
-  when: podman_containers is defined
   loop: "{{ podman_containers | subelements('volume', 'skip_missing=True') }}"
-
-- name: "MMN podman - Deploy storage config"
-  ansible.builtin.template:
-    src: "storage_openwrt.conf.j2"
-    dest: "/etc/containers/storage.conf"
-    mode: 0644
-  when: ansible_distribution == 'OpenWrt'
-  notify: Restart podman openwrt
-
-- name: "MMN podman - Deploy containers config"
-  ansible.builtin.template:
-    src: "containers_openwrt.conf.j2"
-    dest: "/etc/containers/containers.conf"
-    mode: 0644
-  when: ansible_distribution == 'OpenWrt'
-  notify: Restart podman openwrt
+  when:
+    - podman_containers is defined
+    - not podman_runimagebuilder | default(false) | bool
 
 - name: "MMN Podman - Login docker.io"
   containers.podman.podman_login:
     registry: docker.io
     username: "{{ podman_dockerio_username }}"
     password: "{{ podman_dockerio_password }}"
+  when:
+    - not podman_runimagebuilder | default(false) | bool
 
 - name: "MMN Podman - Login additional registries"
   containers.podman.podman_login:
@@ -76,4 +103,6 @@
     username: "{{ item.username }}"
     password: "{{ item.password }}"
   loop: "{{ podman_additional_registries }}"
-  when: podman_additional_registries is defined
+  when:
+    - not podman_runimagebuilder | default(false) | bool
+    - podman_additional_registries is defined

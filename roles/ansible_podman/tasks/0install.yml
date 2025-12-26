@@ -1,5 +1,5 @@
 ---
-- name: MMN Podman - Setting OS variables
+- name: "MMN Podman - Setting OS variables"
   ansible.builtin.include_vars: "{{lookup('ansible.builtin.first_found', params)}}"
   vars:
     params:
@@ -9,10 +9,12 @@
         - "default.yml"
       paths:
         - "vars"
+
 # Installations
-- name: MMN Podman - Set package name for calling packages role
+- name: "MMN Podman - Set package name for calling packages role"
   ansible.builtin.set_fact:
     packages_installrole: "{{ podman_packages }}"
-- name: MMN Podman - Install required packages
+
+- name: "MMN Podman - Install required packages"
   ansible.builtin.include_role:
     name: imp1sh.ansible_managemynetwork.ansible_packages

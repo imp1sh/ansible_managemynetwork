@@ -1,15 +1,27 @@
 ---
-- name: deploy procd init script container {{ podman_container.name }}
+- name: "MMN Podman - Ensure path procd init script"
+  ansible.builtin.file:
+    path: "{{ podman_deploypath_initscript }}"
+    state: directory
+
+- name: "MMN Podman - Deploy procd init script container {{ podman_container.name }}"
   ansible.builtin.template:
     src: "procd.jinja2"
-    dest: "{{ openwrt_podman_deploypath_initscript }}/container_{{ podman_container.name }}"
+    dest: "{{ podman_deploypath_initscript }}/container_{{ podman_container.name }}"
     mode: 0740
 
-- name: enable procd item
+- name: "MMN Podman - Enable procd item"
   ansible.builtin.command: "/etc/init.d/container_{{ podman_container.name }} enable"
-  when: podman_container.state == "started"
+  when:
+    - podman_container.state == "started"
+    - not podman_runimagebuilder | default(false) | bool
+
+- name: "MMN Podman - Ensure path hotplug iface script"
+  ansible.builtin.file:
+    path: "{{ podman_deploypath_hotplug_iface }}"
+    state: directory
 
 - name: "MMN podman - Deploy hotplug iface script"
   ansible.builtin.template:
     src: hotplug_network_podman_reload.j2
-    dest: "{{ openwrt_podman_deploypath_hotplug_iface }}/99-podman-reload"
+    dest: "{{ podman_deploypath_hotplug_iface }}/99-podman-reload"
