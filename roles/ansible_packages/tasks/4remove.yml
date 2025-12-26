@@ -1,8 +1,9 @@
 ---
-- name: MMN Packages - List of packages to be removed
+- name: "MMN Packages - List of packages to be removed"
   debug:
     var: packages_remove
-- name: MMN Packages - Uninstalling packages non OpenWrt
+
+- name: "MMN Packages - Uninstalling packages non OpenWrt"
   ansible.builtin.package:
     name: "{{ packages_remove }}"
     state: absent
@@ -10,7 +11,8 @@
     - packages_remove is truthy
     - ansible_distribution != 'OpenWrt'
     - not packages_runimagebuilder | default(false) | bool
-- name: MMN Packages - Uninstalling packages OpenWrt
+
+- name: "MMN Packages - Uninstalling packages OpenWrt"
   community.general.apk:
     name: "{{ packages_remove | join(packages_separator) }}"
     state: absent

@@ -1,18 +1,18 @@
 ---
-- name: MMN Packages - Prepare install variables
+- name: "MMN Packages - Prepare install variables"
   include_tasks: "1prepare_install.yml"
 
-- name: MMN Packages - Prepare install variables
+- name: "MMN Packages - Prepare install variables"
   include_tasks: "2prepare_remove.yml"
 
-- name: MMN Packages - Updating caches if possible
+- name: "MMN Packages - Updating caches if possible"
   include_tasks: "3cache.yml"
   when: ( packages_runimagebuilder is not defined ) or
         ( packages_runimagebuilder is defined and not packages_runimagebuilder | default(false) | bool )
 
-- name: MMN Packages - Remove tasks
+- name: "MMN Packages - Remove tasks"
   include_tasks: "4remove.yml"
 
-- name: MMN Packages - Install tasks
+- name: "MMN Packages - Install tasks"
   include_tasks: "5install.yml"
 

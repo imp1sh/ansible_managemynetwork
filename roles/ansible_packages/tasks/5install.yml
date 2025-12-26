@@ -1,8 +1,9 @@
 ---
-- name: MMN Packages - List of packages to be installed
+- name: "MMN Packages - List of packages to be installed"
   debug:
     var: packages_install
-- name: MMN Packages - Installing packages non OpenWrt
+
+- name: "MMN Packages - Installing packages non OpenWrt"
   ansible.builtin.package:
     name: "{{ packages_install }}"
     state: present
@@ -10,7 +11,8 @@
     - packages_install is truthy
     - ansible_distribution != 'OpenWrt'
     - not packages_runimagebuilder | default(false) | bool
-- name: MMN Packages - Installing packages OpenWrt
+
+- name: "MMN Packages - Installing packages OpenWrt"
   community.general.apk:
     name: "{{ packages_install | join(packages_separator) }}"
     state: present

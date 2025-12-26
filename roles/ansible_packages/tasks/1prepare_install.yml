@@ -1,23 +1,26 @@
 ---
-- name: MMN Packages - Merge packages_install from all groups this host is a member of
+- name: "MMN Packages - Merge packages_install from all groups this host is a member of"
   ansible.builtin.set_fact:
     packages_installmergedgroup: "{{ packages_installgroup.keys() | list | intersect(group_names) | map('extract', packages_installgroup) | list | flatten }}"
   when: packages_installgroup is defined
 
+
 # OpenWrt Imagebuilder specific stuff
-- name: MMN Packages - Set seperator for OpenWrt imagebuilder run
+- name: "MMN Packages - Set seperator for OpenWrt imagebuilder run"
   ansible.builtin.set_fact:
     packages_separator: ' '
   when: packages_runimagebuilder | default(false) | bool
-- name: MMN Packages - Set separator if not imagebuilder
+
+- name: "MMN Packages - Set separator if not imagebuilder"
   ansible.builtin.set_fact:
     packages_separator: ','
   when: not packages_runimagebuilder | default(false) | bool
 
+
 # Merge into one list and remove duplicates
-- name: MMN Packages - Combine lists into packages_install var
+- name: "MMN Packages - Combine lists into packages_install var"
   ansible.builtin.set_fact: 
     packages_install: "{{ [packages_installmergedgroup, packages_installhost, packages_installrole] | select('defined') | flatten | unique }}"
-- name: MMN Packages - Remove duplicates from packages_install list
+- name: "MMN Packages - Remove duplicates from packages_install list"
   ansible.builtin.set_fact:
     packages_install: "{{ packages_install | unique }}"

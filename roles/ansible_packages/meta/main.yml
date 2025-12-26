@@ -26,5 +26,5 @@ galaxy_info:
     - name: OpenWrt
       version:
       - all
-  galaxy_tags: [packages, dpkg, apt, dnf, yum, pkgng, apk]
+  galaxy_tags: [packages, dpkg, apt, dnf, yum, pkgng, apk, opkg]
 dependencies: []
