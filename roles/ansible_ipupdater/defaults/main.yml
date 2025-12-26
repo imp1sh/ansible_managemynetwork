@@ -1,9 +1,11 @@
 ---
 # defaults file for ansible_ipupdater
-
 ipupdater_deployroot: "/"
 ipupdater_deploypath: "{{ ipupdater_deployroot }}opt/ipupdater"
 ipupdater_deploypath_hetzner_apitoken: "{{ ipupdater_deployroot }}etc/ipupdater/hetzner_cloud.sh"
 ipupdater_deploypath_openwrt_owninterface: "{{ ipupdater_deployroot }}etc/ipupdater/openwrt_owninterface"
+ipupdater_deploypath_staticfqdns: "{{ ipupdater_deployroot }}etc/ipupdater/staticfqdns"
 ipupdater_deploypath_staticinterfaces: "{{ ipupdater_deployroot }}etc/ipupdater/staticinterfaces"
 ipupdater_deploypath_staticmacs: "{{ ipupdater_deployroot }}etc/ipupdater/staticmacs"
+ipupdater_deploypath_systemd_service: "{{ ipupdater_deployroot }}etc/systemd/system/ipupdater.service"
+ipupdater_deploypath_systemd_timer: "{{ ipupdater_deployroot }}etc/systemd/system/ipupdater.timer"

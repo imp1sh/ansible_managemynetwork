@@ -1,0 +1,4 @@
+---
+ipupdater_packages:
+  - "git"
+  - "git-http"

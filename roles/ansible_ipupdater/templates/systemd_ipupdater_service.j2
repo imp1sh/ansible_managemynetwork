@@ -1,0 +1,14 @@
+[Unit]
+Description=IP Updater script
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+ExecStart={{ ipupdater_deploypath }}/debian.sh {{ ipupdater_debian_dnsprovider }}
+WorkingDirectory={{ ipupdater_deploypath }}
+# Prevent multiple overlapping runs
+ExecStartPre=/bin/bash -c 'if systemctl -q is-active ipupdater.service; then exit 1; fi'
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7

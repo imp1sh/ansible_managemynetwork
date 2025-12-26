@@ -1,9 +1,11 @@
 ---
 # tasks file for ansible_ipupdater
+- name: "MMN ipupdater - include OS vars"
+  include_vars: "{{ ansible_distribution }}.yml"
 
 - name: "MMN ipupdater - Add git as install candidate"
   set_fact:
-    packages_installrole: "{{ packages_installrole | default([]) + ['git', 'git-http'] }}"
+    packages_installrole: "{{ ipupdater_packages }}"
 
 - name: "MMN ipupdater - Run packages role"
   ansible.builtin.include_role:
@@ -42,9 +44,40 @@
     dest: "{{ ipupdater_deploypath_staticmacs }}"
   when: ipupdater_openwrt_staticmacs is defined
 
+- name: "MMN ipupdater - Deploy static fqdn list for service name updates"
+  ansible.builtin.template:
+    src: staticfqdns.j2
+    dest: "{{ ipupdater_deploypath_staticfqdns }}"
+  when: ipupdater_staticfqdns is defined
+
 - name: "MMN ipupdater - Deploy cron OpenWrt"
   ansible.builtin.cron:
     name: "ipupdater"
     minute: "*/5"
     job: "/opt/ipupdater/openwrt.sh {{ ipupdater_openwrt_domainname }} {{ ipupdater_openwrt_dnsprovider }}"
   when: ansible_distribution == "OpenWrt"
+
+- name: "MMN ipupdater - Debian block"
+  when: ansible_distribution == "Debian"
+  block:
+    - name: "MMN ipupdater - Deploy systemd service"
+      ansible.builtin.template:
+        src: systemd_ipupdater_service.j2
+        dest: "{{ ipupdater_deploypath_systemd_service }}"
+    
+    - name: "MMN ipupdater - Deploy systemd timer"
+      ansible.builtin.template:
+        src: systemd_ipupdater_timer.j2
+        dest: "{{ ipupdater_deploypath_systemd_timer }}"
+    
+    - name: "MMN ipupdater - Enable and start service"
+      ansible.builtin.systemd:
+        name: ipupdater.service
+        enabled: true
+        state: started
+
+    - name: "MMN ipupdater - Enable and start timer"
+      ansible.builtin.systemd:
+        name: ipupdater.timer
+        enabled: true
+        state: started
