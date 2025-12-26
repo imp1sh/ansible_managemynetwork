@@ -10,7 +10,7 @@
 - name: "MMN ipupdater - Run packages role"
   ansible.builtin.include_role:
     name: imp1sh.ansible_managemynetwork.ansible_packages
-  when: not openwrt_podman_runimagebuilder | default(false) | bool
+  when: not podman_runimagebuilder | default(false) | bool
 
 - name: "MMN ipupdater - Deploy ipupdater repo"
   ansible.builtin.git:
@@ -58,7 +58,7 @@
     job: "/opt/ipupdater/openwrt.sh {{ ipupdater_openwrt_domainname }} {{ ipupdater_openwrt_dnsprovider }}"
   when:
     - ansible_distribution == "OpenWrt"
-    - not openwrt_podman_runimagebuilder | default(false) | bool
+    - not podman_runimagebuilder | default(false) | bool
 
 - name: "MMN ipupdater - Debian block"
   when: ansible_distribution == "Debian"
