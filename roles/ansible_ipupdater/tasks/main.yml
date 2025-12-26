@@ -1,13 +1,13 @@
 ---
 # tasks file for ansible_ipupdater
 
-# - name: "MMN ipupdater - Add git as install candidate"
-#   set_fact:
-#     packages_installrole: "{{ packages_installrole | default([]) + ['git', 'git-http'] }}"
-# 
-# - name: "MMN ipupdater - Run packages role"
-#   ansible.builtin.include_role:
-#     name: imp1sh.ansible_managemynetwork.ansible_packages
+- name: "MMN ipupdater - Add git as install candidate"
+  set_fact:
+    packages_installrole: "{{ packages_installrole | default([]) + ['git', 'git-http'] }}"
+
+- name: "MMN ipupdater - Run packages role"
+  ansible.builtin.include_role:
+    name: imp1sh.ansible_managemynetwork.ansible_packages
 
 - name: "MMN ipupdater - Deploy ipupdater repo"
   ansible.builtin.git:
@@ -42,4 +42,9 @@
     dest: "{{ ipupdater_deploypath_staticmacs }}"
   when: ipupdater_openwrt_staticmacs is defined
 
-
+- name: "MMN ipupdater - Deploy cron OpenWrt"
+  ansible.builtin.cron:
+    name: "ipupdater"
+    minute: "*/5"
+    job: "/opt/ipupdater/openwrt.sh {{ ipupdater_openwrt_domainname }} {{ ipupdater_openwrt_dnsprovider }}"
+  when: ansible_distribution == "OpenWrt"
