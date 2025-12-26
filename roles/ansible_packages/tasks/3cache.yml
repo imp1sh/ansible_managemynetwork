@@ -4,7 +4,7 @@
   community.general.apk:
     update_cache: true
   changed_when: false
-  when: ansible_distribution == "Alpine" || ansible_distribution == "OpenWrt"
+  when: ansible_distribution == "Alpine" or ansible_distribution == "OpenWrt"
 
 - name: "MMN Packages - Updating cache Debian based OS"
   ansible.builtin.apt:
