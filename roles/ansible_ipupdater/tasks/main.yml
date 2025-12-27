@@ -19,6 +19,11 @@
     version: master
     update: yes
 
+- name: "MMN ipupdater - Ensure ipupdater etc dir"
+  ansible.builtin.file:
+    path: "{{ ipupdater_deploypath_hetzner_apitoken | dirname }}"
+    state: directory
+
 - name: "MMN ipupdater - Deploy hetzner cloud api token"
   ansible.builtin.template:
     src: hetzner_cloud.sh.j2
