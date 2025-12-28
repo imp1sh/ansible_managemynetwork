@@ -3,3 +3,4 @@ ipupdater_packages:
   - "bash"
   - "curl"
   - "git"
+  - "jq"

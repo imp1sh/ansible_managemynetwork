@@ -4,3 +4,4 @@ ipupdater_packages:
   - "curl"
   - "git"
   - "git-http"
+  - "jq-full"
