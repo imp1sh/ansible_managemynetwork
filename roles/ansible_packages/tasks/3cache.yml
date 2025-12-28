@@ -1,6 +1,6 @@
 ---
 # Update Cache for different OSes
-- name: "MMN Packages - Updating cache Alpine"
+- name: "MMN Packages - Updating cache apk"
   community.general.apk:
     update_cache: true
   changed_when: false
