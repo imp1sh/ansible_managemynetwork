@@ -33,9 +33,9 @@ table inet filter {
       ip protocol igmp accept comment "Accept IGMP"
       # anti ansible lockout rules
       # ipv6 ansible ip is mandatory
-      tcp dport ssh ip6 saddr {{ ansibleip6 | ipaddr('address') }} accept comment "Anti ansible lockout rule"
+      tcp dport ssh ip6 saddr {{ ansibleip6 | ansible.utils.ipaddr('address') }} accept comment "Anti ansible lockout rule"
 {% if ansibleip is defined %}
-      tcp dport ssh ip saddr {{ ansibleip | ipaddr('address') }} accept comment "Anti ansible lockout rule IPv4"
+      tcp dport ssh ip saddr {{ ansibleip | ansible.utils.ipaddr('address') }} accept comment "Anti ansible lockout rule IPv4"
 {% endif %}
       # individual rules that work globally without looking at the interface the traffic is coming in on
 {% if nftablesopenhost is defined %}
