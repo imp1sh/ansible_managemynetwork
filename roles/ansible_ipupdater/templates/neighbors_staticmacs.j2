@@ -1,0 +1,3 @@
+{% for mac in ipupdater_neighbors_staticmacs %}
+{{ mac.address }} {{ mac.hostname }} {{ mac.scope | default('gua') }}
+{% endfor %}

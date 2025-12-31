@@ -30,53 +30,82 @@
     dest: "{{ ipupdater_deploypath_hetzner_apitoken }}"
   when: ipupdater_apitoken_hetzner is defined
 
-- name: "MMN ipupdater - Deploy interface ipupdater will search for openwrts own ip address"
+# OWN IP
+
+- name: "MMN ipupdater - Deploy ownip vars file"
   ansible.builtin.template:
-    src: openwrt_owninterface.j2
-    dest: "{{ ipupdater_deploypath_openwrt_owninterface }}"
+    src: "ownip_vars.sh.j2"
+    dest: "{{ ipupdater_deploypath_ownipvars }}"
+  when: ipupdater_ownip_enable | default(false)
+
+# STATIC FQDNS
+
+- name: "MMN ipupdater - Deploy staticfqdns vars file"
+  ansible.builtin.template:
+    src: "staticfqdns_vars.sh.j2"
+    dest: "{{ ipupdater_deploypath_staticfqdnsvars }}"
   when:
-    - ipupdater_openwrt_owninterface_name is defined
-    - ipupdater_openwrt_owninterface_scope is defined
-
-- name: "MMN ipupdater - Deploy static interface list to search for IP addresses"
-  ansible.builtin.template:
-    src: staticinterfaces.j2
-    dest: "{{ ipupdater_deploypath_staticinterfaces }}"
-  when: ipupdater_openwrt_staticinterfaces is defined
-
-- name: "MMN ipupdater - Deploy static mac list to use for matching found IP addresses"
-  ansible.builtin.template:
-    src: staticmacs.j2
-    dest: "{{ ipupdater_deploypath_staticmacs }}"
-  when: ipupdater_openwrt_staticmacs is defined
+    - ipupdater_staticfqdns_enable | default(false)
+    - ipupdater_staticfqdns_interfacename is defined
+    - ipupdater_staticfqdns is defined
 
 - name: "MMN ipupdater - Deploy static fqdn list for service name updates"
   ansible.builtin.template:
     src: staticfqdns.j2
     dest: "{{ ipupdater_deploypath_staticfqdns }}"
-  when: ipupdater_staticfqdns is defined
+  when:
+    - ipupdater_staticfqdns_enable | default(false)
+    - ipupdater_staticfqdns is defined
+
+# NEIGHBORS
+
+- name: "MMN ipupdater - Deploy neighbors vars file"
+  ansible.builtin.template:
+    src: "neighbors_vars.sh.j2"
+    dest: "{{ ipupdater_deploypath_neighborsvars }}"
+  when:
+    - ipupdater_neighbors_enable | default(false)
+    - ipupdater_neighbors_domainname is defined
+
+- name: "MMN ipupdater - Deploy static mac list to use for matching found IP addresses"
+  ansible.builtin.template:
+    src: neighbors_staticmacs.j2
+    dest: "{{ ipupdater_deploypath_neighbors_staticmacs }}"
+  when:
+    - ipupdater_neighbors_enable | default(false)
+    - ipupdater_neighbors_staticmacs is defined
+
 
 - name: "MMN ipupdater - Deploy cron OpenWrt"
   ansible.builtin.cron:
     name: "ipupdater"
     minute: "*/5"
-    job: "/opt/ipupdater/openwrt.sh {{ ipupdater_openwrt_domainname }} {{ ipupdater_openwrt_dnsprovider }}"
+    job: >-
+      /opt/ipupdater/ipupdater.sh
+      {% if ipupdater_neighbors_enable | default(false) | bool %} --neighbors{% endif %}
+      {% if ipupdater_ownip_enable | default(false) | bool %} --own-ip{% endif %}
+      {% if ipupdater_staticfqdns_enable | default(false) | bool %} --static-fqdns{% endif %}
   when:
     - ansible_distribution == "OpenWrt"
+    - ipupdater_neighbors_enable | default(false) | bool or ipupdater_staticfqdns_enable | default(false) | bool or ipupdater_ownip_enable | default(false) | bool
     - not podman_runimagebuilder | default(false) | bool
 
 - name: "MMN ipupdater - Debian block"
-  when: ansible_distribution == "Debian"
+  when:
+    - ansible_distribution == "Debian" or ansible_distribution == "Fedora"
+    - ipupdater_neighbors_enable | default(false) | bool or ipupdater_staticfqdns_enable | default(false) | bool or ipupdater_ownip_enable | default(false) | bool
   block:
     - name: "MMN ipupdater - Deploy systemd service"
       ansible.builtin.template:
         src: systemd_ipupdater_service.j2
         dest: "{{ ipupdater_deploypath_systemd_service }}"
+      notify: reload systemd
     
     - name: "MMN ipupdater - Deploy systemd timer"
       ansible.builtin.template:
         src: systemd_ipupdater_timer.j2
         dest: "{{ ipupdater_deploypath_systemd_timer }}"
+      notify: reload systemd
     
     - name: "MMN ipupdater - Enable and start service"
       ansible.builtin.systemd:

@@ -5,7 +5,11 @@ After=network-online.target
 
 [Service]
 Type=simple
-ExecStart={{ ipupdater_deploypath }}/debian.sh {{ ipupdater_debian_dnsprovider }}
+{% set flags = [] %}
+{% if ipupdater_neighbors_enable | default(false) | bool %}{% set _ = flags.append('--neighbors') %}{% endif %}
+{% if ipupdater_ownip_enable | default(false) | bool %}{% set _ = flags.append('--own-ip') %}{% endif %}
+{% if ipupdater_staticfqdns_enable | default(false) | bool %}{% set _ = flags.append('--static-fqdns') %}{% endif %}
+ExecStart={{ ipupdater_deploypath }}/ipupdater.sh {{ flags | join(' ') }}
 WorkingDirectory={{ ipupdater_deploypath }}
 # Prevent multiple overlapping runs
 ExecStartPre=/bin/bash -c 'if systemctl -q is-active ipupdater.service; then exit 1; fi'
