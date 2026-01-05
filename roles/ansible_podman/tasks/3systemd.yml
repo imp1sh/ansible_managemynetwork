@@ -1,49 +1,30 @@
 ---
-- name: set systemd state to started
-  ansible.builtin.set_fact:
-    podman_container_systemdstate: "started"
-  when: podman_container.state == "started"
-- name: set systemd autostart to true
-  ansible.builtin.set_fact:
-    podman_container_autostart: true
-  when: podman_container.state == "started"
-- name: set systemd state to stopped
-  ansible.builtin.set_fact:
-    podman_container_systemdstate: "stopped"
-  when: >
-    podman_container.state == "present" or
-    podman_container.state == "stopped" or
-    podman_container.state == "created"
-- name: set systemd autostart to false
-  ansible.builtin.set_fact:
-    podman_container_autostart: false
-  when: >
-    podman_container.state == "present" or
-    podman_container.state == "stopped" or
-    podman_container.state == "created"
-- name: Create Podman Service unit
-  containers.podman.podman_generate_systemd:
-    name: "{{ podman_container.name }}"
-    dest: "/etc/systemd/system"
-    restart_policy: always
+- name: "MMN Podman - systemd not absent"
   when: podman_container.state != "absent"
-  # Ich sollte nur neustarten, wenn sich etwas geändert hat oder wenn es über eine variable enforced wird
-- name: Enable systemd unit
-  ansible.builtin.systemd:
-    name: "container-{{ podman_container.name }}"
-    daemon_reload: yes
-    state: "started"
-    enabled: "true"
-  when: podman_container.state != "absent"
-- name: Disable systemd unit
-  ansible.builtin.systemd:
-    name: "container-{{ podman_container.name }}"
-    daemon_reload: yes
-    state: "stopped"
-    enabled: "false"
+  block:
+    - name: Create Podman Service unit
+      containers.podman.podman_generate_systemd:
+        name: "{{ podman_container.name }}"
+        dest: "/etc/systemd/system"
+        restart_policy: always
+      # Ich sollte nur neustarten, wenn sich etwas geändert hat oder wenn es über eine variable enforced wird
+    - name: Enable systemd unit
+      ansible.builtin.systemd:
+        name: "container-{{ podman_container.name }}"
+        daemon_reload: yes
+        state: "started"
+        enabled: "true"
+
+- name: "MMN Podman - systemd absent"
   when: podman_container.state == "absent"
-- name: Delete systemd unit
-  ansible.builtin.file:
-    path: "/etc/systemd/system/container-{{ podman_container.name }}.service"
-    state: absent
-  when: podman_container.state == "absent"
+  block:
+    - name: Disable systemd unit
+      ansible.builtin.systemd:
+        name: "container-{{ podman_container.name }}"
+        daemon_reload: yes
+        state: "stopped"
+        enabled: "false"
+    - name: Delete systemd unit
+      ansible.builtin.file:
+        path: "/etc/systemd/system/container-{{ podman_container.name }}.service"
+        state: absent

@@ -1,10 +1,42 @@
 #!/bin/sh /etc/rc.common
 USE_PROCD=1
+
+# Service identity (derived from filename)
+NAME="$RC_SVCNAME"
+
+# Late start, after base system, firewall, and podman
 START=95
-STOP=01
+STOP=10
+
+# Policy variables (templated by Ansible)
+CONTAINER="{{ podman_container.name }}"
+REQUIRED_IFACE="{{ podman_required_interface | default('lan') }}"
+
 start_service() {
+    logger -t "$NAME" "starting ${CONTAINER}"
+
     procd_open_instance
-    procd_set_param command /usr/bin/podman start {{ podman_container.name }}
+
+    # Gate execution on actual network readiness
+    procd_add_interface_trigger "interface.${REQUIRED_IFACE}.up" ""
+
+    # Ensure DNS is usable before starting the container
+    procd_set_param command /bin/sh -c "
+        logger -t '$NAME' 'waiting for DNS'
+        until nslookup openwrt.org >/dev/null 2>&1; do
+            sleep 2
+        done
+        exec /usr/bin/podman start ${CONTAINER}
+    "
+
+    # Let procd supervise restarts and retries
+    procd_set_param respawn
+
     procd_close_instance
+}
+
+stop_service() {
+    logger -t "$NAME" "stopping container ${CONTAINER}"
+    /usr/bin/podman stop ${CONTAINER} 2>/dev/null || true
 }
 

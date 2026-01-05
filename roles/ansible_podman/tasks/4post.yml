@@ -8,11 +8,23 @@
   when:
     - ansible_distribution != "OpenWrt"
 
+- name: "MMN Podman - Special OpenWrt adjustments"
+  when: ansible_distribution == "OpenWrt"
+  block:
+    - name: "MMN Podman - Ensure path hotplug iface script"
+      ansible.builtin.file:
+        path: "{{ podman_deploypath_hotplug_iface }}"
+        state: directory
+    
+    - name: "MMN podman - Deploy hotplug iface script"
+      ansible.builtin.template:
+        src: hotplug_network_podman_reload.j2
+        dest: "{{ podman_deploypath_hotplug_iface }}/99-podman-reload"
+
 - name: "MMN Podman - procd tasks for OpenWrt"
   ansible.builtin.include_tasks:
     file: 3procd.yml
   loop: "{{ podman_containers }}"
   loop_control:
     loop_var: podman_container
-  when:
-    - ansible_distribution == "OpenWrt"
+  when: ansible_distribution == "OpenWrt"
