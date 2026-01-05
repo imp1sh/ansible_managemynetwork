@@ -50,7 +50,7 @@
         user: "{{ borgmatic_repository.value['targetuser'] }}"
         state: present
         key: "{{ rootuser['ssh_public_key'] }}"
-      delegate_to: "{{ borgmatic_repository.value['targethost'] }}"
+      delegate_to: "{{ borgmatic_repository.value['targethost'] | default('localhost') }}"
     - name: MMN borgmatic - Register remote host key
       command: "ssh-keyscan -tssh-ed25519 {{ borgmatic_repository.value['targethost'] }}"
       register: hostkey
