@@ -46,8 +46,8 @@
       ansible.builtin.pip:
         name: "{{ borgmatic_packageapprisepip  }}"
         virtualenv: "{{ borgmatic_venvdir }}"
-      when: borgmatic_apprise_via_pip
-  when: borgmatic_apprise
+      when: borgmatic_apprise_via_pip | default(false) | bool
+  when: borgmatic_apprise is defined
 
 # WRAPPER SCRIPT FOR EXECUTION borgmatic_env
 - name: MMN borgmatic - Deploy wrapper script to use venv
