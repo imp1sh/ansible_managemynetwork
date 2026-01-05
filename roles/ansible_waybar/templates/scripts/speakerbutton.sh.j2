@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+
+ACTIVE=$(pw-metadata -n default 0 default.audio.sink \
+    | sed -n 's/.*"name":"\([^"]*\)".*/\1/p')
+
+SPEAKER="{{ fedoradesktop_audio_device_speaker }}"
+
+if [[ "$ACTIVE" == "$SPEAKER" ]]; then
+    # Speakers active → SP orange
+    echo "<span weight=\"bold\" color=\"#d98200\">SP</span>"
+else
+    # Not active → SP lighter yellow
+    echo "<span weight=\"bold\" color=\"#ffeb8a\">SP</span>"
+fi
+

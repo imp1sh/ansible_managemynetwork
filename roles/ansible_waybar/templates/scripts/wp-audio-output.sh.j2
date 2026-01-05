@@ -1,0 +1,31 @@
+#!/bin/bash
+
+volume_info=$(wpctl get-volume @DEFAULT_AUDIO_SINK@)
+volume=$(echo "$volume_info" | awk '{print int($2 * 100)}')
+muted=$(echo "$volume_info" | grep -q MUTED && echo "1" || echo "0")
+
+desc=$(wpctl inspect @DEFAULT_AUDIO_SINK@ | grep -m1 'node.description' | cut -d '"' -f2)
+
+if [[ "$muted" == "1" ]]; then
+    echo "󰖁"
+    exit 0
+fi
+
+if [[ "$desc" =~ ([Hh]eadset|[Hh]eadphone|[Ee]arbuds) ]]; then
+    icon=""
+elif [[ "$desc" =~ [Pp]hone|[Hh]ands.?[Ff]ree ]]; then
+    icon=""
+else
+    if (( volume == 0 )); then
+        icon=""
+    elif (( volume < 30 )); then
+        icon=""
+    elif (( volume < 70 )); then
+        icon="󰕾"
+    else
+        icon=""
+    fi
+fi
+
+echo "$icon $volume%"
+

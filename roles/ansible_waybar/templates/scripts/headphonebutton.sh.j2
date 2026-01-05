@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+
+ACTIVE=$(pw-metadata -n default 0 default.audio.sink \
+    | sed -n 's/.*"name":"\([^"]*\)".*/\1/p')
+
+HEADPHONE="{{ fedoradesktop_audio_device_headphone }}"
+
+if [[ "$ACTIVE" == "$HEADPHONE" ]]; then
+    # Headphones active → HP orange
+    echo "<span weight=\"bold\" color=\"#d98200\">HP</span>"
+else
+    # Not active → HP lighter yellow
+    echo "<span weight=\"bold\" color=\"#ffeb8a\">HP</span>"
+fi
+

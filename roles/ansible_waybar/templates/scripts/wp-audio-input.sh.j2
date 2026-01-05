@@ -1,0 +1,11 @@
+#!/bin/bash
+
+mic_info=$(wpctl get-volume @DEFAULT_AUDIO_SOURCE@)
+volume=$(echo "$mic_info" | awk '{print int($2 * 100)}')
+muted=$(echo "$mic_info" | grep -q MUTED && echo "1" || echo "0")
+
+if [[ "$muted" == "1" ]]; then
+    echo ""
+else
+    echo " $volume%"
+fi
