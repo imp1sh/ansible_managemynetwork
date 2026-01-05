@@ -48,9 +48,7 @@
         job: sudo -u postgres /usr/bin/pg_dump pdns > /opt/pg_dump/pdns_backup.sql
 
 - name: "MMN pdnsauth - Container tasks"
-  when:
-    - pdns_containermode is defined
-    - pdns_containermode
+  when: pdns_containermode | default(false) | bool
   block: 
     - name: "MMN pdnsauth - include Container vars"
       include_vars: "Container.yml"
