@@ -13,6 +13,51 @@
       register: cacert_servercert_existing
       when: stat_servercert.stat.exists
     
+    - name: "MMN cacert - Check if server key exists"
+      become: True
+      ansible.builtin.stat:
+        path: "{{ cacert_path_serverkey }}"
+      register: stat_serverkey
+
+    - name: "MMN cacert - Verify certificate matches key"
+      become: True
+      ansible.builtin.command:
+        cmd: >
+          openssl x509 -noout -pubkey -in {{ cacert_path_servercert }} 2>/dev/null
+          | openssl md5
+      register: cert_pubkey_hash
+      changed_when: false
+      failed_when: false
+      when:
+        - stat_servercert.stat.exists
+        - stat_serverkey.stat.exists
+
+    - name: "MMN cacert - Get key public key hash"
+      become: True
+      ansible.builtin.command:
+        cmd: >
+          openssl
+          {% if cacert_servercert_type | default('RSA') == 'ECC' %}
+          ec
+          {% else %}
+          rsa
+          {% endif %}
+          -in {{ cacert_path_serverkey }}
+          {% if cacert_servercert_passphrase is defined %}
+          -passin pass:{{ cacert_servercert_passphrase }}
+          {% endif %}
+          -pubout 2>/dev/null | openssl md5
+      register: key_pubkey_hash
+      changed_when: false
+      failed_when: false
+      when:
+        - stat_serverkey.stat.exists
+        - stat_servercert.stat.exists
+
+    - name: "MMN cacert - Combine default and user-defined SANs"
+      ansible.builtin.set_fact:
+        cacert_servercert_altnames_combined: "{{ (cacert_servercert_altnames_default | default([])) + (cacert_servercert_altnames | default([])) }}"
+
     - name: "MMN cacert - Manage server CSRs"
       become: True
       community.crypto.openssl_csr_pipe:
@@ -26,8 +71,8 @@
         country_name: "{{ cacert_servercert_country_name | default(omit) }}"
         email_address: "{{ cacert_servercert_email_address | default(omit) }}"
         subject_alt_name: >-
-          {{ (cacert_servercert_altnames | map(attribute='prefix') | zip(cacert_servercert_altnames | map(attribute='name')) | map('join', ':') | list)
-             if cacert_servercert_altnames is defined else omit }}
+          {{ (cacert_servercert_altnames_combined | map(attribute='prefix') | zip(cacert_servercert_altnames_combined | map(attribute='name')) | map('join', ':') | list)
+             if cacert_servercert_altnames_combined | length > 0 else omit }}
       register: csr_server
       changed_when: false
 
@@ -36,7 +81,7 @@
       delegate_to: "{{ cacert_ca_manager_host }}"
       community.crypto.x509_certificate_pipe:
         csr_content: "{{ csr_server.csr }}"
-        content: "{{ (cacert_servercert_existing.content | b64decode) if stat_servercert.stat.exists else omit }}"
+        content: "{{ (cacert_servercert_existing.content | b64decode) if (stat_servercert.stat.exists and cert_pubkey_hash.rc == 0 and key_pubkey_hash.rc == 0 and cert_pubkey_hash.stdout == key_pubkey_hash.stdout) else omit }}"
         provider: ownca
         ownca_path: "{{ cacert_path_cacert }}"
         ownca_privatekey_path: "{{ cacert_path_cakey }}"

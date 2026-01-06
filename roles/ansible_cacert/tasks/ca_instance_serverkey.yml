@@ -7,7 +7,7 @@
     - name: "MMN cacert - Create server private keys"
       become: True
       community.crypto.openssl_privatekey:
-        path: "{{ cacert_path_key_server }}"
+        path: "{{ cacert_path_serverkey }}"
         passphrase: "{{ cacert_servercert_passphrase|default(omit) }}"
         size: "{{ cacert_servercert_bitsize | default('4096') }}"
         type: "{{ cacert_servercert_type | default('RSA') }}"

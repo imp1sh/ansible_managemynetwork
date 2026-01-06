@@ -1,50 +1,81 @@
 # imp1sh.ansible_managemynetwork.ansible_cacert
 
-This role aims to make the process of certificate management as comfy as possible. This implies of course some opinionated stuff but at the same time the role tries to be flexible in its ability to reflect commonly needed attributes.
+This role aims to make the process of certificate management as comfortable and easy as possible. This implies of course some opinionated stuff but at the same time the role tries to be flexible in its ability to reflect commonly needed attributes.
 It also tries to be ephemeral meaning even in case of a CA private key loss or security breach you can remove old data by setting the attribue `state: absent` attribute and almost everything will be removed. Set state again to `present` and let run again. All your certificates / keys will be renewed. The reason for this role is to just conveniently get certificates from a self signed and self managed CA onto your hosts. Multiple CA are supported but not sub CAs. Each host will just automatically get a server cert that its common name is the `inventory_hostname` from Ansible, so typically the fqdn. This role tightly integrates into the `ansible_podman` role together with its plugin system. `ansible_podman` not only delivers containers to hosts but with its plugin system and `ansible_cacert` it will fully automate the delivery of services with configuration and certificates in an ephemeral way. Worst case scenario just redeploy the whole setup. The certs will also be new but as everything is automated it should be much of a hassle. (Infrastrurcture as Code / IaC).
 CSR will never be written but always only be in memory during ansible runs. CA will also support Certificate Revocation Lists by default but this feature is untested.
 
 Role supports:
-- Debian (sticking to latest stable)
-- OpenWrt (sticking to latest stable)
+- Debian
+- Fedora
+- OpenWrt
 
 ## Requirements:
 
 - python3-cryptography for handling CSR stuff on the target machine and the CA management host.
 
 ## Variables
-| Variable Name | Purpose |  Default ? | Type | Mandatory |
+| Variable Name | Purpose | Default | Type | Mandatory |
 | - | - | - | - | - |
-| cacert_ca_certfile | 
-| cacert_ca_keyfile | 
-| cacert_ca_manager_host | This is where the CA data is held. Keep this host secure. Has to be a hostname that ansible will accept for `delegate_to:`  | - | String | Yes |
-| cacert_ca_validity_days |
-| cacert_cacert_additionalpaths | 
-| cacert_cas |
-| cacert_filename_cacert |
-| cacert_openssl_path_key_ca | 
-| cacert_openssl_path_certificate_ca |
-| cacert_openssl_path_certificate_client |
-| cacert_openssl_path_certificate_server | 
-| cacert_path_cacert | 
-| cacert_path_cakey |
-| cacert_tag_certificate |
-| cacert_tag_clientcert |
-| cacert_tag_clientkey |
-| cacert_tag_privatekey | When a CA is being created this is a tag you can give for the filename tag. |
+| cacert_ca_manager_host | Hostname where CA data is stored. Keep this host secure. Must be a hostname that ansible will accept for `delegate_to:`. | - | String | Yes |
+| cacert_cacert_additionalpaths | Optional list of additional paths where CA certificates should be copied. Each entry: dest, state, user, group. | - | List | No |
+| cacert_cas | Dictionary of CA definitions. Each key is a CA identifier, value contains CA configuration: state, common_name, country_name, email_address, organization_name, organizational_unit_name, state_or_province_name, locality_name, not_after, not_before, key (dict with type, backup, passphrase, curve, etc.), cert (dict with backup). See example below. | - | Dict | Yes |
+| cacert_clientcert_bitsize | Key size in bits for client certificates. | 4096 | Integer | No |
+| cacert_clientcert_curve | Curve name for ECC client certificates. | - | String | No |
+| cacert_clientcert_not_after | Validity period end for client certificates. | +54w | String | No |
+| cacert_clientcert_not_before | Validity period start for client certificates. | -1d | String | No |
+| cacert_clientcert_passphrase | Optional passphrase for client certificate private keys. | - | String | No |
+| cacert_clientcert_type | Key type for client certificates (RSA or ECC). | RSA | String | No |
+| cacert_clientcerts | Optional list of client certificate definitions. Each entry should contain: common_name, dest, state, user, group, not_after, not_before. | - | List | No |
+| cacert_servercert_additionalhosts | Optional list of additional hosts where server certificates should be copied. Each entry: targethost, targethostpath, targethostuser, targethostgroup, state, alsokey (bool). | - | List | No |
+| cacert_servercert_additionalpaths | Optional list of additional paths where server certificates should be copied. Each entry: dest, state, user, group. | - | List | No |
+| cacert_servercert_altnames | Optional list of Subject Alternative Names (SAN) for server certificates. Each entry: name, prefix (e.g., "DNS"). | - | List | No |
+| cacert_servercert_bitsize | Key size in bits for server certificates. | 4096 | Integer | No |
+| cacert_servercert_common_name | Common name for server certificates. | inventory_hostname | String | No |
+| cacert_servercert_country_name | Country name for server certificates. | - | String | No |
+| cacert_servercert_curve | Curve name for ECC server certificates (e.g., "secp384r1"). | - | String | No |
+| cacert_servercert_email_address | Email address for server certificates. | - | String | No |
+| cacert_servercert_locality_name | Locality name for server certificates. | - | String | No |
+| cacert_servercert_not_after | Validity period end for server certificates (e.g., "+120w"). | - | String | No |
+| cacert_servercert_not_before | Validity period start for server certificates (e.g., "-2d"). | - | String | No |
+| cacert_servercert_organization_name | Organization name for server certificates. | - | String | No |
+| cacert_servercert_organizational_unit_name | Organizational unit name for server certificates. | - | String | No |
+| cacert_servercert_passphrase | Optional passphrase for server certificate private keys. | - | String | No |
+| cacert_servercert_state_or_province_name | State or province name for server certificates. | - | String | No |
+| cacert_servercert_type | Key type for server certificates (RSA or ECC). | RSA | String | No |
+| cacert_serverkey_additionalpaths | Optional list of additional paths where server private keys should be copied. Each entry: dest, state, user, group. | - | List | No |
+| cacert_tag_certificate | Filename tag for certificates. | certificate | String | No |
+| cacert_tag_clientcert | Filename tag for client certificates. | clientcert | String | No |
+| cacert_tag_clientkey | Filename tag for client keys. | clientkey | String | No |
+| cacert_tag_privatekey | Filename tag for private keys. | privatekey | String | No |
+
+**Note:** OS-specific variables (like `cacert_command_updatetruststore`, `cacert_openssl_path_*`, `cacert_packages`) are automatically set based on the target OS and should not be manually configured.
 
 ## Dynamic vars
-Vars you do normally not set but are created by the role when running. 
-| Variable Name | Purpose  | Type |
+Variables created by the role during execution. Do not set these manually.
+| Variable Name | Purpose | Type |
 | - | - | - |
-| cacert_ca_cert_existing | Contents of the CA certificate | dict (from ansible register function) |
-| cacert_ca_csr | If a new CA cert is being created this role will also create a CSR in order to sign the CA certificate. |
-| cacert_ca_privatekey | When a new CA is being created or read it will carry the private key for your CA | ? | 
-| cacert_ca_cert | If a new CA cert is being created this role will of course create a CA certificate and register it in this var | dict (from ansible register function) |
-| cacert_path_servercert | Builds the servercert path including the filename | String |
-| cacert_path_serverkey | Builds the servercert private key path including the filename | String | 
-| cacert_filename_servercert | Builds the servercert filename only | String |
-| cacert_filename_serverkey | Builds the servercert's private key | String |
+| cacert_ca_cert | CA certificate created/read by the role. Contains the certificate content. | Dict (from ansible register) |
+| cacert_ca_cert_existing | Contents of existing CA certificate when present. | Dict (from ansible register) |
+| cacert_ca_csr | Certificate Signing Request created for CA certificate. | Dict (from ansible register) |
+| cacert_ca_privatekey | CA private key created/read by the role. | Dict (from ansible register) |
+| cacert_clientcert_result | Client certificate created/signed by the role. | Dict (from ansible register) |
+| cacert_filename_cacert | Generated filename for CA certificate. | String |
+| cacert_filename_cakey | Generated filename for CA private key. | String |
+| cacert_filename_clientcert | Generated filename for client certificate. | String |
+| cacert_filename_clientkey | Generated filename for client private key. | String |
+| cacert_filename_servercert | Generated filename for server certificate. | String |
+| cacert_filename_serverkey | Generated filename for server private key. | String |
+| cacert_path_cacert | Full path to CA certificate on CA manager host. | String |
+| cacert_path_cacert_targethost | Full path to CA certificate on target host. | String |
+| cacert_path_cakey | Full path to CA private key on CA manager host. | String |
+| cacert_path_cakey_targethost | Full path to CA private key on target host (if copied). | String |
+| cacert_path_clientcert | Full path to client certificate. | String |
+| cacert_path_clientkey | Full path to client private key. | String |
+| cacert_path_servercert | Full path to server certificate. | String |
+| cacert_path_serverkey | Full path to server private key. | String |
+| cacert_server_cert | Server certificate created/signed by the role. | Dict (from ansible register) |
+| cacert_servercert_existing | Contents of existing server certificate when present. | Dict (from ansible register) |
+| cacert_serverkey_existing | Contents of existing server private key when copying to additional hosts. | Dict (from ansible register) | 
 
 ## Basic information
 
@@ -63,29 +94,77 @@ This can of course also be the ansible management host but I strongly suggest no
 ## Basic workflow
 
 ```mermaid
-graph TD
-    A[main.yml] -->|loop over cacert_cas using cacert_ca| B[ca_instance.yml]
-    B --> C[vars_paths_ca.yml]
-    C --> D[ca_instance_cakey.yml]
-    D --> E[ca_instance_cacert.yml]
-    E --> F[vars_paths_ca_targethost.yml]
-    F --> G[vars_paths_server.yml]
-    G --> H[ca_instance_cacert_targethost.yml]
-    H --> I[ca_instance_serverkey.yml]
-    I --> J[ca_instance_serverkey_additional_hosts.yml]
-    J --> K[ca_instance_servercert.yml]
-    K --> L[ca_instance_servercert_additional_hosts.yml]
-    L --> M[ca_instance_clientkey.yml]
-    M --> N[ca_instance_clientcert.yml]
+flowchart TD
+    Start([main.yml Start]) --> LoadOSVars[Load OS vars<br/>distribution/family specific]
+    LoadOSVars --> InstallPackages[Install required packages<br/>python3-cryptography]
+    InstallPackages --> LoopCA[Loop over cacert_cas]
+    
+    LoopCA --> CAInstance[ca_instance.yml]
+    
+    CAInstance --> GatherFacts[Gather facts for CA Manager Host]
+    GatherFacts --> LoadOSVarsCA[Load OS vars for CA Manager Host]
+    LoadOSVarsCA --> VarsPathsCA[vars_paths_ca.yml<br/>Build CA paths]
+    
+    VarsPathsCA --> CAKey{CA state?}
+    CAKey -->|absent| RemoveCAKey[Remove CA Key]
+    CAKey -->|present| CreateCAKey[ca_instance_cakey.yml<br/>Create/Read CA Key]
+    
+    RemoveCAKey --> CACert[ca_instance_cacert.yml]
+    CreateCAKey --> CACert
+    
+    CACert --> CheckCACert{CA Cert exists?}
+    CheckCACert -->|Yes| ReadCACert[Read existing CA Cert]
+    CheckCACert -->|No| CreateCSR[Create CSR for CA]
+    ReadCACert --> CreateCSR
+    CreateCSR --> SignCA[Sign CA Cert self-signed]
+    SignCA --> WriteCA[Write CA Cert to CA Manager Host]
+    
+    WriteCA --> LoadOSVarsTarget[Load OS vars for Target Host]
+    LoadOSVarsTarget --> VarsPathsCATarget[vars_paths_ca_targethost.yml<br/>Build CA paths for target]
+    VarsPathsCATarget --> VarsPathsServer[vars_paths_server.yml<br/>Build server cert/key paths]
+    
+    VarsPathsServer --> CACertTarget[ca_instance_cacert_targethost.yml<br/>Install CA Cert on Target Host]
+    CACertTarget --> AdditionalPathsCA{Additional paths<br/>defined?}
+    AdditionalPathsCA -->|Yes| CopyCAAdditional[Copy CA Cert to additional paths]
+    AdditionalPathsCA -->|No| ServerKey
+    
+    CopyCAAdditional --> ServerKey[ca_instance_serverkey.yml<br/>Create Server Key on Target]
+    
+    ServerKey --> ServerKeyAdditional{Additional hosts<br/>for server key?}
+    ServerKeyAdditional -->|Yes| ServerKeyAddHosts[ca_instance_serverkey_additional_hosts.yml<br/>Copy Server Key to additional hosts]
+    ServerKeyAdditional -->|No| ServerCert
+    
+    ServerKeyAddHosts --> ServerCert[ca_instance_servercert.yml<br/>Create CSR and Sign Server Cert]
+    ServerCert --> ServerCertAdditional{Additional hosts<br/>for server cert?}
+    ServerCertAdditional -->|Yes| ServerCertAddHosts[ca_instance_servercert_additional_hosts.yml<br/>Copy Server Cert to additional hosts]
+    ServerCertAdditional -->|No| ClientCerts
+    
+    ServerCertAddHosts --> ClientCerts{Client certs<br/>defined?}
+    ClientCerts -->|No| UpdateTrustStore
+    ClientCerts -->|Yes| LoopClient[Loop over cacert_clientcerts]
+    
+    LoopClient --> ClientKey[ca_instance_clientkey.yml<br/>Create Client Key]
+    ClientKey --> ClientCert[ca_instance_clientcert.yml<br/>Create CSR and Sign Client Cert]
+    ClientCert --> MoreClients{More client<br/>certs?}
+    MoreClients -->|Yes| LoopClient
+    MoreClients -->|No| UpdateTrustStore
+    
+    UpdateTrustStore{OpenWrt?} -->|No| UpdateTrust[Update trust store]
+    UpdateTrustStore -->|Yes| MoreCAs
+    UpdateTrust --> MoreCAs{More CAs<br/>in loop?}
+    MoreCAs -->|Yes| LoopCA
+    MoreCAs -->|No| EndProcess([End])
+    
+    style Start fill:#90EE90
+    style EndProcess fill:#FFB6C1
+    style CAKey fill:#FFE4B5
+    style CACert fill:#FFE4B5
+    style ServerKeyAdditional fill:#E6E6FA
+    style ServerCertAdditional fill:#E6E6FA
+    style ClientCerts fill:#E6E6FA
+    style AdditionalPathsCA fill:#E6E6FA
+    style MoreCAs fill:#E6E6FA
 ```
-
-Here's an overview of the full role's workflow
-- (main.yml) Installing required packages via imp1sh.ansible_managemynetwork.ansible_packages |
-- ( main.yml) Loop over *cacert_cas*, loop varname: *cacert_ca* |
-  - (ca_instance.yml) Configure vars and fetch facts for CA Manager host, mainly paths for keys and certificates
-  - Create or read CA key
-  - Create or read CA certificate
-
 
 ## Basic Ansible
 The idea is to define an amount of CAs
@@ -139,7 +218,7 @@ cacert_cas:
 The resulting CA certs will not only be on the CA management host but also installed onto each host this Ansible role will run on. The CAs private key will only be on the CA management host and will have 0600 mode for security reasons.
 
 The following settings normally done in ansible on group basis to avoid redundancy. Here you can make global settings on what settings to use for the server certs. If you don't specify it will be RSA 4096 bit by default. Role also supports eliptic curve.
-
+```
 cacert_servercert_organization_name: "Libcom.de"
 cacert_servercert_organizational_unit_name: "DevOps"
 cacert_servercert_country_name: "DE"
@@ -155,6 +234,7 @@ cacert_servercert_not_before: "-2d"
   #          31636364653837643739666264343662316430646536313766303265623139656438656664306436
   #          [...]
   #          6462363132653932353963333665336434393035633565656337
+```
 
 ## Server and Client certs
 For each ansible host there will be one server cert so you don't have to manually define server certs but you can define `cacert_servercert_altnames` in order to get additinal altnames (SAN). The certs will automatically land on each target host. For both *Debian* and *OpenWrt* that's `/etc/ssl/private` for the private keys and `/etc/ssl/certs` for the certificates. In some cases you may want to have the certs also to be in a different spot on the Ansible target machine. The following example show placements for PowerDNS Authoritative and PostgreSQL in podman containers.

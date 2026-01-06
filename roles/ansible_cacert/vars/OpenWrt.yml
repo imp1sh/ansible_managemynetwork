@@ -1,5 +1,17 @@
 ---
-cacert_openssl_path_certificates: "/etc/ssl/certs"
-cacert_openssl_path_keys: "/etc/ssl/private"
+# OpenWrt doesn't have a trust store update command like Debian/Fedora
+# CA certificates are typically managed manually or via uci
+cacert_command_updatetruststore: ""
+cacert_openssl_path_certificate_ca: "/etc/ssl/certs"
+cacert_openssl_path_certificate_client: "/etc/ssl/certs"
+cacert_openssl_path_certificate_server: "/etc/ssl/certs"
+cacert_openssl_path_key_ca: "/etc/ssl/ca/private"
+cacert_openssl_path_key_client: "/etc/ssl/private"
+cacert_openssl_path_key_server: "/etc/ssl/private"
+cacert_openssl_suffix_certificate_ca: "pem"
+cacert_openssl_suffix_certificate_client: "pem"
+cacert_openssl_suffix_certificate_server: "pem"
+cacert_openssl_suffix_key_client: "pem"
+cacert_openssl_suffix_key_server: "pem"
 cacert_packages:
   - "python3-cryptography"

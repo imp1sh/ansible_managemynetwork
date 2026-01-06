@@ -1,14 +1,27 @@
 ---
-# PACKAGES
-- name: "MMN cacert - Set packages to install"
-  ansible.builtin.set_fact:
-    packages_installrole: "python3-cryptography"
-  when: ansible_distribution == 'OpenWrt'
+# LOAD OS VARS
+- name: "MMN cacert - Load OS vars"
+  ansible.builtin.include_vars: "{{ lookup('ansible.builtin.first_found', params) }}"
+  vars:
+    params:
+      files:
+        - "{{ ansible_distribution }}.yml"
+        - "{{ ansible_os_family }}.yml"
+        - "default.yml"
+      paths:
+        - "vars"
 
-- name: "MMN cacert - Run package role"
-  ansible.builtin.include_role:
-    name: imp1sh.ansible_managemynetwork.ansible_packages
-  when: ansible_distribution == 'OpenWrt'
+# PACKAGES - TARGET HOSTS
+- name: "MMN cacert - Install required packages on target hosts"
+  become: true
+  block:
+    - name: "MMN cacert - Set packages to install"
+      ansible.builtin.set_fact:
+        packages_installrole: "{{ cacert_packages }}"
+    
+    - name: "MMN cacert - Run package role"
+      ansible.builtin.include_role:
+        name: imp1sh.ansible_managemynetwork.ansible_packages
 
 # CERTS   
 - name: "MMN cacert - Manage CA key and cert"
