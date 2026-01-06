@@ -11,7 +11,8 @@ Role supports:
 
 ## Requirements:
 
-- python3-cryptography for handling CSR stuff on the target machine and the CA management host.
+- `python3-cryptography` for handling CSR stuff on the target machine and the CA management host.
+- When using OpenWrt imagebuilder support, the `ansible_openwrtimagebuilder` role must be run first to set up the imagebuilder environment.
 
 ## Variables
 | Variable Name | Purpose | Default | Type | Mandatory |
@@ -26,6 +27,8 @@ Role supports:
 | cacert_clientcert_passphrase | Optional passphrase for client certificate private keys. | - | String | No |
 | cacert_clientcert_type | Key type for client certificates (RSA or ECC). | RSA | String | No |
 | cacert_clientcerts | Optional list of client certificate definitions. Each entry should contain: common_name, dest, state, user, group, not_after, not_before. | - | List | No |
+| cacert_deployroot | Base path prefix for certificate and key files. Used for OpenWrt imagebuilder support. Automatically set by `ansible_openwrtimagebuilder` role. | "/" | String | No |
+| cacert_runimagebuilder | Flag indicating if running in OpenWrt imagebuilder mode. Automatically set when `openwrt_imagebuilder_deployroot` is defined. When true, skips package installation and trust store updates. | false | Boolean | No |
 | cacert_servercert_additionalhosts | Optional list of additional hosts where server certificates should be copied. Each entry: targethost, targethostpath, targethostuser, targethostgroup, state, alsokey (bool). | - | List | No |
 | cacert_servercert_additionalpaths | Optional list of additional paths where server certificates should be copied. Each entry: dest, state, user, group. | - | List | No |
 | cacert_servercert_altnames | Optional list of Subject Alternative Names (SAN) for server certificates. Each entry: name, prefix (e.g., "DNS"). | - | List | No |
@@ -48,7 +51,7 @@ Role supports:
 | cacert_tag_clientkey | Filename tag for client keys. | clientkey | String | No |
 | cacert_tag_privatekey | Filename tag for private keys. | privatekey | String | No |
 
-**Note:** OS-specific variables (like `cacert_command_updatetruststore`, `cacert_openssl_path_*`, `cacert_packages`) are automatically set based on the target OS and should not be manually configured.
+**Note:** OS-specific variables (like `cacert_command_updatetruststore`, `cacert_openssl_path_*`, `cacert_packages`) are automatically set based on the target OS and should not be manually configured. These paths are automatically prefixed with `cacert_deployroot` to support OpenWrt imagebuilder scenarios.
 
 ## Dynamic vars
 Variables created by the role during execution. Do not set these manually.
@@ -95,9 +98,15 @@ This can of course also be the ansible management host but I strongly suggest no
 
 ```mermaid
 flowchart TD
-    Start([main.yml Start]) --> LoadOSVars[Load OS vars<br/>distribution/family specific]
-    LoadOSVars --> InstallPackages[Install required packages<br/>python3-cryptography]
-    InstallPackages --> LoopCA[Loop over cacert_cas]
+    Start([main.yml Start]) --> DetectImagebuilder{Detect<br/>imagebuilder?}
+    DetectImagebuilder -->|openwrt_imagebuilder_deployroot<br/>defined| SetImagebuilder[Set cacert_runimagebuilder: true]
+    DetectImagebuilder -->|Not defined| LoadOSVars[Load OS vars<br/>distribution/family specific]
+    SetImagebuilder --> LoadOSVars
+    LoadOSVars --> InstallPackages{Imagebuilder<br/>mode?}
+    InstallPackages -->|No| InstallPkgs[Install required packages<br/>python3-cryptography]
+    InstallPackages -->|Yes| SkipPkgs[Skip package installation]
+    InstallPkgs --> LoopCA[Loop over cacert_cas]
+    SkipPkgs --> LoopCA
     
     LoopCA --> CAInstance[ca_instance.yml]
     
@@ -149,7 +158,7 @@ flowchart TD
     MoreClients -->|Yes| LoopClient
     MoreClients -->|No| UpdateTrustStore
     
-    UpdateTrustStore{OpenWrt?} -->|No| UpdateTrust[Update trust store]
+    UpdateTrustStore{OpenWrt or<br/>Imagebuilder?} -->|No| UpdateTrust[Update trust store]
     UpdateTrustStore -->|Yes| MoreCAs
     UpdateTrust --> MoreCAs{More CAs<br/>in loop?}
     MoreCAs -->|Yes| LoopCA
@@ -217,6 +226,8 @@ cacert_cas:
 
 The resulting CA certs will not only be on the CA management host but also installed onto each host this Ansible role will run on. The CAs private key will only be on the CA management host and will have 0600 mode for security reasons.
 
+**Trust Store Updates**: On Debian and Fedora systems, the role automatically runs the appropriate trust store update command (`update-ca-certificates` for Debian, `update-ca-trust extract` for Fedora) after installing CA certificates. This step is skipped for OpenWrt (which doesn't have a standard trust store update mechanism) and when running in imagebuilder mode (where trust store updates are not applicable).
+
 The following settings normally done in ansible on group basis to avoid redundancy. Here you can make global settings on what settings to use for the server certs. If you don't specify it will be RSA 4096 bit by default. Role also supports eliptic curve.
 ```
 cacert_servercert_organization_name: "Libcom.de"
@@ -236,8 +247,58 @@ cacert_servercert_not_before: "-2d"
   #          6462363132653932353963333665336434393035633565656337
 ```
 
+## OS-Specific Paths
+
+The role automatically sets certificate and key paths based on the target OS:
+
+- **Debian**: CA certificates go to `/usr/local/share/ca-certificates`, server/client certs to `/etc/ssl/certs`, keys to `/etc/ssl/private`
+- **Fedora**: CA certificates go to `/etc/pki/ca-trust/source/anchors/`, server/client certs to `/etc/pki/tls/certs`, keys to `/etc/pki/tls/private/` or `/etc/ssl/private`
+- **OpenWrt**: CA certificates and server/client certs go to `/etc/ssl/certs`, keys to `/etc/ssl/private` or `/etc/ssl/ca/private`
+
+All paths are automatically prefixed with `cacert_deployroot` (defaults to `"/"`), which allows the role to work with OpenWrt imagebuilder by deploying files to the imagebuilder's files directory instead of the live system.
+
+## OpenWrt Imagebuilder Support
+
+This role supports OpenWrt imagebuilder scenarios through integration with the `ansible_openwrtimagebuilder` role. When running in imagebuilder mode:
+
+- The role automatically detects when `openwrt_imagebuilder_deployroot` is defined (set by `ansible_openwrtimagebuilder`)
+- Certificate and key files are deployed to the imagebuilder's files directory instead of the live system
+- Package installation is skipped (packages will be included in the image during build)
+- Trust store updates are skipped (not applicable for image preparation)
+
+**Example playbook for imagebuilder:**
+```yaml
+- name: Build OpenWrt image with certificates
+  hosts: openwrt_imagebuilder
+  vars:
+    ansible_distribution: OpenWrt
+    ansible_os_family: OpenWrt
+    cacert_ca_manager_host: "ca.example.com"
+    cacert_cas:
+      main_ca:
+        state: "present"
+        common_name: "My CA"
+        # ... other CA config ...
+  tasks:
+    - name: Prepare imagebuilder
+      ansible.builtin.import_role:
+        name: imp1sh.ansible_managemynetwork.ansible_openwrtimagebuilder
+        tasks_from: prepare
+    
+    - name: Deploy certificates to image
+      ansible.builtin.import_role:
+        name: imp1sh.ansible_managemynetwork.ansible_cacert
+    
+    - name: Build image
+      ansible.builtin.import_role:
+        name: imp1sh.ansible_managemynetwork.ansible_openwrtimagebuilder
+        tasks_from: build
+```
+
+The `ansible_openwrtimagebuilder` role automatically sets `cacert_deployroot` to point to the imagebuilder's files directory, so certificates will be included in the built image.
+
 ## Server and Client certs
-For each ansible host there will be one server cert so you don't have to manually define server certs but you can define `cacert_servercert_altnames` in order to get additinal altnames (SAN). The certs will automatically land on each target host. For both *Debian* and *OpenWrt* that's `/etc/ssl/private` for the private keys and `/etc/ssl/certs` for the certificates. In some cases you may want to have the certs also to be in a different spot on the Ansible target machine. The following example show placements for PowerDNS Authoritative and PostgreSQL in podman containers.
+For each ansible host there will be one server cert so you don't have to manually define server certs but you can define `cacert_servercert_altnames` in order to get additinal altnames (SAN). The certs will automatically land on each target host at the OS-specific paths mentioned above. In some cases you may want to have the certs also to be in a different spot on the Ansible target machine. The following example show placements for PowerDNS Authoritative and PostgreSQL in podman containers.
 ```yaml
 cacert_cacert_additionalpaths:
   - dest: "/mnt/cntr/unsynced/pdnsauth/0"

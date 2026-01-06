@@ -95,5 +95,7 @@
 - name: "MMN cacert - Update trust store"
   become: True
   ansible.builtin.command: "{{ cacert_command_updatetruststore }}"
-  when: ansible_distribution != 'OpenWrt'
+  when:
+    - ansible_distribution != 'OpenWrt'
+    - not cacert_runimagebuilder | default(false) | bool
   # need more conditions, maybe handler, FIXME
