@@ -1,9 +1,9 @@
 config uhttpd 'main'
 {% for listenhttp in openwrt_uhttpd_main_listen_http %}
-	list listen_http "{{ listenhttp }}
+	list listen_http "{{ listenhttp }}"
 {% endfor %}
 {% for listenhttps in openwrt_uhttpd_main_listen_https %}
-	list listen_https "{{ listenhttps }}
+	list listen_https "{{ listenhttps }}"
 {% endfor %}
 	option home "{{ openwrt_uhttpd_main_home }}"
 	option rfc1918_filter "{{ openwrt_uhttpd_main_rfc1918_filter }}"
