@@ -62,6 +62,7 @@
   ansible.builtin.set_fact:
     "{{ item }}": "{{ openwrt_imagebuilder_deployroot }}"
   loop:
+    - cacert_deployroot
     - ipupdater_deployroot
     - openwrt_babeld_deployroot
     - openwrt_batmanadv_deployroot
