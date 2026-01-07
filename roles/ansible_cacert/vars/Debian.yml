@@ -11,3 +11,5 @@ cacert_openssl_suffix_certificate_client: "crt"
 cacert_openssl_suffix_certificate_server: "crt"
 cacert_openssl_suffix_key_client: "key"
 cacert_openssl_suffix_key_server: "key"
+cacert_packages:
+  - "python3-cryptography"
