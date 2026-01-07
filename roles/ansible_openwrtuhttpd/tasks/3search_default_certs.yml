@@ -1,0 +1,99 @@
+---
+# Search for default certificate paths (ACME, etc.)
+- name: MMN openwrtuhttpd - Probe which default certificate paths exist
+  ansible.builtin.find:
+    paths: "{{ openwrt_uhttpd_cert_searchpaths }}"
+    file_type: file
+    patterns:
+      - "{{ inventory_hostname }}*"
+      - "fullchain.cer"
+      - "cert.cer"
+  register: certdirs
+
+- name: MMN openwrtuhttpd - Verbose certdirs
+  ansible.builtin.debug:
+    var: certdirs
+  when: (mmn_verbose | default(false)) | bool
+
+- name: MMN openwrtuhttpd - Derive cert dir and expected key name
+  ansible.builtin.set_fact:
+    _cert_dir: "{{ certdirs.files[0].path | dirname }}"
+    _key_base: "{{ (certdirs.files[0].path | dirname | basename) | regex_replace('_ecc$', '') }}"
+  when: certdirs.matched | default(0) > 0
+
+- name: MMN openwrtuhttpd - Verbose found certdir
+  ansible.builtin.debug:
+    msg: "Certdir: {{ _cert_dir }} and Keybase (for filename) {{ _key_base }}"
+  when: (mmn_verbose | default(false)) | bool
+
+- name: MMN openwrtuhttpd - Fallback - any .key file in that directory
+  ansible.builtin.find:
+    paths: "{{ _cert_dir }}"
+    file_type: file
+    recurse: no
+    patterns: "*.key"
+  register: any_key
+  when: _cert_dir is defined and not (key_stat.stat.exists | default(false))
+
+- name: MMN openwrtuhttpd - Verbose fallback key
+  ansible.builtin.debug:
+    var: any_key
+  when: (mmn_verbose | default(false)) | bool
+
+- name: MMN openwrtuhttpd - Set full key path
+  ansible.builtin.set_fact:
+    actual_cert_path: "{{ certdirs.files[0].path | dirname }}"
+  when: certdirs.matched > 0
+
+- name: MMN openwrtuhttpd - Verbose actual cert path
+  ansible.builtin.debug:
+    var: actual_cert_path
+  when: (mmn_verbose | default(false)) | bool
+
+- name: MMN openwrtuhttpd - Search for existing cert
+  ansible.builtin.stat:
+    path: "{{ actual_cert_path }}/fullchain.cer"
+  register: searchcert
+  when: actual_cert_path is defined
+
+- name: MMN openwrtuhttpd - Verbose found cert
+  ansible.builtin.debug:
+    var: searchcert
+  when: (mmn_verbose | default(false)) | bool
+
+- name: MMN openwrtuhttpd - Search for existing key
+  ansible.builtin.find:
+    paths: "{{ actual_cert_path }}"
+    patterns:
+      - "*.{{ inventory_hostname | community.dns.get_registrable_domain }}.key"
+      - "{{ inventory_hostname }}.key"
+    file_type: file
+    recurse: false
+  register: searchkey
+  when: actual_cert_path is defined
+
+- name: MMN openwrtuhttpd - Select first found key
+  ansible.builtin.set_fact:
+    searchkey_first: "{{ searchkey.files[0].path if (searchkey.matched | default(0)) > 0 else None }}"
+  when: (searchkey.matched | default(0)) > 0
+
+- name: MMN openwrtuhttpd - Verbose found key
+  ansible.builtin.debug:
+    var: searchkey
+  when: (mmn_verbose | default(false)) | bool
+
+- name: MMN openwrtuhttpd - Overwrite defaults with found cert and key
+  ansible.builtin.set_fact:
+    openwrt_uhttpd_main_cert: "{{ searchcert.stat.path }}"
+    openwrt_uhttpd_main_key: "{{ searchkey_first }}"
+  when:
+    - searchcert is defined
+    - searchcert.stat is defined
+    - searchcert.stat.exists
+    - searchkey_first is defined
+
+- name: MMN openwrtuhttpd - Verbose key and cert for config
+  ansible.builtin.debug:
+    msg: "Using cert {{ openwrt_uhttpd_main_cert }} and key : {{ openwrt_uhttpd_main_key }}"
+  when: (mmn_verbose | default(false)) | bool
+

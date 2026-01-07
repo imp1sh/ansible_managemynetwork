@@ -1,0 +1,8 @@
+---
+# Deploy uhttpd configuration
+- name: MMN openwrtuhttpd - Deploy uhttpd config template
+  ansible.builtin.template:
+    src: "uhttpd.jinja2"
+    dest: "{{ openwrt_uhttpd_deploypath }}/{{ openwrt_uhttpd_deployfile }}"
+  notify: restart uhttpd
+
