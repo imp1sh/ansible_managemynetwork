@@ -27,6 +27,7 @@ This is an example playbook for the ansible_openwrtimagebuilder role.
 - name: Playbook for building openwrt images
   hosts: tags_openwrt-imagebuilder
   vars:
+    openwrt_imagebuilder_buildhost: "buildhost.example.com"  # Hostname where imagebuilder tasks will run
     openwrt_babeld_runimagebuilder: true
     openwrt_batmanadv_runimagebuilder: true
     openwrt_bmx7_runimagebuilder: true
@@ -45,7 +46,6 @@ This is an example playbook for the ansible_openwrtimagebuilder role.
     openwrt_wireless_runimagebuilder: true
     system_users_runimagebuilder: true
   gather_facts: true
-  connection: local
   serial: 1
   # become: true
   tasks:
@@ -103,13 +103,14 @@ If you make use of the firewall role in which you might want to merge zones, pla
 
 ## Variables
 
+* `openwrt_imagebuilder_buildhost` - **Required.** Hostname of the host where imagebuilder tasks will be executed. This host must be accessible via Ansible and have the necessary tools installed. Defaults to `{{ inventory_hostname }}` (the playbook target host).
 * `openwrt_imagebuilder_builddir` - The directory where the imagebuilder will be built. Default is `/tmp/openwrt_imagebuilder`.
 * `openwrt_imagebuilder_outputdir` - The directory where the images will be put. Default is `/tmp/openwrt_imagebuilder_images`. 
   * The images will be named in format `hostname--output-of-imagebuilder.bin`
   * Additionally all output directory will be compressed in a tar.gz file and named `hostname.tar.gz`
 * `openwrt_imagebuilder_downloadurl` - The URL to the imagebuilder. Default is the x86 imagebuilder. [Instruction how to find the correct URL](https://openwrt.org/docs/guide-user/additional-software/imagebuilder#obtaining_the_image_builder)
 * `openwrt_imagebuilder_profile` - The profile to build. If not set, the default profile will be used.
-* ``openwrt_imagebuilder_kernelvars` - Kernel variables to set. Default is empty. \
+* `openwrt_imagebuilder_kernelvars` - Kernel variables to set. Default is empty. \
   For the build process you can specify kernel variables like in [Buildroot](https://openwrt.org/de/doc/howto/buildroot.exigence). Here you can also set the partition size, e.g:
   ```yaml
   openwrt_imagebuilder_kernelvars:

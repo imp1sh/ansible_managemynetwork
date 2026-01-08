@@ -6,6 +6,7 @@
     line: "{{ item.name }}={{ item.value }}"
   loop: "{{ openwrt_imagebuilder_kernelvars }}"
   when: openwrt_imagebuilder_kernelvars is defined
+  delegate_to: "{{ openwrt_imagebuilder_buildhost }}"
 
 - name: List packages that will be in the image
   ansible.builtin.debug:
@@ -57,6 +58,7 @@
     cmd: "{{ openwrt_imagebuilder_make_image_command }}"
     chdir: "{{ openwrt_imagebuilder_make_path }}"
   changed_when: true
+  delegate_to: "{{ openwrt_imagebuilder_buildhost }}"
 
 - name: Compress and remove build directory
   community.general.archive:
@@ -64,3 +66,4 @@
     dest: "{{ openwrt_imagebuilder_outputdir }}/{{ inventory_hostname }}.tar.gz"
     remove: true
     mode: '0644'
+  delegate_to: "{{ openwrt_imagebuilder_buildhost }}"
