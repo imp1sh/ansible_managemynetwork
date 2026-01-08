@@ -5,7 +5,7 @@
   ansible.builtin.set_fact:
     openwrt_services_disabledmergedgroup: "{{ openwrt_services_disabledgroup.keys() | list | intersect(group_names) | map('extract', openwrt_services_disabledgroup) | list | flatten }}"
   when: openwrt_services_disabledgroup is defined
-- name: Set seperator if imagebuilder
+- name: Set separator if imagebuilder
   ansible.builtin.set_fact:
     openwrt_services_separator: ' '
   when: openwrt_services_runimagebuilder | default(false)
@@ -25,7 +25,7 @@
   ansible.builtin.set_fact:
     openwrt_services_enabledmergedgroup: "{{ openwrt_services_enabledgroup.keys() | list | intersect(group_names) | map('extract', openwrt_services_enabledgroup) | list | flatten }}"
   when: openwrt_services_enabledgroup is defined
-- name: Set seperator if imagebuilder
+- name: Set separator if imagebuilder
   ansible.builtin.set_fact:
     openwrt_services_separator: ' '
   when: openwrt_services_runimagebuilder | default(false)

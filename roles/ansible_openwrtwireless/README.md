@@ -1,7 +1,7 @@
 # imp1sh.ansible_managemynetwork.ansible_openwrtwireless
 
 This ansible role manages wireless connectivity for your OpenWrt node. In the filesystem the config file is `/etc/config/wireless`. It manages wifi-devices on the one hand and wifi-interfaces on the other.
-For possible attributes see the the [OpenWrt wifi docs](https://openwrt.org/docs/guide-user/network/wifi/basic).
+For possible attributes see the [OpenWrt wifi docs](https://openwrt.org/docs/guide-user/network/wifi/basic).
 Best practice for a new device is to experiment with Luci and make your target config and then implement it in Ansible. This is a straight forward process as variable names correspond to UCI naming.
 
 ## Example Configuration

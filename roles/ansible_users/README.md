@@ -49,7 +49,7 @@ system_users:
     shell: "zsh"
 ```
 
-The password is expected to be encrypted. The easiest way to get such an encrypted password is to use the follwing command: 
+The password is expected to be encrypted. The easiest way to get such an encrypted password is to use the following command: 
 
 ``` bash
 mkpasswd --method=sha-512

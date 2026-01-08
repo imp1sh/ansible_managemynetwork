@@ -35,7 +35,7 @@ restic_backups:
 ```
 
 
-> OpenWrt doesn't create huge amounts of data. You can very well use the free service of [borgbase] (https://www.borgbase.com/). They offer superb service for backing up your data either via borg or restic, which are both two of the best tools for encrypted backup.
+> OpenWrt doesn't create huge amounts of data. You can very well use the free service of [borgbase](https://www.borgbase.com/). They offer superb service for backing up your data either via borg or restic, which are both two of the best tools for encrypted backup.
 
 ## Fine tune your backup
 
@@ -49,7 +49,7 @@ You define one encryption passphrase for all targets via:
 ```yaml
 restic_encpassphrase: "yoursupersecretandlongpassphrase"
 ```
-or you can define it on a target level. Target level definition always preceeds global config setting.
+or you can define it on a target level. Target level definition always precedes global config setting.
 
 Regarding the cron timings, you can use the defaults. This will result in randomized times not earlier than 01:01h and not later than 06:59h. You can modify the range by overriding the defaults in:
 ```yaml

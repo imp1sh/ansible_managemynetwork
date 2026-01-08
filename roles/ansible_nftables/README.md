@@ -10,7 +10,7 @@ ansible-galaxy collection install imp1sh.ansible_managemynetwork
 ---
 - hosts: my.firewall.com
   become: true
-  roles
+  roles:
     - imp1sh.ansible_managemynetwork.ansible_nftables
 ```
 * Define basic variables
@@ -48,7 +48,7 @@ Choose family *6* for IPv6 only, *4* for IPv4 only and *46* for dual stack.
 inif is optional in case your server has multiple interfaces and you want to restrict the rule for interface-specific incoming traffic.
 
 ## Firewall Mode
-Let' assume you run it in firewall mode with IPv4 Masquerading / IPv6 routed with eth0 your WAN interface and eth1 LAN.
+Let's assume you run it in firewall mode with IPv4 Masquerading / IPv6 routed with eth0 your WAN interface and eth1 LAN.
 Define variable as this:
 ```
 nftables_masks:

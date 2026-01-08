@@ -2,7 +2,7 @@
 
 [Source Code on GitHub](https://github.com/imp1sh/ansible_managemynetwork/tree/main/roles/ansible_sshkeys)
 
-This role distributes ssh public keys to hosts and on that hosts to one ore multiple users. It can of course delete records, too.
+This role distributes ssh public keys to hosts and on that hosts to one or multiple users. It can of course delete records, too.
 
 > This role might take some time because for every host you run it on it will iterate over every key defined in `system_sshkeys`.
 {.is-warning}
@@ -34,7 +34,7 @@ system_sshkeys:
     key: "AAAAB3NzaC1yc2EAAAADAQABAAABAQCrBMHHozDF4Xl4lthGQab/1Fhr4kr6C5ylckNX25gFweMmFbuO/uXiw7sL4NqdROXbO7jj89pxh1qtiNF9iQu4HsusYhZcuCoPho/SCXkvdyQGcIUZIZElilyWyLOJNXK4H7YXDv7LmO5Rc9oAJp/XP7TWW6uILXYs97PdHOisUk/3QCJzkNfulodBz73z6aKjP9vSloJJQvK6YZEC2WYqv2JQKOR6Bkz1R1fvHKmOFWN2Ls3ZIYmjQ4ETZtXBAHLbPW7PHT/YLaKqOIn3zZ/1TGpJ2VP938KLMDCQG6jdnRhBiDGwbBnz67A3DrOeKKhDSDPC8gPca4aAgHhNE6WX"
 ```
 ## Assign key to a host
-Next you need to make a call of where to distrube which keys. You can do that bei either assigning keys to hosts individually:
+Next you need to make a call of where to distribute which keys. You can do that by either assigning keys to hosts individually:
 
 ```
 system_sshkeys_deploy_on_hosts:
@@ -44,10 +44,10 @@ system_sshkeys_deploy_on_hosts:
       - mcrx1.example.com
 ```
 
-Be aware that the host list needs to correspond to your ansible `inventory_hostname` special variable.
+Be aware that the host list needs to correspond to your Ansible `inventory_hostname` special variable.
 
 ## Assign key to a group of hosts
-The groups are of course Ansible groups. 
+The groups are of course Ansible groups.
 ```yaml
 system_sshkeys_deploy_on_hostgroups:
   jochen@RXFedora:

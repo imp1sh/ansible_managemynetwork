@@ -1,4 +1,4 @@
-# imp1sh.ansible_managemynetwork.ansible_packages
+# imp1sh.ansible_managemynetwork.ansible_motd
 Sets MOTD with useful information for your hosts. Make sure to have only motd configured in pam OR sshd, otherwise it might get printed twice. This motd role works well together with Netbox and [netbox2ansible role](https://github.com/imp1sh/ansible_managemynetwork/tree/main/roles/ansible_netbox2yaml). Purpose, IP addresses and site will come out of netbox if set automatically.
 
 Example of motd variables making use of this role:
@@ -6,7 +6,7 @@ Example of motd variables making use of this role:
 motd_purpose: "demo alpine system"
 motd_site: "Information about the site. This is usually being defined with group_vars instead of host_vars."
 ```
-Example of how a typcial motd might look like.
+Example of how a typical motd might look like.
 ```
    __   _ __                      __   
   / /  (_) /  _______  __ _   ___/ /__ 

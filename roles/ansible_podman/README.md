@@ -12,7 +12,7 @@ Supporting the following roles from the [containers.podman collection](https://g
 - podman network
 - Run only on specific containers by setting var `podman_limited_containers` to the container instance name. By default it will iterate over all defined containers for the host.
 
-# Role Worflow
+# Role Workflow
 
 - Handling all the common podman stuff like:
 
@@ -21,11 +21,11 @@ Supporting the following roles from the [containers.podman collection](https://g
 **1prepare.yml**:
   - Creating podman networks
   - Applying limit when choosing explicit container via *podman_limited_containers*
-  - Making sure the necessary folders for the container are in existance
+  - Making sure the necessary folders for the container exist
   - We see logging into dockerhub as mandatory as they limit to 10 images per hour per IP since April 1st of 2025. Set `podman_dockerio_username` and `podman_dockerio_password`
 
 **main.yml**:
-  - Installing podman secrets and referecing further task files.
+  - Installing podman secrets and referencing further task files.
 
 **2plugins.yml**:
   - Meta task that will delegate further to the specific plugin files, e.g. *plugin_psql.yaml*. This calls another role from MMN that has been modified to work with managing the configuration of a podman container.
@@ -46,7 +46,7 @@ podman_containers:
   - Creating containers with the *podman_containers* role.
 
 **2plugins2.yml**
-  - Some pluggins require to run the plugin's role a second time as psql for example expects an empty data dir at first initialization. After the containers have been initialized, only then we can place the target configuration files.
+  - Some plugins require to run the plugin's role a second time as psql for example expects an empty data dir at first initialization. After the containers have been initialized, only then we can place the target configuration files.
 
 **4post.yml**
 
@@ -118,7 +118,7 @@ podman_storageconfig_graphroot: "/mnt/container/storage"
 This is especially important on OpenWrt as by default podman stores on /var which is a non persistent volume. Each reboot all your container data will be gone.
 
 ## OpenWrt specifics
-Podman will be deployed on OpenWrt using aardvardk-dns. This will clash with dnsmasq as it will usually bind to all interfaces, also the podman interface. This is why it is a requirement to only bind dnsmasq to specific interfaces and blacklist it for others like this.
+Podman will be deployed on OpenWrt using aardvark-dns. This will clash with dnsmasq as it will usually bind to all interfaces, also the podman interface. This is why it is a requirement to only bind dnsmasq to specific interfaces and blacklist it for others like this.
 
 ### OpenWrt DNS
 
@@ -133,7 +133,7 @@ openwrt_dhcp_dnsmasq_interface:
 
 ### OpenWrt Networks
 
-Networks are being handled via podman network role with the exception of OpenWrt. In OpenWrt networks are deployed via jinja2 template as a workaround because otherwise it would clash. In OpenWrt you will have to setup a bridge interface manuall via `ansible_openwrtnetwork` role first. Then configure the podman network a bit differently on OpenWrt. You need to specify an ID yourself and the created timestamp as well. `interface_name` is the name of the bridge interface. Example:
+Networks are being handled via podman network role with the exception of OpenWrt. In OpenWrt networks are deployed via jinja2 template as a workaround because otherwise it would clash. In OpenWrt you will have to setup a bridge interface manually via `ansible_openwrtnetwork` role first. Then configure the podman network a bit differently on OpenWrt. You need to specify an ID yourself and the created timestamp as well. `interface_name` is the name of the bridge interface. Example:
 
 ```yaml
 podman_networks:
@@ -173,7 +173,7 @@ openwrt_firewall_forwardingshost:
 
 ### OpenWrt Storage
 
-As you want persistent storage, you should create an fstab mount. Determine your disks uuid by installing `blkid` opn OpenWrt and then query your devices.
+As you want persistent storage, you should create an fstab mount. Determine your disks uuid by installing `blkid` on OpenWrt and then query your devices.
 
 ```bash
 apk add blkid
