@@ -1,10 +1,4 @@
 ---
-# DETECT IMAGEBUILDER
-- name: "MMN cacert - Detect imagebuilder"
-  ansible.builtin.set_fact:
-    cacert_runimagebuilder: true
-  when: openwrt_imagebuilder_deployroot is defined
-
 # LOAD OS VARS
 - name: "MMN cacert - Load OS vars"
   ansible.builtin.include_vars: "{{ lookup('ansible.builtin.first_found', params) }}"

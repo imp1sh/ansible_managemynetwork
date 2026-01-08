@@ -28,7 +28,7 @@ Role supports:
 | cacert_clientcert_type | Key type for client certificates (RSA or ECC). | RSA | String | No |
 | cacert_clientcerts | Optional list of client certificate definitions. Each entry should contain: common_name, dest, state, user, group, not_after, not_before. | - | List | No |
 | cacert_deployroot | Base path prefix for certificate and key files. Used for OpenWrt imagebuilder support. Automatically set by `ansible_openwrtimagebuilder` role. | "/" | String | No |
-| cacert_runimagebuilder | Flag indicating if running in OpenWrt imagebuilder mode. Automatically set when `openwrt_imagebuilder_deployroot` is defined. When true, skips package installation and trust store updates. | false | Boolean | No |
+| cacert_runimagebuilder | Flag indicating if running in OpenWrt imagebuilder mode. Must be set to `true` manually when using imagebuilder. When true, skips package installation and trust store updates. | false | Boolean | No |
 | cacert_servercert_additionalhosts | Optional list of additional hosts where server certificates should be copied. Each entry: targethost, targethostpath, targethostuser, targethostgroup, state, alsokey (bool). | - | List | No |
 | cacert_servercert_additionalpaths | Optional list of additional paths where server certificates should be copied. Each entry: dest, state, user, group. | - | List | No |
 | cacert_servercert_altnames | Optional list of Subject Alternative Names (SAN) for server certificates. Each entry: name, prefix (e.g., "DNS"). | - | List | No |
@@ -261,7 +261,6 @@ All paths are automatically prefixed with `cacert_deployroot` (defaults to `"/"`
 
 This role supports OpenWrt imagebuilder scenarios through integration with the `ansible_openwrtimagebuilder` role. When running in imagebuilder mode:
 
-- The role automatically detects when `openwrt_imagebuilder_deployroot` is defined (set by `ansible_openwrtimagebuilder`)
 - Certificate and key files are deployed to the imagebuilder's files directory instead of the live system
 - Package installation is skipped (packages will be included in the image during build)
 - Trust store updates are skipped (not applicable for image preparation)
@@ -273,6 +272,7 @@ This role supports OpenWrt imagebuilder scenarios through integration with the `
   vars:
     ansible_distribution: OpenWrt
     ansible_os_family: OpenWrt
+    cacert_runimagebuilder: true  # Enable imagebuilder mode
     cacert_ca_manager_host: "ca.example.com"
     cacert_cas:
       main_ca:
@@ -295,7 +295,7 @@ This role supports OpenWrt imagebuilder scenarios through integration with the `
         tasks_from: build
 ```
 
-The `ansible_openwrtimagebuilder` role automatically sets `cacert_deployroot` to point to the imagebuilder's files directory, so certificates will be included in the built image.
+**Note:** The `ansible_openwrtimagebuilder` role automatically sets `cacert_deployroot` to point to the imagebuilder's files directory. You must manually set `cacert_runimagebuilder: true` in your playbook to enable imagebuilder mode.
 
 ## Server and Client certs
 For each ansible host there will be one server cert so you don't have to manually define server certs but you can define `cacert_servercert_altnames` in order to get additinal altnames (SAN). The certs will automatically land on each target host at the OS-specific paths mentioned above. In some cases you may want to have the certs also to be in a different spot on the Ansible target machine. The following example show placements for PowerDNS Authoritative and PostgreSQL in podman containers.
