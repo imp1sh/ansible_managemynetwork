@@ -10,7 +10,6 @@
   when:
     - packages_install is truthy
     - ansible_distribution != 'OpenWrt'
-    - not packages_runimagebuilder | default(false) | bool
 
 - name: "MMN Packages - Installing packages OpenWrt"
   community.general.apk:
@@ -20,4 +19,3 @@
   when:
     - packages_install is truthy
     - ansible_distribution == 'OpenWrt'
-    - not packages_runimagebuilder | default(false) | bool

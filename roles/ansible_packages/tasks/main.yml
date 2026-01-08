@@ -1,8 +1,12 @@
 ---
+- name: "MMN Packages - Determine target host for delegation"
+  ansible.builtin.set_fact:
+    _packages_target_host: "{{ openwrt_imagebuilder_buildhost if (openwrt_imagebuilder_buildhost is defined and openwrt_imagebuilder_buildhost != inventory_hostname) else inventory_hostname }}"
+
 - name: "MMN Packages - Prepare install variables"
   include_tasks: "1prepare_install.yml"
 
-- name: "MMN Packages - Prepare install variables"
+- name: "MMN Packages - Prepare remove variables"
   include_tasks: "2prepare_remove.yml"
 
 - name: "MMN Packages - Updating caches if possible"
@@ -12,7 +16,11 @@
 
 - name: "MMN Packages - Remove tasks"
   include_tasks: "4remove.yml"
+  when:
+    - not packages_runimagebuilder | default(false) | bool
 
 - name: "MMN Packages - Install tasks"
   include_tasks: "5install.yml"
+  when:
+    - not packages_runimagebuilder | default(false) | bool
 
