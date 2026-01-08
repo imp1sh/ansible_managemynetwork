@@ -1,14 +1,22 @@
 ---
 # tasks file for ansible_openwrtsystem
-- name: Run checks if variables meet the requirements
-  import_tasks: checks.yml
-- name: Set kernel logging console
-  import_tasks: kernel.yml
-- name: make sure deploypath is present
+- name: "MMN openwrtsystem - Determine target host for delegation"
+  ansible.builtin.set_fact:
+    _openwrt_system_target_host: "{{ openwrt_imagebuilder_buildhost if (openwrt_imagebuilder_buildhost is defined and openwrt_imagebuilder_buildhost != inventory_hostname) else inventory_hostname }}"
+
+- name: "MMN openwrtsystem - Run checks if variables meet the requirements"
+  ansible.builtin.include_tasks: checks.yml
+
+- name: "MMN openwrtsystem - Set kernel logging console"
+  ansible.builtin.include_tasks: kernel.yml
+
+- name: "MMN openwrtsystem - Make sure deploypath is present"
   ansible.builtin.file:
     path: "{{ openwrt_system_deploypath }}"
     state: directory
-- name: Install system config /etc/config/system
+  delegate_to: "{{ _openwrt_system_target_host }}"
+
+- name: "MMN openwrtsystem - Install system config /etc/config/system"
   ansible.builtin.template:
     src: system.jinja2
     dest: "{{ openwrt_system_deploypath }}/{{ openwrt_system_deployfile }}"
@@ -16,3 +24,4 @@
   notify:
     - restart logging
     - restart systemservice
+  delegate_to: "{{ _openwrt_system_target_host }}"

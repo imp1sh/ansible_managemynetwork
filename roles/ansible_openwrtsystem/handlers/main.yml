@@ -4,11 +4,9 @@
   ansible.builtin.service:
     name: log
     state: restarted
-  when:
-    not openwrt_system_runimagebuilder | default(false)
+  when: not openwrt_system_runimagebuilder | default(false) | bool
 - name: restart systemservice
   ansible.builtin.service:
     name: system
     state: restarted
-  when:
-    not openwrt_system_runimagebuilder | default(false)
+  when: not openwrt_system_runimagebuilder | default(false) | bool
