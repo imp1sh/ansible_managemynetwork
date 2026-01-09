@@ -1,0 +1,12 @@
+---
+- name: make sure sysupgrade.conf file exists
+  ansible.builtin.file:
+    path: "{{ openwrt_restic_deploypath_sysupgrade }}/{{ openwrt_restic_deployfile_sysupgrade }}"
+    mode: '0644'
+    state: touch
+- name: add /etc/config/installed.packages to sysupgrade config
+  ansible.builtin.lineinfile:
+    path: "{{ openwrt_restic_deploypath_sysupgrade }}/{{ openwrt_restic_deployfile_sysupgrade }}"
+    line: /etc/config/installed.packages
+    regexp: /etc/config/installed.packages
+    state: present

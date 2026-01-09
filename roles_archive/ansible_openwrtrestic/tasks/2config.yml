@@ -1,0 +1,12 @@
+- name: assemble repository string
+  include_tasks: xassemblerepo.yml
+- name: deploy restic configuration
+  ansible.builtin.template:
+    src: restic.conf.jinja2
+    dest: "{{ openwrt_restic_deploypath }}/{{ openwrt_restic_deployfile }}_{{ backupitem['name'] }}"
+    mode: 0600
+- name: deploy restic password file
+  ansible.builtin.template:
+    src: password.jinja2
+    dest: "{{ openwrt_restic_deploypath_passwordfile }}/{{ openwrt_restic_deployfile_passwordfile }}_{{ backupitem['name'] }}"
+    mode: 0600

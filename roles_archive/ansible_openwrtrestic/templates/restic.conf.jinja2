@@ -1,0 +1,17 @@
+#!/usr/bin/env ash
+# File managed by Ansible
+RESTIC_REPOSITORY="{{ assembledrepo }}"
+{% if backupitem.encpassphrase is defined %}
+RESTIC_PASSWORD="{{ backupitem.encpassphrase }}"
+{% else %}
+RESTIC_PASSWORD="{{ openwrt_restic_encpassphrase }}"
+{% endif %}
+{% if backupitem.aws_access_key_id is defined %}
+AWS_ACCESS_KEY_ID="{{ backupitem.aws_access_key_id }}"
+{% endif %}
+{% if backupitem.aws_secret_access_key is defined %}
+AWS_SECRET_ACCESS_KEY="{{ backupitem.aws_secret_access_key }}"
+{% endif %}
+{% if backupitem.aws_default_region is defined %}
+AWS_DEFAULT_REGION="{{ backupitem.aws_default_region }}"
+{% endif %}

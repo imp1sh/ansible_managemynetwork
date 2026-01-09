@@ -1,0 +1,23 @@
+---
+# defaults file for ansible_openwrtrestic
+openwrt_restic_cron_name: "resticbackup"
+openwrt_restic_cron_hourrange_start: 1
+openwrt_restic_cron_hourrange_end: 6
+openwrt_restic_cron_minuterange_start: 1
+openwrt_restic_cron_minuterange_end: 59
+openwrt_restic_cron_hour: "{{ openwrt_restic_cron_hourrange_end | random(start=openwrt_restic_cron_hourrange_start, seed=inventory_hostname) }}"
+openwrt_restic_cron_minute: "{{ openwrt_restic_cron_minuterange_end | random(start=openwrt_restic_cron_minuterange_start, seed=inventory_hostname) }}"
+openwrt_restic_cron_manage: true
+openwrt_restic_ssh_manage: true
+openwrt_restic_keepweekly: 3
+openwrt_restic_keepdaily: 9
+openwrt_restic_keepmonthly: 2
+openwrt_restic_deployroot: "/"
+openwrt_restic_deploypath: "{{ openwrt_restic_deployroot }}etc"
+openwrt_restic_deployfile: "restic"
+openwrt_restic_deploypath_sysupgrade: "{{ openwrt_restic_deployroot }}etc"
+openwrt_restic_deployfile_sysupgrade: "sysupgrade.conf"
+openwrt_restic_deploypath_passwordfile: "{{ openwrt_restic_deployroot }}etc"
+openwrt_restic_deployfile_passwordfile: "resticpassword"
+openwrt_restic_deploypath_knownhosts: "{{ openwrt_restic_deployroot }}root/.ssh"
+openwrt_restic_deployfile_knownhosts: "known_hosts"
