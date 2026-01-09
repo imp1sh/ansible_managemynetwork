@@ -29,7 +29,13 @@ This collection will offer support for:
 - **OpenWrt** (main focus)
 
 
-Some roles support Debian and OpenWrt at the same time.
+Some roles support Debian and OpenWrt at the same time:
+- **ansible_packages** - Package installation for both Debian and OpenWrt
+- **ansible_users** - User management for both Debian and OpenWrt
+- **ansible_zabbixagent** - Zabbix agent installation and configuration for both Debian and OpenWrt
+- **ansible_restic** - Restic backup setup for both Debian and OpenWrt
+- **ansible_ipupdater** - IP address updater for both Debian and OpenWrt
+- **ansible_podman** - Podman container management for both Debian and OpenWrt
 
 
 
