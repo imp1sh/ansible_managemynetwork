@@ -6,11 +6,6 @@ This role manages users for hosts.
 It currently supports those Operating Systems:
 - Debian
 - OpenWrt
-- Ubuntu (best effort)
-- FreeBSD (best effort)
-- ~~Alpine~~ (probably works but no longer supported)
-- ~~Arch~~ (probably works but no longer supported)
-- ~~Manjaro~~ (probably works but no longer supported)
 
 ## OpenWrt specific
 When using this with OpenWrt it will install those packages so ansible.builtin.user can do its job:
