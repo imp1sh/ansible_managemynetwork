@@ -4,5 +4,4 @@
   ansible.builtin.service:
     name: "acme"
     state: restarted
-  when:
-    not openwrt_acme_runimagebuilder
+  when: not openwrt_acme_runimagebuilder | default(false) | bool
