@@ -64,6 +64,7 @@
   loop:
     - cacert_deployroot
     - ipupdater_deployroot
+    - openwrt_acme_deployroot
     - openwrt_babeld_deployroot
     - openwrt_batmanadv_deployroot
     - openwrt_bmx7_deployroot
