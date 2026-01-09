@@ -12,7 +12,7 @@ When using this with OpenWrt it will install those packages so ansible.builtin.u
 - shadow-useradd
 - sudo
 
-Usually in OpenWrt only the root user is being used but it's actually possible to add additional users, e.g. for backup jobs or whatever. This role is also compatible  with [ansible_openwrtimagebuilder](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_openwrtimagebuilder/README.md). It works by implementing an init script that is only run once at first boot of the device, setting the password for the user.
+Usually in OpenWrt only the root user is being used but it's actually possible to add additional users, e.g. for backup jobs or whatever. This role is also compatible  with [ansible_openwrtimagebuilder](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_openwrtimagebuilder/README.md). It works by implementing an init script that will only run once at first boot of the device, setting the password for the user.
 
 If you do `import_playbook` on the users role but you only want it to run on OpenWrt, use:
 ```yaml
