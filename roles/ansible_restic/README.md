@@ -1,9 +1,6 @@
 # imp1sh.ansible_managemynetwork.ansible_restic
 This role sets up restic backup for your ansible node. This role will try to install the ssh public key to the target backup machine (when manage_ssh: true), so ideally it is managed by ansible, too.
 
-> Since version 0.4.1 there was a major overhaul of this role. It supports defining multiple repositories now, so it can be backed up to multiple locations.
-{.is-warning}
-
 ## Sample config
 
 ```yaml
@@ -38,7 +35,7 @@ restic_backups:
 ```
 
 
-> OpenWrt doesn't create huge amounts of data. You can very well use the free service of [borgbase] (https://www.borgbase.com/). They offer superb service for backing up your data either via borg or restic, which are both one of the best tools for encrypted backup.
+> OpenWrt doesn't create huge amounts of data. You can very well use the free service of [borgbase] (https://www.borgbase.com/). They offer superb service for backing up your data either via borg or restic, which are both two of the best tools for encrypted backup.
 
 ## Fine tune your backup
 

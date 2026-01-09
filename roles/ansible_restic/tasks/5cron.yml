@@ -1,7 +1,8 @@
 ---
-- name: MMN Restic - Assemble repository string
+- name: "MMN Restic - Assemble repository string"
   include_tasks: xassemblerepo.yml
-- name: MMN Restic - Setup ansible.builtin.cron to dump installed packages once a day
+
+- name: "MMN Restic - Setup ansible.builtin.cron to dump installed packages once a day"
   ansible.builtin.cron:
     name: "dump packages"
     minute: 0
@@ -10,7 +11,8 @@
   when:
     - ansible_distribution == 'OpenWrt'
     - backupitem['state'] == 'present'
-- name: MMN Restic - Setup ansible.builtin.cron backup job with excludes
+
+- name: "MMN Restic - Setup ansible.builtin.cron backup job with excludes"
   ansible.builtin.cron:
     name: "{{ restic_cron_name }} {{ backupitem['name'] }}"
     state: "{{ backupitem['state'] }}"
@@ -19,7 +21,8 @@
     user: "root"
     job: "source {{ restic_deploypath }}/{{ restic_deployfile }}_{{ backupitem['name'] }} && /usr/bin/restic -p {{ restic_deploypath}}/{{ restic_deployfile_passwordfile }}_{{ backupitem['name'] }} -r {{ assembledrepo }} backup {{ backupitem['includes'] | map('regex_replace', '^(.*)$', '\"\\1\"') | join(' ') }} {{ backupitem['excludes'] | map('regex_replace', '^(.*)$', '-e \"\\1\"') | join(' ') }}"
   when: backupitem['excludes'] is defined
-- name: MMN Restic - Setup ansible.builtin.cron backup job without excludes
+
+- name: "MMN Restic - Setup ansible.builtin.cron backup job without excludes"
   ansible.builtin.cron:
     name: "{{ restic_cron_name }} {{ backupitem['name'] }}"
     state: "{{ backupitem['state'] }}"
@@ -28,7 +31,8 @@
     user: "root"
     job: "source {{ restic_deploypath }}/{{ restic_deployfile }}_{{ backupitem['name'] }} && /usr/bin/restic -p {{ restic_deploypath}}/{{ restic_deployfile_passwordfile }}_{{ backupitem['name'] }} -r {{ assembledrepo }} backup {{ backupitem['includes'] | map('regex_replace', '^(.*)$', '\"\\1\"') | join(' ') }}"
   when: backupitem['excludes'] is not defined
-- name: MMN Restic - setup ansible.builtin.cron prune job
+
+- name: "MMN Restic - setup ansible.builtin.cron prune job"
   ansible.builtin.cron:
     name: "{{ restic_cron_name }} {{ backupitem['name'] }} prune"
     state: "{{ backupitem['state'] }}"

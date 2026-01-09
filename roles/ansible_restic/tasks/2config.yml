@@ -1,25 +1,29 @@
-- name: MMN Restic - Assemble repository string
+- name: "MMN Restic - Assemble repository string"
   include_tasks: xassemblerepo.yml
-- name: MMN Restic - Deploy config and password file if backupitem state is present
+
+- name: "MMN Restic - Deploy config and password file if backupitem state is present"
   block:
-    - name: MMN Restic - Deploy restic configuration
+    - name: "MMN Restic - Deploy restic configuration"
       ansible.builtin.template:
         src: restic.conf.jinja2
         dest: "{{ restic_deploypath }}/{{ restic_deployfile }}_{{ backupitem['name'] }}"
         mode: 0600
-    - name: MMN Restic - Deploy restic password file
+
+    - name: "MMN Restic - Deploy restic password file"
       ansible.builtin.template:
         src: password.jinja2
         dest: "{{ restic_deploypath_passwordfile }}/{{ restic_deployfile_passwordfile }}_{{ backupitem['name'] }}"
         mode: 0600
   when: backupitem['state'] == 'present'
-- name: MMN Restic - Remove config and password file if backupitem state is absent
+
+- name: "MMN Restic - Remove config and password file if backupitem state is absent"
   block:
-    - name: MMN Restic - Delete restic configuration
+    - name: "MMN Restic - Delete restic configuration"
       ansible.builtin.file:
         path: "{{ restic_deploypath }}/{{ restic_deployfile }}_{{ backupitem['name'] }}"
         state: "absent"
-    - name: MMN Restic - Delete restic password file
+
+    - name: "MMN Restic - Delete restic password file"
       ansible.builtin.file:
         path: "{{ restic_deploypath_passwordfile }}/{{ restic_deployfile_passwordfile }}_{{ backupitem['name'] }}"
         state: "absent"

@@ -1,6 +1,7 @@
-- name: MMN Restic - Assemble repository string
+- name: "MMN Restic - Assemble repository string"
   include_tasks: xassemblerepo.yml
-- name: MMN Restic - Init repository
+
+- name: "MMN Restic - Init repository"
   ansible.builtin.shell: "source {{ restic_deploypath }}/{{ restic_deployfile }}_{{ backupitem['name'] }} && restic init -p {{ restic_deploypath_passwordfile }}/{{ restic_deployfile_passwordfile }}_{{ backupitem['name'] }} -r {{ assembledrepo }}"
   register: restic_init
   failed_when:

@@ -1,8 +1,12 @@
 ---
 # tasks file for ansible_restic
 
+- name: "MMN restic - Determine target host for delegation"
+  ansible.builtin.set_fact:
+    _restic_target_host: "{{ openwrt_imagebuilder_buildhost if (openwrt_imagebuilder_buildhost is defined and openwrt_imagebuilder_buildhost != inventory_hostname) else inventory_hostname }}"
+
 # Packages installation
-- name: MMN Restic - Setting OS variables 
+- name: "MMN Restic - Setting OS variables"
   ansible.builtin.include_vars: "{{lookup('ansible.builtin.first_found', params)}}"
   vars:
     params:
@@ -12,32 +16,38 @@
         - "default.yml"
       paths:
         - "vars"
-- name: MMN restic - Set var for packages role
+
+- name: "MMN restic - Set var for packages role"
   ansible.builtin.set_fact:
     packages_installrole: "{{ restic_packages }}"
-- name: MMN restic - Call packages role
+
+- name: "MMN restic - Call packages role"
   ansible.builtin.include_role:
     name: imp1sh.ansible_managemynetwork.ansible_packages
-  when: 
-    - not restic_runimagebuilder | default(false)
+  when: not restic_runimagebuilder | default(false)
 
-- name: MMN restic - Make sure deploypath config exists
+- name: "MMN restic - Make sure deploypath config exists"
   ansible.builtin.file:
     path: "{{ restic_deploypath }}"
     state: directory
+  delegate_to: "{{ _restic_target_host }}"
 
-- name: MMN restic - sysupgrade integration for OpenWrt
-  include_tasks: 1sysupgrade.yml
+- name: "MMN restic - sysupgrade integration for OpenWrt"
   when: ansible_distribution == 'OpenWrt'
+  block:
+    - include_tasks: 1sysupgrade.yml
+  delegate_to: "{{ _restic_target_host }}"
 
-- name: MMN restic - Deploy config files
-  include_tasks: 2config.yml
-  loop: "{{ restic_backups }}"
-  loop_control:
-    loop_var: backupitem 
+- name: "MMN restic - Deploy config files"
   when: restic_backups is defined
+  block:
+    - include_tasks: 2config.yml
+      loop: "{{ restic_backups }}"
+      loop_control:
+        loop_var: backupitem
+  delegate_to: "{{ _restic_target_host }}"
 
-- name: MMN restic - SSH setup
+- name: "MMN restic - SSH setup"
   include_tasks: 3ssh.yml
   loop: "{{ restic_backups }}"
   loop_control:
@@ -46,7 +56,7 @@
     - not restic_runimagebuilder | default(false)
     - restic_backups is defined
 
-- name: MMN restic - Init repository
+- name: "MMN restic - Init repository"
   include_tasks: 4init.yml
   loop: "{{ restic_backups }}"
   loop_control:
@@ -55,7 +65,7 @@
     - not restic_runimagebuilder | default(false)
     - restic_backups is defined
 
-- name: MMN restic - Setup cron jobs
+- name: "MMN restic - Setup cron jobs"
   include_tasks: 5cron.yml
   loop: "{{ restic_backups }}"
   loop_control:
@@ -64,7 +74,7 @@
     - not restic_runimagebuilder | default(false)
     - restic_backups is defined
 
-- name: MMN restic - Initialize packages_installimagebuilder OpenWrt
+- name: "MMN restic - Initialize packages_installimagebuilder OpenWrt"
   ansible.builtin.set_fact:
     packages_installimagebuilder: []
   when:
@@ -72,7 +82,7 @@
     - restic_runimagebuilder | default(false)
     - ansible_distribution == 'OpenWrt'
 
-- name: MMN restic - Merge role packages into packages_installimagebuilder OpenWrt
+- name: "MMN restic - Merge role packages into packages_installimagebuilder OpenWrt"
   ansible.builtin.set_fact:
     packages_installimagebuilder: "{{ packages_installimagebuilder + packages_installrole }}"
   when:
