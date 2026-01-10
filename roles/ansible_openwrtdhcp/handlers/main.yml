@@ -4,9 +4,9 @@
   ansible.builtin.service:
     name: dnsmasq
     state: restarted
-  when: not openwrt_dhcp_runimagebuilder | default(false)
+  when: not openwrt_dhcp_runimagebuilder | default(false) | bool
 - name: restart odhcpd
   ansible.builtin.service:
     name: odhcpd
     state: restarted
-  when: not openwrt_dhcp_runimagebuilder | default(false)
+  when: not openwrt_dhcp_runimagebuilder | default(false) | bool

@@ -1,17 +1,25 @@
 ---
 # tasks file for ansible_openwrtdhcp
-- name: make sure deploypath is present
+- name: "MMN dhcp - Determine target host for delegation"
+  ansible.builtin.set_fact:
+    _dhcp_target_host: "{{ openwrt_imagebuilder_buildhost if (openwrt_imagebuilder_buildhost is defined and openwrt_imagebuilder_buildhost != inventory_hostname) else inventory_hostname }}"
+
+- name: "MMN dhcp - Make sure deploypath is present"
   ansible.builtin.file:
     path: "{{ openwrt_dhcp_deploypath }}"
     state: directory
-- name: merge dhcp group pools
+  delegate_to: "{{ _dhcp_target_host }}"
+
+- name: "MMN dhcp - Merge dhcp group pools"
   include_tasks: merge.yml
   when: openwrt_dhcp_poolsgroup is defined
-- name: Install dhcp config
+
+- name: "MMN dhcp - Install dhcp config"
   ansible.builtin.template:
     src: dhcp.jinja2
     dest: "{{ openwrt_dhcp_deployroot }}{{ openwrt_dhcp_deploypath }}/{{ openwrt_dhcp_deployfile }}"
     mode: 0600
+  delegate_to: "{{ _dhcp_target_host }}"
   notify:
     - restart dnsmasq
     - restart odhcpd

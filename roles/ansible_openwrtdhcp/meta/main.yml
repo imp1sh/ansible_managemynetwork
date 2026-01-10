@@ -9,9 +9,8 @@ galaxy_info:
   platforms:
     - name: OpenWRT
       versions:
-        - "21.02"
-        - "22.03"
         - "23.05"
         - "24.10"
-  galaxy_tags: [openwrt, lede, dnsmasq, dhcp, radvd, dhcp, dhcpv6, resolver]
+        - "25.12"
+  galaxy_tags: [openwrt, dnsmasq, dhcp, radvd, dhcp, dhcpv6, resolver]
 dependencies: []
