@@ -1,12 +1,15 @@
 ---
 - name: Set kernel parameters for build
-  ansible.builtin.lineinfile:
-    path: "{{ openwrt_imagebuilder_builddir }}/{{ openwrt_imagebuilder_extractedfolder }}/.config"
-    regexp: "^{{ item.name }}="
-    line: "{{ item.name }}={{ item.value }}"
-  loop: "{{ openwrt_imagebuilder_kernelvars }}"
   when: openwrt_imagebuilder_kernelvars is defined
   delegate_to: "{{ openwrt_imagebuilder_buildhost }}"
+  remote_user: "{{ openwrt_imagebuilder_buildhost_user | default(omit) }}"
+  block:
+    - name: Set kernel parameters for build
+      ansible.builtin.lineinfile:
+        path: "{{ openwrt_imagebuilder_builddir }}/{{ openwrt_imagebuilder_extractedfolder }}/.config"
+        regexp: "^{{ item.name }}="
+        line: "{{ item.name }}={{ item.value }}"
+      loop: "{{ openwrt_imagebuilder_kernelvars }}"
 
 - name: List packages that will be in the image
   ansible.builtin.debug:
@@ -54,16 +57,22 @@
     msg: "Building with the following command: {{ openwrt_imagebuilder_make_image_command }}"
 
 - name: Create image
-  ansible.builtin.command:
-    cmd: "{{ openwrt_imagebuilder_make_image_command }}"
-    chdir: "{{ openwrt_imagebuilder_make_path }}"
-  changed_when: true
   delegate_to: "{{ openwrt_imagebuilder_buildhost }}"
+  remote_user: "{{ openwrt_imagebuilder_buildhost_user | default(omit) }}"
+  block:
+    - name: Create image
+      ansible.builtin.command:
+        cmd: "{{ openwrt_imagebuilder_make_image_command }}"
+        chdir: "{{ openwrt_imagebuilder_make_path }}"
+      changed_when: true
 
 - name: Compress and remove build directory
-  community.general.archive:
-    path: "{{ openwrt_imagebuilder_builddir }}/{{ openwrt_imagebuilder_extractedfolder }}/bin"
-    dest: "{{ openwrt_imagebuilder_outputdir }}/{{ inventory_hostname }}.tar.gz"
-    remove: true
-    mode: '0644'
   delegate_to: "{{ openwrt_imagebuilder_buildhost }}"
+  remote_user: "{{ openwrt_imagebuilder_buildhost_user | default(omit) }}"
+  block:
+    - name: Compress and remove build directory
+      community.general.archive:
+        path: "{{ openwrt_imagebuilder_builddir }}/{{ openwrt_imagebuilder_extractedfolder }}/bin"
+        dest: "{{ openwrt_imagebuilder_outputdir }}/{{ inventory_hostname }}.tar.gz"
+        remove: true
+        mode: '0644'

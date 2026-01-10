@@ -104,6 +104,7 @@ If you make use of the firewall role in which you might want to merge zones, pla
 ## Variables
 
 * `openwrt_imagebuilder_buildhost` - **Required.** Hostname of the host where imagebuilder tasks will be executed. This host must be accessible via Ansible and have the necessary tools installed. Defaults to `{{ inventory_hostname }}` (the playbook target host).
+* `openwrt_imagebuilder_buildhost_user` - Optional. User to connect as when delegating to the buildhost. If not set, uses the connection user from inventory settings.
 * `openwrt_imagebuilder_builddir` - The directory where the imagebuilder will be built. Default is `/tmp/openwrt_imagebuilder`.
 * `openwrt_imagebuilder_outputdir` - The directory where the images will be put. Default is `/tmp/openwrt_imagebuilder_images`. 
   * The images will be named in format `hostname--output-of-imagebuilder.bin`
