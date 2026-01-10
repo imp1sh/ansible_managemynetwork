@@ -1,10 +1,15 @@
 ---
 # tasks file for ansible_openwrtnetwork
+- name: "MMN network - Determine target host for delegation"
+  ansible.builtin.set_fact:
+    _network_target_host: "{{ openwrt_imagebuilder_buildhost if (openwrt_imagebuilder_buildhost is defined and openwrt_imagebuilder_buildhost != inventory_hostname) else inventory_hostname }}"
+
 - name: merge interfaces from group and host definitions
   include_tasks: merge.yml
 
 - name: iproute tasks
   when: openwrt_network_routing_tables is defined
+  delegate_to: "{{ _network_target_host }}"
   block:
     - name: Make sure iproute2 deploypath exists
       ansible.builtin.file:
@@ -16,6 +21,7 @@
         dest: "{{ openwrt_network_iproute2_deploypath }}/{{ openwrt_network_iproute2_deployfile }}"
         mode: 0600
 
+
 # Wireguard
 - name: make sure wireguard management dir exists
   ansible.builtin.file:
@@ -25,17 +31,22 @@
   when: openwrt_network_wg_keypath is defined
   delegate_to: 127.0.0.1
   become: false
+
 - name: run wg server tasks
   include_tasks: wg_server.yml
   loop: "{{ openwrt_network_interfaces | dict2items }}"
+
 - name: run wg peers tasks
   include_tasks: wg_client.yml
   loop: "{{ openwrt_network_wireguardpeers | dict2items }}"
   when: openwrt_network_wireguardpeers is defined
+
 - name: Make sure network deploypath exists
   ansible.builtin.file:
     path: "{{ openwrt_network_deploypath }}"
     state: directory
+  delegate_to: "{{ _network_target_host }}"
+
 
 # HA Tasks
 - name: Run Tasks for HA setup
@@ -58,6 +69,7 @@
     - openwrt_network_devicesgroup is undefined
     - openwrt_network_deviceshost is undefined
 
+
 # Main Network Deployment Tasks
 - name: Deploy Network configuration
   ansible.builtin.template:
@@ -65,6 +77,7 @@
     dest: "{{ openwrt_network_deploypath }}/{{ openwrt_network_deployfile }}"
     backup: "{{ openwrt_network_backupconfig | default(false) }}"
     mode: 0600
+  delegate_to: "{{ _network_target_host }}"
   when: 
     - openwrt_network_interfacesdeploybool.user_input is undefined or openwrt_network_interfacesdeploybool.user_input == 'yes'
     - openwrt_network_devicesdeploybool.user_input is undefined or openwrt_network_devicesdeploybool.user_input == 'yes'
