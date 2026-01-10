@@ -1,5 +1,6 @@
 ---
 # vars file for ansible_openwrtimagebuilder
+openwrt_imagebuilder_buildhost: "localhost"
 openwrt_imagebuilder_builddir: "/tmp/openwrt_imagebuilder"
 openwrt_imagebuilder_outputdir: "/tmp/openwrt_imagebuilder_images"
 openwrt_imagebuilder_downloadurl: "https://downloads.openwrt.org/releases/25.12.0-rc1/targets/x86/64/openwrt-imagebuilder-25.12.0-rc1-x86-64.Linux-x86_64.tar.zst"

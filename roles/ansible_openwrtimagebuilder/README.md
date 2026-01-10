@@ -5,7 +5,7 @@ In certain scenarios it might be interesting to automate the [OpenWrt Imagebuild
 - adjust the partition sizes
 - integrate your packages
 
-The ansible host you plan to build your images on you need to prepare to [this documentation](https://openwrt.org/docs/guide-user/additional-software/imagebuilder) accordingly.
+The role uses Ansible's `delegate_to` feature to run imagebuilder tasks on a configurable buildhost. By default, tasks run on `localhost` (the Ansible control node), but you can configure a separate dedicated build machine. The buildhost must be accessible via Ansible and prepared according to [this documentation](https://openwrt.org/docs/guide-user/additional-software/imagebuilder).
 
 It is an ideal method to automate your build process and to automate upgrading your OpenWrt devices with a new firmware release. This makes the whole process hassle free, since you don't need to install packages afterwards or resize your partition manually.
 
@@ -103,10 +103,10 @@ If you make use of the firewall role in which you might want to merge zones, pla
 
 ## Variables
 
-* `openwrt_imagebuilder_buildhost` - **Required.** Hostname of the host where imagebuilder tasks will be executed. This host must be accessible via Ansible and have the necessary tools installed. Defaults to `{{ inventory_hostname }}` (the playbook target host).
-* `openwrt_imagebuilder_buildhost_user` - Optional. User to connect as when delegating to the buildhost. If not set, uses the connection user from inventory settings.
-* `openwrt_imagebuilder_builddir` - The directory where the imagebuilder will be built. Default is `/tmp/openwrt_imagebuilder`.
-* `openwrt_imagebuilder_outputdir` - The directory where the images will be put. Default is `/tmp/openwrt_imagebuilder_images`. 
+* `openwrt_imagebuilder_buildhost` - Hostname of the host where imagebuilder tasks will be executed. This host must be accessible via Ansible and have the necessary tools installed. Defaults to `localhost` (the Ansible control node). All imagebuilder tasks are delegated to this host using Ansible's `delegate_to` feature.
+* `openwrt_imagebuilder_buildhost_user` - Optional. User to connect as when delegating to the buildhost. If not set, uses the connection user from inventory settings. This allows you to specify a different user for SSH connections to the buildhost than what's configured in your inventory.
+* `openwrt_imagebuilder_builddir` - The directory on the buildhost where the imagebuilder will be built. Default is `/tmp/openwrt_imagebuilder`. This path must be writable by the user connecting to the buildhost.
+* `openwrt_imagebuilder_outputdir` - The directory on the buildhost where the images will be put. Default is `/tmp/openwrt_imagebuilder_images`. This path must be writable by the user connecting to the buildhost. 
   * The images will be named in format `hostname--output-of-imagebuilder.bin`
   * Additionally all output directory will be compressed in a tar.gz file and named `hostname.tar.gz`
 * `openwrt_imagebuilder_downloadurl` - The URL to the imagebuilder. Default is the x86 imagebuilder. [Instruction how to find the correct URL](https://openwrt.org/docs/guide-user/additional-software/imagebuilder#obtaining_the_image_builder)
