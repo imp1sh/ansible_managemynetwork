@@ -1,27 +1,38 @@
 ---
 # tasks file for ansible_openwrtfirewall
+- name: "MMN firewall - Determine target host for delegation"
+  ansible.builtin.set_fact:
+    _firewall_target_host: "{{ openwrt_imagebuilder_buildhost if (openwrt_imagebuilder_buildhost is defined and openwrt_imagebuilder_buildhost != inventory_hostname) else inventory_hostname }}"
+
 - name: MMN openwrtfirewall - Make sure deploypath config exists
   ansible.builtin.file:
     path: "{{ openwrt_firewall_deploypath }}"
     state: directory
+  delegate_to: "{{ _firewall_target_host }}"
+
 - name: MMN openwrtfirewall - Declare empty zone array
   ansible.builtin.set_fact:
     openwrt_firewall_zonesactive: []
+
 - name: MMN openwrtfirewall - Run checks on variables
   import_tasks: 1checks.yml
+
 - name: MMN openwrtfirewall - Merge rules, zones and forwardings
   import_tasks: 2merge.yml
+
 - name: MMN openwrtfirewall - Make a list of all active zones
   ansible.builtin.set_fact:
     openwrt_firewall_zonesactive: "{{ openwrt_firewall_zonesactive + [ item.key ] }}"
   when:
     - ( item.value.disabled is not defined ) or ( item.value.disabled is defined and not item.value.disabled )
   loop: "{{ openwrt_firewall_zones | dict2items }}"
+
 - name: MMN openwrtfirewall - Deploy firewall config
   ansible.builtin.template:
     src: "firewall.jinja2"
     dest: "{{ openwrt_firewall_deploypath }}/{{ openwrt_firewall_deployfile }}"
     backup: "{{ openwrt_firewall_backupconfig | default(false) }}"
     mode: 0600
+  delegate_to: "{{ _firewall_target_host }}"
   when: openwrt_firewall_rulesdeploybool.user_input is undefined or openwrt_firewall_rulesdeploybool.user_input == 'yes'
   notify: restart firewall
