@@ -1,5 +1,6 @@
 ---
 - name: "MMN Podman - procd not absent"
+  delegate_to: "{{ _podman_target_host }}"
   when: podman_container.state != "absent"
   block:
     - name: "MMN Podman - Ensure path procd init script"
@@ -20,6 +21,7 @@
         - not podman_runimagebuilder | default(false) | bool
     
 - name: "MMN Podman - procd absent"
+  delegate_to: "{{ _podman_target_host }}"
   when: podman_container.state == "absent"
   block:
     - name: "MMN Podman - Ensure procd init script container {{ podman_container.name }} absent"

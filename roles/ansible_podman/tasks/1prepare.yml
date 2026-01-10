@@ -26,6 +26,7 @@
 
 # Secondly OpenWrt specific tasks
 - name: "MMN Podman - Prepare OpenWrt tasks"
+  delegate_to: "{{ _podman_target_host }}"
   when: ansible_distribution == 'OpenWrt'
   block:
     - name: "MMN Podman - Generate Podman-style created timestamp (UTC, ns)"
@@ -74,6 +75,7 @@
 
 # Thirdly all tasks for both OpenWrt and non-OpenWrt
 - name: "MMN Podman - Select subset of containers, because you asked for it"
+  delegate_to: "{{ _podman_target_host }}"
   ansible.builtin.set_fact:
     podman_containers: "{{ podman_containers | selectattr('name', 'in', podman_limited_containers) | list }}"
   when:
@@ -81,6 +83,7 @@
     - not podman_runimagebuilder | default(false) | bool
 
 - name: "MMN podman - Ensure podman container directories"
+  delegate_to: "{{ _podman_target_host }}"
   ansible.builtin.file:
     path: "{{ item.1 | split(':') | first | ansible.builtin.dirname }}"
     state: directory

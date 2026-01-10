@@ -9,6 +9,7 @@
     - ansible_distribution != "OpenWrt"
 
 - name: "MMN Podman - Special OpenWrt adjustments"
+  delegate_to: "{{ _podman_target_host }}"
   when: ansible_distribution == "OpenWrt"
   block:
     - name: "MMN Podman - Ensure path hotplug iface script"

@@ -1,5 +1,9 @@
 ---
 # tasks file for ansible_podman
+- name: "MMN podman - Determine target host for delegation"
+  ansible.builtin.set_fact:
+    _podman_target_host: "{{ openwrt_imagebuilder_buildhost if (openwrt_imagebuilder_buildhost is defined and openwrt_imagebuilder_buildhost != inventory_hostname) else inventory_hostname }}"
+
 - name: "MMN Podman - Prepare and install packagessystemd tasks"
   ansible.builtin.include_tasks:
     file: 0install.yml
