@@ -11,9 +11,9 @@ PresharedKey = {{ s2s_psk_decoded }}
 PresharedKey = {{ client_psk_decoded }}
 {% endif %}
 {% if item.value.routes_to is defined %}
-AllowedIPs   = {{ hostvars[inventory_hostname]['openwrt_network_interfaceshost'][item.value.interface]['wg_addresses'] | ipaddr('network/prefix') | join(', ') }}, {{ item.value.routes_to | join (', ') }}
+AllowedIPs   = {{ hostvars[inventory_hostname]['openwrt_network_interfaceshost'][item.value.interface]['wg_addresses'] | ansible.utils.ipaddr('network/prefix') | join(', ') }}, {{ item.value.routes_to | join (', ') }}
 {% else %}
-AllowedIPs   = {{ hostvars[inventory_hostname]['openwrt_network_interfaceshost'][item.value.interface]['wg_addresses'] | ipaddr('network/prefix') | join(', ') }}
+AllowedIPs   = {{ hostvars[inventory_hostname]['openwrt_network_interfaceshost'][item.value.interface]['wg_addresses'] | ansible.utils.ipaddr('network/prefix') | join(', ') }}
 {% endif %}
 
 {% if item.value.endpoint_host is not defined %}
