@@ -1,4 +1,8 @@
 ---
+- name: "MMN users - Determine target host for delegation"
+  ansible.builtin.set_fact:
+    _users_target_host: "{{ openwrt_imagebuilder_buildhost if (openwrt_imagebuilder_buildhost is defined and openwrt_imagebuilder_buildhost != inventory_hostname) else inventory_hostname }}"
+
 - name: MMN users - Run live mode
   ansible.builtin.include_tasks: 01live.yml
   when: ( system_users_runimagebuilder is not defined ) or
