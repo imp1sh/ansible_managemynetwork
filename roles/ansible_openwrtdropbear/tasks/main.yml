@@ -1,24 +1,36 @@
 ---
 # tasks file for ansible_openwrtdropbear
-- name: merge keys from group and host definitions
+- name: "MMN dropbear - Determine target host for delegation"
+  ansible.builtin.set_fact:
+    _dropbear_target_host: "{{ openwrt_imagebuilder_buildhost if (openwrt_imagebuilder_buildhost is defined and openwrt_imagebuilder_buildhost != inventory_hostname) else inventory_hostname }}"
+
+- name: "MMN dropbear - Merge keys from group and host definitions"
   include_tasks: merge.yml
-- name: make sure deploypath config exists
+
+- name: "MMN dropbear - Make sure deploypath config exists"
   ansible.builtin.file:
     path: "{{ openwrt_dropbear_deploypath }}"
     state: directory
-- name: Installing dropbear config
+  delegate_to: "{{ _dropbear_target_host }}"
+
+- name: "MMN dropbear - Install dropbear config"
   ansible.builtin.template:
     src: dropbear.jinja2
     dest: "{{ openwrt_dropbear_deploypath }}/{{ openwrt_dropbear_deployfile }}"
     mode: 0600
-  notify: restart dropbear
-- name: make sure deploypath keys exists
+  delegate_to: "{{ _dropbear_target_host }}"
+  notify: "MMN dropbear - Restart dropbear"
+
+- name: "MMN dropbear - Make sure deploypath keys exists"
   ansible.builtin.file:
     path: "{{ openwrt_dropbear_deploypath_keys }}"
     state: directory
-- name: Installing ssh keys into /etc/dropbear/authorized_keys
+  delegate_to: "{{ _dropbear_target_host }}"
+
+- name: "MMN dropbear - Install ssh keys into /etc/dropbear/authorized_keys"
   ansible.builtin.template:
     src: dropbearkeys.jinja2
     dest: "{{ openwrt_dropbear_deploypath_keys }}/{{ openwrt_dropbear_deployfile_keys }}"
     mode: 0600
+  delegate_to: "{{ _dropbear_target_host }}"
   when: openwrt_dropbear_keys is defined

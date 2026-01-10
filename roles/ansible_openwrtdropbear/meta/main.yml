@@ -10,9 +10,8 @@ galaxy_info:
   platforms:
     - name: OpenWRT
       versions:
-        - "21.02"
-        - "22.03"
         - "23.05"
         - "24.10"
+        - "25.12"
   galaxy_tags: [openwrt, lede, dropbear, ssh]
 dependencies: []

@@ -1,8 +1,11 @@
 # Merge keys
-- name: merge group keys
+- name: "MMN dropbear - Merge group keys"
   ansible.builtin.set_fact:
     openwrt_dropbear_keysmergedgroup: "{{ openwrt_dropbear_keysgroup.keys() | intersect(group_names) | map('extract', openwrt_dropbear_keysgroup) | flatten }}"
   when: openwrt_dropbear_keysgroup is defined
-- name: combine all keys into openwrt_dropbear_keys
+  delegate_to: "{{ _dropbear_target_host }}"
+
+- name: "MMN dropbear - Combine all keys into openwrt_dropbear_keys"
   ansible.builtin.set_fact:
     openwrt_dropbear_keys: "{{ openwrt_dropbear_keyshost | default([]) + openwrt_dropbear_keysmergedgroup | default([]) }}"
+  delegate_to: "{{ _dropbear_target_host }}"
