@@ -2,8 +2,8 @@
 # Search for explicitly set cert/key files in common paths
 - name: MMN openwrtuhttpd - Check if cert/key vars are explicitly set
   ansible.builtin.set_fact:
-    _cert_explicitly_set: "{{ openwrt_uhttpd_main_cert is defined and openwrt_uhttpd_main_cert != '/etc/uhttpd.crt' }}"
-    _key_explicitly_set: "{{ openwrt_uhttpd_main_key is defined and openwrt_uhttpd_main_key != '/etc/uhttpd.key' }}"
+    _cert_explicitly_set: "{{ openwrt_uhttpd_main_cert is defined }}"
+    _key_explicitly_set: "{{ openwrt_uhttpd_main_key is defined }}"
 
 - name: MMN openwrtuhttpd - Extract filename from provided cert path
   ansible.builtin.set_fact:

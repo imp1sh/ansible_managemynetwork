@@ -1,22 +1,25 @@
 ---
 # tasks file for ansible_openwrtuhttpd
-# Main entry point - orchestrates all sub-tasks
+
+- name: "MMN uhttpd - Determine target host for delegation"
+  ansible.builtin.set_fact:
+    _uhttpd_target_host: "{{ openwrt_imagebuilder_buildhost if (openwrt_imagebuilder_buildhost is defined and openwrt_imagebuilder_buildhost != inventory_hostname) else inventory_hostname }}"
 
 # Setup tasks for ansible_openwrtuhttpd
 - name: MMN openwrtuhttpd - Make sure deploypath is present
   ansible.builtin.file:
     path: "{{ openwrt_uhttpd_deploypath }}"
     state: directory
-
+  delegate_to: "{{ _uhttpd_target_host }}"
 
 - name: MMN openwrtuhttpd - Search for provided certificates
-  ansible.builtin.include_tasks: 2search_provided_certs.yml
+  ansible.builtin.include_tasks: 02search_provided_certs.yml
   when: not openwrt_uhttpd_runimagebuilder | default(false)
 
 - name: MMN openwrtuhttpd - Search for default certificates
-  ansible.builtin.include_tasks: 3search_default_certs.yml
+  ansible.builtin.include_tasks: 03search_default_certs.yml
   when: not openwrt_uhttpd_runimagebuilder | default(false)
 
 - name: MMN openwrtuhttpd - Deploy configuration
-  ansible.builtin.include_tasks: 4deploy_config.yml
+  ansible.builtin.include_tasks: 04deploy_config.yml
   when: not openwrt_uhttpd_runimagebuilder | default(false)
