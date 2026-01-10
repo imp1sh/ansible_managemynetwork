@@ -1,16 +1,24 @@
 ---
 # tasks file for ansible_openwrtwireless
+- name: "MMN wireless - Determine target host for delegation"
+  ansible.builtin.set_fact:
+    _wireless_target_host: "{{ openwrt_imagebuilder_buildhost if (openwrt_imagebuilder_buildhost is defined and openwrt_imagebuilder_buildhost != inventory_hostname) else inventory_hostname }}"
+
 - name: MMN openwrtwireless - Make sure wireless deploypath exists
   ansible.builtin.file:
     path: "{{ openwrt_wireless_deploypath }}"
     state: directory
+  delegate_to: "{{ _wireless_target_host }}"
+
 - name: MMN openwrtwireless - Merge devices and interfaces
   import_tasks: 1merge.yml
+
 - name: MMN openwrtwireless - deploy wireless config
   ansible.builtin.template:
     src: "wireless.jinja2"
     dest: "{{ openwrt_wireless_deploypath }}/{{ openwrt_wireless_deployfile }}"
     backup: "{{ openwrt_wireless_backupconfig | default(false)}}"
     mode: "0600"
+  delegate_to: "{{ _wireless_target_host }}"
   when: openwrt_wifi_devices is defined
   notify: restart wireless
