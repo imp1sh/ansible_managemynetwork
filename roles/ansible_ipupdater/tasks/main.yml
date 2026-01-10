@@ -3,6 +3,10 @@
 - name: "MMN ipupdater - include OS vars"
   include_vars: "{{ ansible_distribution }}.yml"
 
+- name: "MMN ipupdater - Determine target host for delegation"
+  ansible.builtin.set_fact:
+    _ipupdater_target_host: "{{ openwrt_imagebuilder_buildhost if (openwrt_imagebuilder_buildhost is defined and openwrt_imagebuilder_buildhost != inventory_hostname) else inventory_hostname }}"
+
 - name: "MMN ipupdater - Add git as install candidate"
   set_fact:
     packages_installrole: "{{ ipupdater_packages }}"
@@ -18,16 +22,19 @@
     dest: "{{ ipupdater_deploypath }}"
     version: master
     update: yes
+  delegate_to: "{{ _ipupdater_target_host }}"
 
 - name: "MMN ipupdater - Ensure ipupdater etc dir"
   ansible.builtin.file:
     path: "{{ ipupdater_deploypath_hetzner_apitoken | dirname }}"
     state: directory
+  delegate_to: "{{ _ipupdater_target_host }}"
 
 - name: "MMN ipupdater - Deploy hetzner cloud api token"
   ansible.builtin.template:
     src: hetzner_cloud.sh.j2
     dest: "{{ ipupdater_deploypath_hetzner_apitoken }}"
+  delegate_to: "{{ _ipupdater_target_host }}"
   when: ipupdater_apitoken_hetzner is defined
 
 # OWN IP
@@ -36,6 +43,7 @@
   ansible.builtin.template:
     src: "ownip_vars.sh.j2"
     dest: "{{ ipupdater_deploypath_ownipvars }}"
+  delegate_to: "{{ _ipupdater_target_host }}"
   when: ipupdater_ownip_enable | default(false)
 
 # STATIC FQDNS
@@ -44,6 +52,7 @@
   ansible.builtin.template:
     src: "staticfqdns_vars.sh.j2"
     dest: "{{ ipupdater_deploypath_staticfqdnsvars }}"
+  delegate_to: "{{ _ipupdater_target_host }}"
   when:
     - ipupdater_staticfqdns_enable | default(false)
     - ipupdater_staticfqdns_interfacename is defined
@@ -53,6 +62,7 @@
   ansible.builtin.template:
     src: staticfqdns.j2
     dest: "{{ ipupdater_deploypath_staticfqdns }}"
+  delegate_to: "{{ _ipupdater_target_host }}"
   when:
     - ipupdater_staticfqdns_enable | default(false)
     - ipupdater_staticfqdns is defined
@@ -63,6 +73,7 @@
   ansible.builtin.template:
     src: "neighbors_vars.sh.j2"
     dest: "{{ ipupdater_deploypath_neighborsvars }}"
+  delegate_to: "{{ _ipupdater_target_host }}"
   when:
     - ipupdater_neighbors_enable | default(false)
     - ipupdater_neighbors_domainname is defined
@@ -71,6 +82,7 @@
   ansible.builtin.template:
     src: neighbors_staticmacs.j2
     dest: "{{ ipupdater_deploypath_neighbors_staticmacs }}"
+  delegate_to: "{{ _ipupdater_target_host }}"
   when:
     - ipupdater_neighbors_enable | default(false)
     - ipupdater_neighbors_staticmacs is defined
