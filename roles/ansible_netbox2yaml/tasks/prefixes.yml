@@ -7,24 +7,35 @@
 - name: "Fetching All IPv4 Prefixes"
   ansible.builtin.set_fact:
     prefixes4: "{{ query('netbox.netbox.nb_lookup', 'prefixes', api_filter='family=4', api_endpoint=NETBOX_URL, token=NETBOX_TOKEN) }}"
+
 - name: "Fetching All IPv6 Prefixes"
-  set_fact:
+  ansible.builtin.set_fact:
     prefixes6: "{{ query('netbox.netbox.nb_lookup', 'prefixes', api_filter='family=6', api_endpoint=NETBOX_URL, token=NETBOX_TOKEN) }}"
+
 # Creating Vars
 - name: "Writing found IPv4 prefixes into nb_prefixes"
   ansible.builtin.set_fact:
     nb_prefixes: "{{ nb_prefixes | default({}) | combine( { item.name: { 4: { 'prefix': item.prefix }}}, recursive=true  ) }}"
   loop: "{{ prefixes4 | community.general.json_query('[*].value.{name: custom_fields.ansible_identifier, prefix: prefix}') }}"
+
 - name: "Writing found IPv6 ULA prefixes into nb_prefixes"
   ansible.builtin.set_fact:
     nb_prefixes: "{{ nb_prefixes | default({}) | combine( {item.name: { 6: { 'prefix': { 'ula': item.prefix }}}}, recursive=true ) }}"
   loop: "{{ prefixes6 | community.general.json_query('[*].value.{name: custom_fields.ansible_identifier, prefix: prefix}') }}"
-  when: item.prefix | ansible.utils.ipv6('address') is ansible.utils.in_network( 'fc00::/7' )
+  when: 
+    - item.name is not none
+    - item.prefix is defined
+    - (item.prefix | upper)[:2] == 'FC' or (item.prefix | upper)[:2] == 'FD'
+
 - name: "Writing found IPv6 GUA prefixes into nb_prefixes"
   ansible.builtin.set_fact:
     nb_prefixes: "{{ nb_prefixes | default({}) | combine( {item.name: { 6: { 'prefix': { 'gua': item.prefix }}}}, recursive=true ) }}"
   loop: "{{ prefixes6 | community.general.json_query('[*].value.{name: custom_fields.ansible_identifier, prefix: prefix}') }}"
-  when: item.prefix | ansible.utils.ipv6('address') is ansible.utils.in_network( '2000::/3' )
+  when: 
+    - item.name is not none
+    - item.prefix is defined
+    - item.prefix[0] == '2' or item.prefix[0] == '3'
+
 # Write to file
 - name: write prefixes to file
   ansible.builtin.template:
