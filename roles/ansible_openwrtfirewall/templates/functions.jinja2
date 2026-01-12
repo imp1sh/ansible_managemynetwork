@@ -107,6 +107,9 @@ config zone
 {% if value['masq'] is defined %}
 	option masq "{{ value['masq'] }}"
 {% endif %}
+{% if value['masq6'] is defined %}
+	option masq6 "{{ value['masq6'] }}"
+{% endif %}
 {% if value['mtu_fix'] is defined %}
 	option mtu_fix "{{ value['mtu_fix'] }}"
 {% endif %}
