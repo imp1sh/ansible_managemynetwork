@@ -82,7 +82,7 @@ config system 'system'
 	option zram_comp_algo "{{ openwrt_system_system_zram_comp_algo }}"
 {% endif %}
 {% if openwrt_system_zram_size_mb is defined %}
-	option zram_size_mb "{{ openwrt_sytem_zram_size_mb }}"
+	option zram_size_mb "{{ openwrt_system_zram_size_mb }}"
 {% endif %}
 
 {% if openwrt_system_ntp_server is defined %}
