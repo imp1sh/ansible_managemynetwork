@@ -1,7 +1,7 @@
 # Configuration distributed by Ansible
 config bmx7 "general"
 	option runtimeDir "/var/run/bmx7"
-        option trustedNodesDir "/etc/bmx7/trustedNodes"
+	option trustedNodesDir "/etc/bmx7/trustedNodes"
 
 # Plugins
 {% if openwrt_bmx7_plugin_sms_enabled is defined and openwrt_bmx7_plugin_sms_enabled %}
