@@ -60,7 +60,7 @@ config tinyproxy
 {% endif %}
 {% if openwrt_tinyproxy_logfile is defined %}
 	option LogFile "{{ openwrt_tinyproxy_logfile }}"
-{% elif openwrt_tinyproxy_Syslog is defined %}
+{% elif openwrt_tinyproxy_syslog is defined %}
 	option Syslog "{{ openwrt_tinyproxy_syslog }}"
 {% else %}
 	option LogFile "/var/log/tinyproxy.log"

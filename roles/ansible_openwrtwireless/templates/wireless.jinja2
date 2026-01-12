@@ -262,7 +262,7 @@ config wifi-iface "{{ key }}"
 {% endif %}
 {% if value.hostapd_bss_options is defined %}
 {% for hostapd_bss_option in value.hostapd_bss_options %}
-	list "{{ hostapd_bss_option }}"
+	list hostapd_bss_options "{{ hostapd_bss_option }}"
 {% endfor %}
 {% endif %}
 {% if value.server is defined %}
@@ -363,7 +363,7 @@ config wifi-iface "{{ key }}"
 {% endif %}
 {% if value.wps_config is defined %}
 {% for wps_method in value.wps_config %}
-	list "{{ wps_method }}"
+	list wps_config "{{ wps_method }}"
 {% endfor %}
 {% endif %}
 {% if value.wps_device_name is defined %}

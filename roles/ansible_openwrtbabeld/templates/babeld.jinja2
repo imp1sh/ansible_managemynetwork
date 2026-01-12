@@ -1,13 +1,13 @@
 config general
-        option ipv6_subtrees 'true'
-        option ubus_bindings 'true'
-        option random_id 'true'
-        option local_port '33123'
+	option ipv6_subtrees 'true'
+	option ubus_bindings 'true'
+	option random_id 'true'
+	option local_port '33123'
 
 {% if openwrt_babeld_interfaces is defined %}
 {% for interface in openwrt_babeld_interfaces %}
 config interface
-        option ifname "{{ interface['name'] }}"
+	option ifname "{{ interface['name'] }}"
 {% if interface['type'] is defined %}
 	option type "{{ interface['type'] }}"
 {% endif %}
@@ -22,7 +22,7 @@ config interface
 {% for filter in openwrt_babeld_filter %}
 config filter
 {% if  filter.type is defined %}
-        option type "{{ filter.type }}"
+	option type "{{ filter.type }}"
 {% endif %}
 {% if filter.action is defined %}
 	option action "{{ filter.action }}"
