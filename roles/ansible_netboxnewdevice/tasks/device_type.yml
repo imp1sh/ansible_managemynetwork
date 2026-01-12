@@ -1,33 +1,63 @@
 ---
 - name: "MMN NND - Search for existing device types"
   ansible.builtin.set_fact:
-    nnd_devicetypes_list: "{{ query('netbox.netbox.nb_lookup', 'device-types', api_endpoint=NETBOX_URL, token=NETBOX_TOKEN,  api_filter='name=' ~ selected_manufacturer) }}"
+    nnd_devicetypes_list: "{{ query('netbox.netbox.nb_lookup', 'device-types', api_endpoint=NETBOX_URL, token=NETBOX_TOKEN, api_filter='manufacturer_id=' ~ selected_manufacturer.id) }}"
 
-- name: "MMN NND - Create list of device types"
+- name: "MMN NND - Create list of device types with IDs, slugs, and models"
   ansible.builtin.set_fact:
-    nnd_devicetypes_list_stripped: "{{ nnd_devicetypes_list | map(attribute='value.model') | list }}"
+    nnd_devicetypes_list_stripped: "{{ nnd_devicetypes_list_stripped | default([]) + [{'id': item.id, 'model': item.model, 'slug': item.slug}] }}"
+  loop: "{{ nnd_devicetypes_list | map(attribute='value') | list }}"
+  loop_control:
+    loop_var: item
 
-- name: "MMN NND - List device types found"
+- name: "MMN NND - Build table rows for device types"
+  ansible.builtin.set_fact:
+    devicetypes_table_rows: "{{ devicetypes_table_rows | default([]) + [row] }}"
+  vars:
+    id_str: "{{ item.id | string }}"
+    id_pad: "{{ ('   ' if id_str | length == 1 else ('  ' if id_str | length == 2 else (' ' if id_str | length == 3 else ''))) }}"
+    slug_str: "{{ item.slug }}"
+    slug_len: "{{ slug_str | length }}"
+    slug_pad: "{{ ('                                        '[:39 - slug_len] if slug_len < 39 else '') }}"
+    row: "{{ id_pad }}{{ id_str }}  | {{ slug_str }}{{ slug_pad }} | {{ item.model }}"
+  loop: "{{ nnd_devicetypes_list_stripped }}"
+  loop_control:
+    loop_var: item
+
+- name: "MMN NND - Build complete device types table message"
+  ansible.builtin.set_fact:
+    devicetypes_table_msg: "{{ ['Available Device Types:', '====================================================================================', 'ID     | Slug                                    | Model', '-------+-----------------------------------------+-----------------------------------'] + devicetypes_table_rows + ['===================================================================================='] }}"
+
+- name: "MMN NND - Display all available device types in table format"
   ansible.builtin.debug:
-    msg: "{{ item.1 }}: {{ item.0 }}"
-  loop: "{{ nnd_devicetypes_list_stripped | zip(range(1, nnd_devicetypes_list_stripped | length + 1)) | list }}"
+    msg: "{{ devicetypes_table_msg }}"
 
-- name: "MMN NNND - Prompt for device type selection"
-  pause:
-    prompt: "Enter the number corresponding to the device type. If you want to create a new device type type the string 'create'"
+- name: "MMN NND - Prompt for device type ID"
+  ansible.builtin.pause:
+    prompt: |
+      Enter the ID of the device type you want to use (or type 'create' to create a new one):
   register: devicetype_selection
   run_once: true
 
 - name: "MMN NND - Choosing an existing device type"
   block:
+    - name: "MMN NND - Validate device type ID input"
+      ansible.builtin.assert:
+        that:
+          - devicetype_selection.user_input | int > 0
+          - devicetype_selection.user_input | int in (nnd_devicetypes_list_stripped | map(attribute='id') | list)
+        fail_msg: "Invalid device type ID. Please enter a valid ID from the list above."
+        success_msg: "Device type ID is valid."
+      run_once: true
+
     - name: "MMN NND - Set selected device type"
       ansible.builtin.set_fact:
-        selected_devicetype: "{{ nnd_devicetypes_list_stripped[devicetype_selection.user_input | int - 1] }}"
-      when: devicetype_selection.user_input | int > 0 and devicetype_selection.user_input | int <= nnd_devicetypes_list_stripped | length
+        selected_devicetype: "{{ nnd_devicetypes_list_stripped | selectattr('id', 'equalto', devicetype_selection.user_input | int) | first }}"
+        selected_devicetype_id: "{{ (nnd_devicetypes_list_stripped | selectattr('id', 'equalto', devicetype_selection.user_input | int) | first).id }}"
     
     - name: "MMN NND - Display selected device type"
       ansible.builtin.debug:
-        msg: "You selected the device type: {{ selected_devicetype }}"
+        msg: "Selected device type: {{ selected_devicetype.model }} (ID: {{ selected_devicetype_id }})"
   when: devicetype_selection.user_input != 'create'
 
 - name: "MMN NND - Creating a new device type"
@@ -56,16 +86,19 @@
         netbox_token: "{{ NETBOX_TOKEN }}"
         data:
           model: "{{ nnd_new_devicetype_model.user_input }}"
-          manufacturer: "{{ selected_manufacturer }}"
+          manufacturer: "{{ selected_manufacturer.id }}"
           description: "{{ nnd_new_devicetype_description.user_input }}"
           slug: "{{ nnd_new_devicetype_slug.user_input }}"
         state: present
+      register: created_devicetype
 
-    - name: "MMN NND - Set selected device type"
+    - name: "MMN NND - Set selected device type after creation"
       ansible.builtin.set_fact:
-        selected_devicetype: "{{ nnd_new_devicetype_name.user_input }}"
+        selected_devicetype: "{{ {'id': created_devicetype.data.id, 'model': created_devicetype.data.model, 'slug': created_devicetype.data.slug} }}"
+        selected_devicetype_id: "{{ created_devicetype.data.id }}"
   when: devicetype_selection.user_input == 'create'
 
 - name: "MMN NND - Show chosen device type"
-  debug:
-    var: selected_devicetype
+  ansible.builtin.debug:
+    msg: "Selected device type: {{ selected_devicetype.model if (selected_devicetype is defined and selected_devicetype.model is defined) else (selected_devicetype | string) }} (ID: {{ selected_devicetype_id | default('N/A') }})"
+  when: selected_devicetype is defined or selected_devicetype_id is defined

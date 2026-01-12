@@ -1,8 +1,36 @@
 ---
 # tasks file for ansible_netboxnewdevice (nnd)
+# Wizard for creating devices in Netbox
 
-- name: Include Manufacturer task
+- name: "MMN NND - Welcome message"
+  ansible.builtin.debug:
+    msg:
+      - "============================================"
+      - "Netbox Device Creation Wizard"
+      - "============================================"
+      - "This wizard will guide you through creating a new device in Netbox."
+      - "You will be prompted for all mandatory fields:"
+      - "  - Manufacturer"
+      - "  - Device Type"
+      - "  - Device Role"
+      - "  - Site"
+      - "  - Status"
+      - "============================================"
+
+- name: "MMN NND - Include Manufacturer task"
   ansible.builtin.include_tasks: manufacturer.yml
 
-    #- name: Include Device Type task
-    #  ansible.builtin.include_tasks: device_type.yml
+- name: "MMN NND - Include Device Type task"
+  ansible.builtin.include_tasks: device_type.yml
+
+- name: "MMN NND - Include Device Role task"
+  ansible.builtin.include_tasks: device_role.yml
+
+- name: "MMN NND - Include Site task"
+  ansible.builtin.include_tasks: site.yml
+
+- name: "MMN NND - Include Status task"
+  ansible.builtin.include_tasks: status.yml
+
+- name: "MMN NND - Include Device Creation task"
+  ansible.builtin.include_tasks: device.yml

@@ -1,0 +1,57 @@
+---
+- name: "MMN NND - Fetch all device roles from Netbox"
+  ansible.builtin.set_fact:
+    nnd_device_roles_list: "{{ query('netbox.netbox.nb_lookup', 'device-roles', api_endpoint=NETBOX_URL, token=NETBOX_TOKEN) }}"
+
+- name: "MMN NND - Create list of device roles with IDs, slugs, and names"
+  ansible.builtin.set_fact:
+    nnd_device_roles_numbered: "{{ nnd_device_roles_numbered | default([]) + [{'id': item.id, 'name': item.name, 'slug': item.slug}] }}"
+  loop: "{{ nnd_device_roles_list | map(attribute='value') | list }}"
+  loop_control:
+    loop_var: item
+
+- name: "MMN NND - Build table rows for device roles"
+  ansible.builtin.set_fact:
+    deviceroles_table_rows: "{{ deviceroles_table_rows | default([]) + [row] }}"
+  vars:
+    id_str: "{{ item.id | string }}"
+    id_pad: "{{ ('   ' if id_str | length == 1 else ('  ' if id_str | length == 2 else (' ' if id_str | length == 3 else ''))) }}"
+    slug_str: "{{ item.slug }}"
+    slug_len: "{{ slug_str | length }}"
+    slug_pad: "{{ ('                                        '[:39 - slug_len] if slug_len < 39 else '') }}"
+    row: "{{ id_pad }}{{ id_str }}  | {{ slug_str }}{{ slug_pad }} | {{ item.name }}"
+  loop: "{{ nnd_device_roles_numbered }}"
+  loop_control:
+    loop_var: item
+
+- name: "MMN NND - Build complete device roles table message"
+  ansible.builtin.set_fact:
+    deviceroles_table_msg: "{{ ['Available Device Roles:', '====================================================================================', 'ID     | Slug                                    | Name', '-------+-----------------------------------------+-----------------------------------'] + deviceroles_table_rows + ['===================================================================================='] }}"
+
+- name: "MMN NND - Display all available device roles in table format"
+  ansible.builtin.debug:
+    msg: "{{ deviceroles_table_msg }}"
+
+- name: "MMN NND - Prompt for device role ID"
+  ansible.builtin.pause:
+    prompt: |
+      Enter the ID of the device role you want to use:
+  register: device_role_id_input
+  run_once: true
+
+- name: "MMN NND - Validate device role ID input"
+  ansible.builtin.assert:
+    that:
+      - device_role_id_input.user_input | int > 0
+      - device_role_id_input.user_input | int in (nnd_device_roles_numbered | map(attribute='id') | list)
+    fail_msg: "Invalid device role ID. Please enter a valid ID from the list above."
+    success_msg: "Device role ID is valid."
+  run_once: true
+
+- name: "MMN NND - Set selected device role"
+  ansible.builtin.set_fact:
+    selected_device_role: "{{ nnd_device_roles_numbered | selectattr('id', 'equalto', device_role_id_input.user_input | int) | first }}"
+
+- name: "MMN NND - Display selected device role"
+  ansible.builtin.debug:
+    msg: "Selected device role: {{ selected_device_role.name }} (ID: {{ selected_device_role.id }})"
