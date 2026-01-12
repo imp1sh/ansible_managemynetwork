@@ -4,7 +4,7 @@
 # Global dnsmasq configuration
 config dnsmasq
 {% if openwrt_dhcp_add_local_domain is defined %}
-	options add_local_domain "{{ openwrt_dhcp_add_local_domain }}"
+	option add_local_domain "{{ openwrt_dhcp_add_local_domain }}"
 {% endif %}
 {% if openwrt_dhcp_dnsmasq_add_local_hostname is defined %}
 	option add_local_hostname "{{ openwrt_dhcp_dnsmasq_add_local_hostname }}"
