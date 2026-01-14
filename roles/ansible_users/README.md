@@ -49,7 +49,13 @@ system_users:
     shell: "zsh"
 ```
 
-The password is expected to be encrypted. The easiest way to get such an encrypted password is to use the `mkpasswd` command line tool. Some might even want to put this into ansible-vault encryption on top.
+The password is expected to be encrypted. The easiest way to get such an encrypted password is to use the follwing command: 
+
+``` bash
+mkpasswd --method=sha-512
+```
+
+Some might even want to put this into ansible-vault encryption on top.
 A more complete list of available options can be found in the [role's documentation](https://docs.ansible.com/ansible/latest/collections/ansible/builtin/user_module.html).
 
 This role has a dependency to [imp1sh.ansible_managemynetwork.ansible_packages](/junicast/docs/AnsibleManagemynetworkCollection/rolePackages) and will install the shell package you choose for the users automatically.
