@@ -12,14 +12,12 @@
     state: directory
   delegate_to: "{{ _uhttpd_target_host }}"
 
-- name: MMN openwrtuhttpd - Search for provided certificates
-  ansible.builtin.include_tasks: 02search_provided_certs.yml
-  when: not openwrt_uhttpd_runimagebuilder | default(false)
+- name: MMN openwrtuhttpd - Handle certificate selection
+  ansible.builtin.include_tasks: 02handle_certs.yml
+  when: not openwrt_uhttpd_runimagebuilder | default(false) | bool
 
-- name: MMN openwrtuhttpd - Search for default certificates
-  ansible.builtin.include_tasks: 03search_default_certs.yml
-  when: not openwrt_uhttpd_runimagebuilder | default(false)
-
-- name: MMN openwrtuhttpd - Deploy configuration
-  ansible.builtin.include_tasks: 04deploy_config.yml
-  when: not openwrt_uhttpd_runimagebuilder | default(false)
+- name: MMN openwrtuhttpd - Deploy uhttpd config template
+  ansible.builtin.template:
+    src: "uhttpd.jinja2"
+    dest: "{{ openwrt_uhttpd_deploypath }}/{{ openwrt_uhttpd_deployfile }}"
+  notify: restart uhttpd

@@ -1,0 +1,135 @@
+---
+# Certificate handling logic:
+# 1. If cert/key are explicitly set (different from defaults) → use them (verify they exist)
+# 2. If not explicitly set → search for hostname-based certs
+# 3. If still not found → search for ACME certs
+# 4. If still not found → use default paths (/etc/uhttpd.crt and /etc/uhttpd.key) and ensure they exist
+
+- name: MMN openwrtuhttpd - Check if cert/key are explicitly provided (both different from defaults)
+  ansible.builtin.set_fact:
+    _certs_explicitly_provided: "{{ (openwrt_uhttpd_main_cert != '/etc/uhttpd.crt') and (openwrt_uhttpd_main_key != '/etc/uhttpd.key') }}"
+
+- name: MMN openwrtuhttpd - Verify explicitly provided cert/key exist
+  block:
+    - name: MMN openwrtuhttpd - Verify explicitly provided cert exists
+      ansible.builtin.stat:
+        path: "{{ openwrt_uhttpd_main_cert }}"
+      register: _provided_cert_stat
+
+    - name: MMN openwrtuhttpd - Verify explicitly provided key exists
+      ansible.builtin.stat:
+        path: "{{ openwrt_uhttpd_main_key }}"
+      register: _provided_key_stat
+
+    - name: MMN openwrtuhttpd - Fail if explicitly provided cert/key don't exist
+      ansible.builtin.fail:
+        msg: "Explicitly provided certificate or key file does not exist. Cert: {{ openwrt_uhttpd_main_cert }}, Key: {{ openwrt_uhttpd_main_key }}"
+      when: not (_provided_cert_stat.stat.exists | default(false) and _provided_key_stat.stat.exists | default(false))
+  when: _certs_explicitly_provided | bool
+
+- name: MMN openwrtuhttpd - Search for hostname-based certificates
+  block:
+    - name: MMN openwrtuhttpd - Search for hostname-based private key
+      ansible.builtin.find:
+        paths: "{{ openwrt_uhttpd_deployroot }}etc/ssl/private"
+        file_type: file
+        patterns: "*_{{ inventory_hostname }}_privatekey.pem"
+        recurse: false
+      register: _found_hostname_key
+
+    - name: MMN openwrtuhttpd - Search for hostname-based certificate
+      ansible.builtin.find:
+        paths: "{{ openwrt_uhttpd_deployroot }}etc/ssl/certs"
+        file_type: file
+        patterns: "*_{{ inventory_hostname }}_certificate.pem"
+        recurse: false
+      register: _found_hostname_cert
+
+    - name: MMN openwrtuhttpd - Set hostname-based cert and key if both found
+      ansible.builtin.set_fact:
+        openwrt_uhttpd_main_cert: "{{ _found_hostname_cert.files[0].path }}"
+        openwrt_uhttpd_main_key: "{{ _found_hostname_key.files[0].path }}"
+      when:
+        - _found_hostname_key.matched | default(0) > 0
+        - _found_hostname_cert.matched | default(0) > 0
+
+    - name: MMN openwrtuhttpd - Verbose found hostname-based cert/key
+      ansible.builtin.debug:
+        msg: "Found hostname-based cert: {{ openwrt_uhttpd_main_cert }}, key: {{ openwrt_uhttpd_main_key }}"
+      when:
+        - _found_hostname_key.matched | default(0) > 0
+        - _found_hostname_cert.matched | default(0) > 0
+        - (mmn_verbose | default(false)) | bool
+  when: not _certs_explicitly_provided | bool
+
+- name: MMN openwrtuhttpd - Search for ACME certificates if none found yet
+  block:
+    - name: MMN openwrtuhttpd - Search for default ACME certificates
+      ansible.builtin.find:
+        paths: "{{ openwrt_uhttpd_acme_searchpaths }}"
+        file_type: file
+        patterns:
+          - "{{ inventory_hostname }}*"
+          - "fullchain.cer"
+          - "cert.cer"
+      register: _certdirs
+
+    - name: MMN openwrtuhttpd - Derive cert directory from found ACME cert
+      ansible.builtin.set_fact:
+        _acme_cert_dir: "{{ _certdirs.files[0].path | dirname }}"
+      when: _certdirs.matched | default(0) > 0
+
+    - name: MMN openwrtuhttpd - Check for ACME fullchain cert
+      ansible.builtin.stat:
+        path: "{{ _acme_cert_dir }}/fullchain.cer"
+      register: _acme_cert_stat
+      when: _acme_cert_dir is defined
+
+    - name: MMN openwrtuhttpd - Search for ACME key
+      ansible.builtin.find:
+        paths: "{{ _acme_cert_dir }}"
+        patterns:
+          - "*.{{ inventory_hostname | community.dns.get_registrable_domain }}.key"
+          - "{{ inventory_hostname }}.key"
+          - "*.key"
+        file_type: file
+        recurse: false
+      register: _acme_key_search
+      when: _acme_cert_dir is defined
+
+    - name: MMN openwrtuhttpd - Set ACME cert and key if found
+      ansible.builtin.set_fact:
+        openwrt_uhttpd_main_cert: "{{ _acme_cert_stat.stat.path }}"
+        openwrt_uhttpd_main_key: "{{ _acme_key_search.files[0].path }}"
+      when:
+        - _acme_cert_stat.stat.exists | default(false)
+        - _acme_key_search.matched | default(0) > 0
+  when:
+    - not _certs_explicitly_provided | bool
+    - openwrt_uhttpd_main_cert == '/etc/uhttpd.crt' or openwrt_uhttpd_main_key == '/etc/uhttpd.key'
+
+- name: MMN openwrtuhttpd - Verify default cert/key exist before using
+  block:
+    - name: MMN openwrtuhttpd - Verify default cert exists
+      ansible.builtin.stat:
+        path: "/etc/uhttpd.crt"
+      register: _verify_default_cert
+
+    - name: MMN openwrtuhttpd - Verify default key exists
+      ansible.builtin.stat:
+        path: "/etc/uhttpd.key"
+      register: _verify_default_key
+
+    - name: MMN openwrtuhttpd - Fail if default cert/key don't exist
+      ansible.builtin.fail:
+        msg: "Default certificate or key file does not exist. Cert: /etc/uhttpd.crt, Key: /etc/uhttpd.key. These files should be generated by uhttpd on first start or created manually."
+      when: not (_verify_default_cert.stat.exists | default(false) and _verify_default_key.stat.exists | default(false))
+  when:
+    - not _certs_explicitly_provided | bool
+    - openwrt_uhttpd_main_cert == '/etc/uhttpd.crt' and openwrt_uhttpd_main_key == '/etc/uhttpd.key'
+
+- name: MMN openwrtuhttpd - Verbose final cert/key selection
+  ansible.builtin.debug:
+    msg: "Using certificate: {{ openwrt_uhttpd_main_cert }}, key: {{ openwrt_uhttpd_main_key }}"
+  when: (mmn_verbose | default(false)) | bool
+
