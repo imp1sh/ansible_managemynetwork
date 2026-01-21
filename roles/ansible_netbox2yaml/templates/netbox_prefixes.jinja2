@@ -1,7 +1,7 @@
 ---
-{% if nb_prefixes is defined %}
-nb_prefixes:
-{% for key, value in nb_prefixes.items() %}
+{% if nb_prefixes_by_name is defined %}
+nb_prefixes_by_name:
+{% for key, value in nb_prefixes_by_name.items() %}
 {% if key %}
   {{ key }}:
 {% if value.4 is defined %}
@@ -17,6 +17,19 @@ nb_prefixes:
       ula: {{ value.6.prefix.ula }}
 {% endif %}
 {% endif %}
+{% endif %}
+{% endfor %}
+{% endif %}
+{% if nb_prefixes_by_network is defined %}
+nb_prefixes_by_network:
+{% for key, value in nb_prefixes_by_network.items() %}
+{% if key %}
+  "{{ key }}":
+{% for attr_key, attr_value in value.items() %}
+{% if attr_value is defined and attr_value is not none %}
+    {{ attr_key }}: {{ attr_value | to_json if (attr_value is mapping or (attr_value is iterable and attr_value is not string)) else (attr_value | string | quote if attr_value is string else attr_value) }}
+{% endif %}
+{% endfor %}
 {% endif %}
 {% endfor %}
 {% endif %}

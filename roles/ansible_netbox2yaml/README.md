@@ -48,11 +48,11 @@ nb_devices:
         ip6:
 ```
 
-## nb_prefixes
-The prefixes (IP networks) data fetched from netbox will go to the variable named `nb_prefixes`. This is what a structure might look like:
+## nb_prefixes_by_name
+The prefixes (IP networks) data fetched from netbox will go to the variable named `nb_prefixes_by_name`, keyed by the prefix name (from the `ansible_identifier` custom field). This is what a structure might look like:
 
 ```yaml
-netbox_prefixes:
+nb_prefixes_by_name:
   RX-DMZ:
     "4":
       prefix: 5.145.135.88/29
@@ -67,7 +67,33 @@ netbox_prefixes:
       ula: fd00:fe0:3f::/48
 ```
 
-So if you would like to access such an element in Ansible you would use e.g. `nb_prefixes['RX-DMZ']['6']['gua']`.
+So if you would like to access such an element in Ansible you would use e.g. `nb_prefixes_by_name['RX-DMZ']['6']['gua']`.
+
+## nb_prefixes_by_network
+The prefixes (IP networks) data fetched from netbox will also go to the variable named `nb_prefixes_by_network`, keyed by the network prefix itself (e.g., `192.168.0.0/24`). This allows you to look up prefix attributes directly by the network address. This is what a structure might look like:
+
+```yaml
+nb_prefixes_by_network:
+  "192.168.0.0/24":
+    id: 42
+    prefix: 192.168.0.0/24
+    site:
+      id: 1
+      name: "Main Site"
+    status:
+      value: "active"
+      label: "Active"
+    # ... all other Netbox prefix attributes
+  "2a00:fe0:3f:2::/64":
+    id: 43
+    prefix: 2a00:fe0:3f:2::/64
+    site:
+      id: 1
+      name: "Main Site"
+    # ... all other Netbox prefix attributes
+```
+
+So if you would like to access prefix attributes by network address in Ansible you would use e.g. `nb_prefixes_by_network['192.168.0.0/24']['site']['name']`.
 
 ## nb_devices
 Devices are 
