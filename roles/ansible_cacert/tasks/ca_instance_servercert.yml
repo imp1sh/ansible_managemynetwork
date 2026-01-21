@@ -71,8 +71,19 @@
         country_name: "{{ cacert_servercert_country_name | default(omit) }}"
         email_address: "{{ cacert_servercert_email_address | default(omit) }}"
         subject_alt_name: >-
-          {{ (cacert_servercert_altnames_combined | map(attribute='prefix') | zip(cacert_servercert_altnames_combined | map(attribute='name')) | map('join', ':') | list)
-             if cacert_servercert_altnames_combined | length > 0 else omit }}
+          {{
+            (
+              ['DNS:' ~ (cacert_servercert_common_name | default(inventory_hostname))]
+              +
+              (
+                cacert_servercert_altnames_combined
+                | map(attribute='prefix')
+                | zip(cacert_servercert_altnames_combined | map(attribute='name'))
+                | map('join', ':')
+                | list
+              )
+            )
+          }}
       register: csr_server
       changed_when: false
 
