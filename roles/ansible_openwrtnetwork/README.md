@@ -296,16 +296,17 @@ Here are the most important options for
 | - | - |
 | allowed_ips | (list) self explanatory |
 | description | self explanatory |
-| endpoint_host | Only needed when host is initiating the connection. Defines the host address to connect to. |
-| endpoint_port | Only needed when host is initiating the connection. Defines the host port to connect to. |
+| endpoint_host | Optional. Overrides `wg_myendpoint` from the interface for client config generation. Defines the host address clients will connect to. If not set, uses `wg_myendpoint` from the interface. |
+| endpoint_port | Optional. Overrides `wg_listen_port` from the interface for client config generation. Defines the port clients will connect to. If not set, uses `wg_listen_port` from the interface. |
 | generateclientconfig | When set to yes it will generate your clientconfig in the directory defined in `openwrt_network_wg_keypath`. Only set this to true when `managekeys` is also set to true |
 | interface | You need to reference a wireguard interface. Without that a peer definition is useless. |
 | managekeys | Makes sure peer's keypairs are generated and managed by this role. If set to false make sure to generate and maintain your keys manually. See also [here](#ansible-manages-keys) |
 | mtu | self explanatory |
-| persistent_keepalive | self explanatory |
+| keepalive | Used for client config generation. Sets PersistentKeepalive value (in seconds) to keep NAT mappings alive. Typically set to 25 for clients behind NAT. |
+| persistent_keepalive | Used for server-side peer configuration. Sets persistent keepalive interval (in seconds) when the server initiates connections. |
 | preshared_key | preshared key for extra security. Only set manually when setpsk is set to false |
 | public_key | public key of the remote remote peer. Only set when `managkeys` is set to false |
-| remote_peer | This is only needed when Ansible manages the remote peer as well. This option will fetch the remote peer's public key for your config. |
+| remote_peer | Required when `managekeys` is `true` and `generateclientconfig` is `true`. For roadwarrior setups, set this to `{{ inventory_hostname }}` (the server's hostname) so Ansible can fetch the server's public key for client config generation. For S2S setups, set this to the remote peer's hostname. |
 | route_allowed_ips | self explanatory |
 | setpsk | If you set `setpsk` to `true` an additional PSK (Preshared Key)  will be used. |
 
@@ -332,7 +333,7 @@ Here are the most important options for
 | wg_metric | Metric is an ordinal, where a gateway with 1 is chosen 1st, 2 is chosen 2nd, 3 is chosen 3rd, etc | 0 |
 | wg_myendpoint | Used as information for client config generation. Endpoint client will connect to | |
 | wg_nohostroute | if true (1)  no entries for routing table will be made | false (0) |
-| wg_peerdns | ? | ? |
+| wg_peerdns | If set to 1, DNS servers received from peers will be used. If set to 0, peer-provided DNS servers are ignored. Typically set to 0 for server interfaces. | 0 |
 | wg_private_key | Private key of your host used for wireguard | has no default |
 
 ## Manage Keys manually
@@ -370,11 +371,11 @@ openwrt_network_wireguardpeers:
 > The interface attribute above references an interface name, specified in `openwrt_network_interfaces`.
 
 ## Ansible manages keys
-> [!WARNING]  
-> If you would like to use that you need the wireguard tools installed on the Ansible host.
 
-Since 0.1.4 this role is able to manage the keys within Ansible. Keys are being stored on the ansible host.
-You can specify the directory with this variable:`openwrt_network_wg_keypath`.
+> [!WARNING]  
+> Have wireguard tools installed on the Ansible controller host!
+
+This role can manage the keys via Ansible. Keys are being stored on the Ansible controller host. You can specify the directory with this variable:`openwrt_network_wg_keypath`.
 e.g.
 ```yaml
 openwrt_network_wg_keypath: "/home/ansibleuser/wireguard"
@@ -398,24 +399,34 @@ If you would like to import keys, store them within the `wg_keypath` directory.
 
 If you would like to let Ansible manage keys, set the `managekeys` var to true.
 
+### Roadwarrior Setup
+
+For a roadwarrior (client-to-server) setup where the OpenWrt router acts as the server and mobile devices connect as clients:
+
 ```yaml
 openwrt_network_wireguardpeers:
-  peername:
+  mylaptop:
     interface: "ROADWARRIOR"
-    genclientconfig: true
+    generateclientconfig: true
     mtu: 1360
     managekeys: true
     setpsk: true
+    remote_peer: "{{ inventory_hostname }}"
+    keepalive: 25
     allowed_ips:
       - "2a00:123:688:11::2/128"
       - "10.10.100.2/32"
     routes_to:
       - "172.16.0.0/12"
+    # Optional: Override endpoint if different from interface settings
+    # endpoint_host: "vpn.example.com"
+    # endpoint_port: 51821
       
 openwrt_network_interfaceshost:
   ROADWARRIOR:
     proto: "wireguard"
     wg_managekeys: true
+    wg_myendpoint: "vpn.example.com"
     wg_listen_port: 51821
     wg_peerdns: 0
     wg_addresses:
@@ -423,8 +434,15 @@ openwrt_network_interfaceshost:
       - "2a00:123:456:22::1/64"
 ```
 
-The MTU is at 1420 as a default. I can be overwritten with the `mtu` property.
-If you want additional routes inserted into the client config, use the `routes_to` variable (list).
+**Important notes for roadwarrior setup:**
+- `wg_myendpoint` must be set on the interface to specify the public IP or hostname where clients will connect
+- `wg_listen_port` must be set on the interface to specify the port clients will connect to
+- `remote_peer` must be set to `{{ inventory_hostname }}` (the server's hostname) so Ansible can fetch the server's public key for client config generation
+- `keepalive` (typically 25 seconds) is highly recommended for clients behind NAT to keep the connection alive. This sets the PersistentKeepalive value in the generated client config.
+- `generateclientconfig: true` will create a client configuration file at `{{ openwrt_network_wg_keypath }}/ROADWARRIOR/mylaptop.conf` that can be imported into the client device
+- The MTU defaults to 1420 but can be overridden with the `mtu` property
+- If you want additional routes inserted into the client config, use the `routes_to` variable (list)
+- `endpoint_host` and `endpoint_port` can be set on the peer to override the interface's `wg_myendpoint` and `wg_listen_port` for client config generation (useful if different clients need different endpoints)
 
 ### Site 2 Site VPN
 

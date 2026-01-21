@@ -15,6 +15,15 @@
         - item.value.proto == "wireguard"
         - item.value.wg_managekeys
     
+    - name: check if private key file exists
+      ansible.builtin.stat:
+        path: "{{ openwrt_network_wg_keypath }}/{{ item.key }}/{{ inventory_hostname }}_private.key"
+      register: server_privatekey_file_stat
+      become: false
+      when:
+        - item.value.proto == "wireguard"
+        - item.value.wg_managekeys
+    
     - name: generate private key if not there
       ansible.builtin.command: wg genkey
       args:
@@ -26,15 +35,17 @@
         - item.value.proto == "wireguard"
         - item.value.wg_managekeys
     
-    - name: save private key to file if changed
+    - name: save private key to file if changed or missing
       ansible.builtin.copy:
         content: "{{ server_privatekey.stdout }}"
         dest: "{{ openwrt_network_wg_keypath }}/{{ item.key }}/{{ inventory_hostname }}_private.key"
       become: false
       when:
         - item.value.proto == "wireguard"
-        - server_privatekey.changed
         - item.value.wg_managekeys
+        - server_privatekey.stdout is defined
+        - server_privatekey.stdout | length > 0
+        - (server_privatekey.changed | default(false)) or (not server_privatekey_file_stat.stat.exists | default(true))
     
     - name: set strict private key permissions
       file:

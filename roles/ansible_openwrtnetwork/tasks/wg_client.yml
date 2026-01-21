@@ -15,6 +15,14 @@
         - item.value.managekeys
     
     # Generate Private Key
+    - name: check if private key file exists
+      ansible.builtin.stat:
+        path: "{{ openwrt_network_wg_keypath }}/{{ item.value.interface }}/{{ item.key }}_private.key"
+      register: client_privatekey_file_stat
+      become: false
+      when:
+        - item.value.managekeys
+    
     - name: generate private key if not there
       ansible.builtin.command: wg genkey
       args:
@@ -25,14 +33,16 @@
       when:
         - item.value.managekeys
     
-    - name: save private key to file if changed
+    - name: save private key to file if changed or missing
       ansible.builtin.copy:
         content: "{{ client_privatekey.stdout }}"
         dest: "{{ openwrt_network_wg_keypath }}/{{ item.value.interface }}/{{ item.key }}_private.key"
       become: false
       when:
-        - client_privatekey.changed
         - item.value.managekeys
+        - client_privatekey.stdout is defined
+        - client_privatekey.stdout | length > 0
+        - (client_privatekey.changed | default(false)) or (not client_privatekey_file_stat.stat.exists | default(true))
     
     - name: set strict private key permissions
       ansible.builtin.file:
