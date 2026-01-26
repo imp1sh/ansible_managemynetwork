@@ -53,7 +53,7 @@ In contrast to a factory OpenWrt firmware this role ships with more default zone
 | Internet Uplink | **WAN** |  1   | 1   |
 | Connecting to neighbours | **NEIGHBOURS** |  0   | 1   |
 | Guests, e.g. Guest Wifi| **GUESTS** | 0   | 1   | 
-| your common LAN clienst | **LAN** | 0   | 1   | 
+| your common LAN clients | **LAN** | 0   | 1   | 
 | Services / Server | **DMZ** | 0   | 1   
 | Management, z.B. IPMI, switches, Access Points | **MGMT** |  0   | 1   | 
 
@@ -133,7 +133,7 @@ The default zones are quite extensive. If they do not fit your environment you m
 ```yaml
 openwrt_firewall_setdefaultzones: false
 ```
-Don't forget to define your own zones. An OpenWrt Firewall without zones cannot be fully functional. The default rules may also be not applied. The Ansible Collection checks if zones exist when it tries to apply rules. If a rule is associated with a non existant zone, the rule won't be applied at all. This may lead to default rules not being applied and can cause problems for example with DHCP requests not being answered.
+Don't forget to define your own zones. An OpenWrt Firewall without zones cannot be fully functional. The default rules may also be not applied. The Ansible Collection checks if zones exist when it tries to apply rules. If a rule is associated with a non existent zone, the rule won't be applied at all. This may lead to default rules not being applied and can cause problems for example with DHCP requests not being answered.
 
 ### Your own Firewall Zones
 
@@ -158,8 +158,8 @@ openwrt_firewall_zonesgroup:
     SPEZIAL1:
       forward: "ACCEPT"  
       input: "ACCEPT"  
-      output: "ACCEPT  
-      log: “0”  
+      output: "ACCEPT"
+      log: "0"  
       interfaces:  
         - "spezial1"  
     DMZ2:  
@@ -269,7 +269,7 @@ openwrt_firewall_ruleshost:
 ```
 For a full list of attributes see [OpenWrt Firewall docs](https://openwrt.org/docs/guide-user/firewall/firewall_configuration#rules).
 
-> Be careuful about firewall rules. If you mistype or forget e.g. a `dest_port` directive the rule will get installed, without a restriction to a port. This might open up your firewall much wider than you might want to.
+> Be careful about firewall rules. If you mistype or forget e.g. a `dest_port` directive the rule will get installed, without a restriction to a port. This might open up your firewall much wider than you might want to.
 {.is-warning}
 
 ### Rules for a Group of Hosts
@@ -295,7 +295,7 @@ openwrt_firewall_rulesgroup:
 
 ## Port Forwardings / Redirections
 Of course forwardings can be setup via this role. This is not about general masquerading. This is being setup in the zones section of this role with the attributes `masq: 1` and `mtu_fix: 1`. 
-For specific SNAT / DNAT rules those can be setup via rules. There are two va`riables available to define rules, i.e.  *openwrt_firewall_redirectsgroup* and *openwrt_firewall_redirectshost*. A full list of available attributes for those rules can be found in the [Openwrt documentation for redirects](https://openwrt.org/docs/guide-user/firewall/firewall_configuration#redirects).
+For specific SNAT / DNAT rules those can be setup via rules. There are two variables available to define rules, i.e.  *openwrt_firewall_redirectsgroup* and *openwrt_firewall_redirectshost*. A full list of available attributes for those rules can be found in the [Openwrt documentation for redirects](https://openwrt.org/docs/guide-user/firewall/firewall_configuration#redirects).
 
 ### DNAT / Port Forward
 ```yaml

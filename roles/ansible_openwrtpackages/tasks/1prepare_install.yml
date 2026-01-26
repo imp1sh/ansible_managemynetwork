@@ -4,7 +4,7 @@
   ansible.builtin.set_fact:
     openwrt_packages_installmergedgroup: "{{ openwrt_packages_installgroup.keys() | list | intersect(group_names) | map('extract', openwrt_packages_installgroup) | list | flatten }}"
   when: openwrt_packages_installgroup is defined
-- name: Set seperator if imagebuilder
+- name: Set separator if imagebuilder
   ansible.builtin.set_fact:
     openwrt_packages_separator: ' '
   when: openwrt_packages_runimagebuilder | default(false)

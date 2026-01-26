@@ -5,18 +5,18 @@ There are some paradigms every role in this collection shall conform with:
 - A role shall only care about its own specific field / domain.
   Installing packages for example is exclusively done in the packages role and not within others. By 2025 not all rules comply with those requirements, yet.
 - there's always the need to define vars on a host level and/or group level in Ansible. Thus the roles in this very collection shall also abide to having a dedicated host var (host suffix in the var name) and a dedicated group var (group suffix in the var name). This requirement though is soft and up to the maintainer of the role / collection.
-- The main Focus will be **Debian Linux** and **OpenWrt**. It once suppoirted Alpine and FreeBSD for a longer amount of time.
+- The main Focus will be **Debian Linux** and **OpenWrt**. It once supported Alpine and FreeBSD for a longer amount of time.
 - New roles shall always be created in a fashion that they will be more easily adoptable for other OSes.
 - OpenWrt specific roles will inherently all support the [ansible_openwrtimagebuilder](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_openwrtimagebuilder/README.md) role. This can only be verified to be true when you use this role to build images successfully with the  role.
 - OpenWrt specific roles stay specific to OpenWrt unless there are common tasks like user management, zabbix agent, package installation and alike, that are not inherently different on OpenWrt in contrast to Debian. When possible and when meaningful roles will have support for Debian and OpenWrt at the same time.
-- This collection aims to achieve a seperation of programmatical elements being only in the role. This way all you have to do is call the role. Tasks withing playbooks should be very rare. All you do is set your variables and then run the role / collection.
+- This collection aims to achieve a separation of programmatical elements being only in the role. This way all you have to do is call the role. Tasks within playbooks should be very rare. All you do is set your variables and then run the role / collection.
 - Feel free not to procrastinate but to participate. Pull requests, issues and discussions are very welcome.
 
 ## Maintenance Status
 
 > Actively maintained
 
-Each role has a specific purpose. You can use them seperately to control specific application, services or on OpenWrt: UCI sections. It is desirable though to control the system as a whole with Ansible. If you do, neither make changes manually by command line nor via the webinterface on the target host directly. Changes will otherwise be overwritten by Ansible.
+Each role has a specific purpose. You can use them separately to control specific application, services or on OpenWrt: UCI sections. It is desirable though to control the system as a whole with Ansible. If you do, neither make changes manually by command line nor via the webinterface on the target host directly. Changes will otherwise be overwritten by Ansible.
 If my collection lacks a feature or you find a bug, open an [issue in the git bugtracker](https://github.com/imp1sh/ansible_managemynetwork/issues).
 
 ## Roles for OpenWrt
@@ -99,7 +99,7 @@ At the same time you can access the expandibility and flexibility of OpenWrt and
 
 ### Hardware requirements OpenWrt device
 
-The openwrt roles in this collection us **python** which is not installed on stock OpenWrt. You will need quite a lot of storage so you can install it. Those are the minimum device properties.
+The openwrt roles in this collection use **python** which is not installed on stock OpenWrt. You will need quite a lot of storage so you can install it. Those are the minimum device properties.
 
 ### Minimum requirements
 * 128 MB Storage
@@ -109,7 +109,7 @@ The openwrt roles in this collection us **python** which is not installed on sto
 
 ### Recommendation
 
-Depending on your needs the requirements might be higher. Depending on the additional packages you need you will need more disk space. Generally speaking I would recommand a device with:
+Depending on your needs the requirements might be higher. Depending on the additional packages you need you will need more disk space. Generally speaking I would recommend a device with:
 * 256+ MB Storage
 * OpenWrt 24.10
 * 512+ MB RAM
@@ -181,7 +181,7 @@ openwrt_firewall_ruleshost:
     target: "ACCEPT"
 ```
 
-In contrast to the common ansible convention of defning group variable values within the actual group scope we need a more global group containing all hosts like **tags_allhosts**. The assocition to the group(s) is done via a dict item representing the actual group name. In this example the groups are *openwrthosts* and *openwrtaccesspoints*.
+In contrast to the common ansible convention of defining group variable values within the actual group scope we need a more global group containing all hosts like **tags_allhosts**. The association to the group(s) is done via a dict item representing the actual group name. In this example the groups are *openwrthosts* and *openwrtaccesspoints*.
 
 ```
 openwrt_packagesinstallgroup:
@@ -218,7 +218,7 @@ openwrt_packagesinstallgroup:
 Variable names are constructed by using the role name which is at the same time the uci section name. The wildcard part (\*) is the subsection within uci for example:
 `openwrt_system_hostname`
 
-| Role | Varible Prefix |
+| Role | Variable Prefix |
 | - | - |
 |imp1sh.ansible_managemynetwork.ansible_openwrt**system** |  `openwrt_system_*` |
 |imp1sh.ansible_managemynetwork.ansible_openwrt**dropbear** | `openwrt_dropbear_*` |
@@ -226,7 +226,7 @@ Variable names are constructed by using the role name which is at the same time 
 |imp1sh.ansible_managemynetwork.ansible_openwrt**network**  | `openwrt_network_*` |
 |imp1sh.ansible_managemynetwork.ansible_openwrt**firewall** | `openwrt_firewall_*` |
 |imp1sh.ansible_managemynetwork.ansible_openwrt**dhcp** | `openwrt_dhcp_*` |
-|imp1sh.ansible_managemynetwork.ansible_openwrt**packages** | `òpenwrt_packages_*` |
+|imp1sh.ansible_managemynetwork.ansible_openwrt**packages** | `openwrt_packages_*` |
 |imp1sh.ansible_managemynetwork.ansible_**restic** | `openwrt_restic_*` |
 |imp1sh.ansible_managemynetwork.ansible_openwrt**dhcp** |`openwrt_dhcp_*` |
 |imp1sh.ansible_managemynetwork.ansible_openwrt**acme** | `openwrt_acme_*` |
@@ -237,10 +237,10 @@ Variable names are constructed by using the role name which is at the same time 
 - Ansible task descriptions start with Capital letter
 - Maintain meta information for role
 - Maintain README.md for every role
-- Seperation of Duty. Every role works in their scope and in their scope only. Diverge only if no other way possible
+- Separation of Duty. Every role works in their scope and in their scope only. Diverge only if no other way possible
 - Test your stuff. Don't only look at main case but at least most pressing corner cases
 - Use consistent variable names and put them in roles namespace like start the var name with e.g. `psql_` for postgresql role.
 - Only be opinionated when your opinion is strong and validated. Don't do opinionated due to lazyness
-- Make your role so that it can esily be fitted for additional OSes. Best practice is to have OS dependant vars and load them automatically. This way you can adjust to different package or folder names more easily.
+- Make your role so that it can easily be fitted for additional OSes. Best practice is to have OS dependant vars and load them automatically. This way you can adjust to different package or folder names more easily.
 - After each Ansible task there is a free line for easier readability
 - For easy debugging implement debug tasks that will print vars and other information so problems can be debugged easier. Global var name is **mmn_verbose** (bool).

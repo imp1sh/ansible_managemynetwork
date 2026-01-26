@@ -73,7 +73,7 @@ openwrt_network_globals_packet_steering: 1
 ```
 
 # Devices
-Since 21.02 devices reference the phyiscal interfaces present in a device. Please have a look into the official OpenWrt network documentation [devices subsection](https://openwrt.org/docs/guide-user/base-system/basic-networking#device_sections).
+Since 21.02 devices reference the physical interfaces present in a device. Please have a look into the official OpenWrt network documentation [devices subsection](https://openwrt.org/docs/guide-user/base-system/basic-networking#device_sections).
 
 This is a list of parameters:
 * txqueuelen
@@ -236,7 +236,7 @@ openwrt_network_interfaceshost:
       - "2a01:fef0:1234:4f::b1b1/128"
     ip6gw: "2a1a:1220:1:4f::1"
     dns:
-      - "2ae0:3fe1::2
+      - "2ae0:3fe1::2"
       - "2ae0:3fe1::3"
     dnssearch:
       - "libcom.de"
@@ -305,7 +305,7 @@ Here are the most important options for
 | keepalive | Used for client config generation. Sets PersistentKeepalive value (in seconds) to keep NAT mappings alive. Typically set to 25 for clients behind NAT. |
 | persistent_keepalive | Used for server-side peer configuration. Sets persistent keepalive interval (in seconds) when the server initiates connections. |
 | preshared_key | preshared key for extra security. Only set manually when setpsk is set to false |
-| public_key | public key of the remote remote peer. Only set when `managkeys` is set to false |
+| public_key | public key of the remote remote peer. Only set when `managekeys` is set to false |
 | remote_peer | Required when `managekeys` is `true` and `generateclientconfig` is `true`. For roadwarrior setups, set this to `{{ inventory_hostname }}` (the server's hostname) so Ansible can fetch the server's public key for client config generation. For S2S setups, set this to the remote peer's hostname. |
 | route_allowed_ips | self explanatory |
 | setpsk | If you set `setpsk` to `true` an additional PSK (Preshared Key)  will be used. |

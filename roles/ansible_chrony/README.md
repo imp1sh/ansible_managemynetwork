@@ -32,7 +32,7 @@ chronyd_config_pools:
 
 ## Config options
 
-The avaiable config options correspond to the chrony options.
+The available config options correspond to the chrony options.
 
 ```
 chronyd_config_servers

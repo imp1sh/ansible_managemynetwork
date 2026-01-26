@@ -1,7 +1,7 @@
 # imp1sh.ansible_managemynetwork.ansible_openwrtdhcp
 This role manages the integrated dnsmasq DHCP / DNS / Radvd and DHCPv6 Settings. Managing odhcp, bind or other alternative packages is currently not supported.
 
-## Globale Parameters
+## Global Parameters
 Global parameters are documented in the [OpenWrt Wiki](https://openwrt.org/docs/guide-user/base-system/dhcp#common_options). OpenWrt utilizes dnsmasq. This is how the Ansible Variables look like.
 
 ```

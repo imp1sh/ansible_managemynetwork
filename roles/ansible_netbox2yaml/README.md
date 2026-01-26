@@ -127,7 +127,7 @@ nb_devices['pc1.libcom.de']['primary_ip6']
 ```
 
 ## nb_vms
-As there is data from devices there is also data from virtual machines. Those are geing accessed via the `nb_vms` variable in the same fashion as `nb_devices`.
+As there is data from devices there is also data from virtual machines. Those are being accessed via the `nb_vms` variable in the same fashion as `nb_devices`.
 
 ## Sample Data from Netbox
 

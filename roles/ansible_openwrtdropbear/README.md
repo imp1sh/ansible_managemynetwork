@@ -1,6 +1,6 @@
 # imp1sh.ansible_managemynetwork.ansible_openwrtdropbear
 
-This role manages the SSH service. OpenWrt uses dropbear in contrast to many other system, that use OpenSSH.
+This role manages the SSH service. OpenWrt uses dropbear in contrast to many other systems that use OpenSSH.
 
 This is an example dropbear configuration:
 ```yaml
@@ -21,4 +21,4 @@ openwrt_dropbear_keysgroup:
     - "ssh-rsa AAAAB3NzaC1ya2EEAByourpublickey9Y100zB2xWp0= user2@hostname"
 ```
 
-More parameter are supported, see:[OpenWrt dropbear docs](https://openwrt.org/docs/guide-user/base-system/dropbear).
+More parameters are supported, see: [OpenWrt dropbear docs](https://openwrt.org/docs/guide-user/base-system/dropbear).

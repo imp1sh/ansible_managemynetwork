@@ -6,7 +6,7 @@
 
 
 # OpenWrt Imagebuilder specific stuff
-- name: "MMN Packages - Set seperator for OpenWrt imagebuilder run"
+- name: "MMN Packages - Set separator for OpenWrt imagebuilder run"
   ansible.builtin.set_fact:
     packages_separator: ' '
   when: packages_runimagebuilder | default(false) | bool
