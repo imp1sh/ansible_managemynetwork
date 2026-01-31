@@ -101,10 +101,8 @@
             3633303137353632350a326335356561373164363664306533393664313238333039636134316139
             6161
     name: "{{ item.rolename }}"
-    db: "{{ item.db | default(omit) }}"
     role_attr_flags: "{{ item.role_attr_flags | default(omit) }}"
     password: "{{ item.password }}"
-    priv: "{{ item.priv | default(omit) }}"
   loop: "{{ psqlserver_instance.value.roles }}"
   when:
     - psqlserver_instance.value.roles is defined
