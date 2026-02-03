@@ -8,7 +8,7 @@
     name: "{{ packages_install }}"
     state: present
   when:
-    - packages_install is truthy
+    - packages_install | length > 0
     - ansible_distribution != 'OpenWrt'
 
 - name: "MMN Packages - Installing packages OpenWrt"
@@ -17,5 +17,5 @@
     state: present
     update_cache: true
   when:
-    - packages_install is truthy
+    - packages_install | length > 0
     - ansible_distribution == 'OpenWrt'
