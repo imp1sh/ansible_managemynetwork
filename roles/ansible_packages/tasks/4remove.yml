@@ -8,7 +8,7 @@
     name: "{{ packages_remove }}"
     state: absent
   when:
-    - packages_remove is truthy
+    - packages_remove | length > 0
     - ansible_distribution != 'OpenWrt'
 
 - name: "MMN Packages - Uninstalling packages OpenWrt"
@@ -17,5 +17,5 @@
     state: absent
     update_cache: true
   when:
-    - packages_remove is truthy
+    - packages_remove | length > 0
     - ansible_distribution == 'OpenWrt'
