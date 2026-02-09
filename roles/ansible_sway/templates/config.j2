@@ -40,6 +40,9 @@ output {{ output.name }} {
 {% if output.position is defined %}
     position {{ output.position }}
 {% endif %}
+{% if output.resolution is defined %}
+    resolution {{ output.resolution }}
+{% endif %}
 {% if output.render_bit_depth is defined %}
     render_bit_depth "{{ output.render_bit_depth }}"
 {% endif %}
