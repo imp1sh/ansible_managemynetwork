@@ -1,18 +1,18 @@
 ---
 # tasks file for ansible_netbox2yaml
-- name: Run prefix task
+- name: "MMN netbox2yaml - Run prefix task"
   ansible.builtin.include_tasks:
     file: prefixes.yml
   when: nb_fetch_prefixes
-- name: Run devices task
+- name: "MMN netbox2yaml - Run devices task"
   ansible.builtin.include_tasks:
     file: devices.yml
   when: nb_fetch_devices
-- name: Run VMs task
+- name: "MMN netbox2yaml - Run VMs task"
   ansible.builtin.include_tasks:
     file: vms.yml
   when: nb_fetch_vms
-- name: Run VLANs task
+- name: "MMN netbox2yaml - Run vlans task"
   ansible.builtin.include_tasks:
     file: vlans.yml
   when: nb_fetch_vlans | default(false) | bool

@@ -4,23 +4,23 @@
 # The custom Field needs to carry the name ansible_identifier
 #
 # Fetching
-- name: "Fetching All IPv4 Prefixes"
+- name: "MMN netbox2yaml - Fetching All IPv4 Prefixes"
   ansible.builtin.set_fact:
     prefixes4: "{{ query('netbox.netbox.nb_lookup', 'prefixes', api_filter='family=4', api_endpoint=NETBOX_URL, token=NETBOX_TOKEN) }}"
 
-- name: "Fetching All IPv6 Prefixes"
+- name: "MMN netbox2yaml - Fetching All IPv6 Prefixes"
   ansible.builtin.set_fact:
     prefixes6: "{{ query('netbox.netbox.nb_lookup', 'prefixes', api_filter='family=6', api_endpoint=NETBOX_URL, token=NETBOX_TOKEN) }}"
 
 # Creating Vars
 # Create nb_prefixes_by_name (renamed from nb_prefixes)
-- name: "Writing found IPv4 prefixes into nb_prefixes_by_name"
+- name: "MMN netbox2yaml - Writing found IPv4 prefixes into nb_prefixes_by_name"
   ansible.builtin.set_fact:
     nb_prefixes_by_name: "{{ nb_prefixes_by_name | default({}) | combine( { item.name: { 4: { 'prefix': item.prefix }}}, recursive=true  ) }}"
   loop: "{{ prefixes4 | community.general.json_query('[*].value.{name: custom_fields.ansible_identifier, prefix: prefix}') }}"
   when: item.name is not none
 
-- name: "Writing found IPv6 ULA prefixes into nb_prefixes_by_name"
+- name: "MMN netbox2yaml - Writing found IPv6 ULA prefixes into nb_prefixes_by_name"
   ansible.builtin.set_fact:
     nb_prefixes_by_name: "{{ nb_prefixes_by_name | default({}) | combine( {item.name: { 6: { 'prefix': { 'ula': item.prefix }}}}, recursive=true ) }}"
   loop: "{{ prefixes6 | community.general.json_query('[*].value.{name: custom_fields.ansible_identifier, prefix: prefix}') }}"
@@ -29,7 +29,7 @@
     - item.prefix is defined
     - (item.prefix | upper)[:2] == 'FC' or (item.prefix | upper)[:2] == 'FD'
 
-- name: "Writing found IPv6 GUA prefixes into nb_prefixes_by_name"
+- name: "MMN netbox2yaml - Writing found IPv6 GUA prefixes into nb_prefixes_by_name"
   ansible.builtin.set_fact:
     nb_prefixes_by_name: "{{ nb_prefixes_by_name | default({}) | combine( {item.name: { 6: { 'prefix': { 'gua': item.prefix }}}}, recursive=true ) }}"
   loop: "{{ prefixes6 | community.general.json_query('[*].value.{name: custom_fields.ansible_identifier, prefix: prefix}') }}"
@@ -39,20 +39,20 @@
     - item.prefix[0] == '2' or item.prefix[0] == '3'
 
 # Create nb_prefixes_by_network (keyed by network prefix)
-- name: "Writing found IPv4 prefixes into nb_prefixes_by_network"
+- name: "MMN netbox2yaml - Writing found IPv4 prefixes into nb_prefixes_by_network"
   ansible.builtin.set_fact:
     nb_prefixes_by_network: "{{ nb_prefixes_by_network | default({}) | combine( { item.value.prefix: item.value }, recursive=true ) }}"
   loop: "{{ prefixes4 }}"
   when: item.value.prefix is defined
 
-- name: "Writing found IPv6 prefixes into nb_prefixes_by_network"
+- name: "MMN netbox2yaml - Writing found IPv6 prefixes into nb_prefixes_by_network"
   ansible.builtin.set_fact:
     nb_prefixes_by_network: "{{ nb_prefixes_by_network | default({}) | combine( { item.value.prefix: item.value }, recursive=true ) }}"
   loop: "{{ prefixes6 }}"
   when: item.value.prefix is defined
 
 # Write to file
-- name: write prefixes to file
+- name: "MMN netbox2yaml - write prefixes to file"
   ansible.builtin.template:
     src: netbox_prefixes.jinja2
     dest: "{{ nb_prefixes_destination }}"
