@@ -19,8 +19,10 @@ role_netbox2yaml.yml
     nb_devices_destination: "/home/jochen/ansible/group_vars/tags_ansible-netbox-devicesfetch.yml"
     nb_fetch_devices: true
     nb_fetch_prefixes: true
+    nb_fetch_vlans: true
+    nb_vlans_destination: "/home/jochen/ansible/group_vars/tags_ansible-netbox-vlansfetch.yml"
 ```
-The play naturally runs on the ansible host itself as it will generate yaml files. Further you can specify what data you would like to fetch (so far only vms, devices and prefixes). In my special case I'm grouping hosts by using netbox tags, so every host being in the netbox group `ansible-netbox-prefixesfetch` will have access to the data fetch from netbox. You can define that to your likings. Maybe you would like your hosts in the `allhosts` group to have access to the data, then you might want to set
+The play naturally runs on the ansible host itself as it will generate yaml files. Further you can specify what data you would like to fetch (so far vms, devices, prefixes, and vlans). In my special case I'm grouping hosts by using netbox tags, so every host being in the netbox group `ansible-netbox-prefixesfetch` will have access to the data fetch from netbox. You can define that to your likings. Maybe you would like your hosts in the `allhosts` group to have access to the data, then you might want to set
 ```yaml
 nb_prefixes_destination: "/home/jochen/ansible/group_vars/allhosts.yml"
 ```
@@ -128,6 +130,37 @@ nb_devices['pc1.libcom.de']['primary_ip6']
 
 ## nb_vms
 As there is data from devices there is also data from virtual machines. Those are being accessed via the `nb_vms` variable in the same fashion as `nb_devices`.
+
+## nb_vlan_groups and nb_vlans
+When `nb_fetch_vlans` is true, the role exports VLAN groups and VLANs to the variables `nb_vlan_groups` and `nb_vlans`. Each VLAN includes a dedicated `subnets` attribute: every NetBox prefix (subnet) that is linked to that VLAN is listed there (prefix string and NetBox id). Example:
+
+```yaml
+nb_vlan_groups:
+  My-VLAN-Group:
+    id: 1
+    name: My-VLAN-Group
+    slug: my-vlan-group
+    min_vid: 1
+    max_vid: 4094
+
+nb_vlans:
+  "42":
+    id: 42
+    vid: 100
+    name: guest-wifi
+    group: My-VLAN-Group
+    group_id: 1
+    status: active
+    role: ""
+    description: ""
+    subnets:
+      - prefix: "10.10.100.0/24"
+        id: 5
+      - prefix: "fd00:fe0:3f:2::/64"
+        id: 6
+```
+
+So you can look up VLANs by NetBox VLAN id, e.g. `nb_vlans['42']['subnets']` for the list of subnets linked to that VLAN.
 
 ## Sample Data from Netbox
 

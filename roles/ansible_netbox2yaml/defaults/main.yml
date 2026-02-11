@@ -1,2 +1,3 @@
 ---
 # defaults file for ansible_netbox2yaml
+nb_fetch_vlans: false

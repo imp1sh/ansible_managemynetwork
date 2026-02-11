@@ -1,0 +1,49 @@
+---
+# Export VLAN groups and VLANs from NetBox. For each VLAN, subnets (prefixes)
+# linked to that VLAN are included as a dedicated 'subnets' attribute.
+#
+# Fetching
+- name: "Fetching all VLAN groups"
+  ansible.builtin.set_fact:
+    nb_vlan_groups_fetched: "{{ query('netbox.netbox.nb_lookup', 'vlan-groups', api_endpoint=NETBOX_URL, token=NETBOX_TOKEN) }}"
+
+- name: "Fetching all VLANs"
+  ansible.builtin.set_fact:
+    nb_vlans_fetched: "{{ query('netbox.netbox.nb_lookup', 'vlans', api_endpoint=NETBOX_URL, token=NETBOX_TOKEN) }}"
+
+- name: "Fetching all prefixes (for vlan–subnet linkage)"
+  ansible.builtin.set_fact:
+    nb_prefixes_for_vlans: "{{ query('netbox.netbox.nb_lookup', 'prefixes', api_endpoint=NETBOX_URL, token=NETBOX_TOKEN) }}"
+
+# Prefixes that have a VLAN set (for building subnets per vlan)
+- name: "Build list of prefixes that are linked to a VLAN"
+  ansible.builtin.set_fact:
+    nb_prefixes_with_vlan: "{{ nb_prefixes_for_vlans | selectattr('value.vlan', 'defined') | rejectattr('value.vlan', 'none') | list }}"
+  when: nb_prefixes_for_vlans is defined
+
+# Build nb_vlan_groups (keyed by group name)
+- name: "Build nb_vlan_groups dict"
+  ansible.builtin.set_fact:
+    nb_vlan_groups: "{{ nb_vlan_groups | default({}) | combine({ item.value.name: { 'id': item.key, 'name': item.value.name, 'slug': item.value.slug | default(''), 'min_vid': item.value.min_vid | default(1), 'max_vid': item.value.max_vid | default(4094), 'scope_type': item.value.scope_type | default('') | string, 'scope_id': item.value.scope_id | default('') | string } }, recursive=true) }}"
+  loop: "{{ nb_vlan_groups_fetched }}"
+  when: nb_vlan_groups_fetched is defined
+
+# Build nb_vlans (keyed by vlan id); each vlan gets a 'subnets' attribute
+- name: "Build nb_vlans dict with subnets attribute"
+  ansible.builtin.set_fact:
+    nb_vlans: "{{ nb_vlans | default({}) | combine({ (item.key | string): _vlan_entry }, recursive=true) }}"
+  loop: "{{ nb_vlans_fetched }}"
+  vars:
+    _subnets: "{{ nb_prefixes_with_vlan | default([]) | map(attribute='value') | selectattr('vlan', 'defined') | rejectattr('vlan', 'none') | selectattr('vlan.id', 'equalto', item.key) | map('community.general.json_query', '{prefix: prefix, id: id}') | list }}"
+    _group_name: "{{ item.value.group.name if (item.value.group is defined and item.value.group is not none) else '' }}"
+    _group_id: "{{ item.value.group.id if (item.value.group is defined and item.value.group is not none) else '' }}"
+    _role_name: "{{ item.value.role.name if (item.value.role is defined and item.value.role is not none) else '' }}"
+    _vlan_entry: "{{ { 'id': item.key, 'vid': item.value.vid, 'name': item.value.name | default('') | string, 'group': _group_name | string, 'group_id': _group_id | string, 'status': item.value.status.value | default('') | string, 'role': _role_name | string, 'description': item.value.description | default('') | string, 'subnets': _subnets } }}"
+  when: nb_vlans_fetched is defined
+
+# Write to file
+- name: Write VLANs and VLAN groups to file
+  ansible.builtin.template:
+    src: netbox_vlans.jinja2
+    dest: "{{ nb_vlans_destination }}"
+  when: nb_vlans_destination is defined
