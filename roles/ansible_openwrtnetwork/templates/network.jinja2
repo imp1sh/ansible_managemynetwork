@@ -4,11 +4,11 @@
 {{ functions.create_interfaces(openwrt_network_interfacesdefault) }}
 # Global configuration
 config globals 'globals'
-{% if openwrt_network_globals_ula is defined %}
-	option ula_prefix '{{ openwrt_network_globals_ula }}'
-{% endif %}
 {% if openwrt_network_globals_default_duid is defined %}
 	option dhcp_default_duid '{{ openwrt_network_globals_default_duid }}'
+{% endif %}
+{% if openwrt_network_globals_ula is defined %}
+	option ula_prefix '{{ openwrt_network_globals_ula }}'
 {% endif %}
 {% if openwrt_network_globals_packet_steering is defined %}
 	option packet_steering '{{ openwrt_network_globals_packet_steering }}'

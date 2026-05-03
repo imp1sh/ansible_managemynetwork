@@ -108,9 +108,9 @@ config redirect
 {% if ( value["disabled"] is not defined ) or ( value["disabled"] is defined and not value["disabled"] )%}
 config zone
 	option name '{{ key }}'
-	option forward '{{ value["forward"] }}'
 	option input '{{ value["input"] }}'
 	option output '{{ value["output"] }}'
+	option forward '{{ value["forward"] }}'
 {% if value["log"] is defined %}
 	option log '{{ value["log"] }}'
 {% endif %}
