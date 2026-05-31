@@ -106,6 +106,9 @@ config wireguard_{{ value['interface'] }}
 {% endmacro %}
 
 {% macro create_bridge_vlan(allbrvlan) %}
+{% if allbrvlan | length == 0 %}
+# No bridge-vlan devices defined
+{% else %}
 {% for bridgevlan in allbrvlan %}
 config bridge-vlan
 	option device "{{ bridgevlan.device }}"
@@ -119,6 +122,7 @@ config bridge-vlan
 {% endfor %}
 {% endif %}
 {% endfor %}
+{% endif %}
 {% endmacro %}
 
 {% macro create_devices(alldevices) %}
@@ -611,9 +615,17 @@ config rule6 '{{ key }}'
 {% endmacro %}
 
 {% macro create_rules4(allrules4) %}
+{% if allrules4 | length == 0 %}
+# No IPv4 rules defined
+{% else %}
 {{ create_rules(allrules4, 4)}}
+{% endif %}
 {% endmacro %}
 
 {% macro create_rules6(allrules6) %}
+{% if allrules6 | length == 0 %}
+# No IPv6 rules defined
+{% else %}
 {{ create_rules(allrules6, 6)}}
+{% endif %}
 {% endmacro %}

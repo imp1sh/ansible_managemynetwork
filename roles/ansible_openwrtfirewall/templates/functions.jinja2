@@ -1,4 +1,7 @@
 {% macro create_redirects(allredirects) %}
+{% if allredirects | length == 0 %}
+# No redirects defined
+{% else %}
 {% for key, value in allredirects.items() %}
 config redirect
 	option name "{{ key }}"
@@ -91,6 +94,7 @@ config redirect
 	option hellper "{{ value['hellper'] }}"
 {% endif %}
 {% endfor %}
+{% endif %}
 {% endmacro %}
 
 {% macro create_zones(allzones) %}
@@ -152,6 +156,8 @@ config forwarding
 {% if forwarding['enabled'] is defined %}
 	option enabled "{{ forwarding['enabled'] }}"
 {% endif %}
+{% else %}
+# Ignoring forwarding from {{ forwarding['src'] }} to {{ forwarding['dest'] }} as one of the zones is not active
 {% endif %}
 {% endfor %}
 {% endmacro %}
@@ -236,6 +242,8 @@ config rule
 	option limit "{{ value['limit'] }}"
 {% endif %}
 	option target "{{ value['target'] }}"
+{% else %}
+# Ignoring rule {{ key }} as source or destination zone is not active
 {% endif %}
 {% endfor %}
 {% endmacro %}
