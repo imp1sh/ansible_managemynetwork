@@ -144,7 +144,7 @@ nb_vlan_groups:
     max_vid: 4094
 
 nb_vlans:
-  "42":
+  "100":
     id: 42
     vid: 100
     name: guest-wifi
@@ -160,7 +160,7 @@ nb_vlans:
         id: 6
 ```
 
-So you can look up VLANs by NetBox VLAN id, e.g. `nb_vlans['42']['subnets']` for the list of subnets linked to that VLAN.
+The dict is keyed by vlan id (vid). So you can look up VLANs by vid, e.g. `nb_vlans['100']['subnets']` for the list of subnets linked to that VLAN. The `id` field in each entry is the NetBox internal id.
 
 ## Sample Data from Netbox
 
