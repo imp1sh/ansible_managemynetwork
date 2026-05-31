@@ -28,10 +28,10 @@
   loop: "{{ nb_vlan_groups_fetched }}"
   when: nb_vlan_groups_fetched is defined
 
-# Build nb_vlans (keyed by vlan id); each vlan gets a subnets attribute
+# Build nb_vlans (keyed by vid / vlan id); each vlan gets a subnets attribute
 - name: "MMN netbox2yaml - Build nb_vlans dict"
   ansible.builtin.set_fact:
-    nb_vlans: "{{ nb_vlans | default({}) | combine({ (item.key | string): _vlan_entry }, recursive=true) }}"
+    nb_vlans: "{{ nb_vlans | default({}) | combine({ (item.value.vid | string): _vlan_entry }, recursive=true) }}"
   loop: "{{ nb_vlans_fetched }}"
   vars:
     _subnets: "{{ nb_prefixes_with_vlan | default([]) | map(attribute='value') | selectattr('vlan', 'defined') | rejectattr('vlan', 'none') | selectattr('vlan.id', 'equalto', item.key) | map('community.general.json_query', '{prefix: prefix, id: id}') | list }}"
