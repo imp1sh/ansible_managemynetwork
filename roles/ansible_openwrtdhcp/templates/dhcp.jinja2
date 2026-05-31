@@ -76,6 +76,9 @@ config dnsmasq
 {% if openwrt_dhcp_dnsmasq_filterwin2k is defined %}
 	option filterwin2k "{{ openwrt_dhcp_dnsmasq_filterwin2k }}"
 {% endif %}
+{% if openwrt_dhcp_dnsmasq_filter_aaaa is defined %}
+	option filter_aaaa "{{ openwrt_dhcp_dnsmasq_filter_aaaa }}"
+{% endif %}
 {% if openwrt_dhcp_dnsmasq_fqdn is defined %}
 	option fqdn "{{ openwrt_dhcp_dnsmasq_fqdn }}"
 {% endif %}
