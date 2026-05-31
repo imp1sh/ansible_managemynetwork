@@ -20,7 +20,7 @@ config globals "globals"
 {% endif %}
 
 # bridge_vlan devices
-{% if openwrt_network_bridge_vlan is defined %}
+{% if openwrt_network_bridge_vlan is defined and openwrt_network_bridge_vlan | length > 0 %}
 {{ functions.create_bridge_vlan(openwrt_network_bridge_vlan) }}
 {% endif %}
 
@@ -61,12 +61,12 @@ config dsl "dsl"
 {{ functions.create_staticroutes6(openwrt_network_staticroutes6) }}
 {% endif %}
 
-{% if openwrt_network_rules4 is defined %}
+{% if openwrt_network_rules4 is defined and openwrt_network_rules4 | length > 0 %}
 # IPv4 rules
 {{ functions.create_rules4(openwrt_network_rules4) }}
 {% endif %}
 
-{% if openwrt_network_rules6 is defined %}
+{% if openwrt_network_rules6 is defined and openwrt_network_rules6 | length > 0 %}
 # IPv6 rules
 {{ functions.create_rules6(openwrt_network_rules6) }}
 {% endif %}
