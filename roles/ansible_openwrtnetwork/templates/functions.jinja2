@@ -342,6 +342,9 @@ config interface "{{ key }}"
 {% if value['wg_ip6weight'] is defined %}
 	option ip6weight "{{ value['wg_ip6weight'] }}"
 {% endif %}
+{% if value['wg_mtu'] is defined %}
+	option mtu "{{ value['wg_mtu'] }}"
+{% endif %}
 	# CONFIG OPTIONS WIREGUARD END
 {% endif %}
 {% if value['proto'] == "dhcp" %}
