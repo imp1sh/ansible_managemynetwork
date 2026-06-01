@@ -65,9 +65,10 @@ openwrt_network_interfacesgroup:
 ```
 
 # Global Parameters
-You can define ULA IPv6 and global packet steering on a global level.
+You can define ULA IPv6, DUID and global packet steering on a global level.
 ```yaml
 openwrt_network_globals_ula: "fd8d:2afe:fa38::/48"
+openwrt_network_globals_default_duid: 123456781234567812345678123456781234
 openwrt_network_globals_packet_steering: 1
 
 ```

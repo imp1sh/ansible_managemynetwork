@@ -6,7 +6,7 @@
 
 - name: "MMN dhcp - Make sure deploypath is present"
   ansible.builtin.file:
-    path: "{{ openwrt_dhcp_deploypath }}"
+    path: "{{ openwrt_dhcp_deployroot }}{{ openwrt_dhcp_deploypath }}"
     state: directory
   delegate_to: "{{ _dhcp_target_host }}"
 

@@ -10,3 +10,8 @@
     name: system
     state: restarted
   when: not openwrt_system_runimagebuilder | default(false) | bool
+- name: restart leds
+  ansible.builtin.service:
+    name: led
+    state: restarted
+  when: not openwrt_system_runimagebuilder | default(false) | bool

@@ -24,4 +24,5 @@
   notify:
     - restart logging
     - restart systemservice
+    - restart leds
   delegate_to: "{{ _openwrt_system_target_host }}"
