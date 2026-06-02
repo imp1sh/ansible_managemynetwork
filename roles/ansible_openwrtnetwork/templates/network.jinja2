@@ -1,17 +1,20 @@
-{% import "functions.jinja2" as functions with context %}
+{% import 'functions.jinja2' as functions with context %}
 # Configuration distributed by Ansible
 # Default interfaces
 {{ functions.create_interfaces(openwrt_network_interfacesdefault) }}
 # Global configuration
-config globals "globals"
+config globals 'globals'
+{% if openwrt_network_globals_default_duid is defined %}
+	option dhcp_default_duid '{{ openwrt_network_globals_default_duid }}'
+{% endif %}
 {% if openwrt_network_globals_ula is defined %}
-	option ula_prefix "{{ openwrt_network_globals_ula }}"
+	option ula_prefix '{{ openwrt_network_globals_ula }}'
 {% endif %}
 {% if openwrt_network_globals_packet_steering is defined %}
-	option packet_steering "{{ openwrt_network_globals_packet_steering }}"
+	option packet_steering '{{ openwrt_network_globals_packet_steering }}'
 {% endif %}
 {% if openwrt_network_globals_steering_flows is defined %}
-	option steering_flows "{{ openwrt_network_globals_steering_flows }}"
+	option steering_flows '{{ openwrt_network_globals_steering_flows }}'
 {% endif %}
 
 # Devices
@@ -36,19 +39,19 @@ config globals "globals"
 
 # DSL options
 {% if openwrt_network_dsl is defined %}
-config dsl "dsl"
+config dsl 'dsl'
 {% endif %}
 {% if openwrt_network_dsl.annex is defined %}
-	option annex "{{ openwrt_network_dsl.annex }}"
+	option annex '{{ openwrt_network_dsl.annex }}'
 {% endif %}
 {% if openwrt_network_dsl.tone is defined %}
-	option tone "{{ openwrt_network_dsl.tone }}"
+	option tone '{{ openwrt_network_dsl.tone }}'
 {% endif %}
 {% if openwrt_network_dsl.ds_snr_offset is defined %}
-	option ds_snr_offset "{{ openwrt_network_dsl.ds_snr_offset }}"
+	option ds_snr_offset '{{ openwrt_network_dsl.ds_snr_offset }}'
 {% endif %}
 {% if openwrt_network_dsl.xfer_mode is defined %}
-	option xfer_mode "{{ openwrt_network_dsl.xfer_mode }}"
+	option xfer_mode '{{ openwrt_network_dsl.xfer_mode }}'
 {% endif %}
 
 # Static routes
