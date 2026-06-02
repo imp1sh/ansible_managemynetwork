@@ -481,6 +481,9 @@ config interface '{{ key }}'
 	list ip6class '{{ ip6class }}'
 {% endfor %}
 {% endif %}
+{% if value["defaultroute"] is defined %}
+	option defaultroute '{{ value["defaultroute"] }}'
+{% endif %}
 {% if value.dnssearch is defined %}
 {% for dnssearch in value.dnssearch %}
 	list dns_search '{{ dnssearch }}'
