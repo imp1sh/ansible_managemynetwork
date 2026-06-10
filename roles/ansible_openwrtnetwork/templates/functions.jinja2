@@ -506,6 +506,9 @@ config interface "{{ key }}"
 {% if value['metric'] is defined %}
 	option metric "{{ value['metric'] }}"
 {% endif %}
+{% if value['defaultroute'] is defined %}
+	option defaultroute "{{ value['defaultroute'] }}"
+{% endif %}
 	# CONFIG OPTIONS STATIC END
 {% endif %}
 {% if value['proto'] == "none" %}
