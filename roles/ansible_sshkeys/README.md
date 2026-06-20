@@ -2,7 +2,7 @@
 
 [Source Code on GitHub](https://github.com/imp1sh/ansible_managemynetwork/tree/main/roles/ansible_sshkeys)
 
-This role distributes ssh public keys to hosts and on that hosts to one or multiple users. It can of course delete records, too.
+This role distributes ssh public keys to hosts and on that hosts to one or multiple users. It can of course delete records, too. It now supports OpenWrt devices.
 
 > This role might take some time because for every host you run it on it will iterate over every key defined in `system_sshkeys`.
 {.is-warning}
@@ -12,7 +12,7 @@ Sample playbook of how to call the role:
 ```yaml
 ---
 - name: sshkeys deployment
-  hosts: tags_allhosts, !platforms_openwrt
+  hosts: tags_allhosts
   become: true
   roles:
     - imp1sh.ansible_managemynetwork.ansible_sshkeys

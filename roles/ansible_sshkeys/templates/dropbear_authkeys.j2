@@ -1,5 +1,12 @@
-{% for keyitem in sshkeys %}
-{% if keyitem['state'] != 'absent' %}
-{{ keyitem.key }}
-{% endif %}
-{% endfor %}
+{% for key_id, deploy_cfg in system_sshkeys_deploy_on_hostgroups.items() -%}
+{% set key_cfg = system_sshkeys.get(key_id) -%}
+
+{% if key_cfg
+   and key_cfg.state != 'absent'
+   and target_user in deploy_cfg.users
+   and (deploy_cfg.hostgroups | intersect(group_names)) -%}
+
+{{ key_cfg.type }} {{ key_cfg.key }} {{ key_id }}
+
+{% endif -%}
+{% endfor -%}
