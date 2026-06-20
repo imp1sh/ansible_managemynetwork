@@ -10,7 +10,8 @@ galaxy_info:
     - name: Fedora
       versions:
         - 43
+        - 44
     - name: Debian
       versions:
-        - all
+        - 13
   dependencies: []
