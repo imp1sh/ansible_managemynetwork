@@ -1,4 +1,4 @@
-# imp1sh.ansible_managemynetwork.ansible_packages
+# imp1sh.ansible_managemynetwork.ansible_sway
 
 Ansible role for managing the Sway window manager
 
@@ -7,7 +7,8 @@ This role installs and configures the Sway window manager on Linux systems.
 ## Requirements
 
 - Ansible 2.9 or higher
-- Fedora 43
+- Fedora 43 or 44
+- Debian 13
 - The role depends on `imp1sh.ansible_managemynetwork.ansible_packages` for package management
 
 ## Role Variables
@@ -43,6 +44,93 @@ These variables are automatically set based on the target distribution:
 - `sway_terminal`: Terminal emulator command (default: "alacritty")
 - `sway_menu`: Application launcher/menu command (default: "rofi --show drun")
 - `sway_font`: Font specification (default: "pango:Monospace 10")
+
+#### Color Configuration
+
+- `sway_colors`: Dictionary of color settings for different elements.
+  - `background`: Background color (default: "#1c1c1c")
+  - `statusline`: Status line color (default: "#ffffff")
+  - `focused`: Focused window color (default: "#ffaa00")
+  - `border`: Border color (default: "#ffaa00")
+  - `child_border`: Child border color (default: "#ffaa00")
+  - `indicator`: Indicator color (default: "#1c1c1c")
+  - `separator`: Separator color (default: "#1c1c1c")
+  - `workspace`: Workspace color (default: "#ffaa00")
+  - `inactive`: Inactive window color (default: "#2d2d2d")
+  - `urgent`: Urgent window color (default: "#e63946")
+  - `binding_mode`: Binding mode color (default: "#e63946")
+  - `binding_mode_statusline`: Binding mode status line color (default: "#ffffff")
+  - `binding_mode_separator`: Binding mode separator color (default: "#83343b")
+
+#### Gaps Configuration
+
+- `sway_gaps_inner`: Inner gaps in pixels (default: 0)
+- `sway_gaps_outer`: Outer gaps in pixels (default: 0)
+
+#### Keybindings Configuration
+
+- `sway_keybindings`: List of custom keybindings.
+  - `keys`: Key combination (e.g., "$mod+Return")
+  - `command`: Command to execute
+
+#### Window Attributes Configuration
+
+- `sway_window_attributes`: Dictionary of window attributes and rules.
+  - Keys are window names/markers
+  - Values are lists of rules with:
+    - `criteria`: Window criteria (e.g., "class:Firefox")
+    - `workspace`: Target workspace number
+    - `floating`: Whether to make window floating (true/false)
+
+#### Exec Commands Configuration
+
+- `sway_exec_commands`: List of commands to execute on startup.
+  - `command`: Command to execute
+
+#### Focus Configuration
+
+- `sway_focus_wrapping`: Whether to wrap focus when reaching edges (default: null)
+- `sway_focus_on_window_activation`: How to handle focus on window activation (default: null)
+  - "smart", "urgent", or "none"
+- `sway_mouse_warping`: How to handle mouse movement (default: null)
+  - "output", "container", or "none"
+
+#### Layout Configuration
+
+- `sway_workspace_layout`: Default workspace layout (default: null)
+  - "stacking", "tabbed", or "split"
+- `sway_workspace_auto_back_and_forth`: Whether to auto-switch between workspaces (default: null)
+- `sway_default_orientation`: Default orientation (default: null)
+  - "horizontal" or "vertical"
+
+#### Floating Configuration
+
+- `sway_floating_modifier`: Modifier key for floating toggle (default: "$mod")
+- `sway_floating_minimum_size`: Minimum size for floating windows (default: "75 x 50")
+- `sway_floating_maximum_size`: Maximum size for floating windows (default: "-1 x -1")
+
+#### Sway Configuration
+
+- `sway_xwayland_disable`: Disable Xwayland (default: null)
+- `sway_force_xwayland`: Force Xwayland (default: null)
+- `sway_title_format`: Title format for windows (default: null)
+- `sway_includes`: List of additional config files to include (default: null)
+
+#### Output Configuration
+
+Configure display outputs using the `sway_outputs` list:
+  - `name`: Output name (e.g., "eDP-1", "HDMI-A-1", or "*" for all)
+  - `background_image`: Background image path (optional)
+  - `background_color`: Background color (optional)
+  - `background_mode`: Background mode (optional)
+  - `mode`: Output resolution (optional)
+
+#### Input Configuration
+
+Configure input devices using the `sway_inputs` list:
+  - `identifier`: Input identifier (e.g., "type:keyboard", "type:touchpad", or "*" for all)
+  - `xkb_layout`: Keyboard layout (optional)
+  - `xkb_variant`: Keyboard variant (optional)
 
 #### Output Configuration
 
@@ -298,8 +386,7 @@ sway_exec_commands:
 
 See `defaults/main.yml` for the complete list of all available variables.
 
-Dependencies
-------------
+## Dependencies
 
 This role depends on:
 - `imp1sh.ansible_managemynetwork.ansible_packages` - For package installation
@@ -407,12 +494,81 @@ Window assignments:
             workspace: "3"
 ```
 
-License
--------
+## Troubleshooting
 
-MIT-0
+### Sway configuration validation
 
-Author Information
-------------------
+After running the role, you can validate the generated configuration:
+
+```bash
+swaymsg -t get_tree
+```
+
+### Common issues
+
+**Sway not starting after configuration:**
+
+1. Check if the configuration file exists:
+   ```bash
+   ls -la ~/.config/sway/config
+   ```
+
+2. Validate the configuration syntax:
+   ```bash
+   swaymsg -c ~/.config/sway/config
+   ```
+
+3. Check for syntax errors in the configuration:
+   ```bash
+   swaymsg -t get_tree 2>&1 | grep -i error
+   ```
+
+**Configuration not applied:**
+
+1. Check if the role ran successfully:
+   ```bash
+   ansible-playbook playbook.yml --syntax-check
+   ```
+
+2. Verify the configuration file permissions:
+   ```bash
+   ls -la ~/.config/sway/config
+   ```
+
+3. Check the role logs for errors.
+
+**Backup files:**
+
+If the role fails, backup files are created with the `.backup.<timestamp>` suffix. You can restore them:
+
+```bash
+cp ~/.config/sway/config.backup.<timestamp> ~/.config/sway/config
+```
+
+## Changelog
+
+### Version 2.0.0 (2026-06-20)
+
+**Improvements:**
+- Fixed template syntax errors (missing quotes)
+- Added configuration validation
+- Improved error handling
+- Added file existence checks
+- Added backup mechanism for existing configurations
+- Added comprehensive documentation
+- Improved testing
+- Updated to support multiple distributions (Debian)
+- Standardized variable naming
+- Added troubleshooting section
+
+**Bug Fixes:**
+- Fixed hardcoded paths
+- Fixed template syntax errors
+- Fixed license inconsistency
+
+**Breaking Changes:**
+- None
+
+## Author Information
 
 This role is part of the ansible_managemynetwork collection.
