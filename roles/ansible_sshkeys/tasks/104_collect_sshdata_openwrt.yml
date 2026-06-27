@@ -1,0 +1,50 @@
+---
+- name: Initialize an empty dict for host keys
+  ansible.builtin.set_fact:
+    _temp_host_keys_openwrt: {}
+
+- name: Slurp SSH public keys from host
+  ansible.builtin.slurp:
+    src: "/etc/dropbear/dropbear_{{ item }}_host_key"
+  register: ssh_public_keys_openwrt
+  ignore_errors: true
+  loop:
+    - ed25519
+    - rsa
+    - ecdsa
+
+- name: Parse and combine keys into a structured dictionary
+  ansible.builtin.set_fact:
+    _temp_host_keys_openwrt: >-
+      {{
+        _temp_host_keys_openwrt | default({}) | combine({
+          item.item: {
+            'keytype': (item.content | b64decode).split(' ')[0],
+            'keydata': (item.content | b64decode).split(' ')[1]
+          }
+        })
+      }}
+  when: item.failed is not defined or not item.failed
+  loop: "{{ ssh_public_keys_openwrt.results }}"
+  no_log: true
+
+- name: Format keys under the inventory hostname
+  ansible.builtin.set_fact:
+    host_ssh_dict_openwrt: "{{ {inventory_hostname: _temp_host_keys_openwrt} }}"
+
+# - name: debug
+#   debug:
+#     var: host_ssh_dict_openwrt
+
+
+# WRITING THE DATA
+
+- name: Ensure SSH data output directory exists
+  ansible.builtin.file:
+    path: "{{ system_sshkeys_collect_data_filepath }}"
+    state: directory
+    mode: '0755'
+  delegate_to: localhost
+  become: false
+
+  # TODO: Add method that will actually deploy the keys on OpenWrt hosts. Currenltly the role only deploys them to commonlinux systems.
