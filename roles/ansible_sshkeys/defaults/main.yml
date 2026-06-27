@@ -1,2 +1,14 @@
 ---
 # defaults file for ansible_sshkeys/
+
+# Enable SSH data collection feature
+system_sshkeys_collect_data: false
+
+# Filename of where the ssh data will be stored
+system_sshkeys_collect_data_filename: "ssh_hosts_public_keys.yml"
+
+# Directory where collected SSH data will be saved
+system_sshkeys_collect_data_filepath: "{{ system_sshkeys_sshdata_output_dir | default(playbook_dir ~ '/ssh_data') }}"
+
+# Path to the system-wide known_hosts file on target hosts
+system_sshkeys_known_hosts_path: "/etc/ssh/ssh_known_hosts"

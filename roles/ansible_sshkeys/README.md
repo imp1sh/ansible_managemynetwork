@@ -61,3 +61,30 @@ system_sshkeys_deploy_on_hostgroups:
 ```
 
 Make sure to define those variable so your host will have access the variables listed above. Typically you have a list of users that is valid for all of your hosts, so you might want to put it in group_vars/all.yml or whatever you prefer.
+
+## SSH Data Collection Feature
+
+This role now supports collecting comprehensive SSH-relevant data from target hosts when enabled via the following variable:
+
+```yaml
+# Enable SSH data collection feature
+system_sshkeys_collect_data: true
+
+# Directory where collected SSH data will be saved
+system_sshkeys_sshdata_output_dir: "{{ playbook_dir }}/ssh_data"
+
+# Optional: List of specific hosts to collect SSH data from
+system_sshkeys_sshdata_hosts: []
+```
+
+When enabled, this feature will:
+- Collect SSH key fingerprints, types, and lengths from all authorized_keys files on target hosts
+- Extract full public key data for each key
+- Store structured data in YAML format following Ansible's variable storage conventions
+- Output data to individual files named `hostname_sshdata.yml` in the specified output directory
+
+The collected data includes:
+- Key fingerprints for security validation
+- Public key types (rsa, ed25519, etc.)
+- Full public key content
+- Host associations for comprehensive key management and auditing
