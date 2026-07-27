@@ -3,6 +3,10 @@
 > [!WARNING]  
 > python3-netaddr needs to be installed for this role
 
+> [!TIP]
+> You can skip the automatic restart if you set `openwrt_network_skiprestart=true`
+> You can save your network config on the device by setting `openwrt_network_backupconfig=true`
+
 This role configures network interfaces in OpenWrt while not all interface types are supported just yet. This is me trying to assemble a list of what's supported so far. The most comprehensive list so far is [this](https://openwrt.org/docs/guide-user/network/wan/wan_interface_protocols).
 - static
 - dhcp
