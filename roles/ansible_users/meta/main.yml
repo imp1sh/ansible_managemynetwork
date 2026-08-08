@@ -11,5 +11,10 @@ galaxy_info:
     - name: Debian
     - name: Ubuntu
     - name: FreeBSD
+    - name: Alpine
+    - name: ArchLinux
+    - name: EL
+    - name: Fedora
+    - name: OpenWrt
   galaxy_tags: [user, users, posix]
 dependencies: []
