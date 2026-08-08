@@ -1,6 +1,7 @@
 ---
 system_users_additional_packages:
   - "shadow-useradd"
+  - "shadow-userdel"
   - "shadow-usermod"
   - "sudo"
 shells:
