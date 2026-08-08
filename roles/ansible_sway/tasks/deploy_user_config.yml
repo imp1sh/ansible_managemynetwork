@@ -121,8 +121,6 @@
   ansible.builtin.systemd:
     daemon_reload: true
     scope: user
-  environment:
-    XDG_RUNTIME_DIR: "/run/user/{{ getent_passwd[target_user][1] }}"
   become: true
   become_user: "{{ target_user }}"
   when: sway_cleanup_enable | default(true)
@@ -133,8 +131,6 @@
     enabled: true
     state: started
     scope: user
-  environment:
-    XDG_RUNTIME_DIR: "/run/user/{{ getent_passwd[target_user][1] }}"
   become: true
   become_user: "{{ target_user }}"
   when: sway_cleanup_enable | default(true)
