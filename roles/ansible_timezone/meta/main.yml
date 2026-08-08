@@ -2,7 +2,7 @@ galaxy_info:
   role_name: timezone
   author: imp1sh
   description: Setup system timezone
-  license: license (BSD, MIT)
+  license: BSD-3-Clause
   min_ansible_version: 2.0
   platforms:
   - name: Alpine

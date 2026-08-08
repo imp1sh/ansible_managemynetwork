@@ -2,7 +2,7 @@ galaxy_info:
   role_name: sshkeys
   author: imp1sh
   description: Install ssh keys for specific users.
-  license: license (BSD)
+  license: BSD-3-Clause
   min_ansible_version: 2.9
   platforms:
   - name: Alpine
