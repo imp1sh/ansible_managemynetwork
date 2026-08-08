@@ -8,10 +8,11 @@
       become: True
       community.crypto.openssl_privatekey:
         path: "{{ cacert_path_serverkey }}"
-        passphrase: "{{ cacert_servercert_passphrase|default(omit) }}"
+        passphrase: "{{ cacert_servercert_passphrase | default(omit) }}"
         size: "{{ cacert_servercert_bitsize | default('4096') }}"
         type: "{{ cacert_servercert_type | default('RSA') }}"
         curve: "{{ cacert_servercert_curve | default(omit) }}"
+        mode: "0600"
 
     - name: "MMN cacert - Make sure additional paths exist"
       become: true
@@ -31,7 +32,7 @@
         src: "{{ cacert_path_serverkey }}"
         remote_src: True
         dest: "{{ additionalpaths.dest }}/{{ cacert_filename_serverkey }}"
-        mode: 0600
+        mode: "0600"
         owner: "{{ additionalpaths.user | default(omit) }}"
         group: "{{ additionalpaths.group | default(omit) }}"
       loop: "{{ cacert_serverkey_additionalpaths }}"
@@ -40,6 +41,13 @@
       when:
         - cacert_serverkey_additionalpaths is defined
         - additionalpaths.state | default('present') == 'present'
+
+- name: "MMN cacert - Remove server private key"
+  become: true
+  ansible.builtin.file:
+    path: "{{ cacert_path_serverkey }}"
+    state: absent
+  when: cacert_ca.value.state | default('present') == 'absent'
 
 - name: "MMN cacert - Remove server private key from additional paths"
   become: true
@@ -51,4 +59,4 @@
     loop_var: "additionalpaths"
   when:
     - cacert_serverkey_additionalpaths is defined
-    - additionalpaths.state | default('present') == 'absent'
+    - (additionalpaths.state | default('present') == 'absent') or (cacert_ca.value.state | default('present') == 'absent')

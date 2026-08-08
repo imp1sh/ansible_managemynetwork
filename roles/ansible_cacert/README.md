@@ -4,6 +4,8 @@ This role aims to make the process of certificate management as comfortable and 
 It also tries to be ephemeral, meaning that even in case of a CA private key loss or security breach, you can remove old data by setting the attribute `state: absent` and almost everything will be removed. Set state again to `present` and let it run again. All your certificates / keys will be renewed. The reason for this role is to just conveniently get certificates from a self signed and self managed CA onto your hosts. Multiple CA are supported but not sub CAs. Each host will just automatically get a server cert that its common name is the `inventory_hostname` from Ansible, so typically the fqdn. This role tightly integrates into the `ansible_podman` role together with its plugin system. `ansible_podman` not only delivers containers to hosts but with its plugin system and `ansible_cacert` it will fully automate the delivery of services with configuration and certificates in an ephemeral way. Worst case scenario just redeploy the whole setup. The certs will also be new but as everything is automated it should be much of a hassle. (Infrastructure as Code / IaC).
 CSR will never be written but always only be in memory during ansible runs. CA will also support Certificate Revocation Lists by default but this feature is untested.
 
+**Time format:** all `not_after` / `not_before` values use relative timespecs understood by `community.crypto`: a sign (`+`/`-`) followed by combinations of `w` (weeks), `d` (days), `h` (hours), `m` (minutes), `s` (seconds). Years (`y`) and months are **not** supported — use weeks instead (e.g. `+520w` for ~10 years).
+
 Role supports:
 - Debian
 - Fedora
@@ -190,7 +192,7 @@ cacert_cas:
     organizational_unit_name: "CA Managers"
     state_or_province_name: "Titz"
     locality_name: "Ottweiler"
-    not_after: "+10y"
+    not_after: "+520w"
     not_before: "-2d"
     key:
       type: "RSA"
@@ -211,7 +213,7 @@ cacert_cas:
     organizational_unit_name: "CA Managers"
     state_or_province_name: "Titz"
     locality_name: "Ottweiler"
-    not_after: "+10y"
+    not_after: "+520w"
     not_before: "-2d"
     key:
       type: "ECC"

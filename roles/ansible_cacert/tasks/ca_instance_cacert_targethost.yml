@@ -6,12 +6,44 @@
     dest: "{{ cacert_path_cacert_targethost }}"
     backup: True
   when: cacert_ca.value.state | default('present') == 'present'
+  notify: "MMN cacert - Update trust store"
+
+- name: "MMN cacert - Merge CA cert into OpenWrt trust bundle"
+  become: True
+  ansible.builtin.blockinfile:
+    path: "{{ cacert_openssl_path_certificate_ca }}/ca-certificates.crt"
+    create: true
+    marker: "# {mark} ANSIBLE_MANAGEMYNETWORK_ANSIBLE_CACERT {{ cacert_filename_cacert }}"
+    block: "{{ cacert_ca_cert.certificate }}"
+  when:
+    - ansible_distribution == 'OpenWrt'
+    - not cacert_runimagebuilder | default(false) | bool
+    - cacert_ca.value.state | default('present') == 'present'
+
+- name: "MMN cacert - Remove CA cert from target host"
+  become: True
+  ansible.builtin.file:
+    path: "{{ cacert_path_cacert_targethost }}"
+    state: absent
+  when: cacert_ca.value.state | default('present') == 'absent'
+  notify: "MMN cacert - Update trust store"
+
+- name: "MMN cacert - Remove CA cert from OpenWrt trust bundle"
+  become: True
+  ansible.builtin.blockinfile:
+    path: "{{ cacert_openssl_path_certificate_ca }}/ca-certificates.crt"
+    state: absent
+    marker: "# {mark} ANSIBLE_MANAGEMYNETWORK_ANSIBLE_CACERT {{ cacert_filename_cacert }}"
+  when:
+    - ansible_distribution == 'OpenWrt'
+    - not cacert_runimagebuilder | default(false) | bool
+    - cacert_ca.value.state | default('present') == 'absent'
 
 # ADDITIONAL PATH
 - name: "MMN cacert - Additional paths block"
   when:
     - cacert_cacert_additionalpaths is defined
-    - additionalpaths.state | default('present') == 'present'
+    - cacert_ca.value.state | default('present') == 'present'
   block:
     - name: "MMN cacert - Make sure additional paths exist"
       become: true
@@ -21,7 +53,8 @@
       loop: "{{ cacert_cacert_additionalpaths }}"
       loop_control:
         loop_var: "additionalpaths"
-    
+      when: additionalpaths.state | default('present') == 'present'
+
     - name: "MMN cacert - Write ca cert to additional paths"
       become: True
       ansible.builtin.copy:
@@ -33,6 +66,7 @@
       loop: "{{ cacert_cacert_additionalpaths }}"
       loop_control:
         loop_var: "additionalpaths"
+      when: additionalpaths.state | default('present') == 'present'
 
 - name: "MMN cacert - Remove ca cert from additional paths"
   become: true
@@ -44,4 +78,4 @@
     loop_var: "additionalpaths"
   when:
     - cacert_cacert_additionalpaths is defined
-    - additionalpaths.state | default('present') == 'absent'
+    - (additionalpaths.state | default('present') == 'absent') or (cacert_ca.value.state | default('present') == 'absent')

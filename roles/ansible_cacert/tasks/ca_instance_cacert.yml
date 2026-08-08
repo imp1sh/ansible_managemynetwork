@@ -55,6 +55,15 @@
       changed_when: false
       run_once: True
 
+    - name: "MMN cacert - Normalize CA cert validity timespecs (y->w)"
+      ansible.builtin.set_fact:
+        _cacert_ca_na: >-
+          {%- set t = cacert_ca.value.not_after | default('+520w') -%}
+          {%- if t[-1] == 'y' -%}{{ t[0] }}{{ (t[1:-1] | int) * 52 }}w{%- else -%}{{ t }}{%- endif -%}
+        _cacert_ca_nb: >-
+          {%- set t = cacert_ca.value.not_before | default('-1d') -%}
+          {%- if t[-1] == 'y' -%}{{ t[0] }}{{ (t[1:-1] | int) * 52 }}w{%- else -%}{{ t }}{%- endif -%}
+
     # IF CERT EXISTS IT IS ONLY BEING RECRETAED IF IT'S DIFFERENT    
     - name: "MMN cacert - Create CA cert"
       become: True
@@ -62,8 +71,8 @@
       community.crypto.x509_certificate_pipe:
         content: "{{ (cacert_ca_cert_existing.content | b64decode) if stat_certificate_ca.stat.exists else omit }}"
         csr_content: "{{ cacert_ca_csr.csr }}"
-        ownca_not_after: "{{ cacert_ca.value.not_after | default('+10y') }}"
-        ownca_not_before: "{{ cacert_ca.value.not_before | default('-1d') }}"
+        selfsigned_not_after: "{{ _cacert_ca_na }}"
+        selfsigned_not_before: "{{ _cacert_ca_nb }}"
         privatekey_passphrase: "{{ cacert_ca.value.key.passphrase | default(omit) }}"
         privatekey_path: "{{ cacert_path_cakey }}"
         provider: "selfsigned"

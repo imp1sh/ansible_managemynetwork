@@ -15,4 +15,16 @@
       loop: "{{ cacert_servercert_additionalhosts }}"
       loop_control:
         loop_var: "cacert_servercert_additionalhost"
-      when: cacert_servercert_additionalhost.state == 'present'
+      when: cacert_servercert_additionalhost.state | default('present') == 'present'
+
+- name: "MMN cacert - Remove server cert from additional hosts"
+  delegate_to: "{{ cacert_servercert_additionalhost.targethost }}"
+  become: True
+  ansible.builtin.file:
+    path: "{{ cacert_servercert_additionalhost.targethostpath }}/{{ cacert_filename_servercert }}"
+    state: absent
+  loop: "{{ cacert_servercert_additionalhosts | default([]) }}"
+  loop_control:
+    loop_var: "cacert_servercert_additionalhost"
+  when:
+    - cacert_ca.value.state | default('present') == 'absent'

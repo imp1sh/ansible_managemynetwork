@@ -3,7 +3,6 @@
   ansible.builtin.set_fact:
     cacert_filename_cacert: "{{ cacert_ca.key }}_ca_{{ cacert_tag_certificate }}.pem"
     cacert_filename_cakey: "{{ cacert_ca.key }}_ca_{{ cacert_tag_privatekey }}.pem"
-- name: "MMN cacert - CA cert destination path"
+- name: "MMN cacert - CA cert destination path on target host"
   ansible.builtin.set_fact:
     cacert_path_cacert_targethost: "{{ cacert_openssl_path_certificate_ca }}/{{ cacert_filename_cacert }}"
-    cacert_path_cakey_targethost: "{{ cacert_openssl_path_key_ca }}/{{ cacert_ca.key }}_ca_{{ cacert_tag_privatekey }}.pem"

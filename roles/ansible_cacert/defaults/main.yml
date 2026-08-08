@@ -6,3 +6,19 @@ cacert_tag_clientcert: "clientcert"
 cacert_tag_clientkey: "clientkey"
 cacert_deployroot: "/"
 cacert_runimagebuilder: false
+cacert_browser_trust: true
+
+# server cert defaults
+cacert_servercert_common_name: "{{ inventory_hostname }}"
+cacert_servercert_bitsize: 4096
+cacert_servercert_type: "RSA"
+cacert_servercert_not_before: "-1d"
+cacert_servercert_not_after: "+52w"
+cacert_servercert_force: false
+
+# client cert defaults
+cacert_clientcert_bitsize: 4096
+cacert_clientcert_type: "RSA"
+cacert_clientcert_not_before: "-1d"
+cacert_clientcert_not_after: "+54w"
+cacert_clientcert_force: false

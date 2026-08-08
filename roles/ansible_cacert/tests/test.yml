@@ -1,5 +1,14 @@
 ---
-- hosts: localhost
+- name: Test ansible_cacert role
+  hosts: localhost
   remote_user: root
+  vars:
+    cacert_ca_manager_host: localhost
+    cacert_cas:
+      test_ca:
+        state: present
+        common_name: "Test CA"
+        country_name: "DE"
+        organization_name: "TestOrg"
   roles:
-    - ansible_cacert
+    - imp1sh.ansible_managemynetwork.ansible_cacert

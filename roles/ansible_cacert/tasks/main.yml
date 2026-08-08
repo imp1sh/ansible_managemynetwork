@@ -19,12 +19,16 @@
     - name: "MMN cacert - Set packages to install"
       ansible.builtin.set_fact:
         packages_installrole: "{{ cacert_packages }}"
-    
+
     - name: "MMN cacert - Run package role"
       ansible.builtin.include_role:
         name: imp1sh.ansible_managemynetwork.ansible_packages
 
-# CERTS   
+# NOTE: python3-cryptography must be pre-installed on the CA manager host
+# (see README requirements). We deliberately do NOT auto-install it there:
+# delegation preserves the target host's ansible_distribution, which would
+# make the ansible_packages role pick the wrong package manager for the CA host.
+# CERTS
 - name: "MMN cacert - Manage CA key and cert"
   ansible.builtin.include_tasks: ca_instance.yml
   loop: "{{ cacert_cas | dict2items }}"

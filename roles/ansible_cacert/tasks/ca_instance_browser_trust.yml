@@ -1,0 +1,62 @@
+---
+# Auto-deploy Mozilla enterprise policies so Firefox/LibreWolf import
+# the system trust store (where our CA cert already lives).
+# Chrome/Chromium use the system trust store natively and need nothing extra.
+
+- name: "MMN cacert - Detect Firefox"
+  ansible.builtin.shell: "command -v firefox 2>/dev/null"
+  args:
+    executable: /bin/sh
+  register: _cacert_firefox_bin
+  changed_when: false
+  failed_when: false
+
+- name: "MMN cacert - Detect LibreWolf"
+  ansible.builtin.shell: "command -v librewolf 2>/dev/null"
+  args:
+    executable: /bin/sh
+  register: _cacert_librewolf_bin
+  changed_when: false
+  failed_when: false
+
+- name: "MMN cacert - Ensure Firefox policies directory exists"
+  become: true
+  ansible.builtin.file:
+    state: directory
+    path: /etc/firefox/policies
+  when: _cacert_firefox_bin.rc == 0
+
+- name: "MMN cacert - Deploy Firefox enterprise policy"
+  become: true
+  ansible.builtin.copy:
+    dest: /etc/firefox/policies/policies.json
+    content: |
+      {
+        "policies": {
+          "Certificates": {
+            "ImportEnterpriseRoots": true
+          }
+        }
+      }
+  when: _cacert_firefox_bin.rc == 0
+
+- name: "MMN cacert - Ensure LibreWolf policies directory exists"
+  become: true
+  ansible.builtin.file:
+    state: directory
+    path: /etc/librewolf/policies
+  when: _cacert_librewolf_bin.rc == 0
+
+- name: "MMN cacert - Deploy LibreWolf enterprise policy"
+  become: true
+  ansible.builtin.copy:
+    dest: /etc/librewolf/policies/policies.json
+    content: |
+      {
+        "policies": {
+          "Certificates": {
+            "ImportEnterpriseRoots": true
+          }
+        }
+      }
+  when: _cacert_librewolf_bin.rc == 0

@@ -43,18 +43,27 @@
         - "default.yml"
       paths:
         - "vars"
-  delegate_to: "{{ cacert_ca_manager_host }}"
-  run_once: true
 
-- name: "MMN cacert - Build CA variables"
+- name: "MMN cacert - Build CA variables for target host"
   ansible.builtin.include_tasks: vars_paths_ca_targethost.yml
 
 - name: "MMN cacert - Build servercert and key variables"
   ansible.builtin.include_tasks: vars_paths_server.yml
 
+- name: "MMN cacert - Build client cert and key variables"
+  ansible.builtin.include_tasks: vars_paths_client.yml
+
 # CA CERT - TARGET HOST
-- name: "MMN cacert - Manage CA cert"
+- name: "MMN cacert - Manage CA cert on target host"
   ansible.builtin.include_tasks: ca_instance_cacert_targethost.yml
+
+# BROWSER TRUST - FIREFOX / LIBREWOLF ENTERPRISE POLICY
+- name: "MMN cacert - Deploy browser trust policy"
+  ansible.builtin.include_tasks: ca_instance_browser_trust.yml
+  when:
+    - ansible_distribution != 'OpenWrt'
+    - not cacert_runimagebuilder | default(false) | bool
+    - cacert_browser_trust | default(true) | bool
 
 # SERVER CERT PRIVATE KEY - TARGET HOST
 - name: "MMN cacert - Manage server key on target host"
@@ -69,7 +78,7 @@
   ansible.builtin.include_tasks: ca_instance_servercert.yml
 
 # SERVER CERT - ADDITIONAL HOSTS
-- name: "MMN cacert - Manage server cert on target host"
+- name: "MMN cacert - Manage server cert on additional hosts"
   ansible.builtin.include_tasks: ca_instance_servercert_additional_hosts.yml
 
 
@@ -89,13 +98,3 @@
   loop_control:
     loop_var: "cacert_clientcert"
   when: cacert_clientcerts is defined
-
-
-
-- name: "MMN cacert - Update trust store"
-  become: True
-  ansible.builtin.command: "{{ cacert_command_updatetruststore }}"
-  when:
-    - ansible_distribution != 'OpenWrt'
-    - not cacert_runimagebuilder | default(false) | bool
-  # need more conditions, maybe handler, FIXME
