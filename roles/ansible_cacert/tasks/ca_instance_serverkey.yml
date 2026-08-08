@@ -4,6 +4,13 @@
 - name: "MMN cacert - Private Key for server cert block"
   when: cacert_ca.value.state | default('present') == 'present'
   block:
+    - name: "MMN cacert - Make sure server key directory exists"
+      become: True
+      ansible.builtin.file:
+        state: directory
+        path: "{{ cacert_openssl_path_key_server }}"
+        mode: "0755"
+
     - name: "MMN cacert - Create server private keys"
       become: True
       community.crypto.openssl_privatekey:

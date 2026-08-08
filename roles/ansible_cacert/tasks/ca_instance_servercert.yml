@@ -79,6 +79,13 @@
         ownca_not_before: "{{ _cacert_srv_nb }}"
       register: cacert_server_cert
 
+    - name: "MMN cacert - Make sure server cert directory exists"
+      become: True
+      ansible.builtin.file:
+        state: directory
+        path: "{{ cacert_openssl_path_certificate_server }}"
+        mode: "0755"
+
     - name: "MMN cacert - Write server cert to file"
       become: True
       ansible.builtin.copy:
