@@ -91,8 +91,8 @@ The roles starting with *ansible_openwrt\** are OpenWrt specific. The goal is to
 
 The roles contained in this collection are pretty powerful. There are even some options that are not accessible through the LUCI Webinterface. In contrast to using LUCI, multiple OpenWrt devices can be managed with Ansible centrally. With it you are able to deploy settings individually, on a group basis or even for every device in your environment.
 
-It can be viewed as an alternate solution to [OpenWisp](https://openwisp.org/). Yet it is more flexible because it's based upon the super powerful Ansible software.
-It is targeted towards Service Providers, Hosters or Cloud Providers but it's also well suited for home environments. With it you can manage plenty of Access Points / Firewalls with low effort. Using it will help you dramatically in order to make your device configurations consistent.
+It can be viewed as an alternate solution to [OpenWisp](https://openwisp.org/). Yet it is way more flexible and powerful.
+It is targeted towards Service Providers, Hosters or Cloud Providers but it's also well suited for home networks / homelabs. With it you can manage plenty of Access Points / Firewalls with low effort. Using it will help you dramatically in order to make your device configurations consistent.
 
 Use Ansible properties to your needs, e.g. defining variables once and use them often. This simplifies management fundamentally.
 At the same time you can access the expandibility and flexibility of OpenWrt and its packages.
@@ -103,15 +103,15 @@ The openwrt roles in this collection use **python** which is not installed on st
 
 ### Minimum requirements
 * 128 MB Storage
-* OpenWrt 22.01 or higher
+* OpenWrt 22.01 or higher, 25.12 recommended
 * Python3 installed on the target device
-* 128+ MB,for Restic 512+ MB RAM
+* 128+ MB RAM if you use Restic 512+ MB
 
 ### Recommendation
 
 Depending on your needs the requirements might be higher. Depending on the additional packages you need you will need more disk space. Generally speaking I would recommend a device with:
 * 256+ MB Storage
-* OpenWrt 24.10
+* OpenWrt 25.12
 * 512+ MB RAM
 
 ## Installation
