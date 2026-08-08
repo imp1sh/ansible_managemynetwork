@@ -2,11 +2,11 @@
 - name: "MMN users - Block when system_users is defined for host"
   block:
     - name: "MMN users - Setting OS variables"
-      ansible.builtin.include_vars: OpenWrt.yml
+      ansible.builtin.include_vars: "{{ role_path }}/vars/OpenWrt.yml"
     
     - name: "MMN users - Set additoinal packages for installrole var"
       ansible.builtin.set_fact:
-        openwrt_packages_installrole: "{{ system_users_additional_packages }}"
+        openwrt_packages_installrole: "{{ system_users_additional_packages | default([]) }}"
     
     - name: "MMN users - Call packages role"
       ansible.builtin.include_role:
