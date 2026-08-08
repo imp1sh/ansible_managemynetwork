@@ -1,0 +1,55 @@
+---
+{% if nb_vlan_groups is defined and nb_vlan_groups %}
+nb_vlan_groups:
+{% for name, grp in nb_vlan_groups.items() %}
+  {{ name }}:
+    id: {{ grp.id }}
+    name: {{ grp.name }}
+    slug: {{ grp.slug | quote }}
+{% if grp.min_vid is defined %}
+    min_vid: {{ grp.min_vid }}
+{% endif %}
+{% if grp.max_vid is defined %}
+    max_vid: {{ grp.max_vid }}
+{% endif %}
+{% if grp.scope_type is defined and grp.scope_type %}
+    scope_type: {{ grp.scope_type | quote }}
+{% endif %}
+{% if grp.scope_id is defined and grp.scope_id %}
+    scope_id: {{ grp.scope_id | quote }}
+{% endif %}
+{% endfor %}
+{% endif %}
+{% if nb_vlans is defined and nb_vlans %}
+nb_vlans:
+{% for vlan_id, v in nb_vlans.items() %}
+  "{{ vlan_id }}":
+    id: {{ v.id }}
+    vid: {{ v.vid }}
+    name: {{ v.name | quote }}
+{% if v.group %}
+    group: {{ v.group | quote }}
+{% endif %}
+{% if v.group_id %}
+    group_id: {{ v.group_id }}
+{% endif %}
+{% if v.status %}
+    status: {{ v.status | quote }}
+{% endif %}
+{% if v.role %}
+    role: {{ v.role | quote }}
+{% endif %}
+{% if v.description %}
+    description: {{ v.description | quote }}
+{% endif %}
+    subnets:
+{% if (v.subnets | default([]) | length) > 0 %}
+{% for sn in v.subnets %}
+      - prefix: {{ sn.prefix | quote }}
+        id: {{ sn.id }}
+{% endfor %}
+{% else %}
+    []
+{% endif %}
+{% endfor %}
+{% endif %}
