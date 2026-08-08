@@ -1,12 +1,16 @@
 ---
 - name: "MMN users - Block when system_users is defined for host"
   block:
+    - name: "MMN users - Determine target host for delegation"
+      ansible.builtin.set_fact:
+        _users_target_host: "{{ openwrt_imagebuilder_buildhost if (openwrt_imagebuilder_buildhost is defined and openwrt_imagebuilder_buildhost != inventory_hostname) else inventory_hostname }}"
+
     - name: "MMN users - Setting OS variables"
       ansible.builtin.include_vars: "{{ role_path }}/vars/OpenWrt.yml"
     
     - name: "MMN users - Set additoinal packages for installrole var"
       ansible.builtin.set_fact:
-        openwrt_packages_installrole: "{{ system_users_additional_packages | default([]) }}"
+        packages_installrole: "{{ system_users_additional_packages | default([]) }}"
     
     - name: "MMN users - Call packages role"
       ansible.builtin.include_role:
