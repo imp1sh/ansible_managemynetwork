@@ -69,6 +69,12 @@
         state: directory
         mode: "0755"
 
+    - name: Hand over files dir ownership to connecting user
+      become: true
+      ansible.builtin.command:
+        cmd: "chown -R {{ openwrt_imagebuilder_buildhost_user | default(ansible_user) | default('root') }}:{{ openwrt_imagebuilder_buildhost_user | default(ansible_user) | default('root') }} {{ openwrt_imagebuilder_deployroot }}"
+      changed_when: false
+
     # It should be only for backward compatibility,
     # new roles should use openwrt_imagebuilder_deployroot
     # for setting deployroot
