@@ -44,6 +44,7 @@
 - name: "MMN cacert - Set target host for delegation"
   ansible.builtin.set_fact:
     _cacert_target_host: "{{ openwrt_imagebuilder_buildhost | default('localhost') if cacert_runimagebuilder | default(false) | bool else inventory_hostname }}"
+    _cacert_become: "{{ not cacert_runimagebuilder | default(false) | bool }}"
 
 # LOAD VARS FOR CA TARGET HOST
 - name: "MMN cacert - Load OS vars for target host"

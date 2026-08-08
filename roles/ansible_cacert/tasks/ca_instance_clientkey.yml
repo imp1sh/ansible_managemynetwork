@@ -17,14 +17,14 @@
   when: cacert_clientcert.state | default('present') == 'present'
   block:
     - name: "MMN cacert - Make sure key path exists"
-      become: true
+      become: "{{ _cacert_become }}"
       ansible.builtin.file:
         state: directory
         path: "{{ cacert_path_clientkey | dirname }}"
       delegate_to: "{{ _cacert_target_host }}"
 
     - name: "MMN cacert - Create new client private key"
-      become: True
+      become: "{{ _cacert_become }}"
       community.crypto.openssl_privatekey:
         path: "{{ cacert_path_clientkey }}"
         passphrase: "{{ cacert_clientcert_passphrase | default(omit) }}"
@@ -38,7 +38,7 @@
       delegate_to: "{{ _cacert_target_host }}"
 
 - name: "MMN cacert - Remove client private key from paths"
-  become: true
+  become: "{{ _cacert_become }}"
   ansible.builtin.file:
     path: "{{ cacert_path_clientkey }}"
     state: absent

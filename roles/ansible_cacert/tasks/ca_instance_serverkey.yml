@@ -5,7 +5,7 @@
   when: cacert_ca.value.state | default('present') == 'present'
   block:
     - name: "MMN cacert - Make sure server key directory exists"
-      become: True
+      become: "{{ _cacert_become }}"
       ansible.builtin.file:
         state: directory
         path: "{{ cacert_openssl_path_key_server }}"
@@ -13,7 +13,7 @@
       delegate_to: "{{ _cacert_target_host }}"
 
     - name: "MMN cacert - Create server private keys"
-      become: True
+      become: "{{ _cacert_become }}"
       community.crypto.openssl_privatekey:
         path: "{{ cacert_path_serverkey }}"
         passphrase: "{{ cacert_servercert_passphrase | default(omit) }}"
@@ -24,7 +24,7 @@
       delegate_to: "{{ _cacert_target_host }}"
 
     - name: "MMN cacert - Make sure additional paths exist"
-      become: true
+      become: "{{ _cacert_become }}"
       ansible.builtin.file:
         state: directory
         path: "{{ additionalpaths.dest }}"
@@ -38,7 +38,7 @@
       delegate_to: "{{ _cacert_target_host }}"
 
     - name: "MMN cacert - Write server private keys to additional paths"
-      become: True
+      become: "{{ _cacert_become }}"
       ansible.builtin.copy:
         src: "{{ cacert_path_serverkey }}"
         remote_src: True
@@ -56,7 +56,7 @@
       delegate_to: "{{ _cacert_target_host }}"
 
 - name: "MMN cacert - Remove server private key"
-  become: true
+  become: "{{ _cacert_become }}"
   ansible.builtin.file:
     path: "{{ cacert_path_serverkey }}"
     state: absent
@@ -64,7 +64,7 @@
   delegate_to: "{{ _cacert_target_host }}"
 
 - name: "MMN cacert - Remove server private key from additional paths"
-  become: true
+  become: "{{ _cacert_become }}"
   ansible.builtin.file:
     path: "{{ additionalpaths.dest }}/{{ cacert_filename_serverkey }}"
     state: absent

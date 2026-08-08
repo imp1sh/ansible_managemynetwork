@@ -4,14 +4,14 @@
     - cacert_ca.value.state | default('present') == 'present'
   block:
     - name: "MMN cacert - Check if client cert exists"
-      become: True
+      become: "{{ _cacert_become }}"
       ansible.builtin.stat:
         path: "{{ cacert_path_clientcert }}"
       register: stat_certificate_client
       delegate_to: "{{ _cacert_target_host }}"
 
     - name: "MMN cacert - Read existing certificate"
-      become: True
+      become: "{{ _cacert_become }}"
       ansible.builtin.slurp:
         src: "{{ cacert_path_clientcert }}"
       register: certificate_client
@@ -19,7 +19,7 @@
       delegate_to: "{{ _cacert_target_host }}"
 
     - name: "MMN cacert - Check if client cert is expired"
-      become: True
+      become: "{{ _cacert_become }}"
       ansible.builtin.command:
         cmd: "openssl x509 -in {{ cacert_path_clientcert }} -checkend 0 -noout"
       register: _clientcert_expiry
@@ -29,7 +29,7 @@
       delegate_to: "{{ _cacert_target_host }}"
 
     - name: "MMN cacert - Manage client CSRs"
-      become: True
+      become: "{{ _cacert_become }}"
       community.crypto.openssl_csr_pipe:
         privatekey_path: "{{ cacert_path_clientkey }}"
         privatekey_passphrase: "{{ cacert_clientcert_passphrase | default(omit) }}"
@@ -63,14 +63,14 @@
       register: cacert_clientcert_result
 
     - name: "MMN cacert - Make sure cert path exists"
-      become: true
+      become: "{{ _cacert_become }}"
       ansible.builtin.file:
         state: directory
         path: "{{ cacert_path_clientcert | dirname }}"
       delegate_to: "{{ _cacert_target_host }}"
 
     - name: "MMN cacert - Write client cert to file"
-      become: True
+      become: "{{ _cacert_become }}"
       ansible.builtin.copy:
         content: "{{ cacert_clientcert_result.certificate }}"
         dest: "{{ cacert_path_clientcert }}"
@@ -81,7 +81,7 @@
       delegate_to: "{{ _cacert_target_host }}"
 
 - name: "MMN cacert - Remove client cert from path"
-  become: true
+  become: "{{ _cacert_become }}"
   ansible.builtin.file:
     path: "{{ cacert_path_clientcert }}"
     state: absent

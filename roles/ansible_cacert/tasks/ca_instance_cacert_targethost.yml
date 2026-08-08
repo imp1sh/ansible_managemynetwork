@@ -1,6 +1,6 @@
 ---
 - name: "MMN cacert - Make sure CA cert is installed to target host"
-  become: True
+  become: "{{ _cacert_become }}"
   ansible.builtin.copy:
     content: "{{ cacert_ca_cert.certificate }}"
     dest: "{{ cacert_path_cacert_targethost }}"
@@ -12,7 +12,7 @@
   notify: "MMN cacert - Update trust store"
 
 - name: "MMN cacert - Merge CA cert into OpenWrt trust bundle"
-  become: True
+  become: "{{ _cacert_become }}"
   ansible.builtin.blockinfile:
     path: "{{ cacert_openssl_path_certificate_ca }}/ca-certificates.crt"
     create: true
@@ -24,7 +24,7 @@
     - cacert_ca.value.state | default('present') == 'present'
 
 - name: "MMN cacert - Remove CA cert from target host"
-  become: True
+  become: "{{ _cacert_become }}"
   ansible.builtin.file:
     path: "{{ cacert_path_cacert_targethost }}"
     state: absent
@@ -35,7 +35,7 @@
   notify: "MMN cacert - Update trust store"
 
 - name: "MMN cacert - Remove CA cert from OpenWrt trust bundle"
-  become: True
+  become: "{{ _cacert_become }}"
   ansible.builtin.blockinfile:
     path: "{{ cacert_openssl_path_certificate_ca }}/ca-certificates.crt"
     state: absent
@@ -53,7 +53,7 @@
     - not cacert_runimagebuilder | default(false) | bool
   block:
     - name: "MMN cacert - Make sure additional paths exist"
-      become: true
+      become: "{{ _cacert_become }}"
       ansible.builtin.file:
         state: directory
         path: "{{ additionalpaths.dest }}"
@@ -63,7 +63,7 @@
       when: additionalpaths.state | default('present') == 'present'
 
     - name: "MMN cacert - Write ca cert to additional paths"
-      become: True
+      become: "{{ _cacert_become }}"
       ansible.builtin.copy:
         content: "{{ cacert_ca_cert.certificate }}"
         dest: "{{ additionalpaths.dest }}/{{ cacert_filename_cacert }}"
@@ -76,7 +76,7 @@
       when: additionalpaths.state | default('present') == 'present'
 
 - name: "MMN cacert - Remove ca cert from additional paths"
-  become: true
+  become: "{{ _cacert_become }}"
   ansible.builtin.file:
     path: "{{ additionalpaths.dest }}/{{ cacert_filename_cacert }}"
     state: absent

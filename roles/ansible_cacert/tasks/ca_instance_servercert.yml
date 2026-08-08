@@ -16,7 +16,7 @@
       delegate_to: "{{ _cacert_target_host }}"
 
     - name: "MMN cacert - Check if server cert is expired"
-      become: True
+      become: "{{ _cacert_become }}"
       ansible.builtin.command:
         cmd: "openssl x509 -in {{ cacert_path_servercert }} -checkend 0 -noout"
       register: _servercert_expiry
@@ -30,7 +30,7 @@
         cacert_servercert_altnames_combined: "{{ cacert_servercert_altnames | default([]) }}"
 
     - name: "MMN cacert - Manage server CSRs"
-      become: True
+      become: "{{ _cacert_become }}"
       community.crypto.openssl_csr_pipe:
         privatekey_path: "{{ cacert_path_serverkey }}"
         privatekey_passphrase: "{{ cacert_servercert_passphrase | default(omit) }}"
@@ -84,7 +84,7 @@
       register: cacert_server_cert
 
     - name: "MMN cacert - Make sure server cert directory exists"
-      become: True
+      become: "{{ _cacert_become }}"
       ansible.builtin.file:
         state: directory
         path: "{{ cacert_openssl_path_certificate_server }}"
@@ -92,7 +92,7 @@
       delegate_to: "{{ _cacert_target_host }}"
 
     - name: "MMN cacert - Write server cert to file"
-      become: True
+      become: "{{ _cacert_become }}"
       ansible.builtin.copy:
         dest: "{{ cacert_path_servercert }}"
         content: "{{ cacert_server_cert.certificate }}"
@@ -102,7 +102,7 @@
 
     # ADDITIONAL PATHS
     - name: "MMN cacert - Make sure additional paths exist"
-      become: true
+      become: "{{ _cacert_become }}"
       ansible.builtin.file:
         state: directory
         path: "{{ additionalpaths.dest }}"
@@ -116,7 +116,7 @@
       delegate_to: "{{ _cacert_target_host }}"
 
     - name: "MMN cacert - Write server cert to additional paths"
-      become: True
+      become: "{{ _cacert_become }}"
       ansible.builtin.copy:
         src: "{{ cacert_path_servercert }}"
         remote_src: True
@@ -133,7 +133,7 @@
       delegate_to: "{{ _cacert_target_host }}"
 
 - name: "MMN cacert - Remove server cert"
-  become: true
+  become: "{{ _cacert_become }}"
   ansible.builtin.file:
     path: "{{ cacert_path_servercert }}"
     state: absent
@@ -141,7 +141,7 @@
   delegate_to: "{{ _cacert_target_host }}"
 
 - name: "MMN cacert - Remove server cert from additional paths"
-  become: true
+  become: "{{ _cacert_become }}"
   ansible.builtin.file:
     path: "{{ additionalpaths.dest }}/{{ cacert_filename_servercert }}"
     state: absent
