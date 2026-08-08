@@ -1,29 +1,27 @@
 ---
-- name: MMN users - Block task if user shall be created on this very host
+- name: "MMN users - Block task if user shall be created on this very host"
   block:
-    - name: MMN users - The user will be installed
+    - name: "MMN users - The user will be installed"
       ansible.builtin.debug:
         var: user.key
 
-    - name: MMN users - Set fact for package install
+    - name: "MMN users - Set fact for package install"
       ansible.builtin.set_fact:
         packages_installrole: "{{ shellpackages[user.value.shell] }}"
-      when:
-        - user.value.shell is defined
+      when: user.value.shell is defined
 
-    - name: MMN users - Install package for shell
+    - name: "MMN users - Install package for shell"
       ansible.builtin.include_role:
         name: imp1sh.ansible_managemynetwork.ansible_packages
-      when:
-        user.value.shell is defined
+      when: user.value.shell is defined
 
-    - name: MMN users - Make sure init script deploypath exists
+    - name: "MMN users - Make sure init script deploypath exists"
       ansible.builtin.file:
         path: "{{ system_users_setpassword_deploypath }}"
         state: directory
       delegate_to: "{{ _users_target_host }}"
 
-    - name: MMN users - Deploy init script for user
+    - name: "MMN users - Deploy init script for user"
       ansible.builtin.template:
         src: imagebuilderuser.j2
         dest: "{{ system_users_setpassword_deploypath }}/{{ system_users_setpassword_deployfile }}-{{ user.key }}"

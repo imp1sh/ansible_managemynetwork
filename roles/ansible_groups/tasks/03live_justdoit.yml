@@ -1,5 +1,5 @@
 ---
-- name: "MMN groups - handling group"
+- name: "MMN groups - Handling group"
   ansible.builtin.group:
     name: "{{ group.key }}"
     state: "{{ group.value.state | default('present') }}"

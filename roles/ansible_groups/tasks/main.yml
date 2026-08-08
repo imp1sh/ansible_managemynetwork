@@ -2,18 +2,18 @@
 - name: "MMN groups - is system_groups defined?"
   when: system_groups is defined
   block:
-    - name: MMN groups - Run live mode
+    - name: "MMN groups - Run live mode"
       ansible.builtin.include_tasks: 01live.yml
       when: ( system_groups_runimagebuilder is not defined ) or
             ( system_groups_runimagebuilder is defined and not system_groups_runimagebuilder )
 
-    - name: MMN groups - Run imagebuilder mode
+    - name: "MMN groups - Run imagebuilder mode"
       ansible.builtin.include_tasks: 01imagebuilder.yml
       when:
         - system_groups_runimagebuilder is defined
         - system_groups_runimagebuilder
 
-- name: MMN groups - Fail status feedback
+- name: "MMN groups - Fail status feedback"
   ansible.builtin.debug:
     msg: "The role system_groups did not run on host {{ inventory_hostname }} because the var system_groups is not set."
   when: system_groups is not defined

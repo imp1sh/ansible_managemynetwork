@@ -1,9 +1,9 @@
 ---
-- name: MMN users - Checking the following user
+- name: "MMN users - Checking the following user"
   ansible.builtin.debug:
     var: user.key
 
-- name: MMN users - Add user from group-based assignments
+- name: "MMN users - Add user from group-based assignments"
   ansible.builtin.set_fact:
     list_of_users: "{{ list_of_users + [ user.key ] }}"
   when: >
@@ -11,7 +11,7 @@
     and user.key in system_users_create_on_hostgroups
     and system_users_create_on_hostgroups[user.key] | intersect(group_names) | length > 0
 
-- name: MMN users - Add user from individual host assignments
+- name: "MMN users - Add user from individual host assignments"
   ansible.builtin.set_fact:
     list_of_users: "{{ list_of_users + [ user.key ] }}"
   when: >
@@ -20,6 +20,6 @@
     and user.key in system_users_create_on_hosts
     and inventory_hostname in system_users_create_on_hosts[user.key]
 
-- name: MMN users - Print result
+- name: "MMN users - Print result"
   ansible.builtin.debug:
     msg: "Host {{ inventory_hostname }} will get the following users {{ list_of_users }}"

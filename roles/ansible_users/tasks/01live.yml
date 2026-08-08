@@ -1,6 +1,6 @@
 ---
-- name: MMN users - Setting OS variables
-  ansible.builtin.include_vars: "{{lookup('ansible.builtin.first_found', params)}}"
+- name: "MMN users - Setting OS variables"
+  ansible.builtin.include_vars: "{{ lookup('ansible.builtin.first_found', params) }}"
   vars:
     params:
       files:
@@ -12,7 +12,7 @@
 
 - name: "MMN users - Install packages block"
   block:
-    - name: "MMN users - Set additoinal packages for installrole var"
+    - name: "MMN users - Set additional packages for installrole var"
       ansible.builtin.set_fact:
         packages_installrole: "{{ system_users_additional_packages | default([]) }}"
     - name: "MMN users - Call packages role"
@@ -20,13 +20,13 @@
         name: imp1sh.ansible_managemynetwork.ansible_packages
   when: ansible_facts['os_family'] == "OpenWrt"
 
-- name: MMN users - Select and deploy users
+- name: "MMN users - Select and deploy users"
   ansible.builtin.include_tasks: select_and_deploy.yml
   vars:
     users_runner: "03live_runusers.yml"
   when: system_users is defined
 
-- name: MMN users - Fail status feedback
+- name: "MMN users - Fail status feedback"
   ansible.builtin.debug:
     msg: "The role system_users did not run on host {{ inventory_hostname }} because the var system_users is not set."
   when: system_users is not defined

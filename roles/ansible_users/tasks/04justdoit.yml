@@ -1,10 +1,10 @@
 ---
-- name: handling user {{ user.key }}
+- name: "MMN users - Handling user {{ user.key }}"
   ansible.builtin.user:
     no_log: true
     append: "{{ user.value.append | default(omit) }}"
     authorization: "{{ user.value.authorization | default(omit, true) }}"
-    comment: "{{ user.value.comment |default(omit) }}"
+    comment: "{{ user.value.comment | default(omit) }}"
     create_home: "{{ user.value.create_home | default(omit) }}"
     expires: "{{ user.value.expires | default(omit) }}"
     force: "{{ user.value.force | default('false', true) }}"

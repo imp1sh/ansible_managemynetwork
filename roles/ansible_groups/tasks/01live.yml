@@ -1,5 +1,5 @@
 ---
-- name: MMN groups - Setting OS variables
+- name: "MMN groups - Setting OS variables"
   ansible.builtin.include_vars: "{{ lookup('ansible.builtin.first_found', params) }}"
   vars:
     params:
@@ -20,13 +20,13 @@
         name: imp1sh.ansible_managemynetwork.ansible_packages
   when: ansible_facts['os_family'] == "OpenWrt"
 
-- name: MMN groups - Select and deploy groups
+- name: "MMN groups - Select and deploy groups"
   ansible.builtin.include_tasks: select_and_deploy.yml
   vars:
     groups_runner: "02live_iterategroups.yml"
   when: system_groups is defined
 
-- name: MMN groups - Fail status feedback
+- name: "MMN groups - Fail status feedback"
   ansible.builtin.debug:
     msg: "The role system_groups did not run on host {{ inventory_hostname }} because the var system_groups is not set."
   when: system_groups is not defined

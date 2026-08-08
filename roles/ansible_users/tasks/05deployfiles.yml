@@ -1,27 +1,27 @@
 ---
-- name: Validate deployfile state
+- name: "MMN users - Validate deployfile state"
   ansible.builtin.assert:
     that:
       - fileitem.state is defined
       - fileitem.state in ['present', 'absent']
     fail_msg: "deployfiles item for {{ user.key }} has unsupported state '{{ fileitem.state | default('<missing>') }}'; must be 'present' or 'absent'"
-- name: make sure deploy path exists
+- name: "MMN users - Make sure deploy path exists"
   become: true
-  become_user: '{{ user.key }}'
+  become_user: "{{ user.key }}"
   ansible.builtin.file:
     path: "{{ fileitem.dest | ansible.builtin.dirname }}"
     state: directory
   when: fileitem.state == "present"
-- name: Deploy current item
+- name: "MMN users - Deploy current item"
   become: true
-  become_user: '{{ user.key }}'
+  become_user: "{{ user.key }}"
   ansible.builtin.copy:
     src: "{{ fileitem.src }}"
     dest: "{{ fileitem.dest }}"
   when: fileitem.state == "present"
-- name: Remove current item
+- name: "MMN users - Remove current item"
   become: true
-  become_user: '{{ user.key }}'
+  become_user: "{{ user.key }}"
   ansible.builtin.file:
     path: "{{ fileitem.dest }}"
     state: absent
