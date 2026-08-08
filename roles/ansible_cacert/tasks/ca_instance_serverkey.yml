@@ -10,6 +10,7 @@
         state: directory
         path: "{{ cacert_openssl_path_key_server }}"
         mode: "0755"
+      delegate_to: "{{ _cacert_target_host }}"
 
     - name: "MMN cacert - Create server private keys"
       become: True
@@ -20,6 +21,7 @@
         type: "{{ cacert_servercert_type | default('RSA') }}"
         curve: "{{ cacert_servercert_curve | default(omit) }}"
         mode: "0600"
+      delegate_to: "{{ _cacert_target_host }}"
 
     - name: "MMN cacert - Make sure additional paths exist"
       become: true
@@ -32,6 +34,8 @@
       when:
         - cacert_serverkey_additionalpaths is defined
         - additionalpaths.state | default('present') == 'present'
+        - not cacert_runimagebuilder | default(false) | bool
+      delegate_to: "{{ _cacert_target_host }}"
 
     - name: "MMN cacert - Write server private keys to additional paths"
       become: True
@@ -48,6 +52,8 @@
       when:
         - cacert_serverkey_additionalpaths is defined
         - additionalpaths.state | default('present') == 'present'
+        - not cacert_runimagebuilder | default(false) | bool
+      delegate_to: "{{ _cacert_target_host }}"
 
 - name: "MMN cacert - Remove server private key"
   become: true
@@ -55,6 +61,7 @@
     path: "{{ cacert_path_serverkey }}"
     state: absent
   when: cacert_ca.value.state | default('present') == 'absent'
+  delegate_to: "{{ _cacert_target_host }}"
 
 - name: "MMN cacert - Remove server private key from additional paths"
   become: true
@@ -67,3 +74,5 @@
   when:
     - cacert_serverkey_additionalpaths is defined
     - (additionalpaths.state | default('present') == 'absent') or (cacert_ca.value.state | default('present') == 'absent')
+    - not cacert_runimagebuilder | default(false) | bool
+  delegate_to: "{{ _cacert_target_host }}"

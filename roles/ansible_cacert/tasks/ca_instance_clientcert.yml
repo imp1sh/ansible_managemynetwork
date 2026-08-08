@@ -8,6 +8,7 @@
       ansible.builtin.stat:
         path: "{{ cacert_path_clientcert }}"
       register: stat_certificate_client
+      delegate_to: "{{ _cacert_target_host }}"
 
     - name: "MMN cacert - Read existing certificate"
       become: True
@@ -15,6 +16,7 @@
         src: "{{ cacert_path_clientcert }}"
       register: certificate_client
       when: stat_certificate_client.stat.exists
+      delegate_to: "{{ _cacert_target_host }}"
 
     - name: "MMN cacert - Check if client cert is expired"
       become: True
@@ -24,6 +26,7 @@
       changed_when: false
       failed_when: false
       when: stat_certificate_client.stat.exists
+      delegate_to: "{{ _cacert_target_host }}"
 
     - name: "MMN cacert - Manage client CSRs"
       become: True
@@ -33,6 +36,7 @@
         common_name: "{{ cacert_clientcert.common_name | default(inventory_hostname) }}"
       register: csr_client
       changed_when: false
+      delegate_to: "{{ _cacert_target_host }}"
 
     - name: "MMN cacert - Normalize client cert validity timespecs (y->w)"
       ansible.builtin.set_fact:
@@ -63,6 +67,7 @@
       ansible.builtin.file:
         state: directory
         path: "{{ cacert_path_clientcert | dirname }}"
+      delegate_to: "{{ _cacert_target_host }}"
 
     - name: "MMN cacert - Write client cert to file"
       become: True
@@ -73,6 +78,7 @@
         group: "{{ cacert_clientcert.group | default(omit) }}"
         backup: True
       when: ( cacert_clientcert_result is changed ) or ( not stat_certificate_client.stat.exists )
+      delegate_to: "{{ _cacert_target_host }}"
 
 - name: "MMN cacert - Remove client cert from path"
   become: true
@@ -80,3 +86,4 @@
     path: "{{ cacert_path_clientcert }}"
     state: absent
   when: cacert_clientcert.state | default('present') == 'absent'
+  delegate_to: "{{ _cacert_target_host }}"

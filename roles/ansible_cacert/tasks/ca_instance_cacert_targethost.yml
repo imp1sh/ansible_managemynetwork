@@ -50,6 +50,7 @@
   when:
     - cacert_cacert_additionalpaths is defined
     - cacert_ca.value.state | default('present') == 'present'
+    - not cacert_runimagebuilder | default(false) | bool
   block:
     - name: "MMN cacert - Make sure additional paths exist"
       become: true
@@ -85,3 +86,4 @@
   when:
     - cacert_cacert_additionalpaths is defined
     - (additionalpaths.state | default('present') == 'absent') or (cacert_ca.value.state | default('present') == 'absent')
+    - not cacert_runimagebuilder | default(false) | bool

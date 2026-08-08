@@ -6,12 +6,14 @@
       ansible.builtin.stat:
         path: "{{ cacert_path_servercert }}"
       register: stat_servercert
+      delegate_to: "{{ _cacert_target_host }}"
 
     - name: "MMN cacert - Read existing certificate"
       ansible.builtin.slurp:
         src: "{{ cacert_path_servercert }}"
       register: cacert_servercert_existing
       when: stat_servercert.stat.exists
+      delegate_to: "{{ _cacert_target_host }}"
 
     - name: "MMN cacert - Check if server cert is expired"
       become: True
@@ -21,6 +23,7 @@
       changed_when: false
       failed_when: false
       when: stat_servercert.stat.exists
+      delegate_to: "{{ _cacert_target_host }}"
 
     - name: "MMN cacert - Combine default and user-defined SANs"
       ansible.builtin.set_fact:
@@ -54,6 +57,7 @@
           }}
       register: csr_server
       changed_when: false
+      delegate_to: "{{ _cacert_target_host }}"
 
     - name: "MMN cacert - Normalize server cert validity timespecs (y->w)"
       ansible.builtin.set_fact:
@@ -85,6 +89,7 @@
         state: directory
         path: "{{ cacert_openssl_path_certificate_server }}"
         mode: "0755"
+      delegate_to: "{{ _cacert_target_host }}"
 
     - name: "MMN cacert - Write server cert to file"
       become: True
@@ -93,6 +98,7 @@
         content: "{{ cacert_server_cert.certificate }}"
       when:
         - cacert_server_cert is changed
+      delegate_to: "{{ _cacert_target_host }}"
 
     # ADDITIONAL PATHS
     - name: "MMN cacert - Make sure additional paths exist"
@@ -106,6 +112,8 @@
       when:
         - cacert_servercert_additionalpaths is defined
         - additionalpaths.state | default('present') == 'present'
+        - not cacert_runimagebuilder | default(false) | bool
+      delegate_to: "{{ _cacert_target_host }}"
 
     - name: "MMN cacert - Write server cert to additional paths"
       become: True
@@ -121,6 +129,8 @@
       when:
         - cacert_servercert_additionalpaths is defined
         - additionalpaths.state | default('present') == 'present'
+        - not cacert_runimagebuilder | default(false) | bool
+      delegate_to: "{{ _cacert_target_host }}"
 
 - name: "MMN cacert - Remove server cert"
   become: true
@@ -128,6 +138,7 @@
     path: "{{ cacert_path_servercert }}"
     state: absent
   when: cacert_ca.value.state | default('present') == 'absent'
+  delegate_to: "{{ _cacert_target_host }}"
 
 - name: "MMN cacert - Remove server cert from additional paths"
   become: true
@@ -140,3 +151,5 @@
   when:
     - cacert_servercert_additionalpaths is defined
     - (additionalpaths.state | default('present') == 'absent') or (cacert_ca.value.state | default('present') == 'absent')
+    - not cacert_runimagebuilder | default(false) | bool
+  delegate_to: "{{ _cacert_target_host }}"
