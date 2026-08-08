@@ -4,5 +4,6 @@
 system_groups_create_on_hostgroups: {}
 system_groups_create_on_hosts: {}
 
-# Enable debug output (set to true for troubleshooting)
-ansible_groups_debug: false
+# Imagebuilder mode: where to deploy uci-defaults scripts on the build host
+system_groups_setpassword_deploypath: "{{ system_groups_setpassword_deployroot }}/etc/uci-defaults/"
+system_groups_setpassword_deployfile: "99-set-group"

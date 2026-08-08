@@ -9,8 +9,12 @@ galaxy_info:
   min_ansible_version: "2.9"
   platforms:
     - name: Debian
-      versions:
-        - "bookworm"
-        - "bullseye"
+    - name: Ubuntu
+    - name: Alpine
+    - name: ArchLinux
+    - name: EL
+    - name: Fedora
+    - name: FreeBSD
+    - name: OpenWrt
   galaxy_tags: [posix, groups, group]
 dependencies: []

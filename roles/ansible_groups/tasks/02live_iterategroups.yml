@@ -1,0 +1,9 @@
+---
+- name: MMN groups - Block task if group shall be created on this very host
+  block:
+    - name: MMN groups - The group will be installed
+      ansible.builtin.debug:
+        var: group.key
+    - name: MMN groups - Create group
+      ansible.builtin.include_tasks: 03live_justdoit.yml
+  when: group.key in list_of_groups

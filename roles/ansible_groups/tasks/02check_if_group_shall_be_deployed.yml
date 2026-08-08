@@ -1,0 +1,25 @@
+---
+- name: MMN groups - Checking the following group
+  ansible.builtin.debug:
+    var: group.key
+
+- name: MMN groups - Add group from group-based assignments
+  ansible.builtin.set_fact:
+    list_of_groups: "{{ list_of_groups + [ group.key ] }}"
+  when: >
+    system_groups_create_on_hostgroups is defined
+    and group.key in system_groups_create_on_hostgroups
+    and system_groups_create_on_hostgroups[group.key] | intersect(group_names) | length > 0
+
+- name: MMN groups - Add group from individual host assignments
+  ansible.builtin.set_fact:
+    list_of_groups: "{{ list_of_groups + [ group.key ] }}"
+  when: >
+    group.key not in list_of_groups
+    and system_groups_create_on_hosts is defined
+    and group.key in system_groups_create_on_hosts
+    and inventory_hostname in system_groups_create_on_hosts[group.key]
+
+- name: MMN groups - Print result
+  ansible.builtin.debug:
+    msg: "Host {{ inventory_hostname }} will get the following groups {{ list_of_groups }}"

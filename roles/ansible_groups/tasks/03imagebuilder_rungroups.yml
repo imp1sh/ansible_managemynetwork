@@ -1,0 +1,20 @@
+---
+- name: MMN groups - Block task if group shall be created on this very host
+  block:
+    - name: MMN groups - The group will be installed
+      ansible.builtin.debug:
+        var: group.key
+
+    - name: MMN groups - Make sure init script deploypath exists
+      ansible.builtin.file:
+        path: "{{ system_groups_setpassword_deploypath }}"
+        state: directory
+      delegate_to: "{{ _groups_target_host }}"
+
+    - name: MMN groups - Deploy init script for group
+      ansible.builtin.template:
+        src: imagebuildergroup.j2
+        dest: "{{ system_groups_setpassword_deploypath }}/{{ system_groups_setpassword_deployfile }}-{{ group.key }}"
+      when: group.value.state | default('present') != 'absent'
+      delegate_to: "{{ _groups_target_host }}"
+  when: group.key in list_of_groups

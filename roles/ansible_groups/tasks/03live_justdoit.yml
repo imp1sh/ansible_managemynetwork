@@ -1,10 +1,12 @@
 ---
-- name: handling group
+- name: "MMN groups - handling group"
   ansible.builtin.group:
     name: "{{ group.key }}"
     state: "{{ group.value.state | default('present') }}"
     force: "{{ group.value.force | default(omit) }}"
     gid: "{{ group.value.gid | default(omit) }}"
+    gid_max: "{{ group.value.gid_max | default(omit) }}"
+    gid_min: "{{ group.value.gid_min | default(omit) }}"
     local: "{{ group.value.local | default(omit) }}"
     non_unique: "{{ group.value.non_unique | default(omit) }}"
     system: "{{ group.value.system | default(omit) }}"

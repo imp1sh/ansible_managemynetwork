@@ -1,0 +1,29 @@
+#!/bin/sh
+set -e
+
+GROUP='{{ group.key }}'
+
+if [ "$1" = "absent" ]; then
+  # delete group if it exists
+  if getent group "$GROUP" >/dev/null 2>&1; then
+    groupdel "$GROUP"
+  fi
+else
+  # create or update group
+  if getent group "$GROUP" >/dev/null 2>&1; then
+    # group exists — update attributes
+{% if group.value.gid is defined %}
+    groupmod -g '{{ group.value.gid }}' {% if group.value.non_unique is defined and group.value.non_unique %}-o {% endif %}"$GROUP"
+{% endif %}
+  else
+    # group missing — create with available attributes
+    set --
+{% if group.value.gid is defined %}
+    set -- "$@" -g '{{ group.value.gid }}' {% if group.value.non_unique is defined and group.value.non_unique %}-o {% endif %}
+{% endif %}
+{% if group.value.system is defined and group.value.system %}
+    set -- "$@" -r
+{% endif %}
+    groupadd "$@" "$GROUP"
+  fi
+fi

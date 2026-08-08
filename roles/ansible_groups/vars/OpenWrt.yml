@@ -1,0 +1,4 @@
+system_groups_additional_packages:
+  - "shadow-groupadd"
+  - "shadow-groupdel"
+  - "shadow-groupmod"

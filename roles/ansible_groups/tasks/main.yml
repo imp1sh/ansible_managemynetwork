@@ -1,12 +1,19 @@
 ---
-# tasks file for ansible_groups
-- name: Iterate over defined groups
-  ansible.builtin.include_tasks: iterategroups.yml
-  loop: "{{ system_groups | dict2items }}"
-  loop_control:
-    loop_var: "group"
+- name: "MMN groups - is system_groups defined?"
   when: system_groups is defined
-    #  ansible.builtin.group:
-    #    name: "{{ group.name }}"
-    #    gid: "{{ group.gid | default(omit) }}"
-    #    state: "{{ group.state }}"
+  block:
+    - name: MMN groups - Run live mode
+      ansible.builtin.include_tasks: 01live.yml
+      when: ( system_groups_runimagebuilder is not defined ) or
+            ( system_groups_runimagebuilder is defined and not system_groups_runimagebuilder )
+
+    - name: MMN groups - Run imagebuilder mode
+      ansible.builtin.include_tasks: 01imagebuilder.yml
+      when:
+        - system_groups_runimagebuilder is defined
+        - system_groups_runimagebuilder
+
+- name: MMN groups - Fail status feedback
+  ansible.builtin.debug:
+    msg: "The role system_groups did not run on host {{ inventory_hostname }} because the var system_groups is not set."
+  when: system_groups is not defined

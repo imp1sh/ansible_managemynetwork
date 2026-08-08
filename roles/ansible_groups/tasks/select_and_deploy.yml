@@ -1,0 +1,16 @@
+---
+- name: MMN groups - Initialize list of groups to deploy
+  ansible.builtin.set_fact:
+    list_of_groups: []
+
+- name: MMN groups - Check what groups shall be deployed on host
+  ansible.builtin.include_tasks: "02check_if_group_shall_be_deployed.yml"
+  loop: "{{ system_groups | dict2items }}"
+  loop_control:
+    loop_var: group
+
+- name: MMN groups - Deploy groups
+  ansible.builtin.include_tasks: "{{ groups_runner }}"
+  loop: "{{ system_groups | dict2items }}"
+  loop_control:
+    loop_var: group

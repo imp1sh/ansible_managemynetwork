@@ -1,5 +1,15 @@
 ---
 - hosts: localhost
   remote_user: root
+  vars:
+    system_groups:
+      testgroup:
+        gid: 9998
+        state: present
+    system_groups_create_on_hosts:
+      testgroup:
+        - localhost
+    system_groups_create_on_hostgroups: {}
+    system_groups_runimagebuilder: false
   roles:
     - ansible_groups
