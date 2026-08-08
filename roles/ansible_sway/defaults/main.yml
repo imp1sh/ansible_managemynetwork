@@ -88,6 +88,11 @@ sway_gaps_outer: 0
 sway_gaps_smart_borders: null
 sway_gaps_smart_gaps: null
 
+# Floating windows
+sway_floating_modifier: "$mod"
+sway_floating_minimum_size: "75 x 50"
+sway_floating_maximum_size: "-1 x -1"
+
 # Colors
 sway_colors:
   background:   "#1c1c1c"
@@ -133,92 +138,6 @@ sway_colors:
     binding_mode_border:     "#e63946"
     binding_mode_indicator:  "#ffffff"
     binding_mode_text:       "#ffffff"
-
-# sway_colors:
-#   background:             "#ffffff"
-#   statusline:             "#000000"
-#   focused:
-#     background:           "#4c7899"
-#     border:               "#4c7899"
-#     child_border:         "#4c7899"
-#     indicator:            "#2e9ef4"
-#     separator:            "#888888"
-#     statusline:           "#ffffff"
-#     text:                 "#ffffff"
-#   workspace:
-#     border:               "#4c7899"
-#     background:           "#4c7899"
-#     text:                 "#ffffff"
-#   inactive:
-#     background:           "#222222"
-#     statusline:           "#888888"
-#     separator:            "#666666"
-#     border:               "#333333"
-#     child_border:         "#333333"
-#     indicator:            "#484e50"
-#     text:                 "#888888"
-#     workspace_border:     "#333333"
-#     workspace_background: "#222222"
-#     workspace_text:       "#888888"
-#   urgent:
-#     background:           "#900000"
-#     statusline:           "#ffffff"
-#     separator:            "#666666"
-#     border:               "#2f343a"
-#     child_border:         "#900000"
-#     indicator:            "#900000"
-#     text:                 "#ffffff"
-#     workspace_border:     "#900000"
-#     workspace_background: "#900000"
-#     workspace_text:       "#ffffff"
-#   binding_mode:
-#     background:              "#900000"
-#     binding_mode_statusline: "#ffffff"
-#     binding_mode_separator:  "#666666"
-#     binding_mode_border:     "#2f343a"
-#     binding_mode_indicator:  "#900000"
-#     binding_mode_text:       "#ffffff"
-
-# original
-# sway_colors_background: "#ffffff"
-# sway_colors_statusline: "#000000"
-# sway_colors_separator: "#666666"
-# sway_colors_focused_background: "#4c7899"
-# sway_colors_focused_statusline: "#ffffff"
-# sway_colors_focused_separator: "#888888"
-# sway_colors_focused_border: "#4c7899"
-# sway_colors_focused_child_border: "#4c7899"
-# sway_colors_focused_indicator: "#2e9ef4"
-# sway_colors_focused_text: "#ffffff"
-# sway_colors_focused_workspace_border: "#4c7899"
-# sway_colors_focused_workspace_background: "#4c7899"
-# sway_colors_focused_workspace_text: "#ffffff"
-# sway_colors_inactive_background: "#222222"
-# sway_colors_inactive_statusline: "#888888"
-# sway_colors_inactive_separator: "#666666"
-# sway_colors_inactive_border: "#333333"
-# sway_colors_inactive_child_border: "#333333"
-# sway_colors_inactive_indicator: "#484e50"
-# sway_colors_inactive_text: "#888888"
-# sway_colors_inactive_workspace_border: "#333333"
-# sway_colors_inactive_workspace_background: "#222222"
-# sway_colors_inactive_workspace_text: "#888888"
-# sway_colors_urgent_background: "#900000"
-# sway_colors_urgent_statusline: "#ffffff"
-# sway_colors_urgent_separator: "#666666"
-# sway_colors_urgent_border: "#2f343a"
-# sway_colors_urgent_child_border: "#900000"
-# sway_colors_urgent_indicator: "#900000"
-# sway_colors_urgent_text: "#ffffff"
-# sway_colors_urgent_workspace_border: "#900000"
-# sway_colors_urgent_workspace_background: "#900000"
-# sway_colors_urgent_workspace_text: "#ffffff"
-# sway_colors_binding_mode_background: "#900000"
-# sway_colors_binding_mode_statusline: "#ffffff"
-# sway_colors_binding_mode_separator: "#666666"
-# sway_colors_binding_mode_border: "#2f343a"
-# sway_colors_binding_mode_indicator: "#900000"
-# sway_colors_binding_mode_text: "#ffffff"
 
 # Font
 sway_font: "pango:Monospace 10"
@@ -278,33 +197,19 @@ sway_bar_tray_padding: null
 sway_bar_colors: null
 sway_bar_swaybar_command: null
 
-# Assignments (window rules)
-# List of window assignments
-sway_assignments: []
+# Window attributes (marks, floating, workspace assignment)
+# Dictionary mapping mark names to lists of rules
+sway_window_attributes: {}
 # Example:
-# sway_assignments:
-#   - criteria: "class:Firefox"
-#     workspace: "1"
-#   - criteria: "class:Thunderbird"
-#     workspace: "2"
-
-# Window commands (for_window)
-# List of window commands
-sway_window_commands: []
-# Example:
-# sway_window_commands:
-#   - criteria: "class:Firefox"
-#     command: "floating enable"
-#   - criteria: "title:.*"
-#     command: "border pixel 2"
-
-# Floating windows
-# List of floating window criteria
-sway_floating_criteria: []
-# Example:
-# sway_floating_criteria:
-#   - criteria: "class:Pavucontrol"
-#   - criteria: "class:nm-applet"
+# sway_window_attributes:
+#   Browser:
+#     - criteria: 'app_id="org.mozilla.firefox"'
+#       workspace: 2
+#     - criteria: 'app_id="librewolf"'
+#       workspace: 1
+#   Filebrowser:
+#     - criteria: 'app_id="Thunar"'
+#       floating: true
 
 # Exec commands (startup applications)
 # List of commands to execute on startup
@@ -327,18 +232,6 @@ sway_mouse_warping: null
 # Popup during fullscreen
 sway_popup_during_fullscreen: null
 
-# Focus child
-sway_focus_child: null
-
-# Focus parent
-sway_focus_parent: null
-
-# Smart gaps
-sway_smart_gaps: null
-
-# Smart borders
-sway_smart_borders: null
-
 # Workspace auto back and forth
 sway_workspace_auto_back_and_forth: null
 
@@ -348,23 +241,8 @@ sway_workspace_layout: null
 # Default orientation
 sway_default_orientation: null
 
-# Default border
-sway_default_border: null
-
-# Default floating border
-sway_default_floating_border: null
-
 # Default floating size
 sway_default_floating_size: null
-
-# Default floating position center
-sway_default_floating_position_center: null
-
-# Hide cursor when typing
-sway_hide_cursor_when_typing: null
-
-# Force display power on
-sway_force_display_power_on: null
 
 # Force xwayland
 sway_force_xwayland: null
@@ -372,17 +250,8 @@ sway_force_xwayland: null
 # Xwayland disable
 sway_xwayland_disable: null
 
-# Xwayland scale
-sway_xwayland_scale: null
-
-# Xwayland scale filter
-sway_xwayland_scale_filter: null
-
 # Title format
 sway_title_format: null
-
-# Title align
-sway_title_align: null
 
 # Include files
 # List of additional config files to include
@@ -390,3 +259,14 @@ sway_includes: []
 # Example:
 # sway_includes:
 #   - "~/.config/sway/extra_config"
+
+# Cleanup configuration
+# Enable cleanup of backup sway config files
+sway_cleanup_enable: true
+
+# Age in minutes for backup files to be deleted (default 2880 = 2 days)
+sway_cleanup_age_minutes: 2880
+
+# Cleanup timer schedule (first Monday of month at 10:00)
+# Using systemd's calendar specification for first Monday of month at 10:00
+sway_cleanup_timer_schedule: "Mon *-*-* 10:00:00"

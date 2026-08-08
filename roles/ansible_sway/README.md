@@ -40,9 +40,9 @@ These variables are automatically set based on the target distribution:
 
 #### Basic Settings
 
-- `sway_mod_key`: Modifier key (default: "Mod4" - Super/Windows key)
+- `sway_key_mod`: Modifier key (default: "Mod4" - Super/Windows key)
 - `sway_terminal`: Terminal emulator command (default: "alacritty")
-- `sway_menu`: Application launcher/menu command (default: "rofi --show drun")
+- `sway_menu`: Application launcher/menu command (default: "$rofi_cmd -show combi -combi-modes drun#run -modes combi")
 - `sway_font`: Font specification (default: "pango:Monospace 10")
 
 #### Color Configuration
@@ -114,23 +114,7 @@ These variables are automatically set based on the target distribution:
 - `sway_xwayland_disable`: Disable Xwayland (default: null)
 - `sway_force_xwayland`: Force Xwayland (default: null)
 - `sway_title_format`: Title format for windows (default: null)
-- `sway_includes`: List of additional config files to include (default: null)
-
-#### Output Configuration
-
-Configure display outputs using the `sway_outputs` list:
-  - `name`: Output name (e.g., "eDP-1", "HDMI-A-1", or "*" for all)
-  - `background_image`: Background image path (optional)
-  - `background_color`: Background color (optional)
-  - `background_mode`: Background mode (optional)
-  - `mode`: Output resolution (optional)
-
-#### Input Configuration
-
-Configure input devices using the `sway_inputs` list:
-  - `identifier`: Input identifier (e.g., "type:keyboard", "type:touchpad", or "*" for all)
-  - `xkb_layout`: Keyboard layout (optional)
-  - `xkb_variant`: Keyboard variant (optional)
+- `sway_includes`: List of additional config files to include (default: [])
 
 #### Output Configuration
 
@@ -143,7 +127,7 @@ sway_outputs:
     background_mode: "fill" # [ fill(default) | stretch | fit | center | tile ]
     background_color: "#000000" # alternatively you can specify a color. Image has precedence
     mode: "1920x1080"
-    position: "0,0"
+    position: "0 0"
     scale: null
     transform: null
     adaptive_sync: null
@@ -196,17 +180,16 @@ sway_inputs:
 
 #### Colors
 
-All color variables are prefixed with `sway_colors_`:
+Colors are configured as a nested dictionary under `sway_colors`:
 
-- `sway_colors_background`: Background color
-- `sway_colors_statusline`: Statusline color
-- `sway_colors_separator`: Separator color
-- `sway_colors_focused_*`: Colors for focused windows/workspaces
-- `sway_colors_inactive_*`: Colors for inactive windows/workspaces
-- `sway_colors_urgent_*`: Colors for urgent windows/workspaces
-- `sway_colors_binding_mode_*`: Colors for binding mode
+- `sway_colors.background`: Background color
+- `sway_colors.statusline`: Statusline color
+- `sway_colors.focused.*`: Colors for focused windows (border, background, text, indicator, child_border, separator, statusline)
+- `sway_colors.inactive.*`: Colors for inactive windows
+- `sway_colors.urgent.*`: Colors for urgent windows
+- `sway_colors.binding_mode.*`: Colors for binding mode
 
-See `defaults/main.yml` for the complete list of color variables.
+See `defaults/main.yml` for the complete structure.
 
 #### Workspaces
 
@@ -328,28 +311,6 @@ sway_window_attributes:
     - criteria: 'app_id="Alacritty"'
 ```
 
-#### Window Commands
-
-Apply commands to windows matching criteria using the `sway_window_commands` list:
-
-```yaml
-sway_window_commands:
-  - criteria: "class:Firefox"
-    command: "floating enable"
-  - criteria: "title:.*"
-    command: "border pixel 2"
-```
-
-#### Floating Windows
-
-Define floating window criteria using the `sway_floating_criteria` list:
-
-```yaml
-sway_floating_criteria:
-  - criteria: "class:Pavucontrol"
-  - criteria: "class:nm-applet"
-```
-
 #### Startup Applications
 
 Execute commands on startup using the `sway_exec_commands` list:
@@ -370,18 +331,10 @@ sway_exec_commands:
 - `sway_workspace_auto_back_and_forth`: Workspace auto back and forth (default: null)
 - `sway_workspace_layout`: Workspace layout - "default", "stacking", or "tabbed" (default: null)
 - `sway_default_orientation`: Default orientation - "horizontal" or "vertical" (default: null)
-- `sway_default_border`: Default border style (default: null)
-- `sway_default_floating_border`: Default floating border style (default: null)
 - `sway_default_floating_size`: Default floating size (default: null)
-- `sway_default_floating_position_center`: Center floating windows (default: null)
-- `sway_hide_cursor_when_typing`: Hide cursor when typing (default: null)
-- `sway_force_display_power_on`: Force display power on (default: null)
 - `sway_force_xwayland`: Force Xwayland (default: null)
 - `sway_xwayland_disable`: Disable Xwayland (default: null)
-- `sway_xwayland_scale`: Xwayland scale (default: null)
-- `sway_xwayland_scale_filter`: Xwayland scale filter (default: null)
 - `sway_title_format`: Title format (default: null)
-- `sway_title_align`: Title alignment (default: null)
 - `sway_includes`: List of additional config files to include (default: [])
 
 See `defaults/main.yml` for the complete list of all available variables.
@@ -409,7 +362,7 @@ With custom configuration:
   roles:
     - role: imp1sh.ansible_managemynetwork.ansible_sway
       vars:
-        sway_mod_key: "Mod4"
+        sway_key_mod: "Mod4"
         sway_terminal: "alacritty"
         sway_menu: "rofi -show drun"
         sway_font: "pango:DejaVu Sans 11"
@@ -419,7 +372,7 @@ With custom configuration:
           - name: "*"
             background_image: "/usr/share/backgrounds/sway/sway_wallpaper.png"
             background_color: "#000000" # alternatively you can specify a color. Image has precedence
-            background_mode: [ fill(default) | stretch | fit | center | tile ]
+            background_mode: "fill" # fill(default) | stretch | fit | center | tile
             mode: "1920x1080"
         sway_inputs:
           - identifier: "*"
@@ -478,20 +431,20 @@ Custom keybindings:
             command: "exec firefox"
 ```
 
-Window assignments:
+Window attributes (marks, floating, workspace assignment):
 
 ```yaml
 - hosts: workstations
   roles:
     - role: imp1sh.ansible_managemynetwork.ansible_sway
       vars:
-        sway_assignments:
-          - criteria: "class:Firefox"
-            workspace: "1"
-          - criteria: "class:Thunderbird"
-            workspace: "2"
-          - criteria: "class:Code"
-            workspace: "3"
+        sway_window_attributes:
+          Browser:
+            - criteria: 'app_id="org.mozilla.firefox"'
+              workspace: 2
+          Mail:
+            - criteria: 'app_id="net.thunderbird.Thunderbird"'
+              workspace: 1
 ```
 
 ## Troubleshooting
@@ -568,6 +521,41 @@ cp ~/.config/sway/config.backup.<timestamp> ~/.config/sway/config
 
 **Breaking Changes:**
 - None
+
+## Cleanup Configuration
+
+This role implements a systemd user timer to automatically clean up backup sway configuration files. When the sway configuration is updated, backups are created with timestamps. The cleanup timer removes these backup files after a specified age.
+
+### Variables
+
+- `sway_cleanup_enable`: Enable/disable automatic cleanup (default: true)
+- `sway_cleanup_age_minutes`: Age in minutes for backup files to be deleted (default: 2880 = 2 days)
+- `sway_cleanup_timer_schedule`: Systemd timer schedule (default: "Mon *-*-* 10:00:00" - first Monday of month at 10:00)
+
+### How it works
+
+The cleanup functionality:
+1. Creates a systemd user timer that runs monthly on the first Monday at 10:00
+2. Removes backup files older than the specified age (default 2 days)
+3. Automatically runs after system boot if the system was offline during the scheduled time
+4. Uses the `find` command to locate and delete old backup files in `~/.config/sway/`
+
+### Customization
+
+To disable cleanup:
+```yaml
+sway_cleanup_enable: false
+```
+
+To change the cleanup age (e.g., 7 days):
+```yaml
+sway_cleanup_age_minutes: 10080
+```
+
+To customize the timer schedule:
+```yaml
+sway_cleanup_timer_schedule: "Mon *-*-* 09:00:00"
+```
 
 ## Author Information
 

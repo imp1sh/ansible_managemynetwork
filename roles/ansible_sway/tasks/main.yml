@@ -2,9 +2,6 @@
 - name: MMN sway - Include OS vars
   ansible.builtin.include_vars: "{{ ansible_distribution }}.yml"
 
-- name: MMN sway - Include template vars
-  ansible.builtin.include_vars: "templates.yml"
-
 - name: MMN sway - Validate sway_packages
   ansible.builtin.assert:
     that:
@@ -13,6 +10,14 @@
       - sway_packages | length > 0
     fail_msg: "sway_packages must be a non-empty list"
     success_msg: "sway_packages is valid"
+
+- name: MMN sway - Validate sway_fileconfig and sway_filetemplate
+  ansible.builtin.assert:
+    that:
+      - sway_fileconfig is defined
+      - sway_filetemplate is defined
+    fail_msg: "sway_fileconfig and sway_filetemplate must be defined (expected from vars/{{ ansible_distribution }}.yml)"
+    success_msg: "sway_fileconfig and sway_filetemplate are valid"
 
 - name: MMN sway - Set package name for calling packages role
   ansible.builtin.set_fact:
@@ -34,7 +39,7 @@
     sway_target_users: "{{ [sway_users] if (sway_users is string) else (sway_users if (sway_users is iterable and sway_users is not string) else [ansible_user | default('root')]) }}"
   when: sway_userconfig | default(true)
 
-- name: MMN sway - Validate sway_users
+- name: MMN sway - Validate sway_target_users
   ansible.builtin.assert:
     that:
       - sway_target_users is iterable
@@ -49,7 +54,6 @@
     loop_var: target_user
   when: sway_userconfig | default(true)
 
-# currently no need
-# - name: MMN sway - Deploy system-wide configuration
-#   ansible.builtin.include_tasks: deploy_system_config.yml
-#   when: not (sway_userconfig | default(true))
+- name: MMN sway - Deploy system-wide configuration
+  ansible.builtin.include_tasks: deploy_system_config.yml
+  when: not (sway_userconfig | default(true))

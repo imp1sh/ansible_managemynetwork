@@ -1,0 +1,10 @@
+[Unit]
+Description=Sway Config Cleanup
+Requires=sway_cleanup.service
+
+[Timer]
+OnCalendar={{ sway_cleanup_timer_schedule | default('Mon *-*-* 10:00:00') }}
+Persistent=true
+
+[Install]
+WantedBy=timers.target

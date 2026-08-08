@@ -12,6 +12,24 @@
   ansible.builtin.set_fact:
     target_user_home: "{{ getent_passwd[target_user][4] }}"
 
+- name: MMN sway - Ensure systemd user directory exists
+  ansible.builtin.file:
+    path: "{{ target_user_home }}/.config/systemd/user"
+    state: directory
+    owner: "{{ target_user }}"
+    group: "{{ target_user }}"
+    mode: '0700'
+  when: sway_cleanup_enable | default(true)
+
+- name: MMN sway - Ensure local bin directory exists
+  ansible.builtin.file:
+    path: "{{ target_user_home }}/.local/bin"
+    state: directory
+    owner: "{{ target_user }}"
+    group: "{{ target_user }}"
+    mode: '0755'
+  when: sway_cleanup_enable | default(true)
+
 - name: MMN sway - Ensure configuration directory exists for {{ target_user }}
   ansible.builtin.file:
     path: "{{ target_user_home }}/.config/sway"
@@ -66,10 +84,51 @@
     mode: '0644'
     backup: yes
 
+- name: MMN sway - Ensure cleanup script exists
+  ansible.builtin.copy:
+    src: "sway_cleanup.sh"
+    dest: "{{ target_user_home }}/.local/bin/sway_cleanup.sh"
+    owner: "{{ target_user }}"
+    group: "{{ target_user }}"
+    mode: '0755'
+  when: sway_cleanup_enable | default(true)
 
+- name: MMN sway - Create systemd user timer for sway cleanup
+  ansible.builtin.template:
+    src: "sway_cleanup.timer.j2"
+    dest: "{{ target_user_home }}/.config/systemd/user/sway_cleanup.timer"
+    owner: "{{ target_user }}"
+    group: "{{ target_user }}"
+    mode: '0644'
+  when: sway_cleanup_enable | default(true)
 
-# User not on host
-- name: MMN sway - Fail if user {{ target_user }} does not exist
-  ansible.builtin.fail:
-    msg: "User {{ target_user }} does not exist on the system"
-  when: target_user not in getent_passwd
+- name: MMN sway - Create systemd user service for sway cleanup
+  ansible.builtin.template:
+    src: "sway_cleanup.service.j2"
+    dest: "{{ target_user_home }}/.config/systemd/user/sway_cleanup.service"
+    owner: "{{ target_user }}"
+    group: "{{ target_user }}"
+    mode: '0644'
+  when: sway_cleanup_enable | default(true)
+
+- name: MMN sway - Enable linger for {{ target_user }}
+  ansible.builtin.command:
+    cmd: "loginctl enable-linger {{ target_user }}"
+  when: sway_cleanup_enable | default(true)
+  changed_when: false
+
+- name: MMN sway - Reload systemd user daemon for {{ target_user }}
+  ansible.builtin.systemd:
+    daemon_reload: true
+    scope: user
+    user: "{{ target_user }}"
+  when: sway_cleanup_enable | default(true)
+
+- name: MMN sway - Enable and start sway cleanup timer for {{ target_user }}
+  ansible.builtin.systemd:
+    name: sway_cleanup.timer
+    enabled: true
+    state: started
+    scope: user
+    user: "{{ target_user }}"
+  when: sway_cleanup_enable | default(true)

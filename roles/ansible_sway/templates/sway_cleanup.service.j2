@@ -1,0 +1,7 @@
+[Unit]
+Description=Sway Config Cleanup Service
+
+[Service]
+Type=oneshot
+Environment=SWAY_CLEANUP_AGE_MINUTES={{ sway_cleanup_age_minutes | default(2880) }}
+ExecStart={{ target_user_home }}/.local/bin/sway_cleanup.sh
