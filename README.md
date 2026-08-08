@@ -30,6 +30,7 @@ This collection will offer support for:
 | Role | Regular Linux | OpenWrt | Imagebuilder |
 |------|:-----:|:-------:|:------------:|
 | [ansible_borgmatic](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_borgmatic/README.md) | yes | — | — |
+| [ansible_cacert](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_cacert/README.md) | yes | yes | yes |
 | [ansible_chrony](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_chrony/README.md) | yes | — | — |
 | [ansible_dehydrated](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_dehydrated/README.md) | yes | — | — |
 | [ansible_groups](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_groups/README.md) | yes | yes | yes |
