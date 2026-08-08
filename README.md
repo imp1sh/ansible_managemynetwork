@@ -29,63 +29,48 @@ This collection will offer support for:
 - **OpenWrt** (main focus)
 
 
-Some roles support Debian and OpenWrt at the same time:
-- **ansible_packages** - Package installation for both Debian and OpenWrt
-- **ansible_users** - User management for both Debian and OpenWrt
-- **ansible_zabbixagent** - Zabbix agent installation and configuration for both Debian and OpenWrt
-- **ansible_restic** - Restic backup setup for both Debian and OpenWrt
-- **ansible_ipupdater** - IP address updater for both Debian and OpenWrt
-- **ansible_podman** - Podman container management for both Debian and OpenWrt
+## Roles
 
+| Role | Linux | OpenWrt | Imagebuilder |
+|------|:-----:|:-------:|:------------:|
+| [ansible_borgmatic](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_borgmatic/README.md) | yes | — | — |
+| [ansible_chrony](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_chrony/README.md) | yes | — | — |
+| [ansible_dehydrated](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_dehydrated/README.md) | yes | — | — |
+| [ansible_groups](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_groups/README.md) | yes | yes | yes |
+| [ansible_hostname](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_hostname/README.md) | yes | — | — |
+| [ansible_motd](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_motd/README.md) | yes | — | — |
+| [ansible_netbox2yaml](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_netbox2yaml/README.md) | yes | — | — |
+| [ansible_nsupdate_bash](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_nsupdate_bash/README.md) | yes | — | — |
+| [ansible_ohmyzsh](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_ohmyzsh/README.md) | yes | — | — |
+| [ansible_openwrtacme](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_openwrtacme/README.md) | — | yes | yes |
+| [ansible_openwrtbabeld](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_openwrtbabeld/README.md) | — | yes | yes |
+| [ansible_openwrtdhcp](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_openwrtdhcp/README.md) | — | yes | yes |
+| [ansible_openwrtdropbear](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_openwrtdropbear/README.md) | — | yes | yes |
+| [ansible_openwrtfirewall](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_openwrtfirewall/README.md) | — | yes | yes |
+| [ansible_openwrtfstab](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_openwrtfstab/README.md) | — | yes | yes |
+| [ansible_openwrtimagebuilder](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_openwrtimagebuilder/README.md) | — | yes | yes |
+| [ansible_openwrtnetwork](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_openwrtnetwork/README.md) | — | yes | yes |
+| [ansible_openwrtpackages](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_openwrtpackages/README.md) | — | yes | yes |
+| [ansible_openwrtpodman](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_openwrtpodman/README.md) | — | yes | — |
+| [ansible_openwrtprometheus_node_exporter_lua](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_openwrtprometheus_node_exporter_lua/README.md) | — | yes | yes |
+| [ansible_openwrtservices](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_openwrtservices/README.md) | — | yes | yes |
+| [ansible_openwrtsqm](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_openwrtsqm/README.md) | — | yes | yes |
+| [ansible_openwrtsystem](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_openwrtsystem/README.md) | — | yes | yes |
+| [ansible_openwrttinyproxy](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_openwrttinyproxy/README.md) | — | yes | yes |
+| [ansible_openwrtuhttpd](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_openwrtuhttpd/README.md) | — | yes | yes |
+| [ansible_openwrtusteer](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_openwrtusteer/README.md) | — | yes | yes |
+| [ansible_openwrtwireguard](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_openwrtwireguard/README.md) | — | yes | yes |
+| [ansible_openwrtwireless](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_openwrtwireless/README.md) | — | yes | yes |
+| [ansible_packages](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_packages/README.md) | yes | yes | yes |
+| [ansible_podman](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_podman/README.md) | yes | yes | yes |
+| [ansible_qemuagent](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_qemuagent/README.md) | yes | — | — |
+| [ansible_restic](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_restic/README.md) | yes | yes | yes |
+| [ansible_sshkeys](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_sshkeys/README.md) | yes | yes | — |
+| [ansible_sudo](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_sudo/README.md) | yes | — | — |
+| [ansible_users](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_users/README.md) | yes | yes | yes |
+| [ansible_zabbixagent](https://github.com/imp1sh/ansible_managemynetwork/tree/main/roles/ansible_zabbixagent) | yes | yes | yes |
 
-
-> This Collection grew over time and contains LOTS of different roles. Only consider the documented roles to be in a *ready for production* state.
-> All other roles will be removed or lifted to the same quality standard in the future.
-> Until that point is not reached released version will stay below 1.x.
-
-## General roles
-
-  - [:leftwards_arrow_with_hook: imp1sh.ansible_managemynetwork.ansible_borgmatic](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_borgmatic/README.md)
-  - [:leftwards_arrow_with_hook: imp1sh.ansible_managemynetwork.ansible_chrony](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_chrony/README.md)
-  - [:leftwards_arrow_with_hook: imp1sh.ansible_managemynetwork.ansible_dehydrated](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_dehydrated/README.md)
-  - [:leftwards_arrow_with_hook: imp1sh.ansible_managemynetwork.ansible_groups](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_groups/README.md)
-  - [:leftwards_arrow_with_hook: imp1sh.ansible_managemynetwork.ansible_hostname](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_hostname/README.md)
-  - [:leftwards_arrow_with_hook: imp1sh.ansible_managemynetwork.ansible_motd](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_motd/README.md)
-  - [:leftwards_arrow_with_hook: imp1sh.ansible_managemynetwork.ansible_netbox2yaml](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_netbox2yaml/README.md)
-  - [:leftwards_arrow_with_hook: imp1sh.ansible_managemynetwork.ansible_nsupdate_bash](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_nsupdate_bash/README.md)
-  - [:leftwards_arrow_with_hook: imp1sh.ansible_managemynetwork.ansible_ohmyzsh](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_ohmyzsh/README.md)
-  - [:leftwards_arrow_with_hook: imp1sh.ansible_managemynetwork.ansible_packages](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_packages/README.md)
-  - [:leftwards_arrow_with_hook: imp1sh.ansible_managemynetwork.ansible_podman](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_podman/README.md)
-  - [:leftwards_arrow_with_hook: imp1sh.ansible_managemynetwork.ansible_qemuagent](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_qemuagent/README.md)
-  - [:leftwards_arrow_with_hook: imp1sh.ansible_managemynetwork.ansible_restic](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_restic/README.md)
-  - [:leftwards_arrow_with_hook: imp1sh.ansible_managemynetwork.ansible_sshkeys](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_sshkeys/README.md)
-  - [:leftwards_arrow_with_hook: imp1sh.ansible_managemynetwork.ansible_sudo](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_sudo/README.md)
-  - [:leftwards_arrow_with_hook: imp1sh.ansible_managemynetwork.ansible_users](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_users/README.md)
-  - [:leftwards_arrow_with_hook: imp1sh.ansible_managemynetwork.ansible_zabbixagent](https://github.com/imp1sh/ansible_managemynetwork/tree/main/roles/ansible_zabbixagent)
-
-## OpenWrt specific roles
-  - [:leftwards_arrow_with_hook: imp1sh.ansible_managemynetwork.ansible_openwrtacme](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_openwrtacme/README.md)
-  - [:leftwards_arrow_with_hook: imp1sh.ansible_managemynetwork.ansible_openwrtbabeld](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_openwrtbabeld/README.md)
-  - [:leftwards_arrow_with_hook: imp1sh.ansible_managemynetwork.ansible_openwrtdhcp](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_openwrtdhcp/README.md)
-  - [:leftwards_arrow_with_hook: imp1sh.ansible_managemynetwork.ansible_openwrtdropbear](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_openwrtdropbear/README.md)
-  - [:leftwards_arrow_with_hook: imp1sh.ansible_managemynetwork.ansible_openwrtfirewall](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_openwrtfirewall/README.md)
-  - [:leftwards_arrow_with_hook: imp1sh.ansible_managemynetwork.ansible_openwrtfstab](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_openwrtfstab/README.md)
-  - [:leftwards_arrow_with_hook: imp1sh.ansible_managemynetwork.ansible_openwrtimagebuilder](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_openwrtimagebuilder/README.md)
-  - [:leftwards_arrow_with_hook: imp1sh.ansible_managemynetwork.ansible_openwrtnetwork](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_openwrtnetwork/README.md)
-  - [:leftwards_arrow_with_hook: imp1sh.ansible_managemynetwork.ansible_openwrtpackages](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_openwrtpackages/README.md)
-  - [:leftwards_arrow_with_hook: imp1sh.ansible_managemynetwork.ansible_openwrtpodman](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_openwrtpodman/README.md)
-  - [:leftwards_arrow_with_hook: imp1sh.ansible_managemynetwork.ansible_openwrtprometheus_node_exporter_lua](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_openwrtprometheus_node_exporter_lua/README.md)
-  - [:leftwards_arrow_with_hook: imp1sh.ansible_managemynetwork.ansible_openwrtservices](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_openwrtservices/README.md)
-  - [:leftwards_arrow_with_hook: imp1sh.ansible_managemynetwork.ansible_openwrtsqm](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_openwrtsqm/README.md)
-  - [:leftwards_arrow_with_hook: imp1sh.ansible_managemynetwork.ansible_openwrtsystem](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_openwrtsystem/README.md)
-  - [:leftwards_arrow_with_hook: imp1sh.ansible_managemynetwork.ansible_openwrttinyproxy](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_openwrttinyproxy/README.md)
-  - [:leftwards_arrow_with_hook: imp1sh.ansible_managemynetwork.ansible_openwrtuhttpd](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_openwrtuhttpd/README.md)
-  - [:leftwards_arrow_with_hook: imp1sh.ansible_managemynetwork.ansible_openwrtusteer](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_openwrtusteer/README.md)
-  - [:leftwards_arrow_with_hook: imp1sh.ansible_managemynetwork.ansible_openwrtwireguard](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_openwrtwireguard/README.md)
-  - [:leftwards_arrow_with_hook: imp1sh.ansible_managemynetwork.ansible_openwrtwireless](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_openwrtwireless/README.md)
-
-
-The roles starting with *ansible_openwrt\** are OpenWrt specific. The goal is to be able to manage every aspect of OpenWrt centrally with Ansible.
+> This collection grew over time and contains more roles than listed above. Only the roles listed here are considered *ready for production*. Unlisted roles will be removed or lifted to the same quality standard in the future. Until that point is reached the released version will stay below 1.x.
 
 ### Overview of imp1sh OpenWrt roles
 
