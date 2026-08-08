@@ -403,7 +403,7 @@ config interface "{{ key }}"
 {% endif %}
 {% if value['reqopts'] is defined %}
 {% for reqopt in value['reqopts'] %}
-	list reqopts "{{ value['reqopts'] }}"
+	list reqopts "{{ reqopt }}"
 {% endfor %}
 {% endif %}
 {% if value['defaultreqopts'] is defined %}

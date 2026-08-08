@@ -1,83 +1,64 @@
 - name: display current network interface
   ansible.builtin.debug:
-    msg: "We are iterating on interface {{ item.key }}"
+    msg: "We are iterating on interface {{ item.key }} (proto: {{ item.value.proto | default('unknown') }})"
 
 - name: "MMN openwrtnetwork - delegate localhost tasks"
   delegate_to: 127.0.0.1
+  become: false
+  when:
+    - item.value.proto | default('') == "wireguard"
+    - item.value.wg_managekeys | default(false) | bool
   block:
     - name: make sure key directory for interface exists
-      file:
+      ansible.builtin.file:
         path: "{{ openwrt_network_wg_keypath }}/{{ item.key }}"
         state: directory
         mode: 0700
-      become: false
-      when:
-        - item.value.proto == "wireguard"
-        - item.value.wg_managekeys
-    
+
     - name: check if private key file exists
       ansible.builtin.stat:
         path: "{{ openwrt_network_wg_keypath }}/{{ item.key }}/{{ inventory_hostname }}_private.key"
       register: server_privatekey_file_stat
-      become: false
-      when:
-        - item.value.proto == "wireguard"
-        - item.value.wg_managekeys
-    
+
     - name: generate private key if not there
       ansible.builtin.command: wg genkey
       args:
         chdir: "{{ openwrt_network_wg_keypath }}/{{ item.key }}"
         creates: "{{ openwrt_network_wg_keypath }}/{{ item.key }}/{{ inventory_hostname }}_private.key"
       register: server_privatekey
-      become: false
-      when:
-        - item.value.proto == "wireguard"
-        - item.value.wg_managekeys
-    
+
     - name: save private key to file if changed or missing
       ansible.builtin.copy:
         content: "{{ server_privatekey.stdout }}"
         dest: "{{ openwrt_network_wg_keypath }}/{{ item.key }}/{{ inventory_hostname }}_private.key"
-      become: false
       when:
-        - item.value.proto == "wireguard"
-        - item.value.wg_managekeys
         - server_privatekey.stdout is defined
         - server_privatekey.stdout | length > 0
         - (server_privatekey.changed | default(false)) or (not server_privatekey_file_stat.stat.exists | default(true))
-    
+
     - name: set strict private key permissions
-      file:
+      ansible.builtin.file:
         path: "{{ openwrt_network_wg_keypath }}/{{ item.key }}/{{ inventory_hostname }}_private.key"
         mode: '0600'
-      become: false
-      when:
-        - item.value.proto == "wireguard"
-        - item.value.wg_managekeys
-    
+
     - name: read private key from file
       ansible.builtin.slurp:
         src: "{{ openwrt_network_wg_keypath }}/{{ item.key }}/{{ inventory_hostname }}_private.key"
       register: server_privatekey_data
-      become: false
-      when:
-        - item.value.proto == "wireguard"
-        - item.value.wg_managekeys
-    
+
     - name: decode privatekey base64
       ansible.builtin.set_fact:
         server_privatekey_decoded: "{{ server_privatekey_data.content | b64decode | trim }}"
-      when:
-        - item.value.proto == "wireguard"
-        - item.value.wg_managekeys
 
     - name: insert private key into dict
       ansible.builtin.set_fact:
         openwrt_network_interfaces: "{{ openwrt_network_interfaces | combine({ item.key: {'wg_private_key': server_privatekey_decoded } }, recursive=True) }}"
-      when:
-        - item.value.proto == "wireguard"
-        - item.value.wg_managekeys
+
+    - name: remove stale public key when private key was regenerated
+      ansible.builtin.file:
+        path: "{{ openwrt_network_wg_keypath }}/{{ item.key }}/{{ inventory_hostname }}_public.key"
+        state: absent
+      when: server_privatekey.changed | default(false)
 
     - name: generate public key
       ansible.builtin.command: wg pubkey
@@ -86,17 +67,9 @@
         stdin: "{{ server_privatekey_decoded }}"
         creates: "{{ openwrt_network_wg_keypath }}/{{ item.key }}/{{ inventory_hostname }}_public.key"
       register: server_publickey
-      become: false
-      when:
-        - item.value.proto == "wireguard"
-        - item.value.wg_managekeys
-    
+
     - name: write public key to file
       ansible.builtin.copy:
         content: "{{ server_publickey.stdout }}"
         dest: "{{ openwrt_network_wg_keypath }}/{{ item.key }}/{{ inventory_hostname }}_public.key"
-      become: false
-      when:
-        - server_publickey.changed
-        - item.value.proto == "wireguard"
-        - item.value.wg_managekeys
+      when: server_publickey.changed | default(false)

@@ -23,6 +23,31 @@
 
 
 # Wireguard
+- name: "MMN network - Check if wg binary is available on controller when key management is enabled"
+  ansible.builtin.command: which wg
+  register: _wg_binary_check
+  changed_when: false
+  failed_when: false
+  delegate_to: 127.0.0.1
+  become: false
+  when: |
+    openwrt_network_interfaces.values() | selectattr('wg_managekeys', 'defined') | selectattr('wg_managekeys', 'equalto', true) | list | length > 0
+    or
+    (openwrt_network_wireguardpeers | default({})).values() | selectattr('managekeys', 'defined') | selectattr('managekeys', 'equalto', true) | list | length > 0
+
+- name: "MMN network - Assert wg binary is installed on controller when key management is enabled"
+  ansible.builtin.assert:
+    that:
+      - _wg_binary_check.rc == 0
+    fail_msg: "wireguard-tools (wg) must be installed on the Ansible controller when wg_managekeys/managekeys is enabled"
+    success_msg: "wg binary is available on controller"
+  delegate_to: 127.0.0.1
+  become: false
+  when: |
+    openwrt_network_interfaces.values() | selectattr('wg_managekeys', 'defined') | selectattr('wg_managekeys', 'equalto', true) | list | length > 0
+    or
+    (openwrt_network_wireguardpeers | default({})).values() | selectattr('managekeys', 'defined') | selectattr('managekeys', 'equalto', true) | list | length > 0
+
 - name: make sure wireguard management dir exists
   ansible.builtin.file:
     path: "{{ openwrt_network_wg_keypath }}"

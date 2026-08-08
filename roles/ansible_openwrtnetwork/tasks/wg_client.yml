@@ -4,75 +4,63 @@
 
 - name: "MMN openwrtnetwork - delegate localhost tasks"
   delegate_to: 127.0.0.1
+  become: false
+  when:
+    - item.value.managekeys | default(false) | bool
   block:
     - name: make sure key directory for interface exists
       ansible.builtin.file:
         path: "{{ openwrt_network_wg_keypath }}/{{ item.value.interface }}"
         state: directory
         mode: 0700
-      become: false
-      when:
-        - item.value.managekeys
-    
+
     # Generate Private Key
     - name: check if private key file exists
       ansible.builtin.stat:
         path: "{{ openwrt_network_wg_keypath }}/{{ item.value.interface }}/{{ item.key }}_private.key"
       register: client_privatekey_file_stat
-      become: false
-      when:
-        - item.value.managekeys
-    
+
     - name: generate private key if not there
       ansible.builtin.command: wg genkey
       args:
         chdir: "{{ openwrt_network_wg_keypath }}/{{ item.value.interface }}"
         creates: "{{ openwrt_network_wg_keypath }}/{{ item.value.interface }}/{{ item.key }}_private.key"
       register: client_privatekey
-      become: false
-      when:
-        - item.value.managekeys
-    
+
     - name: save private key to file if changed or missing
       ansible.builtin.copy:
         content: "{{ client_privatekey.stdout }}"
         dest: "{{ openwrt_network_wg_keypath }}/{{ item.value.interface }}/{{ item.key }}_private.key"
-      become: false
       when:
-        - item.value.managekeys
         - client_privatekey.stdout is defined
         - client_privatekey.stdout | length > 0
         - (client_privatekey.changed | default(false)) or (not client_privatekey_file_stat.stat.exists | default(true))
-    
+
     - name: set strict private key permissions
       ansible.builtin.file:
         path: "{{ openwrt_network_wg_keypath }}/{{ item.value.interface }}/{{ item.key }}_private.key"
         mode: '0600'
-      become: false
-      when:
-        - item.value.managekeys
-    
+
     - name: read private key from file
       ansible.builtin.slurp:
         src: "{{ openwrt_network_wg_keypath }}/{{ item.value.interface }}/{{ item.key }}_private.key"
       register: client_privatekey_data
-      become: false
-      when:
-        - item.value.managekeys
-    
+
     - name: private key decode base64
       ansible.builtin.set_fact:
         client_privatekey_data_decoded: "{{ client_privatekey_data.content | b64decode | trim }}"
-      when:
-        - item.value.managekeys
-    
+
     - name: insert private key into dict base64
       ansible.builtin.set_fact:
         openwrt_network_wireguardpeers: "{{ openwrt_network_wireguardpeers | combine({ item.key: {'private_key': client_privatekey_data_decoded } }, recursive=True) }}"
-      when:
-        - item.value.managekeys
-    
+
     # Generate Public Key
+    - name: remove stale public key when private key was regenerated
+      ansible.builtin.file:
+        path: "{{ openwrt_network_wg_keypath }}/{{ item.value.interface }}/{{ item.key }}_public.key"
+        state: absent
+      when: client_privatekey.changed | default(false)
+
     - name: generate public key
       ansible.builtin.command: wg pubkey
       args:
@@ -80,112 +68,94 @@
         stdin: "{{ client_privatekey_data_decoded }}"
         creates: "{{ openwrt_network_wg_keypath }}/{{ item.value.interface }}/{{ item.key }}_public.key"
       register: client_publickey
-      become: false
-      when:
-        - item.value.managekeys
-    
+
     - name: write public key to file
       ansible.builtin.copy:
         content: "{{ client_publickey.stdout }}"
         dest: "{{ openwrt_network_wg_keypath }}/{{ item.value.interface }}/{{ item.key }}_public.key"
-      become: false
-      when:
-        - client_publickey.changed
-        - item.value.managekeys
-    
+      when: client_publickey.changed | default(false)
+
     - name: read public key from file
       ansible.builtin.slurp:
         src: "{{ openwrt_network_wg_keypath }}/{{ item.value.interface }}/{{ item.key }}_public.key"
       register: client_publickey_data
-      become: false
-      when:
-        - item.value.managekeys
-    
+
     - name: insert public key into dict base64
       ansible.builtin.set_fact:
         openwrt_network_wireguardpeers: "{{ openwrt_network_wireguardpeers | combine({ item.key: {'public_key': client_publickey_data.content|b64decode|trim } }, recursive=True) }}"
-      when:
-        - item.value.managekeys
-    
+
     # Getting public key from server
     # This is only for S2S. In a roadwarrior setup I won't define remote_peer but client_remote_peer
     - name: getting public key from corresponding server
       ansible.builtin.slurp:
         src: "{{ openwrt_network_wg_keypath }}/{{ item.value.interface }}/{{ item.value.remote_peer }}_public.key"
       register: server_publickey_data
-      become: false
+      failed_when: false
       when:
-        - item.value.managekeys
-    
+        - item.value.remote_peer is defined
+
     - name: server public key decode base64
       ansible.builtin.set_fact:
         server_publickey_data_decoded: "{{ server_publickey_data.content | b64decode | trim }}"
       when:
-        - item.value.managekeys
-    
+        - item.value.remote_peer is defined
+        - server_publickey_data.failed | default(true) == false
+
     - name: insert servers public key into dict base64
       ansible.builtin.set_fact:
         openwrt_network_wireguardpeers: "{{ openwrt_network_wireguardpeers | combine({ item.key: {'server_public_key': server_publickey_data_decoded } }, recursive=True) }}"
-      become: false
       when:
-        - item.value.managekeys
-    
+        - item.value.remote_peer is defined
+        - server_publickey_data.failed | default(true) == false
+
     # PSK
     # S2S PSK
     - name: generate psk for S2S
       ansible.builtin.command: wg genpsk
-      args: 
+      args:
         chdir: "{{ openwrt_network_wg_keypath }}/{{ item.value.interface }}"
         creates: "{{ openwrt_network_wg_keypath }}/{{ item.value.interface }}/S2S.psk"
       register: s2s_psk
-      become: false
       when:
-        - item.value.managekeys
-        - item.value.setpsk
+        - item.value.setpsk | default(false) | bool
         - item.value.s2s is defined
-        - item.value.s2s
-    
+        - item.value.s2s | bool
+
     - name: write psk for S2S to file
       ansible.builtin.copy:
         content: "{{ s2s_psk.stdout }}"
         dest: "{{ openwrt_network_wg_keypath }}/{{ item.value.interface }}/S2S.psk"
-      become: false
       when:
-        - item.value.managekeys
-        - item.value.setpsk
-        - s2s_psk.changed
+        - item.value.setpsk | default(false) | bool
+        - s2s_psk.changed | default(false)
         - item.value.s2s is defined
-        - item.value.s2s
-    
+        - item.value.s2s | bool
+
     - name: read s2s psk from file
       ansible.builtin.slurp:
         src: "{{ openwrt_network_wg_keypath }}/{{ item.value.interface }}/S2S.psk"
       register: s2s_psk_data
-      become: false
       when:
-        - item.value.managekeys
-        - item.value.setpsk
+        - item.value.setpsk | default(false) | bool
         - item.value.s2s is defined
-        - item.value.s2s
-    
+        - item.value.s2s | bool
+
     - name: decode s2s psk base64
       ansible.builtin.set_fact:
         s2s_psk_decoded: "{{ s2s_psk_data.content | b64decode | trim }}"
       when:
-        - item.value.managekeys
-        - item.value.setpsk
+        - item.value.setpsk | default(false) | bool
         - item.value.s2s is defined
-        - item.value.s2s
-    
+        - item.value.s2s | bool
+
     - name: insert s2s psk into dict
       ansible.builtin.set_fact:
         openwrt_network_wireguardpeers: "{{ openwrt_network_wireguardpeers | combine({ item.key: {'preshared_key': s2s_psk_decoded } }, recursive=True) }}"
       when:
-        - item.value.managekeys
-        - item.value.setpsk
+        - item.value.setpsk | default(false) | bool
         - item.value.s2s is defined
-        - item.value.s2s
-    
+        - item.value.s2s | bool
+
     # Roadwarrior PSK
     - name: generate psk if enabled
       ansible.builtin.command: wg genpsk
@@ -193,54 +163,44 @@
         chdir: "{{ openwrt_network_wg_keypath }}/{{ item.value.interface }}"
         creates: "{{ openwrt_network_wg_keypath }}/{{ item.value.interface }}/{{ item.key }}.psk"
       register: client_psk
-      become: false
       when:
-        - item.value.managekeys
-        - item.value.setpsk
-        - (item.value.s2s is not defined) or ( item.value.s2s is defined and not item.value.s2s )
-    
+        - item.value.setpsk | default(false) | bool
+        - (item.value.s2s is not defined) or (item.value.s2s is defined and not item.value.s2s | bool)
+
     - name: write psk to file
       ansible.builtin.copy:
         content: "{{ client_psk.stdout }}"
         dest: "{{ openwrt_network_wg_keypath }}/{{ item.value.interface }}/{{ item.key }}.psk"
-      become: false
       when:
-        - item.value.managekeys
-        - item.value.setpsk
-        - client_psk.changed
-        - (item.value.s2s is not defined) or ( item.value.s2s is defined and not item.value.s2s )
-    
+        - item.value.setpsk | default(false) | bool
+        - client_psk.changed | default(false)
+        - (item.value.s2s is not defined) or (item.value.s2s is defined and not item.value.s2s | bool)
+
     - name: read psk from file
       ansible.builtin.slurp:
         src: "{{ openwrt_network_wg_keypath }}/{{ item.value.interface }}/{{ item.key }}.psk"
       register: client_psk_data
-      become: false
       when:
-        - item.value.managekeys
-        - item.value.setpsk
-        - (item.value.s2s is not defined) or ( item.value.s2s is defined and not item.value.s2s )
-    
+        - item.value.setpsk | default(false) | bool
+        - (item.value.s2s is not defined) or (item.value.s2s is defined and not item.value.s2s | bool)
+
     - name: decode psk base64
       ansible.builtin.set_fact:
         client_psk_decoded: "{{ client_psk_data.content | b64decode | trim }}"
       when:
-        - item.value.managekeys
-        - item.value.setpsk
-        - (item.value.s2s is not defined) or ( item.value.s2s is defined and not item.value.s2s )
-    
+        - item.value.setpsk | default(false) | bool
+        - (item.value.s2s is not defined) or (item.value.s2s is defined and not item.value.s2s | bool)
+
     - name: insert psk into dict
       ansible.builtin.set_fact:
         openwrt_network_wireguardpeers: "{{ openwrt_network_wireguardpeers | combine({ item.key: {'preshared_key': client_psk_decoded } }, recursive=True) }}"
       when:
-        - item.value.managekeys
-        - item.value.setpsk
-        - (item.value.s2s is not defined) or ( item.value.s2s is defined and not item.value.s2s )
-    
+        - item.value.setpsk | default(false) | bool
+        - (item.value.s2s is not defined) or (item.value.s2s is defined and not item.value.s2s | bool)
+
     - name: generate client config
       ansible.builtin.template:
         src: "clientconfig.jinja2"
         dest: "{{ openwrt_network_wg_keypath }}/{{ item.value.interface }}/{{ item.key }}.conf"
-      become: false
       when:
-        - item.value.generateclientconfig is defined
-        - item.value.generateclientconfig
+        - item.value.generateclientconfig | default(false) | bool

@@ -16,3 +16,9 @@ openwrt_network_interfacesdefault:
     proto: "static"
     ipaddr:
       - "127.0.0.1/8"
+
+# Wireguard key management path on the Ansible controller
+openwrt_network_wg_keypath: "~/wireguard-keys"
+
+# Wireguard peers (empty by default)
+openwrt_network_wireguardpeers: {}
