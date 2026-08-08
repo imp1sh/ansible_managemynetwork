@@ -108,6 +108,7 @@
         - item.value.managekeys
     
     # Getting public key from server
+    # This is only for S2S. In a roadwarrior setup I won't define remote_peer but client_remote_peer
     - name: getting public key from corresponding server
       ansible.builtin.slurp:
         src: "{{ openwrt_network_wg_keypath }}/{{ item.value.interface }}/{{ item.value.remote_peer }}_public.key"
