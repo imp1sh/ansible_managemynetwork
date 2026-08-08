@@ -6,27 +6,32 @@
   remote_user: "{{ openwrt_imagebuilder_buildhost_user | default(omit) }}"
   block:
     - name: Make sure builddir exists
+      become: true
       ansible.builtin.file:
         path: "{{ openwrt_imagebuilder_builddir }}"
         state: directory
         mode: "0755"
     
     - name: Make sure outputdir exists
+      become: true
       ansible.builtin.file:
         path: "{{ openwrt_imagebuilder_outputdir }}"
         state: directory
         mode: "0755"
     
     - name: Get filename from url
+      become: true
       ansible.builtin.set_fact:
         openwrt_imagebuilder_filename: "{{ openwrt_imagebuilder_downloadurl | basename }}"
     
     - name: Check if download is needed
+      become: true
       ansible.builtin.stat:
         path: "{{ openwrt_imagebuilder_builddir }}/{{ openwrt_imagebuilder_filename }}"
       register: downloaded_file
     
     - name: Conditional download file
+      become: true
       ansible.builtin.get_url:
         url: "{{ openwrt_imagebuilder_downloadurl }}"
         dest: "{{ openwrt_imagebuilder_builddir }}"
@@ -34,6 +39,7 @@
       when: not downloaded_file.stat.exists
     
     - name: Extract imagebuilder
+      become: true
       ansible.builtin.unarchive:
         src: "{{ openwrt_imagebuilder_builddir }}/{{ openwrt_imagebuilder_filename }}"
         list_files: true
@@ -41,19 +47,23 @@
       register: openwrt_imagebuilder_extraction
     
     - name: Get extracted folder name
+      become: true
       ansible.builtin.set_fact:
         openwrt_imagebuilder_extractedfolder: "{{ openwrt_imagebuilder_extraction.files[0] }}"
     
     - name: Set full path to files directory
+      become: true
       ansible.builtin.set_fact:
         openwrt_imagebuilder_deployroot: "{{ openwrt_imagebuilder_builddir }}/{{ openwrt_imagebuilder_extractedfolder }}{{ openwrt_imagebuilder_filesdir }}/"
     
     - name: Remove old files dir if exist
+      become: true
       ansible.builtin.file:
         path: "{{ openwrt_imagebuilder_deployroot }}"
         state: absent
     
     - name: Create empty files dir
+      become: true
       ansible.builtin.file:
         path: "{{ openwrt_imagebuilder_deployroot }}"
         state: directory
@@ -63,6 +73,7 @@
     # new roles should use openwrt_imagebuilder_deployroot
     # for setting deployroot
     - name: Set this files directory to use as openwrt deployroot for all compatible roles
+      become: true
       ansible.builtin.set_fact:
         "{{ item }}": "{{ openwrt_imagebuilder_deployroot }}"
       loop:
