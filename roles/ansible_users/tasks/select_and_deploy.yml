@@ -1,0 +1,16 @@
+---
+- name: MMN users - Initialize list of users to deploy
+  ansible.builtin.set_fact:
+    list_of_users: []
+
+- name: MMN users - Check what users shall be deployed on host
+  ansible.builtin.include_tasks: "02check_if_user_shall_be_deployed.yml"
+  loop: "{{ system_users | dict2items }}"
+  loop_control:
+    loop_var: user
+
+- name: MMN users - Deploy users
+  ansible.builtin.include_tasks: "{{ users_runner }}"
+  loop: "{{ system_users | dict2items }}"
+  loop_control:
+    loop_var: user

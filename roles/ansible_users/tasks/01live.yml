@@ -20,21 +20,10 @@
         name: imp1sh.ansible_managemynetwork.ansible_packages
   when: ansible_facts['os_family'] == "OpenWrt"
 
-- name: check and deploy block
-  block:
-    - name: MMN users - Ensure users dictionary has a hosts attribute
-      ansible.builtin.set_fact:
-        list_of_users: []
-    - name: MMN users - check what users shall be deployed on host
-      ansible.builtin.include_tasks: "02check_if_user_shall_be_deployed.yml"
-      loop: "{{ system_users | dict2items }}"
-      loop_control:
-        loop_var: user
-    - name: MMN users - Deploy users
-      ansible.builtin.include_tasks: "03live_runusers.yml"
-      loop: "{{ system_users | dict2items }}"
-      loop_control:
-        loop_var: user
+- name: MMN users - Select and deploy users
+  ansible.builtin.include_tasks: select_and_deploy.yml
+  vars:
+    users_runner: "03live_runusers.yml"
   when: system_users is defined
 
 - name: MMN users - Fail status feedback
