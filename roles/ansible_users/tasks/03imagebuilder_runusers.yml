@@ -27,6 +27,6 @@
       ansible.builtin.template:
         src: imagebuilderuser.j2
         dest: "{{ system_users_setpassword_deploypath }}/{{ system_users_setpassword_deployfile }}-{{ user.key }}"
-      when: user.value.password is defined
+      when: user.value.state | default('present') != 'absent'
       delegate_to: "{{ _users_target_host }}"
   when: user.key in list_of_users

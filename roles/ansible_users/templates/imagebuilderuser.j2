@@ -1,2 +1,56 @@
 #!/bin/sh
-usermod -p '{{ user.value.password }}' {{ user.key }}
+set -e
+
+USER='{{ user.key }}'
+
+if id -u "$USER" >/dev/null 2>&1; then
+  # user exists — update attributes
+{% if user.value.password is defined %}
+  usermod -p '{{ user.value.password }}' "$USER"
+{% endif %}
+{% if user.value.uid is defined %}
+  usermod -u '{{ user.value.uid }}' "$USER"
+{% endif %}
+{% if user.value.comment is defined %}
+  usermod -c '{{ user.value.comment }}' "$USER"
+{% endif %}
+{% if user.value.shell is defined %}
+  usermod -s '{{ shells[user.value.shell] }}' "$USER"
+{% endif %}
+{% if user.value.home is defined %}
+  usermod -d '{{ user.value.home }}' "$USER"
+{% endif %}
+{% if user.value.groups_byhostname is defined and user.value.groups_byhostname[inventory_hostname] is defined %}
+{% set _groups = user.value.groups_byhostname[inventory_hostname] | join(",") %}
+{% if user.value.append is defined and user.value.append %}
+  usermod -aG '{{ _groups }}' "$USER"
+{% else %}
+  usermod -G '{{ _groups }}' "$USER"
+{% endif %}
+{% endif %}
+else
+  # user missing — create with available attributes
+  set --
+{% if user.value.uid is defined %}
+  set -- "$@" -u '{{ user.value.uid }}'
+{% endif %}
+{% if user.value.comment is defined %}
+  set -- "$@" -c '{{ user.value.comment }}'
+{% endif %}
+{% if user.value.shell is defined %}
+  set -- "$@" -s '{{ shells[user.value.shell] }}'
+{% endif %}
+{% if user.value.home is defined %}
+  set -- "$@" -d '{{ user.value.home }}'
+{% endif %}
+{% if user.value.create_home is not defined or user.value.create_home %}
+  set -- "$@" -m
+{% endif %}
+{% if user.value.groups_byhostname is defined and user.value.groups_byhostname[inventory_hostname] is defined %}
+  set -- "$@" -G '{{ user.value.groups_byhostname[inventory_hostname] | join(",") }}'
+{% endif %}
+{% if user.value.password is defined %}
+  set -- "$@" -p '{{ user.value.password }}'
+{% endif %}
+  useradd "$@" "$USER"
+fi
