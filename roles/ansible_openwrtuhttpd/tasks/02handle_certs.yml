@@ -89,18 +89,44 @@
       ansible.builtin.find:
         paths: "{{ _acme_cert_dir }}"
         patterns:
-          - "*.{{ inventory_hostname | community.dns.get_registrable_domain }}.key"
           - "{{ inventory_hostname }}.key"
+          - "*.{{ inventory_hostname | community.dns.get_registrable_domain }}.key"
           - "*.key"
         file_type: file
         recurse: false
       register: _acme_key_search
       when: _acme_cert_dir is defined
 
+    - name: MMN openwrtuhttpd - Select best matching ACME key
+      ansible.builtin.set_fact:
+        _acme_best_key: >-
+          {{
+            (
+              _acme_key_search.files
+              | selectattr('path', 'match', inventory_hostname ~ '\.key$')
+              | map(attribute='path')
+              | first
+            )
+            if _acme_key_search.files | selectattr('path', 'match', inventory_hostname ~ '\.key$') | list | length > 0
+            else (
+              (
+                _acme_key_search.files
+                | selectattr('path', 'match', '.*' ~ (inventory_hostname | community.dns.get_registrable_domain) ~ '\.key$')
+                | map(attribute='path')
+                | first
+              )
+              if _acme_key_search.files | selectattr('path', 'match', '.*' ~ (inventory_hostname | community.dns.get_registrable_domain) ~ '\.key$') | list | length > 0
+              else _acme_key_search.files[0].path
+            )
+          }}
+      when:
+        - _acme_cert_dir is defined
+        - _acme_key_search.matched | default(0) > 0
+
     - name: MMN openwrtuhttpd - Set ACME cert and key if found
       ansible.builtin.set_fact:
         openwrt_uhttpd_main_cert: "{{ _acme_cert_stat.stat.path }}"
-        openwrt_uhttpd_main_key: "{{ _acme_key_search.files[0].path }}"
+        openwrt_uhttpd_main_key: "{{ _acme_best_key }}"
       when:
         - _acme_cert_stat.stat.exists | default(false)
         - _acme_key_search.matched | default(0) > 0
