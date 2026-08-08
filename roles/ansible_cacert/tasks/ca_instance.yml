@@ -1,4 +1,10 @@
 ---
+# SAVE DEPLOYROOT SO IMAGEBUILDER PATH DOES NOT LEAK INTO CA MANAGER HOST
+- name: "MMN cacert - Save deployroot for CA manager host section"
+  ansible.builtin.set_fact:
+    _cacert_saved_deployroot: "{{ cacert_deployroot | default('/') }}"
+    cacert_deployroot: "/"
+
 # LOAD VARS FOR CA MANAGER HOST
 - name: "MMN cacert - Gather facts for delegated ca manager host"
   ansible.builtin.setup:
@@ -30,7 +36,10 @@
 - name: "MMN cacert - Manage CA cert"
   ansible.builtin.include_tasks: ca_instance_cacert.yml
 
-
+# RESTORE DEPLOYROOT FOR TARGET HOST SECTION
+- name: "MMN cacert - Restore deployroot for target host section"
+  ansible.builtin.set_fact:
+    cacert_deployroot: "{{ _cacert_saved_deployroot }}"
 
 # LOAD VARS FOR CA TARGET HOST
 - name: "MMN cacert - Load OS vars for target host"

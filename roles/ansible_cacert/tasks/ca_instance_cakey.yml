@@ -14,6 +14,15 @@
   delegate_to: "{{ cacert_ca_manager_host }}"
   ansible.builtin.file:
     state: directory
+    path: "{{ cacert_openssl_path_key_ca }}"
+  when:
+    - cacert_ca.value.state | default('present') == 'present'
+
+- name: "MMN cacert _ Make sure CA cert path is present"
+  become: true
+  delegate_to: "{{ cacert_ca_manager_host }}"
+  ansible.builtin.file:
+    state: directory
     path: "{{ cacert_openssl_path_certificate_ca }}"
   when:
     - cacert_ca.value.state | default('present') == 'present'
