@@ -212,7 +212,7 @@ Variable names are constructed by using the role name which is at the same time 
 |imp1sh.ansible_managemynetwork.ansible_openwrt**acme** | `openwrt_acme_*` |
 
 ## Development / Contribution Conventions
-- Refrain from using AI / LLM
+- Don't blindly commit AI stuff. Read it, understand it, verify it. If not, don't commit it. Thank you!
 - Ansible task names start with `MMN <<rolename>> - Text that describes the task brief but sufficient`
 - Ansible task descriptions start with Capital letter
 - Maintain meta information for role
