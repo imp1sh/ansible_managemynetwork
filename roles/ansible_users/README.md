@@ -12,7 +12,13 @@ When using this with OpenWrt it will install those packages so ansible.builtin.u
 - shadow-useradd
 - sudo
 
-Usually in OpenWrt only the root user is being used but it's actually possible to add additional users, e.g. for backup jobs or whatever. This role is also compatible  with [ansible_openwrtimagebuilder](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_openwrtimagebuilder/README.md). It works by implementing an init script that will only run once at first boot of the device, setting the password for the user.
+Usually in OpenWrt only the root user is being used but it's actually possible to add additional users, e.g. for backup jobs or whatever. This role is also compatible  with [ansible_openwrtimagebuilder](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_openwrtimagebuilder/README.md). It works by deploying an init script into `/etc/uci-defaults/` on the built image that runs once at first boot, creating or updating the user and setting their password.
+
+### Security considerations for imagebuilder mode
+The uci-defaults init script contains the user's password hash in cleartext. Until the device completes its first boot and the script is consumed (executed and deleted by OpenWrt), the hash is embedded in the firmware image artifact. Anyone who obtains the built image **before** first boot can extract the hashes. Although the passwords themselves are hashed (SHA-512), the hashes are crackable offline. Treat built images as sensitive artifacts:
+- Store and transfer them over secure channels.
+- Restrict access to the build host and image storage.
+- Use `ansible-vault` to encrypt the `system_users` variable definitions so the hashes are not visible in your playbook repository.
 
 If you do `import_playbook` on the users role but you only want it to run on OpenWrt, use:
 ```yaml
