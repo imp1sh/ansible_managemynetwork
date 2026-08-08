@@ -3,11 +3,11 @@
 This is a collection that is flexible and extensive at the same time. It aims to handle all the tasks that one would want in a complex network environment (Manage My Network).
 There are some paradigms every role in this collection shall conform with:
 - A role shall only care about its own specific field / domain.
-  Installing packages for example is exclusively done in the packages role and not within others. By 2025 not all rules comply with those requirements, yet.
+  Installing packages for example is exclusively done in the packages role and not within others. By 2025 not all roles comply with those requirements, yet.
 - there's always the need to define vars on a host level and/or group level in Ansible. Thus the roles in this very collection shall also abide to having a dedicated host var (host suffix in the var name) and a dedicated group var (group suffix in the var name). This requirement though is soft and up to the maintainer of the role / collection.
 - The main Focus will be **Debian Linux** and **OpenWrt**. It once supported Alpine and FreeBSD for a longer amount of time.
 - New roles shall always be created in a fashion that they will be more easily adoptable for other OSes.
-- OpenWrt specific roles will inherently all support the [ansible_openwrtimagebuilder](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_openwrtimagebuilder/README.md) role. This can only be verified to be true when you use this role to build images successfully with the  role.
+- OpenWrt specific roles will inherently all support the [ansible_openwrtimagebuilder](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_openwrtimagebuilder/README.md) role. This can only be verified to be true when you use this role to build images successfully with the imagebuilder role.
 - OpenWrt specific roles stay specific to OpenWrt unless there are common tasks like user management, zabbix agent, package installation and alike, that are not inherently different on OpenWrt in contrast to Debian. When possible and when meaningful roles will have support for Debian and OpenWrt at the same time.
 - This collection aims to achieve a separation of programmatical elements being only in the role. This way all you have to do is call the role. Tasks within playbooks should be very rare. All you do is set your variables and then run the role / collection.
 - Feel free not to procrastinate but to participate. Pull requests, issues and discussions are very welcome.
@@ -19,19 +19,15 @@ There are some paradigms every role in this collection shall conform with:
 Each role has a specific purpose. You can use them separately to control specific application, services or on OpenWrt: UCI sections. It is desirable though to control the system as a whole with Ansible. If you do, neither make changes manually by command line nor via the webinterface on the target host directly. Changes will otherwise be overwritten by Ansible.
 If my collection lacks a feature or you find a bug, open an [issue in the git bugtracker](https://github.com/imp1sh/ansible_managemynetwork/issues).
 
-## Roles for OpenWrt
-
-> OpenWrt roles were merged from [imp1sh.ansible_openwrt](https://github.com/imp1sh/ansible_openwrt) into imp1sh.ansible_managemynetwork in December 2023.
-
+## Roles
 
 This collection will offer support for:
 - **Debian Linux** (main focus)
 - **OpenWrt** (main focus)
+- Some roles like `ansible_users` or `ansible_groups` also support a variety of different Linux Distributions
 
 
-## Roles
-
-| Role | Linux | OpenWrt | Imagebuilder |
+| Role | Regular Linux | OpenWrt | Imagebuilder |
 |------|:-----:|:-------:|:------------:|
 | [ansible_borgmatic](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_borgmatic/README.md) | yes | — | — |
 | [ansible_chrony](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_chrony/README.md) | yes | — | — |
@@ -90,7 +86,7 @@ The openwrt roles in this collection use **python** which is not installed on st
 * 128 MB Storage
 * OpenWrt 22.01 or higher, 25.12 recommended
 * Python3 installed on the target device
-* 128+ MB RAM if you use Restic 512+ MB
+* 128+ MB RAM (512+ MB if you use Restic)
 
 ### Recommendation
 
@@ -122,17 +118,16 @@ ansible-galaxy collection install imp1sh.ansible_managemynetwork
 To install into the local working directory:
 ```
 cd << Ansible working directory>>
-ansible-galaxy collection install git+https://github.com/imp1sh/ansible_nftwallcollection.git -p .collections
+ansible-galaxy collection install git+https://github.com/imp1sh/ansible_managemynetwork.git -p .collections
 ```
 
 This will install the collection into the default path:
 ```
 cd <<Ansible working directory>>
-ansible-galaxy collection install git+https://github.com/imp1sh/ansible_nftwallcollection.git
+ansible-galaxy collection install git+https://github.com/imp1sh/ansible_managemynetwork.git
 ```
 
 > The collection expects to have an Ansible group containing all hosts. In the docs we typically use the name **tags_allhosts** defined.
-{.is-warning}
 
 ## Using the roles
 
@@ -213,7 +208,6 @@ Variable names are constructed by using the role name which is at the same time 
 |imp1sh.ansible_managemynetwork.ansible_openwrt**dhcp** | `openwrt_dhcp_*` |
 |imp1sh.ansible_managemynetwork.ansible_openwrt**packages** | `openwrt_packages_*` |
 |imp1sh.ansible_managemynetwork.ansible_**restic** | `openwrt_restic_*` |
-|imp1sh.ansible_managemynetwork.ansible_openwrt**dhcp** |`openwrt_dhcp_*` |
 |imp1sh.ansible_managemynetwork.ansible_openwrt**acme** | `openwrt_acme_*` |
 
 ## Development / Contribution Conventions
