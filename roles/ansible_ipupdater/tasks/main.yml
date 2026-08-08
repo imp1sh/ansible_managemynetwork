@@ -102,6 +102,16 @@
     - ipupdater_neighbors_enable | default(false) | bool or ipupdater_staticfqdns_enable | default(false) | bool or ipupdater_ownip_enable | default(false) | bool
     - not podman_runimagebuilder | default(false) | bool
 
+- name: "MMN ipupdater - Enable and start cron on OpenWrt"
+  ansible.builtin.service:
+    name: cron
+    enabled: true
+    state: started
+  when:
+    - ansible_distribution == "OpenWrt"
+    - ipupdater_neighbors_enable | default(false) | bool or ipupdater_staticfqdns_enable | default(false) | bool or ipupdater_ownip_enable | default(false) | bool
+    - not podman_runimagebuilder | default(false) | bool
+
 - name: "MMN ipupdater - Debian block"
   when:
     - ansible_distribution == "Debian" or ansible_distribution == "Fedora"
