@@ -1,5 +1,17 @@
 ---
 - hosts: localhost
   remote_user: root
+  vars:
+    system_users:
+      testuser:
+        comment: "Test User"
+        uid: 9999
+        shell: "bash"
+        password: "$6$rounds=656000$testsalt$placeholderhashfortestingeffectivemodulecallsonly"
+    system_users_create_on_hosts:
+      testuser:
+        - localhost
+    system_users_create_on_hostgroups: {}
+    system_users_runimagebuilder: false
   roles:
     - ansible_users
