@@ -1,7 +1,7 @@
 ---
 - name: "MMN users - Handling user {{ user.key }}"
+  no_log: true
   ansible.builtin.user:
-    no_log: true
     append: "{{ user.value.append | default(omit) }}"
     authorization: "{{ user.value.authorization | default(omit, true) }}"
     comment: "{{ user.value.comment | default(omit) }}"
