@@ -46,7 +46,7 @@
     borgmatic_repository.value['type'] == "ssh://"
   block:
     - name: MMN borgmatic - Provide root user's public key to destination machine
-      authorized_key:
+      ansible.posix.authorized_key:
         user: "{{ borgmatic_repository.value['targetuser'] }}"
         state: present
         key: "{{ rootuser['ssh_public_key'] }}"
