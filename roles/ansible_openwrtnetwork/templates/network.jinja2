@@ -15,22 +15,22 @@ config globals "globals"
 {% endif %}
 
 # Devices
-{% if openwrt_network_devices is defined %}
+{% if openwrt_network_devices is defined and openwrt_network_devices is not none %}
 {{ functions.create_devices(openwrt_network_devices) }}
 {% endif %}
 
 # bridge_vlan devices
-{% if openwrt_network_bridge_vlan is defined and openwrt_network_bridge_vlan | length > 0 %}
+{% if openwrt_network_bridge_vlan is defined and openwrt_network_bridge_vlan is not none and openwrt_network_bridge_vlan | length > 0 %}
 {{ functions.create_bridge_vlan(openwrt_network_bridge_vlan) }}
 {% endif %}
 
 # Interfaces
-{% if openwrt_network_interfaces is defined %}
+{% if openwrt_network_interfaces is defined and openwrt_network_interfaces is not none %}
 {{ functions.create_interfaces(openwrt_network_interfaces) }}
 {% endif %}
 
 # Wireguard peers
-{% if openwrt_network_wireguardpeers is defined %}
+{% if openwrt_network_wireguardpeers is defined and openwrt_network_wireguardpeers is not none and openwrt_network_wireguardpeers | length > 0 %}
 {{ functions.create_wireguardpeers(openwrt_network_wireguardpeers) }}
 {% endif %}
 
@@ -53,11 +53,11 @@ config dsl "dsl"
 
 # Static routes
 # IPv4
-{% if openwrt_network_staticroutes4 is defined %}
+{% if openwrt_network_staticroutes4 is defined and openwrt_network_staticroutes4 is not none %}
 {{ functions.create_staticroutes4(openwrt_network_staticroutes4) }}
 {% endif %}
 # IPv6
-{% if openwrt_network_staticroutes6 is defined %}
+{% if openwrt_network_staticroutes6 is defined and openwrt_network_staticroutes6 is not none %}
 {{ functions.create_staticroutes6(openwrt_network_staticroutes6) }}
 {% endif %}
 

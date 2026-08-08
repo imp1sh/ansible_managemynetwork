@@ -1,4 +1,5 @@
 {% macro create_staticroutes4(allroutes4) %}
+{% if allroutes4 is not none %}
 {% for route4 in allroutes4 %}
 config route
 {% if route4['comment'] is defined %}
@@ -37,9 +38,11 @@ config route
 	option disabled "{{ route4['disabled'] }}"
 {% endif %}
 {% endfor %}
+{% endif %}
 {% endmacro %}
 
 {% macro create_staticroutes6(allroutes6) %}
+{% if allroutes6 is not none %}
 {% for route6 in allroutes6 %}
 config route6
 {% if route6['comment'] is defined %}
@@ -75,9 +78,11 @@ config route6
 	option disabled "{{ route6['disabled'] }}"
 {% endif %}
 {% endfor %}
+{% endif %}
 {% endmacro %}
 
 {% macro create_wireguardpeers(allpeers) %}
+{% if allpeers is not none %}
 {% for key, value in allpeers.items() %}
 config wireguard_{{ value['interface'] }}
 	option description "{{ key }}"
@@ -103,6 +108,7 @@ config wireguard_{{ value['interface'] }}
 	option persistent_keepalive "{{ value['persistent_keepalive'] }}"
 {% endif %}
 {% endfor %}
+{% endif %}
 {% endmacro %}
 
 {% macro create_bridge_vlan(allbrvlan) %}
@@ -126,6 +132,7 @@ config bridge-vlan
 {% endmacro %}
 
 {% macro create_devices(alldevices) %}
+{% if alldevices is not none %}
 {% for key, value in alldevices.items() %}
 config device
 {% if value.type is defined %}
@@ -243,9 +250,11 @@ config device
 	option mldversion "{{ value.mldversion }}"
 {% endif %}
 {% endfor %}
+{% endif %}
 {% endmacro %}
 
 {% macro create_interfaces(allinterfaces) %}
+{% if allinterfaces is not none %}
 {% for key, value in allinterfaces.items() %}
 config interface "{{ key }}"
 	# CONFIG OPTIONS ALL START
@@ -559,10 +568,12 @@ config interface "{{ key }}"
 	# CONFIG OPTIONS PPPOE END
 {% endif %}
 {% endfor %}
+{% endif %}
 {% endmacro %}
 
 
 {% macro create_rules(rules, family) %}
+{% if rules is not none %}
 {% for key, value in rules.items() %}
 {% if family == 4 %}
 config rule '{{ key }}'
@@ -615,6 +626,7 @@ config rule6 '{{ key }}'
 	option disabled "{{ value['disabled'] }}"
 {% endif %}
 {% endfor %}
+{% endif %}
 {% endmacro %}
 
 {% macro create_rules4(allrules4) %}
