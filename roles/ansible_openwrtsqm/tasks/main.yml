@@ -1,8 +1,13 @@
 ---
 # tasks file for ansible_openwrtsqm
+- name: "MMN openwrtsqm - Determine target host for delegation"
+  ansible.builtin.set_fact:
+    _openwrt_sqm_target_host: "{{ openwrt_imagebuilder_buildhost if (openwrt_imagebuilder_buildhost is defined and openwrt_imagebuilder_buildhost != inventory_hostname) else inventory_hostname }}"
+
 - name: deploy sqm configuration
   ansible.builtin.template:
     src: sqm.jinja2
     dest: "{{ openwrt_sqm_deploypath }}/{{ openwrt_sqm_deployfile }}"
   when: openwrt_sqm_interfaces is defined
   notify: restart sqm
+  delegate_to: "{{ _openwrt_sqm_target_host }}"

@@ -86,10 +86,15 @@
         - openwrt_dhcp_deployroot
         - openwrt_dropbear_deployroot
         - openwrt_firewall_deployroot
+        - openwrt_fstab_deployroot
         - openwrt_network_deployroot
+        - openwrt_prometheus_node_exporter_lua_deployroot
         - openwrt_services_deployroot
+        - openwrt_sqm_deployroot
         - openwrt_system_deployroot
+        - openwrt_tinyproxy_deployroot
         - openwrt_uhttpd_deployroot
+        - openwrt_usteer_deployroot
         - openwrt_wireless_deployroot
         - podman_deployroot
         - restic_deployroot

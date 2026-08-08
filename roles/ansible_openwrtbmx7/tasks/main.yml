@@ -1,9 +1,14 @@
 ---
 # tasks file for ansible_openwrtbmx7
+- name: "MMN openwrtbmx7 - Determine target host for delegation"
+  ansible.builtin.set_fact:
+    _openwrt_bmx7_target_host: "{{ openwrt_imagebuilder_buildhost if (openwrt_imagebuilder_buildhost is defined and openwrt_imagebuilder_buildhost != inventory_hostname) else inventory_hostname }}"
+
 - name: make sure deploypath is present
   ansible.builtin.file:
     path: "{{ openwrt_bmx7_deploypath }}"
     state: directory
+  delegate_to: "{{ _openwrt_bmx7_target_host }}"
 - name: Refresh opkg so packages will be found
   shell: opkg update
   when:
@@ -65,6 +70,7 @@
     dest: "{{ openwrt_bmx7_deploypath }}/{{ openwrt_bmx7_deployfile }}"
     mode: 0600
   notify: restart bmx7
+  delegate_to: "{{ _openwrt_bmx7_target_host }}"
 - name: enable bmx7 service
   service:
     name: bmx7
@@ -72,4 +78,3 @@
     enabled: yes
   when:
     - not openwrt_bmx7_runimagebuilder | default(false)
-

@@ -1,9 +1,14 @@
 ---
 # tasks file for ansible_openwrtbatmanadv
+- name: "MMN openwrtbatmanadv - Determine target host for delegation"
+  ansible.builtin.set_fact:
+    _openwrt_batmanadv_target_host: "{{ openwrt_imagebuilder_buildhost if (openwrt_imagebuilder_buildhost is defined and openwrt_imagebuilder_buildhost != inventory_hostname) else inventory_hostname }}"
+
 - name: make sure deploypath is present
   ansible.builtin.file:
     path: "{{ openwrt_batmanadv_deploypath }}"
     state: directory
+  delegate_to: "{{ _openwrt_batmanadv_target_host }}"
 - name: initialize packages_installimagebuilder
   set_fact:
     packages_installimagebuilder: []
@@ -14,4 +19,3 @@
   set_fact:
     packages_installimagebuilder: "{{ packages_installimagebuilder + packages_installrole }}"
   when: openwrt_batmanadv_runimagebuilder | default(false)
-

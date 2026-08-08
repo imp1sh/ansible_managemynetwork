@@ -1,5 +1,9 @@
 ---
 # tasks file for ansible_openwrtusteer
+- name: "MMN openwrtusteer - Determine target host for delegation"
+  ansible.builtin.set_fact:
+    _openwrt_usteer_target_host: "{{ openwrt_imagebuilder_buildhost if (openwrt_imagebuilder_buildhost is defined and openwrt_imagebuilder_buildhost != inventory_hostname) else inventory_hostname }}"
+
 - name: Detect imagebuilder
   ansible.builtin.set_fact:
     openwrt_usteer_deployroot: "{{ openwrt_imagebuilder_deployroot }}"
@@ -12,6 +16,7 @@
     path: "{{ openwrt_usteer_deploypath }}"
     state: directory
     mode: '0755'
+  delegate_to: "{{ _openwrt_usteer_target_host }}"
 
 - name: Setup usteer config
   ansible.builtin.template:
@@ -19,6 +24,7 @@
     dest: "{{ openwrt_usteer_deploypath }}/{{ openwrt_usteer_deployfile }}"
     mode: '0644'
   notify: Restart usteer
+  delegate_to: "{{ _openwrt_usteer_target_host }}"
 
 - name: Initialize packages_installimagebuilder
   ansible.builtin.set_fact:

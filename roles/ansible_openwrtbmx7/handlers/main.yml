@@ -4,3 +4,4 @@
   service:
     name: bmx7
     state: restarted
+  when: not openwrt_bmx7_runimagebuilder | default(false)

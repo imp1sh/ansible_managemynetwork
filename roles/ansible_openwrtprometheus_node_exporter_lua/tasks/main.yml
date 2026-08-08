@@ -1,4 +1,8 @@
 ---
+- name: "MMN openwrtprometheus_node_exporter_lua - Determine target host for delegation"
+  ansible.builtin.set_fact:
+    _openwrt_prometheus_ne_lua_target_host: "{{ openwrt_imagebuilder_buildhost if (openwrt_imagebuilder_buildhost is defined and openwrt_imagebuilder_buildhost != inventory_hostname) else inventory_hostname }}"
+
 - name: Enable bmx6 addition
   ansible.builtin.set_fact:
     packages_installrole: "{{ packages_installrole | default([]) + ['prometheus-node-exporter-lua-bmx6'] }}"
@@ -54,11 +58,13 @@
 - name: Again run packages role
   ansible.builtin.include_role:
     name: imp1sh.ansible_managemynetwork.ansible_packages
+  when: not openwrtprometheus_node_exporter_lua_runimagebuilder | default(false)
 - name: Provide prometheus-node-exporter-lua configuration
   ansible.builtin.template:
     src: "prometheus-node-exporter-lua.jinja2"
     dest: "{{ openwrtprometheus_node_exporter_lua_deploypath }}/{{ openwrtprometheus_node_exporter_lua_deployfile }}"
   notify: Restart prometheus-node-exporter-lua
+  delegate_to: "{{ _openwrt_prometheus_ne_lua_target_host }}"
 - name: enable prometheus-node-exporter-lua service
   ansible.builtin.service:
     name: prometheus-node-exporter-lua

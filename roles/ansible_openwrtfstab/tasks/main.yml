@@ -1,9 +1,14 @@
 ---
 # tasks file for ansible_openwrtfstab
+- name: "MMN openwrtfstab - Determine target host for delegation"
+  ansible.builtin.set_fact:
+    _openwrt_fstab_target_host: "{{ openwrt_imagebuilder_buildhost if (openwrt_imagebuilder_buildhost is defined and openwrt_imagebuilder_buildhost != inventory_hostname) else inventory_hostname }}"
+
 - name: Make sure deploypath config exists
   ansible.builtin.file:
     path: "{{ openwrt_fstab_deploypath }}"
     state: directory
+  delegate_to: "{{ _openwrt_fstab_target_host }}"
 - name: Install needed packages
   block:
     - name: Set install role vars
@@ -21,3 +26,4 @@
     src: fstab.j2
     dest: "{{ openwrt_fstab_deploypath }}/{{ openwrt_fstab_deployfile }}"
   notify: fstab mount
+  delegate_to: "{{ _openwrt_fstab_target_host }}"

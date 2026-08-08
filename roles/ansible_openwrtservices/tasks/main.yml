@@ -4,6 +4,10 @@
 # missing routine for enable as well as for disabling services in imagebuilder...
 # it's only adding or removing a link, but I need the exact link name it would have been used
 # in a real openwrt device, otherwise there could be conflicts
+- name: "MMN openwrtservices - Determine target host for delegation"
+  ansible.builtin.set_fact:
+    _openwrt_services_target_host: "{{ openwrt_imagebuilder_buildhost if (openwrt_imagebuilder_buildhost is defined and openwrt_imagebuilder_buildhost != inventory_hostname) else inventory_hostname }}"
+
 - name: Merge variables
   ansible.builtin.include_tasks:
     file: merge.yml
@@ -12,6 +16,7 @@
   ansible.builtin.file:
     path: "{{ openwrt_services_deploypath }}"
     state: directory
+  delegate_to: "{{ _openwrt_services_target_host }}"
 
 - name: Enable Serices
   ansible.builtin.command: /etc/init.d/{{ item }} enable
@@ -47,3 +52,4 @@
     dest: "{{ openwrt_services_deploypath }}/{{ openwrt_services_deployfile }}"
     mode: 0600
   when: openwrt_scriptlinesafterboot is defined
+  delegate_to: "{{ _openwrt_services_target_host }}"

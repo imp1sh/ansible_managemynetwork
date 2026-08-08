@@ -21,3 +21,4 @@
     src: "uhttpd.jinja2"
     dest: "{{ openwrt_uhttpd_deploypath }}/{{ openwrt_uhttpd_deployfile }}"
   notify: restart uhttpd
+  delegate_to: "{{ _uhttpd_target_host }}"
