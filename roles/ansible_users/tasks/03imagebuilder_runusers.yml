@@ -17,11 +17,6 @@
       when:
         user.value.shell is defined
 
-    - name: MMN users - Set users shell for this OS
-      ansible.builtin.set_fact:
-        usershell: "{{ shells[user.value.shell] }}"
-      when: user.value.shell is defined
-
     - name: MMN users - Make sure init script deploypath exists
       ansible.builtin.file:
         path: "{{ system_users_setpassword_deploypath }}"
