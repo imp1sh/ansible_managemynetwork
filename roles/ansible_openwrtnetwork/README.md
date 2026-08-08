@@ -487,3 +487,62 @@ openwrt_network_wireguardpeers:
     s2s: true
     ...
 ```
+
+#### S2S with one unmanaged endpoint
+
+If only one side of the S2S tunnel is managed by Ansible, set `managekeys: true` on the peer. Ansible will generate a keypair for the unmanaged endpoint. You then need to manually transfer the generated private key (`{peername}_private.key` in `openwrt_network_wg_keypath/{interface}/`) to the unmanaged endpoint's WireGuard configuration. The public key will be automatically placed in the peer config.
+
+```yaml
+openwrt_network_wireguardpeers:
+  unmanaged-peer.example.com:
+    interface: "S2S_tunnel1"
+    s2s: true
+    remote_peer: "unmanaged-peer.example.com"
+    managekeys: true
+    setpsk: true
+    endpoint_host: "203.0.113.5"
+    endpoint_port: 51821
+    allowed_ips:
+      - "10.10.128.0/20"
+```
+
+After running Ansible, copy `~/wireguard-keys/S2S_tunnel1/unmanaged-peer.example.com_private.key` to the unmanaged endpoint.
+
+### Roadwarrior Client (OpenWrt as client)
+
+When the OpenWrt device is a roadwarrior client connecting to an external WireGuard server (not managed by Ansible), set `managekeys: false` on the peer and provide the server's public key manually. The interface's `wg_managekeys` can still be `true` so Ansible generates the OpenWrt device's own keypair.
+
+```yaml
+openwrt_network_interfaceshost:
+  RWCLIENT:
+    proto: "wireguard"
+    wg_managekeys: true
+    wg_listen_port: 51821
+    wg_addresses:
+      - "10.10.100.2/32"
+
+openwrt_network_wireguardpeers:
+  vpn-server:
+    interface: "RWCLIENT"
+    managekeys: false
+    public_key: "the-servers-public-key"
+    endpoint_host: "vpn.example.com"
+    endpoint_port: 51821
+    allowed_ips:
+      - "0.0.0.0/0"
+      - "::/0"
+    persistent_keepalive: 25
+```
+
+> [!WARNING]
+> Do NOT set `managekeys: true` on the peer when the OpenWrt device is a roadwarrior client. This would generate a meaningless keypair for the external server and overwrite the `public_key` you provided.
+
+### All scenarios overview
+
+| Scenario | `wg_managekeys` (interface) | `managekeys` (peer) | `remote_peer` | `s2s` | `generateclientconfig` |
+|----------|:----:|:----:|:----:|:----:|:----:|
+| S2S, both managed | true | true | remote `inventory_hostname` | true | — |
+| S2S, one unmanaged | true | true | remote peer name | true | — |
+| Roadwarrior server | true | true | `{{ inventory_hostname }}` | — | true |
+| Roadwarrior client | true | false | — | — | — |
+| Fully manual keys | false | false | — | — | — |

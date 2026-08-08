@@ -1,14 +1,14 @@
 [Interface]
 Address    = {{ item.value.allowed_ips | join(', ') }}
-PrivateKey = {{ client_privatekey_data_decoded }}
-MTU = {{ item.value.mtu |  default("1420", true) }}
+PrivateKey = {{ client_privatekey_data_decoded | default('PRIVATE_KEY_MISSING') }}
+MTU = {{ item.value.mtu | default("1420", true) }}
 
 [Peer]
-PublicKey    = {{ server_publickey_data_decoded }}
+PublicKey    = {{ server_publickey_data_decoded | default('SERVER_PUBLIC_KEY_MISSING') }}
 {% if item.value.s2s is defined and item.value.s2s %}
-PresharedKey = {{ s2s_psk_decoded }}
+PresharedKey = {{ s2s_psk_decoded | default('PSK_MISSING') }}
 {% else %}
-PresharedKey = {{ client_psk_decoded }}
+PresharedKey = {{ client_psk_decoded | default('PSK_MISSING') }}
 {% endif %}
 {% if item.value.routes_to is defined %}
 AllowedIPs   = {{ hostvars[inventory_hostname]['openwrt_network_interfaceshost'][item.value.interface]['wg_addresses'] | ansible.utils.ipaddr('network/prefix') | join(', ') }}, {{ item.value.routes_to | join (', ') }}
