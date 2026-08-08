@@ -85,7 +85,7 @@ config wireguard_{{ value['interface'] }}
 {% if value['preshared_key'] is defined %}
 	option preshared_key "{{ value['preshared_key'] }}"
 {% endif %}
-{% if value['allowed_ips'] is defined %}
+{% if value['allowed_ips'] is defined and value['allowed_ips'] is not none %}
 {% for allowedip in value['allowed_ips'] %}
 	list allowed_ips "{{ allowedip }}"
 {% endfor %}
@@ -116,7 +116,7 @@ config bridge-vlan
 {% if bridgevlan.vlaninfo is defined %}
 	# Vlan Description: {{ bridgevlan.vlaninfo }}
 {% endif %}
-{% if bridgevlan.ports is defined %}
+{% if bridgevlan.ports is defined and bridgevlan.ports is not none %}
 {% for port in bridgevlan.ports %}
 	list ports "{{ port }}"
 {% endfor %}
@@ -188,7 +188,7 @@ config device
 {% if value.bridge_empty is defined %}
 	option bridge_empty "{{ value.bridge_empty }}"
 {% endif %}
-{% if value.ports is defined %}
+{% if value.ports is defined and value.ports is not none %}
 {% for port in value.ports %}
 	list ports "{{ port }}"
 {% endfor %}
@@ -284,7 +284,7 @@ config interface "{{ key }}"
 {% if value['wg_listen_port'] is defined %}
 	option listen_port "{{ value['wg_listen_port'] }}"
 {% endif %}
-{% if value['wg_addresses'] is defined %}
+{% if value['wg_addresses'] is defined and value['wg_addresses'] is not none %}
 {% for wg_tunnel_address in value['wg_addresses'] %}
 	list addresses "{{ wg_tunnel_address }}"
 {% endfor %}
@@ -307,7 +307,7 @@ config interface "{{ key }}"
 {% if value['wg_defaultroute'] is defined %}
 	option defaultroute "{{ value['wg_defaultroute'] }}"
 {% endif %}
-{% if value['wg_dns'] is defined %}
+{% if value['wg_dns'] is defined and value['wg_dns'] is not none %}
 {% for dnsrecord in value['wg_dns'] %}
 	list dns "{{ dnsrecord }}"
 {% endfor %}
@@ -396,12 +396,12 @@ config interface "{{ key }}"
 {% if value['ifaceid'] is defined %}
 	option ifaceid "{{ value['ifaceid'] }}"
 {% endif %}
-{% if value['dns'] is defined %}
+{% if value['dns'] is defined and value['dns'] is not none %}
 {% for dns in value['dns'] %}
 	list dns "{{ dns }}"
 {% endfor %}
 {% endif %}
-{% if value['reqopts'] is defined %}
+{% if value['reqopts'] is defined and value['reqopts'] is not none %}
 {% for reqopt in value['reqopts'] %}
 	list reqopts "{{ reqopt }}"
 {% endfor %}
@@ -466,7 +466,7 @@ config interface "{{ key }}"
 {% if value['gateway'] is defined %}
 	option gateway "{{ value['gateway'] }}"
 {% endif %}
-{% if value['ipaddr'] is defined %}
+{% if value['ipaddr'] is defined and value['ipaddr'] is not none %}
 {% for singleip in value['ipaddr'] %}
 	list ipaddr "{{ singleip }}"
 {% endfor %}
@@ -477,7 +477,7 @@ config interface "{{ key }}"
 {% if value['ip6hint'] is defined %}
 	option ip6hint "{{ value['ip6hint'] }}"
 {% endif %}
-{% if value['ip6addr'] is defined %}
+{% if value['ip6addr'] is defined and value['ip6addr'] is not none %}
 {% for singleaddr in value['ip6addr'] %}
 	list ip6addr "{{ singleaddr }}"
 {% endfor %}
@@ -491,17 +491,17 @@ config interface "{{ key }}"
 {% if value['ip6prefix'] is defined %}
 	option ip6prefix "{{ value['ip6prefix'] }}"
 {% endif %}
-{% if value['ip6class'] is defined %}
+{% if value['ip6class'] is defined and value['ip6class'] is not none %}
 {% for ip6class in value['ip6class'] %}
 	list ip6class "{{ ip6class }}"
 {% endfor %}
 {% endif %}
-{% if value.dnssearch is defined %}
+{% if value.dnssearch is defined and value.dnssearch is not none %}
 {% for dnssearch in value.dnssearch %}
 	list dns_search "{{ dnssearch }}"
 {% endfor %}
 {% endif %}
-{% if value.dns is defined %}
+{% if value.dns is defined and value.dns is not none %}
 {% for resolver in value.dns %}
 	list dns "{{ resolver }}"
 {% endfor %}
