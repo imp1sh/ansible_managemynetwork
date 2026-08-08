@@ -27,4 +27,5 @@
   loop_control:
     loop_var: "cacert_servercert_additionalhost"
   when:
-    - cacert_ca.value.state | default('present') == 'absent'
+    - cacert_servercert_additionalhosts is defined
+    - (cacert_servercert_additionalhost.state | default('present') == 'absent') or (cacert_ca.value.state | default('present') == 'absent')

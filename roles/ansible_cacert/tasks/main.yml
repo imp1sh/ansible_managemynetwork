@@ -1,4 +1,15 @@
 ---
+# VALIDATE REQUIRED VARIABLES
+- name: "MMN cacert - Validate required variables"
+  ansible.builtin.assert:
+    that:
+      - cacert_ca_manager_host is defined
+      - cacert_ca_manager_host | length > 0
+      - cacert_cas is defined
+      - cacert_cas | length > 0
+    fail_msg: "cacert_ca_manager_host and cacert_cas must be defined and non-empty"
+    success_msg: "Required variables are valid"
+
 # LOAD OS VARS
 - name: "MMN cacert - Load OS vars"
   ansible.builtin.include_vars: "{{ lookup('ansible.builtin.first_found', params) }}"

@@ -8,6 +8,12 @@ cacert_deployroot: "/"
 cacert_runimagebuilder: false
 cacert_browser_trust: true
 
+# CA definitions (dictionary keyed by CA identifier)
+cacert_cas: {}
+
+# client cert definitions (list)
+cacert_clientcerts: []
+
 # server cert defaults
 cacert_servercert_common_name: "{{ inventory_hostname }}"
 cacert_servercert_bitsize: 4096

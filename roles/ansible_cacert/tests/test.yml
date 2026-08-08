@@ -10,5 +10,14 @@
         common_name: "Test CA"
         country_name: "DE"
         organization_name: "TestOrg"
+      test_ca_absent:
+        state: absent
+        common_name: "Absent CA"
+        country_name: "DE"
+        organization_name: "TestOrg"
+    cacert_clientcerts:
+      - common_name: "test-client"
+        dest: "/tmp/cacert-test-client"
+        state: present
   roles:
     - imp1sh.ansible_managemynetwork.ansible_cacert

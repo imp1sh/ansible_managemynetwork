@@ -2,7 +2,7 @@
 
 This role aims to make the process of certificate management as comfortable and easy as possible. This implies of course some opinionated stuff but at the same time the role tries to be flexible in its ability to reflect commonly needed attributes.
 It also tries to be ephemeral, meaning that even in case of a CA private key loss or security breach, you can remove old data by setting the attribute `state: absent` and almost everything will be removed. Set state again to `present` and let it run again. All your certificates / keys will be renewed. The reason for this role is to just conveniently get certificates from a self signed and self managed CA onto your hosts. Multiple CA are supported but not sub CAs. Each host will just automatically get a server cert that its common name is the `inventory_hostname` from Ansible, so typically the fqdn. This role tightly integrates into the `ansible_podman` role together with its plugin system. `ansible_podman` not only delivers containers to hosts but with its plugin system and `ansible_cacert` it will fully automate the delivery of services with configuration and certificates in an ephemeral way. Worst case scenario just redeploy the whole setup. The certs will also be new but as everything is automated it should be much of a hassle. (Infrastructure as Code / IaC).
-CSR will never be written but always only be in memory during ansible runs. CA will also support Certificate Revocation Lists by default but this feature is untested.
+CSR will never be written but always only be in memory during ansible runs.
 
 **Time format:** all `not_after` / `not_before` values use relative timespecs understood by `community.crypto`: a sign (`+`/`-`) followed by combinations of `w` (weeks), `d` (days), `h` (hours), `m` (minutes), `s` (seconds). Years (`y`) and months are **not** supported — use weeks instead (e.g. `+520w` for ~10 years).
 
@@ -21,14 +21,16 @@ Role supports:
 | - | - | - | - | - |
 | cacert_ca_manager_host | Hostname where CA data is stored. Keep this host secure. Must be a hostname that ansible will accept for `delegate_to:`. | - | String | Yes |
 | cacert_cacert_additionalpaths | Optional list of additional paths where CA certificates should be copied. Each entry: dest, state, user, group. | - | List | No |
-| cacert_cas | Dictionary of CA definitions. Each key is a CA identifier, value contains CA configuration: state, common_name, country_name, email_address, organization_name, organizational_unit_name, state_or_province_name, locality_name, not_after, not_before, key (dict with type, backup, passphrase, curve, etc.), cert (dict with backup). See example below. | - | Dict | Yes |
+| cacert_browser_trust | Deploy Firefox/LibreWolf enterprise policies to trust the system CA store. | true | Boolean | No |
+| cacert_cas | Dictionary of CA definitions. Each key is a CA identifier, value contains CA configuration: state, common_name, country_name, email_address, organization_name, organizational_unit_name, state_or_province_name, locality_name, not_after, not_before, key (dict with type, backup, passphrase, curve, etc.), cert (dict with backup). See example below. | {} | Dict | Yes |
 | cacert_clientcert_bitsize | Key size in bits for client certificates. | 4096 | Integer | No |
 | cacert_clientcert_curve | Curve name for ECC client certificates. | - | String | No |
+| cacert_clientcert_force | Force regeneration of client certificates even if unchanged. | false | Boolean | No |
 | cacert_clientcert_not_after | Validity period end for client certificates. | +54w | String | No |
 | cacert_clientcert_not_before | Validity period start for client certificates. | -1d | String | No |
 | cacert_clientcert_passphrase | Optional passphrase for client certificate private keys. | - | String | No |
 | cacert_clientcert_type | Key type for client certificates (RSA or ECC). | RSA | String | No |
-| cacert_clientcerts | Optional list of client certificate definitions. Each entry should contain: common_name, dest, state, user, group, not_after, not_before. | - | List | No |
+| cacert_clientcerts | Optional list of client certificate definitions. Each entry should contain: common_name, dest, state, user, group, not_after, not_before. | [] | List | No |
 | cacert_deployroot | Base path prefix for certificate and key files. Used for OpenWrt imagebuilder support. Automatically set by `ansible_openwrtimagebuilder` role. | "/" | String | No |
 | cacert_runimagebuilder | Flag indicating if running in OpenWrt imagebuilder mode. Must be set to `true` manually when using imagebuilder. When true, skips package installation and trust store updates. | false | Boolean | No |
 | cacert_servercert_additionalhosts | Optional list of additional hosts where server certificates should be copied. Each entry: targethost, targethostpath, targethostuser, targethostgroup, state, alsokey (bool). | - | List | No |
@@ -39,9 +41,10 @@ Role supports:
 | cacert_servercert_country_name | Country name for server certificates. | - | String | No |
 | cacert_servercert_curve | Curve name for ECC server certificates (e.g., "secp384r1"). | - | String | No |
 | cacert_servercert_email_address | Email address for server certificates. | - | String | No |
+| cacert_servercert_force | Force regeneration of server certificates even if unchanged. | false | Boolean | No |
 | cacert_servercert_locality_name | Locality name for server certificates. | - | String | No |
-| cacert_servercert_not_after | Validity period end for server certificates (e.g., "+120w"). | - | String | No |
-| cacert_servercert_not_before | Validity period start for server certificates (e.g., "-2d"). | - | String | No |
+| cacert_servercert_not_after | Validity period end for server certificates (e.g., "+120w"). | +52w | String | No |
+| cacert_servercert_not_before | Validity period start for server certificates (e.g., "-2d"). | -1d | String | No |
 | cacert_servercert_organization_name | Organization name for server certificates. | - | String | No |
 | cacert_servercert_organizational_unit_name | Organizational unit name for server certificates. | - | String | No |
 | cacert_servercert_passphrase | Optional passphrase for server certificate private keys. | - | String | No |

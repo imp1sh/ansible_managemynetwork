@@ -12,6 +12,7 @@ galaxy_info:
       versions:
         - bookworm
         - bullseye
+        - trixie
     - name: Fedora
       versions:
         - all

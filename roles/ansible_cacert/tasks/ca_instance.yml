@@ -89,7 +89,6 @@
   loop: "{{ cacert_clientcerts }}"
   loop_control:
     loop_var: "cacert_clientcert"
-  when: cacert_clientcerts is defined
 
 # CLIENT CERT
 - name: "MMN cacert - Manage client certs"
@@ -97,4 +96,3 @@
   loop: "{{ cacert_clientcerts }}"
   loop_control:
     loop_var: "cacert_clientcert"
-  when: cacert_clientcerts is defined

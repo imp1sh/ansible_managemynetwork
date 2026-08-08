@@ -5,7 +5,10 @@
     content: "{{ cacert_ca_cert.certificate }}"
     dest: "{{ cacert_path_cacert_targethost }}"
     backup: True
-  when: cacert_ca.value.state | default('present') == 'present'
+  when:
+    - cacert_ca.value.state | default('present') == 'present'
+    - ansible_distribution != 'OpenWrt'
+    - not cacert_runimagebuilder | default(false) | bool
   notify: "MMN cacert - Update trust store"
 
 - name: "MMN cacert - Merge CA cert into OpenWrt trust bundle"
@@ -25,7 +28,10 @@
   ansible.builtin.file:
     path: "{{ cacert_path_cacert_targethost }}"
     state: absent
-  when: cacert_ca.value.state | default('present') == 'absent'
+  when:
+    - cacert_ca.value.state | default('present') == 'absent'
+    - ansible_distribution != 'OpenWrt'
+    - not cacert_runimagebuilder | default(false) | bool
   notify: "MMN cacert - Update trust store"
 
 - name: "MMN cacert - Remove CA cert from OpenWrt trust bundle"
