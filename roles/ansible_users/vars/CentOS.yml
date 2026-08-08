@@ -4,8 +4,12 @@ shells:
   sh: "/usr/bin/sh"
   bash: "/usr/bin/bash"
   fish: "/usr/bin/fish"
+  nologin: "/usr/sbin/nologin"
+  "false": "/usr/bin/false"
 shellpackages:
   zsh: "zsh"
   sh: "bash"
   bash: "bash"
   fish: "fish"
+  nologin: "bash"
+  "false": "bash"

@@ -6,7 +6,7 @@
 # Check for group based assignments
 - name: MMN users - Check if subelement exists
   ansible.builtin.set_fact:
-    system_users_elementcheck_group: "{{ system_users_create_on_hostgroups[user.key] is defined }}"
+    system_users_elementcheck_group: "{{ system_users_create_on_hostgroups is defined and system_users_create_on_hostgroups[user.key] is defined }}"
 
 - name: MMN users - check if host is in group
   ansible.builtin.set_fact:
@@ -20,7 +20,7 @@
   block:
     - name: check if subelement exists in individual list
       ansible.builtin.set_fact:
-        system_users_elementcheck_individual: "{{ system_users_create_on_hosts[user.key] is defined }}"
+        system_users_elementcheck_individual: "{{ system_users_create_on_hosts is defined and system_users_create_on_hosts[user.key] is defined }}"
 
     - name: MMN users - Check if user is in hostlist
       ansible.builtin.set_fact:

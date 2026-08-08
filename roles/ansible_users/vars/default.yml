@@ -1,1 +1,7 @@
 ---
+shells:
+  nologin: "/usr/sbin/nologin"
+  "false": "/usr/bin/false"
+shellpackages:
+  nologin: "bash"
+  "false": "bash"

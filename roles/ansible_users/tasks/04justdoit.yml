@@ -4,7 +4,7 @@
     append: "{{ user.value.append | default(omit) }}"
     authorization: "{{ user.value.authorization | default(omit, true) }}"
     comment: "{{ user.value.comment |default(omit) }}"
-    create_home: "{{ user.value.create_home | default('true', true) }}"
+    create_home: "{{ user.value.create_home | default(omit) }}"
     expires: "{{ user.value.expires | default(omit) }}"
     force: "{{ user.value.force | default('false', true) }}"
     generate_ssh_key: "{{ user.value.generate_ssh_key | default('false', true) }}"

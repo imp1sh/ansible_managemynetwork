@@ -16,4 +16,5 @@
 - name: Remove current item
   ansible.builtin.file:
     path: "{{ fileitem.dest }}"
+    state: absent
   when: fileitem.state == "absent"

@@ -22,10 +22,6 @@
         usershell: "{{ shells[user.value.shell] }}"
       when: user.value.shell is defined
 
-    - name: MMN users - Debug
-      debug:
-        msg: "{{ system_users_setpassword_deploypath }}/{{ 99 + index }}{{ system_users_setpassword_deployfile }}-{{ user.key }}"
-
     - name: MMN users - Make sure init script deploypath exists
       ansible.builtin.file:
         path: "{{ system_users_setpassword_deploypath }}"
@@ -35,7 +31,7 @@
     - name: MMN users - Deploy init script for user
       ansible.builtin.template:
         src: imagebuilderuser.j2
-        dest: "{{ system_users_setpassword_deploypath }}/{{ index }}{{ system_users_setpassword_deployfile }}-{{ user.key }}"
+        dest: "{{ system_users_setpassword_deploypath }}/{{ system_users_setpassword_deployfile }}-{{ user.key }}"
       when: user.value.password is defined
       delegate_to: "{{ _users_target_host }}"
   when: user.key in list_of_users
