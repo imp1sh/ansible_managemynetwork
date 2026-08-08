@@ -1,7 +1,6 @@
 ---
 machine:
   network:
-    hostname: "{{ clusternode.name }}"
     interfaces:
     - deviceSelector:
         busPath: "0*"
@@ -16,3 +15,8 @@ machine:
         - "{{ ip6 }}"
 {% endfor %}
 {% endif %}
+---
+apiVersion: v1alpha1
+kind: HostnameConfig
+auto: null
+hostname: "{{ clusternode.name }}"

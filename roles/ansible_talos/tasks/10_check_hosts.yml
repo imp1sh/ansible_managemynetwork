@@ -7,7 +7,7 @@
 #  loop_control:
 #    loop_var:  cpnode
 - name: MMN Talos - Implicitly check the control plane node's availability
-  ansible.builtin.command: "talosctl get disks --insecure -n {{ cpnode.ip4[0] | ansible.builtin.ipaddr('address') }}"
+  ansible.builtin.command: "talosctl get disks --insecure -n {{ cpnode.ip4[0] | ansible.utils.ipaddr('address') }}"
   loop: "{{ talos_cluster.value.hosts_controlplane }}"
   loop_control:
     loop_var:  cpnode
@@ -24,7 +24,7 @@
     #  debug:
     #    var: disks_per_node
 - name: MMN Talos - Implicitly check the worker node's availability
-  ansible.builtin.command: "talosctl get disks --insecure -n {{ workernode.ip4[0] | ansible.builtin.ipaddr('address') }}"
+  ansible.builtin.command: "talosctl get disks --insecure -n {{ workernode.ip4[0] | ansible.utils.ipaddr('address') }}"
   loop: "{{ talos_cluster.value.hosts_worker }}"
   loop_control:
     loop_var:  workernode
