@@ -119,12 +119,20 @@
 
 - name: MMN sway - Reload systemd user daemon for {{ target_user }}
   ansible.builtin.command:
-    cmd: "systemctl --machine={{ target_user }}@.host --user daemon-reload"
+    cmd: "systemctl --user daemon-reload"
+  environment:
+    XDG_RUNTIME_DIR: "/run/user/{{ getent_passwd[target_user][1] }}"
+  become: true
+  become_user: "{{ target_user }}"
   when: sway_cleanup_enable | default(true)
   changed_when: false
 
 - name: MMN sway - Enable and start sway cleanup timer for {{ target_user }}
   ansible.builtin.command:
-    cmd: "systemctl --machine={{ target_user }}@.host --user enable --now sway_cleanup.timer"
+    cmd: "systemctl --user enable --now sway_cleanup.timer"
+  environment:
+    XDG_RUNTIME_DIR: "/run/user/{{ getent_passwd[target_user][1] }}"
+  become: true
+  become_user: "{{ target_user }}"
   when: sway_cleanup_enable | default(true)
   changed_when: "'Created symlink' in stdout_lines | join('\\n')"
