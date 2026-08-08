@@ -9,7 +9,16 @@
   when: cacert_ca.value.state | default('present') == 'absent'
   run_once: True
 
-- name: "MMN cacert - Make sure CA private key is there"
+- name: "MMN cacert _ Make sure CA private key path is present"
+  become: true
+  delegate_to: "{{ cacert_ca_manager_host }}"
+  ansible.builtin.file:
+    state: directory
+    path: "{{ cacert_openssl_path_certificate_ca }}"
+  when:
+    - cacert_ca.value.state | default('present') == 'present'
+
+- name: "MMN cacert - Make sure CA private key is installed"
   become: true
   delegate_to: "{{ cacert_ca_manager_host }}"
   community.crypto.openssl_privatekey:
