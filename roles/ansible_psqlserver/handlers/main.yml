@@ -10,7 +10,7 @@
     state: reloaded
 - name: restart postgres container
   ansible.builtin.service:
-    name: "container-{{ psqlserver_instance.key }}"
+    name: "{{ ('container-' ~ psqlserver_instance.key) if not (podman_use_quadlet | default(false) | bool) else psqlserver_instance.key }}"
     state: restarted
 - name: reload postgres container
   containers.podman.podman_container_exec:

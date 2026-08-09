@@ -1,0 +1,137 @@
+---
+# Manage Podman containers via Quadlet (.container) systemd units.
+#
+# This replaces the deprecated `podman generate systemd` path (see 3systemd.yml)
+# which baked the container id into a Type=forking PIDFile=, causing a restart
+# loop whenever the container was recreated (the unit kept pointing at the old
+# id). Quadlet units are declarations of desired state; systemd regenerates the
+# transient service correctly on every reload, so recreating a container no
+# longer breaks the unit.
+#
+# Gate: only reached when podman_use_quadlet == true (see defaults/main.yml).
+
+- name: "MMN Podman (quadlet) - Ensure Quadlet drop-in directory exists"
+  ansible.builtin.file:
+    path: "{{ podman_quadlet_dir | default('/etc/containers/systemd') }}"
+    state: directory
+    mode: '0755'
+
+# ---------------------------------------------------------------- present/started
+- name: "MMN Podman (quadlet) - Manage present/started containers"
+  when: podman_container.state | default('started') != 'absent'
+  block:
+    - name: "MMN Podman (quadlet) - Render .container unit"
+      ansible.builtin.template:
+        src: quadlet.container.j2
+        dest: "{{ podman_quadlet_dir | default('/etc/containers/systemd') }}/{{ podman_container.name }}.container"
+        mode: '0644'
+      register: _quadlet_unit
+
+    - name: "MMN Podman (quadlet) - Detect legacy generate-systemd unit"
+      ansible.builtin.stat:
+        path: "/etc/systemd/system/container-{{ podman_container.name }}.service"
+      register: _quadlet_legacy_unit_stat
+
+    - name: "MMN Podman (quadlet) - Tear down legacy unit (stop crashloop)"
+      when: _quadlet_legacy_unit_stat.stat.exists
+      block:
+        - name: "MMN Podman (quadlet) - Stop+disable legacy unit"
+          ansible.builtin.systemd:
+            name: "container-{{ podman_container.name }}"
+            state: stopped
+            enabled: false
+        - name: "MMN Podman (quadlet) - Remove legacy unit file"
+          ansible.builtin.file:
+            path: "/etc/systemd/system/container-{{ podman_container.name }}.service"
+            state: absent
+        - name: "MMN Podman (quadlet) - Reset failed state of legacy unit"
+          ansible.builtin.shell: "systemctl reset-failed container-{{ podman_container.name }} || true"
+          changed_when: false
+
+    - name: "MMN Podman (quadlet) - Check if a stray imperative container exists"
+      ansible.builtin.command: "podman inspect {{ podman_container.name }}"
+      register: _quadlet_inspect_existing
+      changed_when: false
+      failed_when: false
+
+    - name: "MMN Podman (quadlet) - Is the Quadlet service already active?"
+      ansible.builtin.command: "systemctl is-active {{ podman_container.name }}"
+      register: _quadlet_svc_active
+      changed_when: false
+      failed_when: false
+
+    # A container previously created by the imperative `podman run` flow (or by
+    # the legacy unit) would collide with Quadlet's `podman run --name ...` on
+    # first start. Remove it once; bind-mount data is preserved. Only do this
+    # while the Quadlet service is NOT yet active, so we never disturb a
+    # running Quadlet-owned container.
+    - name: "MMN Podman (quadlet) - Remove stray imperative container (first adoption)"
+      ansible.builtin.command: "podman rm -f {{ podman_container.name }}"
+      when:
+        - _quadlet_inspect_existing.rc == 0
+        - _quadlet_svc_active.stdout | trim != 'active'
+      changed_when: true
+
+    - name: "MMN Podman (quadlet) - Restart Quadlet service (config changed)"
+      ansible.builtin.systemd:
+        name: "{{ podman_container.name }}"
+        state: restarted
+        enabled: true
+        daemon_reload: true
+      when: _quadlet_unit.changed
+
+    - name: "MMN Podman (quadlet) - Start Quadlet service"
+      ansible.builtin.systemd:
+        name: "{{ podman_container.name }}"
+        state: "{{ 'stopped' if (podman_container.state | default('started')) == 'stopped' else 'started' }}"
+        enabled: true
+        daemon_reload: true
+      when: not _quadlet_unit.changed
+
+# ----------------------------------------------------------------------- absent
+- name: "MMN Podman (quadlet) - Remove absent containers"
+  when: podman_container.state | default('started') == 'absent'
+  block:
+    - name: "MMN Podman (quadlet) - Stop+disable Quadlet service"
+      ansible.builtin.systemd:
+        name: "{{ podman_container.name }}"
+        state: stopped
+        enabled: false
+        daemon_reload: true
+      failed_when: false
+
+    - name: "MMN Podman (quadlet) - Remove .container unit"
+      ansible.builtin.file:
+        path: "{{ podman_quadlet_dir | default('/etc/containers/systemd') }}/{{ podman_container.name }}.container"
+        state: absent
+
+    - name: "MMN Podman (quadlet) - Detect+remove legacy unit"
+      ansible.builtin.stat:
+        path: "/etc/systemd/system/container-{{ podman_container.name }}.service"
+      register: _quadlet_legacy_absent_stat
+
+    - name: "MMN Podman (quadlet) - Stop+disable legacy unit"
+      ansible.builtin.systemd:
+        name: "container-{{ podman_container.name }}"
+        state: stopped
+        enabled: false
+      when: _quadlet_legacy_absent_stat.stat.exists
+      failed_when: false
+
+    - name: "MMN Podman (quadlet) - Remove legacy unit file"
+      ansible.builtin.file:
+        path: "/etc/systemd/system/container-{{ podman_container.name }}.service"
+        state: absent
+
+    - name: "MMN Podman (quadlet) - Reset failed states"
+      ansible.builtin.shell: "systemctl reset-failed {{ podman_container.name }} container-{{ podman_container.name }} || true"
+      changed_when: false
+
+    - name: "MMN Podman (quadlet) - Remove container"
+      ansible.builtin.command: "podman rm -f {{ podman_container.name }}"
+      failed_when: false
+      changed_when: true
+
+    - name: "MMN Podman (quadlet) - Daemon-reload after removal"
+      ansible.builtin.systemd:
+        daemon_reload: true

@@ -1,5 +1,11 @@
 ---
 # defaults file for ansible_podman
+# When true, manage containers via Quadlet (.container systemd units in
+# podman_quadlet_dir) instead of the deprecated `podman generate systemd`
+# path. Off by default for backwards compatibility; set to true per host to
+# adopt Quadlet (recommended on Podman >= 4.4 / 5.x).
+podman_use_quadlet: false
+podman_quadlet_dir: "{{ podman_deployroot }}etc/containers/systemd"
 podman_deployroot: "/"
 podman_deploypath_containersconfig: "{{ podman_deployroot }}etc/containers/containers.conf"
 podman_deploypath_containersnetworks: "{{ podman_deployroot }}etc/containers/networks"

@@ -57,6 +57,15 @@ Having more than one instance is untested for non podman environments.
 ## Containermode
 This very role will be called by ansible_podman when the plugin is activated (see ansible_podman role for documentation). The ansible_podman role will set the variable `psqlserver_containermode` to *true*. In this mode this ansible_psqlserver role will setup a postgresql server in a podman container.
 
+> **Systemd unit name:** the `restart postgres container` handler targets
+> `container-<name>` by default, or `<name>` when the podman role is running in
+> Quadlet mode (`podman_use_quadlet: true`). This is handled automatically; no
+> inventory change is needed. If you hit a constant shutdown/restart loop of the
+> `container-<name>.service` unit after recreating a container, switch the host
+> to Quadlet (see the `ansible_podman` README) — the legacy
+> `podman generate systemd` path bakes the container id into the unit and goes
+> stale on every recreate.
+
 You can imagine with containers you might want to have more than one postgresql instance running on your podman host. To account for that this role will work with dictionaries so you can define a flexible amount of databases for your target host.
 
 This is how a container definition might look like (excerpt).

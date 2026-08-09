@@ -11,6 +11,7 @@ Supporting the following roles from the [containers.podman collection](https://g
 - podman_secrets
 - podman network
 - Run only on specific containers by setting var `podman_limited_containers` to the container instance name. By default it will iterate over all defined containers for the host.
+- Optional Quadlet backend (recommended on Podman >= 4.4 / 5.x). See [Quadlet](#quadlet) below.
 
 # Role Workflow
 
@@ -116,6 +117,45 @@ You can define where podman data will be stored by setting this variable.
 podman_storageconfig_graphroot: "/mnt/container/storage"
 ```
 This is especially important on OpenWrt as by default podman stores on /var which is a non persistent volume. Each reboot all your container data will be gone.
+
+## Quadlet
+
+By default this role manages container lifecycle with the (now deprecated)
+`podman generate systemd` path, producing `container-<name>.service` units in
+`/etc/systemd/system`. That approach bakes the container id into a
+`Type=forking` unit's `PIDFile=`, so whenever a container is recreated (new id)
+the unit keeps pointing at the old id and systemd enters a start/timeout/restart
+loop. Quadlet is the upstream replacement and avoids this entirely: the
+`.container` unit is a declaration of desired state and systemd regenerates the
+transient service correctly on every reload.
+
+Enable Quadlet per host:
+
+```yaml
+podman_use_quadlet: true
+```
+
+When set, the role will (instead of `podman_containers` + `podman generate
+systemd`):
+- render `<name>.container` units into `/etc/containers/systemd/` (override
+  path with `podman_quadlet_dir`),
+- on first adoption stop/disable/delete any legacy `container-<name>.service`
+  and remove the stray imperative container (bind-mount data is preserved),
+- `systemctl daemon-reload` and enable+start `<name>.service`,
+- on `.container` file changes `systemctl restart <name>.service` so the new
+  config is applied (Quadlet recreates the container).
+
+Plugin handlers (psql/borgmatic/pdnsauth) automatically target the right unit
+name (`<name>` under Quadlet, `container-<name>` otherwise) based on
+`podman_use_quadlet`, so no inventory changes are required besides flipping the
+flag.
+
+Supported `podman_containers` keys mapped to the `.container` file: `name`,
+`image`, `state`, `network`, `ip`, `ip6`, `volume`/`volumes`, `ports`/`publish`,
+`env`, `cap_add`, `cap_drop`, `user`, `group`, `timezone`, `readonly_rootfs`,
+`dns`, `label`, `secret`/`secrets`, `hostname`, `command`, `pull`.
+Optional tuning keys: `stop_timeout` (default 10), `start_timeout` (default
+180), `kill_signal` (e.g. `SIGINT` for PostgreSQL smart shutdown).
 
 ## OpenWrt specifics
 Podman will be deployed on OpenWrt using aardvark-dns. This will clash with dnsmasq as it will usually bind to all interfaces, also the podman interface. This is why it is a requirement to only bind dnsmasq to specific interfaces and blacklist it for others like this.

@@ -46,6 +46,18 @@
   when:
     - podman_containers is defined
     - not podman_runimagebuilder | default(false) | bool
+    - not podman_use_quadlet | default(false) | bool
+
+- name: "MMN Podman - Manage containers via Quadlet"
+  ansible.builtin.include_tasks:
+    file: 3quadlet.yml
+  loop: "{{ podman_containers }}"
+  loop_control:
+    loop_var: podman_container
+  when:
+    - podman_containers is defined
+    - not podman_runimagebuilder | default(false) | bool
+    - podman_use_quadlet | default(false) | bool
 
 - name: "MMN Podman - Deploy application configuration for supported plugin 2nd run"
   ansible.builtin.include_tasks:

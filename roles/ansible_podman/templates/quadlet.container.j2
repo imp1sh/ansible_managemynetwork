@@ -1,0 +1,119 @@
+# Managed by Ansible - role imp1sh.ansible_managemynetwork.ansible_podman
+# Source variable: podman_containers[].name="{{ podman_container.name }}"
+# Do not edit by hand; this file is regenerated on every Ansible run.
+[Unit]
+Description=Podman container {{ podman_container.name }}
+After=network-online.target
+Wants=network-online.target
+
+[Container]
+Image={{ podman_container.image }}
+ContainerName={{ podman_container.name }}
+{% if podman_container.hostname is defined %}
+HostName={{ podman_container.hostname }}
+{% endif %}
+{% if podman_container.command is defined %}
+{% set _quadlet_cmd = podman_container.command | regex_replace('\s+', ' ') | trim if (podman_container.command is string) else podman_container.command | join(' ') %}
+Exec={{ _quadlet_cmd }}
+{% endif %}
+{% if podman_container.network is defined %}
+{% set _quadlet_nets = podman_container.network if (podman_container.network is iterable and podman_container.network is not string and podman_container.network is not mapping) else [podman_container.network] %}
+{% for _net in _quadlet_nets %}
+Network={{ _net }}
+{% endfor %}
+{% endif %}
+{% if podman_container.ip is defined %}
+IP={{ podman_container.ip }}
+{% endif %}
+{% if podman_container.ip6 is defined %}
+IPv6={{ podman_container.ip6 }}
+{% endif %}
+{% set _quadlet_vols = [] %}
+{% if podman_container.volume is defined %}
+{% set _quadlet_vols = _quadlet_vols + (podman_container.volume if (podman_container.volume is iterable and podman_container.volume is not string) else [podman_container.volume]) %}
+{% endif %}
+{% if podman_container.volumes is defined %}
+{% set _quadlet_vols = _quadlet_vols + (podman_container.volumes if (podman_container.volumes is iterable and podman_container.volumes is not string) else [podman_container.volumes]) %}
+{% endif %}
+{% for _vol in _quadlet_vols %}
+Volume={{ _vol }}
+{% endfor %}
+{% if podman_container.publish is defined or podman_container.ports is defined %}
+{% set _quadlet_ports_src = podman_container.publish | default(podman_container.ports) %}
+{% set _quadlet_ports = _quadlet_ports_src if (_quadlet_ports_src is iterable and _quadlet_ports_src is not string) else [_quadlet_ports_src] %}
+{% for _port in _quadlet_ports %}
+PublishPort={{ _port }}
+{% endfor %}
+{% endif %}
+{% if podman_container.cap_add is defined %}
+{% for _cap in podman_container.cap_add %}
+AddCapability={{ _cap }}
+{% endfor %}
+{% endif %}
+{% if podman_container.cap_drop is defined %}
+{% for _cap in podman_container.cap_drop %}
+DropCapability={{ _cap }}
+{% endfor %}
+{% endif %}
+{% if podman_container.user is defined %}
+User={{ podman_container.user }}
+{% endif %}
+{% if podman_container.group is defined %}
+Group={{ podman_container.group }}
+{% endif %}
+{% if podman_container.timezone is defined %}
+TimeZone={{ podman_container.timezone }}
+{% endif %}
+{% if podman_container.readonly_rootfs | default(false) | bool %}
+ReadOnly=true
+{% endif %}
+{% if podman_container.dns is defined %}
+{% set _quadlet_dns = podman_container.dns if (podman_container.dns is iterable and podman_container.dns is not string) else [podman_container.dns] %}
+{% for _d in _quadlet_dns %}
+DNS={{ _d }}
+{% endfor %}
+{% endif %}
+{% if podman_container.label is defined %}
+{% if podman_container.label is mapping %}
+{% for _lk,_lv in podman_container.label.items() %}
+Label={{ _lk }}={{ _lv }}
+{% endfor %}
+{% else %}
+{% for _lab in podman_container.label %}
+Label={{ _lab }}
+{% endfor %}
+{% endif %}
+{% endif %}
+{% if podman_container.secret is defined or podman_container.secrets is defined %}
+{% set _quadlet_secs_src = podman_container.secret | default(podman_container.secrets) %}
+{% set _quadlet_secs = _quadlet_secs_src if (_quadlet_secs_src is iterable and _quadlet_secs_src is not string) else [_quadlet_secs_src] %}
+{% for _sec in _quadlet_secs %}
+Secret={{ _sec }}
+{% endfor %}
+{% endif %}
+{% if podman_container.env is defined %}
+{% if podman_container.env is mapping %}
+{% for _ek,_ev in podman_container.env.items() %}
+Environment={{ _ek }}={{ _ev }}
+{% endfor %}
+{% else %}
+{% set _quadlet_env = podman_container.env if (podman_container.env is iterable and podman_container.env is not string) else [podman_container.env] %}
+{% for _envln in _quadlet_env %}
+Environment={{ _envln }}
+{% endfor %}
+{% endif %}
+{% endif %}
+{% if podman_container.pull is defined %}
+Pull={{ podman_container.pull }}
+{% endif %}
+
+[Service]
+Restart=always
+TimeoutStopSec={{ podman_container.stop_timeout | default(10) }}
+TimeoutStartSec={{ podman_container.start_timeout | default(180) }}
+{% if podman_container.kill_signal is defined %}
+KillSignal={{ podman_container.kill_signal }}
+{% endif %}
+
+[Install]
+WantedBy=default.target

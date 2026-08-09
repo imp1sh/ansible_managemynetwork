@@ -6,12 +6,12 @@
 
 - name: restart powerdns container
   ansible.builtin.service:
-    name: "container-{{ pdns_containername }}"
+    name: "{{ ('container-' ~ pdns_containername) if not (podman_use_quadlet | default(false) | bool) else pdns_containername }}"
     state: restarted
 
 - name: reload powerdns container
   ansible.builtin.service:
-    name: "container-{{ pdns_containername }}"
+    name: "{{ ('container-' ~ pdns_containername) if not (podman_use_quadlet | default(false) | bool) else pdns_containername }}"
     state: reloaded
 
 - name: reload powerdns container
