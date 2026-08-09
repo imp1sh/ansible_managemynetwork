@@ -22,7 +22,7 @@ Known to be MISSING:
 - ncm
 - wwan
 
-As OpenWrt's documentation is surprisingly thin when it comes to fully listing all different interface options what I would need was a complete list of options and to what options they associate with. If you consider to assist with completing interface type support, do it in a tidy fashion as it is really hard to overlook what UCI options are available where.
+As OpenWrt's documentation is surprisingly thin when it comes to fully listing all different interface options. If you consider to assist with completing interface type support, do it in a tidy fashion as it is really hard to overlook what UCI options are available.
 
 You can define interfaces in ansible, either
 - per host via `openwrt_network_interfaceshost` 
