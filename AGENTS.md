@@ -120,7 +120,7 @@ Rules:
   `MMN openwrtsystem - …`. Keep descriptions brief but sufficient; start with a
   capital letter.
 
-- **Files** are snake_case. Templates use a `.jinja2` (or `.j2`) extension.
+- **Files** are snake_case. Templates use a `.j2` extension.
 
 ## Dispatcher / guard pattern (mandatory)
 
