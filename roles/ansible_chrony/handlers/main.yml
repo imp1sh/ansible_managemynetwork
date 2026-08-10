@@ -1,5 +1,5 @@
 ---
 - name: restart chronyd
-  service:
+  ansible.builtin.service:
     name: "{{ chronyd_servicename }}"
     state: restarted
