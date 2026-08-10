@@ -19,10 +19,9 @@
 
 # Combine into one list and remove duplicates
 - name: "MMN Packages - Combine lists into packages_remove var"
-  ansible.builtin.set_fact: 
+  ansible.builtin.set_fact:
     packages_remove: "{{ [packages_removemergedgroup, packages_removehost, packages_removerole] | select('defined') | flatten | unique }}"
 
 - name: "MMN Packages - Remove duplicates from packages_remove list"
   ansible.builtin.set_fact:
     packages_remove: "{{ packages_remove | unique }}"
-

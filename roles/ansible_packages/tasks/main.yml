@@ -23,4 +23,3 @@
   include_tasks: "5install.yml"
   when:
     - not packages_runimagebuilder | default(false) | bool
-

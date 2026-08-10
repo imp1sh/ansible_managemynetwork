@@ -19,7 +19,7 @@
 
 # Merge into one list and remove duplicates
 - name: "MMN Packages - Combine lists into packages_install var"
-  ansible.builtin.set_fact: 
+  ansible.builtin.set_fact:
     packages_install: "{{ [packages_installmergedgroup, packages_installhost, packages_installrole] | select('defined') | flatten | unique }}"
 - name: "MMN Packages - Remove duplicates from packages_install list"
   ansible.builtin.set_fact:
