@@ -197,8 +197,59 @@ sway_bar_tray_padding: null
 sway_bar_colors: null
 sway_bar_swaybar_command: null
 
-# Window attributes (marks, floating, workspace assignment)
-# Dictionary mapping mark names to lists of rules
+# Window attributes (marks, floating, workspace assignment, per-window commands)
+# Dictionary mapping mark names to lists of rules.
+# Each rule requires "criteria".
+#
+# Chained commands (joined with "," to retain criteria within for_window):
+#   floating:          true|false|"toggle"
+#   border:            "none"|"normal"|"csd"|"toggle"|int (int → "pixel <n>")
+#   layout:            "default"|"splith"|"splitv"|"stacking"|"tabbed"|"toggle"
+#   opacity:           float (e.g. 0.9) or "set|plus|minus <value>"
+#   fullscreen:        true|false|"toggle"|"enable global"|"toggle global"
+#   sticky:            true|false|"toggle"
+#   inhibit_idle:      true|false|"focus"|"fullscreen"|"open"|"none"|"visible"
+#                      (true → "open", false → "none")
+#   shortcuts_inhibitor: true|false
+#   max_render_time:   "off"|int (milliseconds)
+#   split:             "v"|"h"|"t"|"vertical"|"horizontal"|"toggle"|"none"
+#   urgent:            true|false|"enable"|"disable"|"allow"|"deny"
+#   kill:              true
+#   title_format:      string (e.g. "%title")
+#   resize:            dict or string (see below)
+#   move:              dict or string (see below)
+#   raw:               string injected as-is (use ";" to reset criteria
+#                      for subsequent commands — see sway(5))
+#
+# Standalone commands (emitted on separate lines with their own criteria):
+#   workspace:         int (→ assign workspace number N) or
+#                      string (→ assign workspace <name>)
+#   output:            string (→ assign output <name>)
+#   no_focus:          true (→ no_focus [criteria])
+#
+# resize as dict:
+#   {width: 800, height: 600}                     → resize set width 800 px height 600 px
+#   {width: 800}                                  → resize set width 800 px
+#   {height: 600}                                 → resize set height 600 px
+#   {action: "shrink", axis: "width", amount: 10} → resize shrink width 10 px
+#   {action: "grow", axis: "height", amount: 5, unit: "ppt"}
+# resize as string: passed through after "resize "
+#
+# move as dict:
+#   {direction: "left", px: 10}                   → move left 10 px
+#   {position: "100 200"}                         → move position 100 200
+#   {position: [100, 200]}                        → move position 100 200
+#   {position: "100 200", absolute: true}        → move absolute position 100 200
+#   {center: true}                                → move position center
+#   {center: true, absolute: true}                → move absolute position center
+#   {cursor: true}                                → move position cursor
+#   {to_workspace: 3}                             → move container to workspace number 3
+#   {to_workspace: "3:mail"}                      → move container to workspace 3:mail
+#   {to_workspace: "next"}                        → move container to workspace next
+#   {to_output: "HDMI-1"}                         → move container to output HDMI-1
+#   {to_scratchpad: true}                         → move container to scratchpad
+#   {to_mark: "somemark"}                         → move container to mark somemark
+# move as string: passed through after "move "
 sway_window_attributes: {}
 # Example:
 # sway_window_attributes:
@@ -210,6 +261,48 @@ sway_window_attributes: {}
 #   Filebrowser:
 #     - criteria: 'app_id="Thunar"'
 #       floating: true
+#       border: none
+#   Secrets:
+#     - criteria: 'app_id="org.gnome.Secrets"'
+#       floating: true
+#       opacity: 0.95
+#   Pinned:
+#     - criteria: 'app_id="pinned_app"'
+#       sticky: true
+#       inhibit_idle: true
+#   Killed:
+#     - criteria: 'app_id="annoying_popup"'
+#       kill: true
+#   NoShortcutInhibit:
+#     - criteria: 'app_id="vmware"'
+#       shortcuts_inhibitor: false
+#   RenderTime:
+#     - criteria: 'app_id="game"'
+#       max_render_time: 1
+#   Resized:
+#     - criteria: 'app_id="big"'
+#       resize: {width: 800, height: 600}
+#   Shrunk:
+#     - criteria: 'app_id="small"'
+#       resize: {action: "shrink", axis: "width", amount: 10}
+#   Moved:
+#     - criteria: 'app_id="mv"'
+#       move: {to_workspace: 5}
+#   Positioned:
+#     - criteria: 'app_id="pos"'
+#       move: {position: [100, 200]}
+#   Centered:
+#     - criteria: 'app_id="center"'
+#       move: {center: true}
+#   NoFocusWindow:
+#     - criteria: 'app_id="background"'
+#       no_focus: true
+#   ToOutput:
+#     - criteria: 'app_id="external"'
+#       output: "HDMI-1"
+#   NamedWorkspace:
+#     - criteria: 'app_id="mail"'
+#       workspace: "3:mail"
 
 # Exec commands (startup applications)
 # List of commands to execute on startup

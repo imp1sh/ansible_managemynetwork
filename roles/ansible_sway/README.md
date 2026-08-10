@@ -262,6 +262,69 @@ If not specified, a default resize mode is created.
 #### Window Assignments, Floating, Marking
 
 Add markings, floating decision and workspace assignment in one big dictionary var.
+Each rule requires `criteria`. Commands are chained with `,` (retains criteria in
+`for_window`). Use the `raw` attribute to inject `;`-separated commands that reset
+criteria (see sway(5) COMMAND CONVENTIONS).
+
+Chained commands (applied via `for_window [criteria]`):
+
+| Attribute | Type | Effect |
+|-----------|------|--------|
+| `floating` | bool \| string | `true`→enable, `false`→disable, `"toggle"` |
+| `border` | string \| int | `none`, `normal`, `csd`, `toggle`, or int (→ `pixel <n>`) |
+| `layout` | string | `default`, `splith`, `splitv`, `stacking`, `tabbed`, `toggle` |
+| `opacity` | float \| string | e.g. `0.9`, or `"plus 0.1"`, `"minus 0.1"` |
+| `fullscreen` | bool \| string | `true`→enable, `false`→disable, `"toggle"`, `"enable global"` |
+| `sticky` | bool \| string | `true`→enable, `false`→disable, `"toggle"` |
+| `inhibit_idle` | bool \| string | `true`→`open`, `false`→`none`, or `"focus"`,`"fullscreen"`,`"open"`,`"visible"`,`"none"` |
+| `shortcuts_inhibitor` | bool | `true`→enable, `false`→disable |
+| `max_render_time` | int \| string | milliseconds or `"off"` |
+| `split` | string | `v`/`vertical`, `h`/`horizontal`, `t`/`toggle`, `none` |
+| `urgent` | bool \| string | `true`→enable, `false`→disable, or `"allow"`,`"deny"` |
+| `kill` | bool | kills the matching window |
+| `title_format` | string | e.g. `"%title"` |
+| `resize` | dict \| string | see below |
+| `move` | dict \| string | see below |
+| `raw` | string | injected as-is (use `;` to reset criteria) |
+
+Standalone commands (emitted on separate lines with their own criteria):
+
+| Attribute | Type | Effect |
+|-----------|------|--------|
+| `workspace` | int \| string | `assign [criteria] workspace number N` or `assign [criteria] workspace <name>` |
+| `output` | string | `assign [criteria] output <name>` |
+| `no_focus` | bool | `no_focus [criteria]` |
+
+`resize` as dict:
+
+```yaml
+resize: {width: 800, height: 600}    # resize set width 800 px height 600 px
+resize: {width: 800}                  # resize set width 800 px
+resize: {action: "shrink", axis: "width", amount: 10}  # resize shrink width 10 px
+resize: {action: "grow", axis: "height", amount: 5, unit: "ppt"}
+```
+
+`resize` as string: passed through after `resize `.
+
+`move` as dict:
+
+```yaml
+move: {direction: "left", px: 10}     # move left 10 px
+move: {position: "100 200"}          # move position 100 200
+move: {position: [100, 200]}         # move position 100 200
+move: {position: "100 200", absolute: true}  # move absolute position 100 200
+move: {center: true}                 # move position center
+move: {center: true, absolute: true} # move absolute position center
+move: {cursor: true}                 # move position cursor
+move: {to_workspace: 3}              # move container to workspace number 3
+move: {to_workspace: "3:mail"}       # move container to workspace 3:mail
+move: {to_workspace: "next"}        # move container to workspace next
+move: {to_output: "HDMI-1"}         # move container to output HDMI-1
+move: {to_scratchpad: true}          # move container to scratchpad
+move: {to_mark: "somemark"}         # move container to mark somemark
+```
+
+`move` as string: passed through after `move `.
 
 ```
 sway_window_attributes:
@@ -282,7 +345,6 @@ sway_window_attributes:
       workspace: 4
   Editor:
     - criteria: 'app_id="gedit"'
-      workspace: "current"
       floating: true
   Filebrowser:
     - criteria: 'app_id="Thunar"'

@@ -299,13 +299,159 @@ mode "resize" {
 {% if sway_window_attributes is defined %}
 {% for marking, rules in sway_window_attributes.items() %}
 {% for rule in rules %}
-{% if rule.floating is defined and rule.floating %}
-for_window [{{ rule.criteria }}] mark {{ marking }}, floating enable
-{% else %}
-for_window [{{ rule.criteria }}] mark {{ marking }}
+{% set ns = namespace(cmds='mark ' ~ marking) %}
+{% if rule.floating is defined and rule.floating == true %}
+{% set ns.cmds = ns.cmds ~ ', floating enable' %}
+{% elif rule.floating is defined and rule.floating == false %}
+{% set ns.cmds = ns.cmds ~ ', floating disable' %}
+{% elif rule.floating is defined and rule.floating is string %}
+{% set ns.cmds = ns.cmds ~ ', floating ' ~ rule.floating %}
 {% endif %}
-{% if rule.workspace is defined and rule.workspace|int != 0 %}
+{% if rule.border is defined %}
+{% if rule.border is number %}
+{% set ns.cmds = ns.cmds ~ ', border pixel ' ~ rule.border %}
+{% else %}
+{% set ns.cmds = ns.cmds ~ ', border ' ~ rule.border %}
+{% endif %}
+{% endif %}
+{% if rule.layout is defined %}
+{% set ns.cmds = ns.cmds ~ ', layout ' ~ rule.layout %}
+{% endif %}
+{% if rule.opacity is defined %}
+{% if rule.opacity is number %}
+{% set ns.cmds = ns.cmds ~ ', opacity ' ~ rule.opacity %}
+{% else %}
+{% set ns.cmds = ns.cmds ~ ', opacity ' ~ rule.opacity %}
+{% endif %}
+{% endif %}
+{% if rule.fullscreen is defined and rule.fullscreen == true %}
+{% set ns.cmds = ns.cmds ~ ', fullscreen enable' %}
+{% elif rule.fullscreen is defined and rule.fullscreen == false %}
+{% set ns.cmds = ns.cmds ~ ', fullscreen disable' %}
+{% elif rule.fullscreen is defined and rule.fullscreen is string %}
+{% set ns.cmds = ns.cmds ~ ', fullscreen ' ~ rule.fullscreen %}
+{% endif %}
+{% if rule.sticky is defined %}
+{% if rule.sticky == true %}
+{% set ns.cmds = ns.cmds ~ ', sticky enable' %}
+{% elif rule.sticky == false %}
+{% set ns.cmds = ns.cmds ~ ', sticky disable' %}
+{% else %}
+{% set ns.cmds = ns.cmds ~ ', sticky ' ~ rule.sticky %}
+{% endif %}
+{% endif %}
+{% if rule.inhibit_idle is defined %}
+{% if rule.inhibit_idle == true %}
+{% set ns.cmds = ns.cmds ~ ', inhibit_idle open' %}
+{% elif rule.inhibit_idle == false %}
+{% set ns.cmds = ns.cmds ~ ', inhibit_idle none' %}
+{% else %}
+{% set ns.cmds = ns.cmds ~ ', inhibit_idle ' ~ rule.inhibit_idle %}
+{% endif %}
+{% endif %}
+{% if rule.shortcuts_inhibitor is defined %}
+{% if rule.shortcuts_inhibitor == true %}
+{% set ns.cmds = ns.cmds ~ ', shortcuts_inhibitor enable' %}
+{% elif rule.shortcuts_inhibitor == false %}
+{% set ns.cmds = ns.cmds ~ ', shortcuts_inhibitor disable' %}
+{% else %}
+{% set ns.cmds = ns.cmds ~ ', shortcuts_inhibitor ' ~ rule.shortcuts_inhibitor %}
+{% endif %}
+{% endif %}
+{% if rule.max_render_time is defined %}
+{% set ns.cmds = ns.cmds ~ ', max_render_time ' ~ rule.max_render_time %}
+{% endif %}
+{% if rule.split is defined %}
+{% set ns.cmds = ns.cmds ~ ', split ' ~ rule.split %}
+{% endif %}
+{% if rule.urgent is defined %}
+{% if rule.urgent == true %}
+{% set ns.cmds = ns.cmds ~ ', urgent enable' %}
+{% elif rule.urgent == false %}
+{% set ns.cmds = ns.cmds ~ ', urgent disable' %}
+{% else %}
+{% set ns.cmds = ns.cmds ~ ', urgent ' ~ rule.urgent %}
+{% endif %}
+{% endif %}
+{% if rule.kill is defined and rule.kill %}
+{% set ns.cmds = ns.cmds ~ ', kill' %}
+{% endif %}
+{% if rule.title_format is defined %}
+{% set ns.cmds = ns.cmds ~ ', title_format ' ~ rule.title_format %}
+{% endif %}
+{% if rule.resize is defined %}
+{% if rule.resize is mapping %}
+{% if rule.resize.action is defined and rule.resize.action in ['shrink', 'grow'] %}
+{% set ns.cmds = ns.cmds ~ ', resize ' ~ rule.resize.action ~ ' ' ~ rule.resize.axis ~ ' ' ~ rule.resize.amount | default(10) ~ ' ' ~ rule.resize.unit | default('px') %}
+{% elif rule.resize.width is defined and rule.resize.height is defined %}
+{% set ns.cmds = ns.cmds ~ ', resize set width ' ~ rule.resize.width ~ ' ' ~ rule.resize.unit | default('px') ~ ' height ' ~ rule.resize.height ~ ' ' ~ rule.resize.unit | default('px') %}
+{% elif rule.resize.width is defined %}
+{% set ns.cmds = ns.cmds ~ ', resize set width ' ~ rule.resize.width ~ ' ' ~ rule.resize.unit | default('px') %}
+{% elif rule.resize.height is defined %}
+{% set ns.cmds = ns.cmds ~ ', resize set height ' ~ rule.resize.height ~ ' ' ~ rule.resize.unit | default('px') %}
+{% endif %}
+{% elif rule.resize is string %}
+{% set ns.cmds = ns.cmds ~ ', resize ' ~ rule.resize %}
+{% endif %}
+{% endif %}
+{% if rule.move is defined %}
+{% if rule.move is mapping %}
+{% if rule.move.direction is defined %}
+{% set ns.cmds = ns.cmds ~ ', move ' ~ rule.move.direction %}
+{% if rule.move.px is defined %}
+{% set ns.cmds = ns.cmds ~ ' ' ~ rule.move.px ~ ' px' %}
+{% endif %}
+{% elif rule.move.position is defined %}
+{% if rule.move.absolute is defined and rule.move.absolute %}
+{% set ns.cmds = ns.cmds ~ ', move absolute position ' %}
+{% else %}
+{% set ns.cmds = ns.cmds ~ ', move position ' %}
+{% endif %}
+{% if rule.move.position is iterable and rule.move.position is not string %}
+{% set ns.cmds = ns.cmds ~ rule.move.position | join(' ') %}
+{% else %}
+{% set ns.cmds = ns.cmds ~ rule.move.position %}
+{% endif %}
+{% elif rule.move.center is defined and rule.move.center %}
+{% if rule.move.absolute is defined and rule.move.absolute %}
+{% set ns.cmds = ns.cmds ~ ', move absolute position center' %}
+{% else %}
+{% set ns.cmds = ns.cmds ~ ', move position center' %}
+{% endif %}
+{% elif rule.move.cursor is defined and rule.move.cursor %}
+{% set ns.cmds = ns.cmds ~ ', move position cursor' %}
+{% elif rule.move.to_workspace is defined %}
+{% set ns.cmds = ns.cmds ~ ', move container to workspace ' %}
+{% if rule.move.to_workspace is number %}
+{% set ns.cmds = ns.cmds ~ 'number ' ~ rule.move.to_workspace %}
+{% else %}
+{% set ns.cmds = ns.cmds ~ rule.move.to_workspace %}
+{% endif %}
+{% elif rule.move.to_output is defined %}
+{% set ns.cmds = ns.cmds ~ ', move container to output ' ~ rule.move.to_output %}
+{% elif rule.move.to_scratchpad is defined and rule.move.to_scratchpad %}
+{% set ns.cmds = ns.cmds ~ ', move container to scratchpad' %}
+{% elif rule.move.to_mark is defined %}
+{% set ns.cmds = ns.cmds ~ ', move container to mark ' ~ rule.move.to_mark %}
+{% endif %}
+{% elif rule.move is string %}
+{% set ns.cmds = ns.cmds ~ ', move ' ~ rule.move %}
+{% endif %}
+{% endif %}
+{% if rule.raw is defined %}
+{% set ns.cmds = ns.cmds ~ rule.raw %}
+{% endif %}
+for_window [{{ rule.criteria }}] {{ ns.cmds }}
+{% if rule.workspace is defined and rule.workspace is number and rule.workspace != 0 %}
 assign [{{ rule.criteria }}] workspace number {{ rule.workspace }}
+{% elif rule.workspace is defined and rule.workspace is string and rule.workspace != "0" %}
+assign [{{ rule.criteria }}] workspace {{ rule.workspace }}
+{% endif %}
+{% if rule.output is defined %}
+assign [{{ rule.criteria }}] output {{ rule.output }}
+{% endif %}
+{% if rule.no_focus is defined and rule.no_focus %}
+no_focus [{{ rule.criteria }}]
 {% endif %}
 {% endfor %}
 {% endfor %}
