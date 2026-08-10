@@ -1,0 +1,48 @@
+---
+- name: "MMN chrony - Validate chronyd_config_servers variable"
+  ansible.builtin.assert:
+    that:
+      - chronyd_config_servers | type_debug == 'list'
+    fail_msg: "chronyd_config_servers must be a list of dictionaries with 'name' and optional 'options' keys."
+    success_msg: "chronyd_config_servers seems valid."
+  when: chronyd_config_servers is defined
+
+- name: "MMN chrony - Validate chronyd_config_pools variable"
+  ansible.builtin.assert:
+    that:
+      - chronyd_config_pools | type_debug == 'list'
+    fail_msg: "chronyd_config_pools must be a list of dictionaries with 'name' and optional 'options' keys."
+    success_msg: "chronyd_config_pools seems valid."
+  when: chronyd_config_pools is defined
+
+- name: "MMN chrony - Validate chronyd_config_peers variable"
+  ansible.builtin.assert:
+    that:
+      - chronyd_config_peers | type_debug == 'list'
+    fail_msg: "chronyd_config_peers must be a list of dictionaries with 'name' and optional 'options' keys."
+    success_msg: "chronyd_config_peers seems valid."
+  when: chronyd_config_peers is defined
+
+- name: "MMN chrony - Validate chronyd_config_refclocks variable"
+  ansible.builtin.assert:
+    that:
+      - chronyd_config_refclocks | type_debug == 'list'
+    fail_msg: "chronyd_config_refclocks must be a list of dictionaries with 'driver', 'parameter' and optional 'options' keys."
+    success_msg: "chronyd_config_refclocks seems valid."
+  when: chronyd_config_refclocks is defined
+
+- name: "MMN chrony - Validate chronyd_config_allowfroms variable"
+  ansible.builtin.assert:
+    that:
+      - chronyd_config_allowfroms | type_debug == 'list'
+    fail_msg: "chronyd_config_allowfroms must be a list of strings."
+    success_msg: "chronyd_config_allowfroms seems valid."
+  when: chronyd_config_allowfroms is defined
+
+- name: "MMN chrony - Validate chronyd_config_denyfroms variable"
+  ansible.builtin.assert:
+    that:
+      - chronyd_config_denyfroms | type_debug == 'list'
+    fail_msg: "chronyd_config_denyfroms must be a list of strings."
+    success_msg: "chronyd_config_denyfroms seems valid."
+  when: chronyd_config_denyfroms is defined

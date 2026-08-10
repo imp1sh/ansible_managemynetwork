@@ -1,0 +1,15 @@
+---
+- name: "MMN chrony - Setup conf.d dir for non ansible config options"
+  ansible.builtin.file:
+    path: "{{ chronyd_pathconfig }}/{{ chronyd_config_includedir }}"
+    state: directory
+    owner: "{{ chronyd_fileowner }}"
+    group: "{{ chronyd_filegroup }}"
+    mode: "0755"
+  when: chronyd_config_includedir is defined
+
+- name: "MMN chrony - Deploy chrony configuration file"
+  ansible.builtin.template:
+    src: "{{ chronyd_filetemplate }}"
+    dest: "{{ chronyd_pathconfig }}/{{ chronyd_fileconfig }}"
+  notify: restart chronyd

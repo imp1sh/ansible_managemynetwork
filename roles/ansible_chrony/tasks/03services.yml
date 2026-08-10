@@ -1,0 +1,15 @@
+---
+- name: "MMN chrony - Disable systemd-timesyncd"
+  ansible.builtin.service:
+    name: systemd-timesyncd
+    state: stopped
+    enabled: false
+  when: ansible_service_mgr == "systemd"
+  ignore_errors: true
+
+- name: "MMN chrony - Enable chrony service"
+  ansible.builtin.service:
+    name: "{{ chronyd_servicename }}"
+    state: started
+    enabled: true
+  ignore_errors: true
