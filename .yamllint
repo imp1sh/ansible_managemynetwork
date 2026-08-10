@@ -10,3 +10,4 @@ rules:
   line-length:
     max: 200
   truthy: disable
+  new-line-at-end-of-file: disable
