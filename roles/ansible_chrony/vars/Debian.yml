@@ -1,3 +1,4 @@
+---
 chronyd_packagename: "chrony"
 chronyd_pathconfig: "/etc/chrony"
 chronyd_fileconfig: "chrony.conf"

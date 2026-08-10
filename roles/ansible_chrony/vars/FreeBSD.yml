@@ -1,3 +1,4 @@
+---
 chronyd_packagename: "chrony"
 chronyd_pathconfig: "/usr/local/etc"
 chronyd_fileconfig: "chrony.conf"
