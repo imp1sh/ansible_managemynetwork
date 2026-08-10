@@ -1,0 +1,12 @@
+---
+extends: default
+ignore: |
+  *.j2
+  *.jinja2
+  roles/*/templates/
+  roles_archive/
+  .git/
+rules:
+  line-length:
+    max: 200
+  truthy: disable

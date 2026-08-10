@@ -19,4 +19,4 @@
   failed_when:
     - chronyd_service_enable.failed
     - "'not found' not in chronyd_service_enable.msg | default('')"
-    - "'not been booted' not in chronyd_service_enable.msg | default('')
+    - "'not been booted' not in chronyd_service_enable.msg | default('')"

@@ -1,0 +1,11 @@
+---
+profile: basic
+exclude_paths:
+  - roles_archive/
+warn_list:
+  - fqcn
+  - command-instead-of-module
+  - no-free-form
+skip_list:
+  - line-length
+  - key-order

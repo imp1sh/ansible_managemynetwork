@@ -1,0 +1,32 @@
+---
+name: Lint
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+permissions:
+  contents: read
+concurrency:
+  group: lint-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install linters
+        run: pip install ansible-lint yamllint
+      # Transitional: reports issues without blocking merges while the
+      # existing backlog is burned down. Remove continue-on-error once
+      # the repo is clean to turn these into hard gates.
+      - name: Run yamllint
+        continue-on-error: true
+        run: yamllint .
+      - name: Run ansible-lint
+        continue-on-error: true
+        run: ansible-lint
