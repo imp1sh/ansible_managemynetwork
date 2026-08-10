@@ -4,6 +4,8 @@
 
 This role installs and configures chrony either in client or in server mode. When in client mode it will also remove time sync components that maybe come from systemd (systemd-timesyncd).
 
+Supported platforms: Debian, Ubuntu, Alpine, Arch Linux, Fedora, FreeBSD.
+
 Requirements:
 - [imp1sh.ansible_managemynetwork.ansible_packages](https://wiki.junicast.de/en/junicast/docs/AnsibleManagemynetworkCollection/rolePackages)
 
