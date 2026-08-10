@@ -1,6 +1,6 @@
 ---
 # Loading OS vars
-- name: Setting OS variables 
+- name: Setting OS variables
   ansible.builtin.include_vars: "{{lookup('ansible.builtin.first_found', params)}}"
   vars:
     params:

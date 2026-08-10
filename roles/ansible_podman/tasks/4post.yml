@@ -17,7 +17,7 @@
       ansible.builtin.file:
         path: "{{ podman_deploypath_hotplug_iface }}"
         state: directory
-    
+
     - name: "MMN podman - Deploy hotplug iface script"
       ansible.builtin.template:
         src: hotplug_network_podman_reload.j2

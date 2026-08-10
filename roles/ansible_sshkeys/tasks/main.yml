@@ -1,5 +1,5 @@
 ---
-- name: MMN sshkeys - Setting OS variables 
+- name: MMN sshkeys - Setting OS variables
   ansible.builtin.include_vars: "{{lookup('ansible.builtin.first_found', params)}}"
   vars:
     params:
@@ -10,7 +10,7 @@
       paths:
         - "vars"
 
-  # COMMON LINUX TASKS
+# COMMON LINUX TASKS
 - import_tasks: 001_commonlinux.yml
   when: ansible_facts['os_family'] == 'Alpine'
 - import_tasks: 001_commonlinux.yml
@@ -28,7 +28,7 @@
     - system_sshkeys_collect_data | default(false)
     - ansible_facts['os_family'] != 'OpenWrt'
 
-  # OPENWRT TASKS
+# OPENWRT TASKS
 - import_tasks: 101_openwrt.yml
   when: ansible_facts['os_family'] == 'OpenWrt'
 # TODO: This task is NOT fit to run, repair!
@@ -38,7 +38,7 @@
 #     - ansible_facts['os_family'] == 'OpenWrt'
 
 
-  # TARGET OS INDEPENDENT TASKS
+# TARGET OS INDEPENDENT TASKS
 - name: MMN sshkeys - Write ssh_host_keys dictionary to an Ansible vars file on the Ansible controller host
   ansible.builtin.copy:
     content: |

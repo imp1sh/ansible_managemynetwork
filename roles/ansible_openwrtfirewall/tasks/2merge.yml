@@ -1,3 +1,4 @@
+---
 # Zones
 - name: MMN openwrtfirewall - Merge group firewall zones from different groups
   ansible.builtin.set_fact:

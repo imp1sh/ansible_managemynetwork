@@ -1,3 +1,4 @@
+---
 zabbixagent_logtype: "system"
 zabbixagent_packagename: "zabbix-agent"
 zabbixagent_servicename: "zabbix-agent"

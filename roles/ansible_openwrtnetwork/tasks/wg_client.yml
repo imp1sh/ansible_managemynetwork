@@ -1,3 +1,4 @@
+---
 - name: display current wireguard peer
   ansible.builtin.debug:
     msg: "We are iterating on peer {{ item.key }}"

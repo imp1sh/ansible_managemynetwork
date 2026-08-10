@@ -1,7 +1,12 @@
 ---
 - name: "MMN openwrtprometheus_node_exporter_lua - Determine target host for delegation"
   ansible.builtin.set_fact:
-    _openwrt_prometheus_ne_lua_target_host: "{{ openwrt_imagebuilder_buildhost if (openwrt_imagebuilder_buildhost is defined and openwrt_imagebuilder_buildhost != inventory_hostname) else inventory_hostname }}"
+    _openwrt_prometheus_ne_lua_target_host: >-
+      {{
+      openwrt_imagebuilder_buildhost
+      if (openwrt_imagebuilder_buildhost is defined and openwrt_imagebuilder_buildhost != inventory_hostname)
+      else inventory_hostname
+      }}
 
 - name: Enable bmx6 addition
   ansible.builtin.set_fact:

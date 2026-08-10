@@ -1,6 +1,7 @@
+---
 borgmatic_packagename_borg: "borgbackup"
 borgmatic_packagename_borgmatic: "borgmatic"
-borgmatic_package_requirements: 
+borgmatic_package_requirements:
   - python3
   - python3-devel
   - python3-pip

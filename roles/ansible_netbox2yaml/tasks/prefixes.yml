@@ -24,7 +24,7 @@
   ansible.builtin.set_fact:
     nb_prefixes_by_name: "{{ nb_prefixes_by_name | default({}) | combine( {item.name: { 6: { 'prefix': { 'ula': item.prefix }}}}, recursive=true ) }}"
   loop: "{{ prefixes6 | community.general.json_query('[*].value.{name: custom_fields.ansible_identifier, prefix: prefix}') }}"
-  when: 
+  when:
     - item.name is not none
     - item.prefix is defined
     - (item.prefix | upper)[:2] == 'FC' or (item.prefix | upper)[:2] == 'FD'
@@ -33,7 +33,7 @@
   ansible.builtin.set_fact:
     nb_prefixes_by_name: "{{ nb_prefixes_by_name | default({}) | combine( {item.name: { 6: { 'prefix': { 'gua': item.prefix }}}}, recursive=true ) }}"
   loop: "{{ prefixes6 | community.general.json_query('[*].value.{name: custom_fields.ansible_identifier, prefix: prefix}') }}"
-  when: 
+  when:
     - item.name is not none
     - item.prefix is defined
     - item.prefix[0] == '2' or item.prefix[0] == '3'

@@ -6,6 +6,7 @@ ignore: |
   roles/*/templates/
   roles_archive/
   .git/
+  .travis.yml
 rules:
   line-length:
     max: 200

@@ -158,4 +158,3 @@
   ansible.builtin.debug:
     msg: "Using certificate: {{ openwrt_uhttpd_main_cert }}, key: {{ openwrt_uhttpd_main_key }}"
   when: (mmn_verbose | default(false)) | bool
-

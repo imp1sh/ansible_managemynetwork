@@ -103,7 +103,7 @@
     backup: "{{ openwrt_network_backupconfig | default(false) }}"
     mode: 0600
   delegate_to: "{{ _network_target_host }}"
-  when: 
+  when:
     - openwrt_network_interfacesdeploybool.user_input is undefined or openwrt_network_interfacesdeploybool.user_input == 'yes'
     - openwrt_network_devicesdeploybool.user_input is undefined or openwrt_network_devicesdeploybool.user_input == 'yes'
   notify: restart network

@@ -16,7 +16,7 @@
         - ed25519
         - rsa
         - ecdsa
-    
+
     - name: Parse and combine keys into a structured dictionary
       ansible.builtin.set_fact:
         _temp_host_keys_nonopenwrt: >-
@@ -31,7 +31,7 @@
       when: item.failed is not defined or not item.failed
       loop: "{{ ssh_public_keys_nonopenwrt.results }}"
       no_log: true
-    
+
     - name: Format keys under the inventory hostname
       ansible.builtin.set_fact:
         host_ssh_dict_nonopenwrt: "{{ {inventory_hostname: _temp_host_keys_nonopenwrt} }}"
@@ -39,7 +39,6 @@
     # - name: debug
     #   debug:
     #     var: host_ssh_dict_nonopenwrt
-
 
 # WRITING THE DATA
 
@@ -86,5 +85,3 @@
     {%- endfor -%}{{ keys_list }}
   when: ansible_distribution != 'OpenWrt'
   become: true
-
-

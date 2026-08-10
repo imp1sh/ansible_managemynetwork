@@ -7,7 +7,7 @@
         name: "{{ podman_container.name }}"
         dest: "/etc/systemd/system"
         restart_policy: always
-      # Ich sollte nur neustarten, wenn sich etwas geändert hat oder wenn es über eine variable enforced wird
+    # Ich sollte nur neustarten, wenn sich etwas geändert hat oder wenn es über eine variable enforced wird
     - name: Enable systemd unit
       ansible.builtin.systemd:
         name: "container-{{ podman_container.name }}"

@@ -1,3 +1,4 @@
+---
 borgmatic_packagename_borg: "borg"
 borgmatic_packagename_borgmatic: "borgmatic"
 borgmatic_pathconfig: "/etc/borgmatic"

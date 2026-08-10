@@ -1,3 +1,4 @@
+---
 # Merge Interfaces
 - name: MMN openwrtwireless - Merge group interfaces
   ansible.builtin.set_fact:

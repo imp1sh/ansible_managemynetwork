@@ -1,3 +1,4 @@
+---
 - name: "MMN borgmatic - Init repository"
   containers.podman.podman_container_exec:
     name: "{{ borgmatic_containername }}"

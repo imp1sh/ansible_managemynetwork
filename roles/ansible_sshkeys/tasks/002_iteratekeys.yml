@@ -39,17 +39,20 @@
     - name: MMN sshkeys - Check if subelement exists in individual list
       ansible.builtin.set_fact:
         system_sshkeys_elementcheck_individual: "{{ system_sshkeys_deploy_on_hosts[sshkey.key] is defined }}"
-    
+
     - name: MMN sshkeys - Check if key is in hostlist
       ansible.builtin.set_fact:
         system_sshkeys_isinlist: "{{ inventory_hostname in system_sshkeys_deploy_on_hosts[sshkey.key] }}"
       when: system_sshkeys_elementcheck_individual
-    
+
     - name: MMN sshkeys - Get destination username from individual assignment
       ansible.builtin.set_fact:
         system_sshkeys_destinationusers: "{{ system_sshkeys_deploy_on_hosts[sshkey.key]['users'] }}"
       when: system_sshkeys_isinlist
-  when: not system_sshkeys_isingroup # Challenge that condition! Is there a corner case where I want to deploy a key that comes out of the system_sshkeys_deploy_on_hostgroups assignment but ALSO from the system_sshkeys_deploy_on_hosts assignment?
+  when: not system_sshkeys_isingroup
+  # Challenge that condition! Is there a corner case where I want to
+  # deploy a key that comes out of the system_sshkeys_deploy_on_hostgroups
+  # assignment but ALSO from the system_sshkeys_deploy_on_hosts assignment?
 
 - name: MMN sshkeys - Block task if key shall be deployed on this very host
   block:

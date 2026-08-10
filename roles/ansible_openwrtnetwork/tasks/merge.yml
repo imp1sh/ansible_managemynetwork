@@ -1,3 +1,4 @@
+---
 # Merge Interfaces
 - name: merge group interfaces
   ansible.builtin.set_fact:

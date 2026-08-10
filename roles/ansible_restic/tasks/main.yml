@@ -88,4 +88,3 @@
   when:
     - restic_runimagebuilder | default(false)
     - ansible_distribution == 'OpenWrt'
-

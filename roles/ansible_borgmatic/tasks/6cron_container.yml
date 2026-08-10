@@ -2,7 +2,7 @@
 # This will create a line like this:
 # 45 2 * * * root borgmatic -c /etc/borgmatic.d/config.yaml --syslog-verbosity 1
 # which is not working as borgmatic container will try to execute root, workaround see below
-#- name: MMN borgmatic - Setup cronjob
+# - name: MMN borgmatic - Setup cronjob
 #  ansible.builtin.cron:
 #    name: "borgmatic"
 #    hour: "{{ borgmatic_timer_hour }}"

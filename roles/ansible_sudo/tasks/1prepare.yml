@@ -10,4 +10,3 @@
 - name: debug
   debug:
     var: sudo_sudoers
-

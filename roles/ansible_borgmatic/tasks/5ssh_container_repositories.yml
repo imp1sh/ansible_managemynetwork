@@ -24,10 +24,10 @@
       adhawkins.borgbase.borgbase_repo:
         state: present
         apikey: "{{ borgmatic_borgbase_apikey }}"
-          #email: "{{ borgbase_email }}"
-          #password: "{{ borgbase_password }}"
+        # email: "{{ borgbase_email }}"
+        # password: "{{ borgbase_password }}"
         name: "{{ ansible_hostname }}"
-        full_access_keys: [ "{{ borgbase_key.key_id }}" ]
+        full_access_keys: ["{{ borgbase_key.key_id }}"]
         quota_enabled: false
         alert_days: 2
       register: borgbase_repodata
@@ -44,7 +44,7 @@
         name: "{{ borgbase_repodata['repo_id'] }}.repo.borgbase.com"
         state: present
 
-# SSH              
+# SSH
 - name: "MMN borgmatic - Container SSH tasks"
   when: targetrepo.value['type'] == "ssh://"
   block:

@@ -1,3 +1,4 @@
+---
 - name: display current network interface
   ansible.builtin.debug:
     msg: "We are iterating on interface {{ item.key }} (proto: {{ item.value.proto | default('unknown') }})"

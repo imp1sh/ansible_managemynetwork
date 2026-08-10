@@ -1,5 +1,5 @@
 ---
-# 
+#
 # tasks file for ansible_borgmatic NOT CONTAINER
 #
 - name: "MMN borgmatic - Not container tasks"
@@ -44,12 +44,12 @@
       ansible.builtin.command: "{{ borgmatic_venv_wrapper }} -c {{ borgmatic_pathconfig }}/{{ borgmatic_fileconfig }} init --encryption repokey"
       register: borgmatic_init_success
 
-# 
+#
 # tasks file for ansible_borgmatic CONTAINER? YES!
 #
 - name: "MMN borgmatic - Container tasks"
-  when: 
-    - borgmatic_containermode is defined 
+  when:
+    - borgmatic_containermode is defined
     - borgmatic_containermode
   block:
     - name: "MMN borgmatic - Container include vars"
@@ -71,4 +71,3 @@
         owner: "{{ borgmatic_fileconfig_owner }}"
         group: "{{ borgmatic_fileconfig_group }}"
         mode: 0740
-

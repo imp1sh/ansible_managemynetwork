@@ -13,19 +13,19 @@
 #    - "{{ openwrt_firewall_zonesdefault | default(omit) }}"
 #  loop_control:
 #    loop_var: zones
-      # check somehow not working
-      # - name: MMN openwrtfirewall - Check all variables that either need to be 1 or 0
-      #  ansible.builtin.assert:
-      #    that:
-      #      - item is int
-      #        #- item == 1 or item == 0
-      #    fail_msg: "{{ item }} needs to be 1 or 0."
-      #    success_msg: "{{ item }} is valid."
-      #  loop:
-      #    - "openwrt_firewall_default_synflood_protect"
-      #    - "openwrt_firewall_default_flow_offloading"
-      #    - "openwrt_firewall_default_flow_offloading_hw"
-      #    - "openwrt_firewall_default_drop_invalid"
+# check somehow not working
+# - name: MMN openwrtfirewall - Check all variables that either need to be 1 or 0
+#  ansible.builtin.assert:
+#    that:
+#      - item is int
+#        #- item == 1 or item == 0
+#    fail_msg: "{{ item }} needs to be 1 or 0."
+#    success_msg: "{{ item }} is valid."
+#  loop:
+#    - "openwrt_firewall_default_synflood_protect"
+#    - "openwrt_firewall_default_flow_offloading"
+#    - "openwrt_firewall_default_flow_offloading_hw"
+#    - "openwrt_firewall_default_drop_invalid"
 - name: MMN openwrtfirewall - Check default forwards
   ansible.builtin.assert:
     that:
@@ -59,7 +59,7 @@
   # for range split by hyphen and also run a list through a check
   # a single port could also be converted to list with one entry
   # later!!!
-  #- name: check rules
+  # - name: check rules
   #  ansible.builtin.include_tasks: checks/rules.yml
   #  loop: "{{ openwrt_firewall_rules | dict2items }}"
   #  loop_control:

@@ -8,4 +8,3 @@
     src: domainconfig.j2
     dest: "{{ dehydrated_basedir }}/certs/{{ dehydrated_domain.name }}/config"
   when: "{{ dehydrated_domain.config is defined }}"
-

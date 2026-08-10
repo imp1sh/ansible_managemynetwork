@@ -1,5 +1,5 @@
 ---
-# CA CERT TASKS 
+# CA CERT TASKS
 - name: "MMN cacert - Check if CA cert exists"
   delegate_to: "{{ cacert_ca_manager_host }}"
   ansible.builtin.stat:
@@ -64,7 +64,7 @@
           {%- set t = cacert_ca.value.not_before | default('-1d') -%}
           {%- if t[-1] == 'y' -%}{{ t[0] }}{{ (t[1:-1] | int) * 52 }}w{%- else -%}{{ t }}{%- endif -%}
 
-    # IF CERT EXISTS IT IS ONLY BEING RECRETAED IF IT'S DIFFERENT    
+    # IF CERT EXISTS IT IS ONLY BEING RECRETAED IF IT'S DIFFERENT
     - name: "MMN cacert - Create CA cert"
       become: True
       delegate_to: "{{ cacert_ca_manager_host }}"
@@ -88,4 +88,3 @@
         backup: "{{ cacert_ca.value.cert.backup | default(omit) }}"
       when:
         - cacert_ca_cert is changed
-

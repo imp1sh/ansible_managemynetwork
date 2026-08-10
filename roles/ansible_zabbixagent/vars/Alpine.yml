@@ -1,3 +1,4 @@
+---
 zabbixagent_packagename: "zabbix-agent"
 zabbixagent_servicename: "zabbix-agentd"
 zabbixagent_ownername: "root"

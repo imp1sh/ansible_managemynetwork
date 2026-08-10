@@ -96,7 +96,6 @@
   ansible.builtin.include_tasks: ca_instance_servercert_additional_hosts.yml
 
 
-
 # CLIENT CERT PRIVATE KEY
 - name: "MMN cacert - Manage client key"
   ansible.builtin.include_tasks: ca_instance_clientkey.yml

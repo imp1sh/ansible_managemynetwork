@@ -17,12 +17,12 @@
     - "{{ zone.value.masq | default(omit) }}"
   loop_control:
     loop_var: booleanitem
-      # cannot really check this type because ip may have a ! in front
-      # - name: checks on attributes masq_src, masq_dest
-      #  include_tasks: listofipaddresses.yml
-      #  loop:
-      #    - "{{ zone.value.masq_src | default(omit) }}"
-      #    - "{{ zone.value.masq_dest | default(omit) }}"
-      #  loop_control:
-      #    loop_var: listofips
-      #  when: zone.value.masq_src is defined or zone.value.masq_dest is defined
+# cannot really check this type because ip may have a ! in front
+# - name: checks on attributes masq_src, masq_dest
+#  include_tasks: listofipaddresses.yml
+#  loop:
+#    - "{{ zone.value.masq_src | default(omit) }}"
+#    - "{{ zone.value.masq_dest | default(omit) }}"
+#  loop_control:
+#    loop_var: listofips
+#  when: zone.value.masq_src is defined or zone.value.masq_dest is defined

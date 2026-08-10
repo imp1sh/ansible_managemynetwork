@@ -2,7 +2,12 @@
 # tasks file for ansible_openwrttinyproxy
 - name: "MMN openwrttinyproxy - Determine target host for delegation"
   ansible.builtin.set_fact:
-    _openwrt_tinyproxy_target_host: "{{ openwrt_imagebuilder_buildhost if (openwrt_imagebuilder_buildhost is defined and openwrt_imagebuilder_buildhost != inventory_hostname) else inventory_hostname }}"
+    _openwrt_tinyproxy_target_host: >-
+      {{
+        openwrt_imagebuilder_buildhost
+        if (openwrt_imagebuilder_buildhost is defined and openwrt_imagebuilder_buildhost != inventory_hostname)
+        else inventory_hostname
+      }}
 
 - name: Deploy tinyproxy config
   ansible.builtin.template:

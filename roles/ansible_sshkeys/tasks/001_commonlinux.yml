@@ -1,3 +1,4 @@
+---
 - name: MMN sshkeys - Iterate over the keys
   ansible.builtin.include_tasks: "002_iteratekeys.yml"
   loop: "{{ lookup('ansible.builtin.dict', system_sshkeys, wantlist=True) }}"

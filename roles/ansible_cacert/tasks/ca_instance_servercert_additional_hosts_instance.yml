@@ -16,4 +16,3 @@
     dest: "{{ cacert_servercert_additionalhost.targethostpath }}/{{ cacert_filename_servercert }}"
     owner: "{{ cacert_servercert_additionalhost.targethostuser | default(omit) }}"
     group: "{{ cacert_servercert_additionalhost.targethostgroup | default(omit) }}"
-

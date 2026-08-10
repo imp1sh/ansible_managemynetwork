@@ -1,6 +1,7 @@
+---
 borgmatic_packagename_borg: "borgbackup"
 borgmatic_packagename_borgmatic: "borgmatic"
-borgmatic_package_requirements: 
+borgmatic_package_requirements:
   - "py3-jsonschema"
   - "py3-attrs"
   - "py3-requests"

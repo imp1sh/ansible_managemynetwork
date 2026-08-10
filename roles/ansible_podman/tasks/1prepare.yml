@@ -64,7 +64,7 @@
         dest: "{{ podman_deploypath_containersstorage }}"
         mode: 0644
       notify: Restart podman openwrt
-    
+
     - name: "MMN podman - Deploy containers config"
       ansible.builtin.template:
         src: "containers_openwrt.conf.j2"

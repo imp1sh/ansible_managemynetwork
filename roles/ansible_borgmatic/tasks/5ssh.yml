@@ -20,10 +20,10 @@
       adhawkins.borgbase.borgbase_repo:
         state: present
         apikey: "{{ borgmatic_borgbase_apikey }}"
-          #email: "{{ borgbase_email }}"
-          #password: "{{ borgbase_password }}"
+        # email: "{{ borgbase_email }}"
+        # password: "{{ borgbase_password }}"
         name: "{{ ansible_hostname }}"
-        full_access_keys: [ "{{ borgbase_key.key_id }}" ]
+        full_access_keys: ["{{ borgbase_key.key_id }}"]
         quota_enabled: false
         alert_days: 2
       register: borgbase_repodata
@@ -60,10 +60,10 @@
         key: "{{ hostkey.stdout }}"
         name: "{{ borgmatic_repository.value['targethost'] }}"
         state: present
-          # this didn't work reliably. In rare cases the key value was just empty
-          #- name: MMN borgmatic - Install target hosts fingerprint to known hosts
-          #  known_hosts:
-          #    path: "{{ borgmatic_file_sshknownhosts }}"
-          #    key: "{{ lookup('pipe', 'ssh-keyscan -trsa ' + borgmatic_sshkey_targethost) }}"
-          #    name: "{{ borgmatic_sshkey_targethost }}"
-          #    state: present
+        # this didn't work reliably. In rare cases the key value was just empty
+        # - name: MMN borgmatic - Install target hosts fingerprint to known hosts
+        #   known_hosts:
+        #     path: "{{ borgmatic_file_sshknownhosts }}"
+        #     key: "{{ lookup('pipe', 'ssh-keyscan -trsa ' + borgmatic_sshkey_targethost) }}"
+        #     name: "{{ borgmatic_sshkey_targethost }}"
+        #     state: present

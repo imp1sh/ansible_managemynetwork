@@ -1,6 +1,7 @@
+---
 borgmatic_packagename_borg: "py39-borgbackup"
 borgmatic_packagename_borgmatic: "py39-borgmatic"
-borgmatic_package_requirements: 
+borgmatic_package_requirements:
   - "py39-jsonschema"
   - "python3"
   - "pkgconf"

@@ -1,3 +1,4 @@
+---
 - name: "MMN Restic - Assemble repository string"
   include_tasks: xassemblerepo.yml
 

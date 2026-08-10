@@ -35,10 +35,10 @@
 - name: Apt update
   shell: apt update
   when: ansible_os_family == "Debian"
-    #- name: Remove old Zabbix Agent
-    #  package:
-    #    name: "zabbix-agent"
-    #    state: absent
+# - name: Remove old Zabbix Agent
+#   package:
+#     name: "zabbix-agent"
+#     state: absent
 - name: Install Zabbix Agent
   package:
     name: "{{ zabbixagent_packagename }}"
@@ -64,7 +64,7 @@
   when: zabbixagent_pathincludeconfd is defined
 - name: Install Zabbix Agent config
   template:
-    src: "zabbix_agentd.conf.jinja2"    
+    src: "zabbix_agentd.conf.jinja2"
     dest: "{{ zabbixagent_pathconf }}"
     owner: "{{ zabbixagent_ownername }}"
     group: "{{ zabbixagent_groupname }}"
