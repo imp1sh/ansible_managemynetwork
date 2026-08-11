@@ -73,14 +73,16 @@ ReadOnly=true
 DNS={{ _d }}
 {% endfor %}
 {% endif %}
-{% if podman_container.label is defined %}
-{% if podman_container.label is mapping %}
-{% for _lk,_lv in podman_container.label.items() %}
-Label={{ _lk }}={{ _lv }}
+{% if podman_container.labels is defined or podman_container.label is defined %}
+{% set _quadlet_labels_src = podman_container.labels | default(podman_container.label) %}
+{% if _quadlet_labels_src is mapping %}
+{% for _lk,_lv in _quadlet_labels_src.items() %}
+Label="{{ _lk }}={{ _lv }}"
 {% endfor %}
 {% else %}
-{% for _lab in podman_container.label %}
-Label={{ _lab }}
+{% set _quadlet_labels = _quadlet_labels_src if (_quadlet_labels_src is iterable and _quadlet_labels_src is not string) else [_quadlet_labels_src] %}
+{% for _lab in _quadlet_labels %}
+Label="{{ _lab }}"
 {% endfor %}
 {% endif %}
 {% endif %}
