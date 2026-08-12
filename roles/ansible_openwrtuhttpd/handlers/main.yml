@@ -4,4 +4,4 @@
   ansible.builtin.service:
     name: uhttpd
     state: restarted
-  when: not openwrt_uhttpd_runimagebuilder | default(false)
+  when: not openwrt_uhttpd_runimagebuilder | default(false) | bool

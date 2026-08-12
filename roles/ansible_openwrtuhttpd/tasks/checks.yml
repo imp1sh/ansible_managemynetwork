@@ -1,0 +1,250 @@
+---
+# Validation checks for ansible_openwrtuhttpd
+# Reference: OpenWrt uhttpd init script (package/network/services/uhttpd/files/uhttpd.init)
+# All values accept both quoted ("1") and unquoted (1) forms; UCI stores strings.
+
+# --- Bool flags (0/1) ---
+- name: "MMN openwrtuhttpd - Validate enabled variable"
+  ansible.builtin.assert:
+    that:
+      - openwrt_uhttpd_main_enabled | string in ['0', '1']
+    fail_msg: "openwrt_uhttpd_main_enabled must be 0 or 1."
+    success_msg: "openwrt_uhttpd_main_enabled is valid."
+  when: openwrt_uhttpd_main_enabled is defined
+
+- name: "MMN openwrtuhttpd - Validate rfc1918_filter variable"
+  ansible.builtin.assert:
+    that:
+      - openwrt_uhttpd_main_rfc1918_filter | string in ['0', '1']
+    fail_msg: "openwrt_uhttpd_main_rfc1918_filter must be 0 or 1."
+    success_msg: "openwrt_uhttpd_main_rfc1918_filter is valid."
+  when: openwrt_uhttpd_main_rfc1918_filter is defined
+
+- name: "MMN openwrtuhttpd - Validate redirect_https variable"
+  ansible.builtin.assert:
+    that:
+      - openwrt_uhttpd_main_redirect_https | string in ['0', '1']
+    fail_msg: "openwrt_uhttpd_main_redirect_https must be 0 or 1."
+    success_msg: "openwrt_uhttpd_main_redirect_https is valid."
+  when: openwrt_uhttpd_main_redirect_https is defined
+
+- name: "MMN openwrtuhttpd - Validate no_symlinks variable"
+  ansible.builtin.assert:
+    that:
+      - openwrt_uhttpd_main_no_symlinks | string in ['0', '1']
+    fail_msg: "openwrt_uhttpd_main_no_symlinks must be 0 or 1."
+    success_msg: "openwrt_uhttpd_main_no_symlinks is valid."
+  when: openwrt_uhttpd_main_no_symlinks is defined
+
+- name: "MMN openwrtuhttpd - Validate no_dirlists variable"
+  ansible.builtin.assert:
+    that:
+      - openwrt_uhttpd_main_no_dirlists | string in ['0', '1']
+    fail_msg: "openwrt_uhttpd_main_no_dirlists must be 0 or 1."
+    success_msg: "openwrt_uhttpd_main_no_dirlists is valid."
+  when: openwrt_uhttpd_main_no_dirlists is defined
+
+- name: "MMN openwrtuhttpd - Validate no_ubusauth variable"
+  ansible.builtin.assert:
+    that:
+      - openwrt_uhttpd_main_no_ubusauth | string in ['0', '1']
+    fail_msg: "openwrt_uhttpd_main_no_ubusauth must be 0 or 1."
+    success_msg: "openwrt_uhttpd_main_no_ubusauth is valid."
+  when: openwrt_uhttpd_main_no_ubusauth is defined
+
+- name: "MMN openwrtuhttpd - Validate ubus_cors variable"
+  ansible.builtin.assert:
+    that:
+      - openwrt_uhttpd_main_ubus_cors | string in ['0', '1']
+    fail_msg: "openwrt_uhttpd_main_ubus_cors must be 0 or 1."
+    success_msg: "openwrt_uhttpd_main_ubus_cors is valid."
+  when: openwrt_uhttpd_main_ubus_cors is defined
+
+# --- Unsigned integers ---
+- name: "MMN openwrtuhttpd - Validate script_timeout variable"
+  ansible.builtin.assert:
+    that:
+      - openwrt_uhttpd_main_script_timeout | string is regex('^[0-9]+$')
+    fail_msg: "openwrt_uhttpd_main_script_timeout must be a non-negative integer."
+    success_msg: "openwrt_uhttpd_main_script_timeout is valid."
+  when: openwrt_uhttpd_main_script_timeout is defined
+
+- name: "MMN openwrtuhttpd - Validate network_timeout variable"
+  ansible.builtin.assert:
+    that:
+      - openwrt_uhttpd_main_network_timeout | string is regex('^[0-9]+$')
+    fail_msg: "openwrt_uhttpd_main_network_timeout must be a non-negative integer."
+    success_msg: "openwrt_uhttpd_main_network_timeout is valid."
+  when: openwrt_uhttpd_main_network_timeout is defined
+
+- name: "MMN openwrtuhttpd - Validate http_keepalive variable"
+  ansible.builtin.assert:
+    that:
+      - openwrt_uhttpd_main_http_keepalive | string is regex('^[0-9]+$')
+    fail_msg: "openwrt_uhttpd_main_http_keepalive must be a non-negative integer."
+    success_msg: "openwrt_uhttpd_main_http_keepalive is valid."
+  when: openwrt_uhttpd_main_http_keepalive is defined
+
+- name: "MMN openwrtuhttpd - Validate tcp_keepalive variable"
+  ansible.builtin.assert:
+    that:
+      - openwrt_uhttpd_main_tcp_keepalive | string is regex('^[0-9]+$')
+    fail_msg: "openwrt_uhttpd_main_tcp_keepalive must be a non-negative integer."
+    success_msg: "openwrt_uhttpd_main_tcp_keepalive is valid."
+  when: openwrt_uhttpd_main_tcp_keepalive is defined
+
+- name: "MMN openwrtuhttpd - Validate max_requests variable"
+  ansible.builtin.assert:
+    that:
+      - openwrt_uhttpd_main_max_requests | string is regex('^[0-9]+$')
+    fail_msg: "openwrt_uhttpd_main_max_requests must be a non-negative integer."
+    success_msg: "openwrt_uhttpd_main_max_requests is valid."
+  when: openwrt_uhttpd_main_max_requests is defined
+
+- name: "MMN openwrtuhttpd - Validate max_connections variable"
+  ansible.builtin.assert:
+    that:
+      - openwrt_uhttpd_main_max_connections | string is regex('^[0-9]+$')
+    fail_msg: "openwrt_uhttpd_main_max_connections must be a non-negative integer."
+    success_msg: "openwrt_uhttpd_main_max_connections is valid."
+  when: openwrt_uhttpd_main_max_connections is defined
+
+# --- Listen addresses ---
+- name: "MMN openwrtuhttpd - Validate listen_http variable"
+  ansible.builtin.assert:
+    that:
+      - openwrt_uhttpd_main_listen_http | type_debug == 'list'
+      - openwrt_uhttpd_main_listen_http | length > 0
+      - "(openwrt_uhttpd_main_listen_http | reject('none') | reject('equalto', '') | list | length) == (openwrt_uhttpd_main_listen_http | length)"
+    fail_msg: "openwrt_uhttpd_main_listen_http must be a non-empty list of address:port strings."
+    success_msg: "openwrt_uhttpd_main_listen_http is valid."
+  when: openwrt_uhttpd_main_listen_http is defined
+
+- name: "MMN openwrtuhttpd - Validate listen_https variable"
+  ansible.builtin.assert:
+    that:
+      - openwrt_uhttpd_main_listen_https | type_debug == 'list'
+      - openwrt_uhttpd_main_listen_https | length > 0
+      - "(openwrt_uhttpd_main_listen_https | reject('none') | reject('equalto', '') | list | length) == (openwrt_uhttpd_main_listen_https | length)"
+    fail_msg: "openwrt_uhttpd_main_listen_https must be a non-empty list of address:port strings."
+    success_msg: "openwrt_uhttpd_main_listen_https is valid."
+  when: openwrt_uhttpd_main_listen_https is defined
+
+# --- List options ---
+- name: "MMN openwrtuhttpd - Validate lua_prefix variable"
+  ansible.builtin.assert:
+    that:
+      - openwrt_uhttpd_main_lua_prefix | type_debug == 'list'
+      - "(openwrt_uhttpd_main_lua_prefix | reject('none') | reject('equalto', '') | list | length) == (openwrt_uhttpd_main_lua_prefix | length)"
+      - "(openwrt_uhttpd_main_lua_prefix | select('match', '^[^=]+=.*$') | list | length) == (openwrt_uhttpd_main_lua_prefix | length)"
+    fail_msg: "openwrt_uhttpd_main_lua_prefix must be a list of 'prefix=handler' strings."
+    success_msg: "openwrt_uhttpd_main_lua_prefix is valid."
+  when: openwrt_uhttpd_main_lua_prefix is defined
+
+- name: "MMN openwrtuhttpd - Validate ucode_prefix variable"
+  ansible.builtin.assert:
+    that:
+      - openwrt_uhttpd_main_ucode_prefix | type_debug == 'list'
+      - "(openwrt_uhttpd_main_ucode_prefix | reject('none') | reject('equalto', '') | list | length) == (openwrt_uhttpd_main_ucode_prefix | length)"
+      - "(openwrt_uhttpd_main_ucode_prefix | select('match', '^[^=]+=.*$') | list | length) == (openwrt_uhttpd_main_ucode_prefix | length)"
+    fail_msg: "openwrt_uhttpd_main_ucode_prefix must be a list of 'prefix=handler' strings."
+    success_msg: "openwrt_uhttpd_main_ucode_prefix is valid."
+  when: openwrt_uhttpd_main_ucode_prefix is defined
+
+- name: "MMN openwrtuhttpd - Validate interpreter variable"
+  ansible.builtin.assert:
+    that:
+      - openwrt_uhttpd_main_interpreter | type_debug == 'list'
+      - "(openwrt_uhttpd_main_interpreter | reject('none') | reject('equalto', '') | list | length) == (openwrt_uhttpd_main_interpreter | length)"
+      - "(openwrt_uhttpd_main_interpreter | select('match', '^[^=]+=.+$') | list | length) == (openwrt_uhttpd_main_interpreter | length)"
+    fail_msg: "openwrt_uhttpd_main_interpreter must be a list of 'suffix=handler' strings (e.g. '.php=/usr/bin/php-cgi')."
+    success_msg: "openwrt_uhttpd_main_interpreter is valid."
+  when: openwrt_uhttpd_main_interpreter is defined
+
+- name: "MMN openwrtuhttpd - Validate alias variable"
+  ansible.builtin.assert:
+    that:
+      - openwrt_uhttpd_main_alias | type_debug == 'list'
+      - "(openwrt_uhttpd_main_alias | reject('none') | reject('equalto', '') | list | length) == (openwrt_uhttpd_main_alias | length)"
+    fail_msg: "openwrt_uhttpd_main_alias must be a list of non-empty strings."
+    success_msg: "openwrt_uhttpd_main_alias is valid."
+  when: openwrt_uhttpd_main_alias is defined
+
+- name: "MMN openwrtuhttpd - Validate index_page variable"
+  ansible.builtin.assert:
+    that:
+      - openwrt_uhttpd_main_index_page | type_debug == 'list'
+      - "(openwrt_uhttpd_main_index_page | reject('none') | reject('equalto', '') | list | length) == (openwrt_uhttpd_main_index_page | length)"
+    fail_msg: "openwrt_uhttpd_main_index_page must be a list of non-empty filename strings."
+    success_msg: "openwrt_uhttpd_main_index_page is valid."
+  when: openwrt_uhttpd_main_index_page is defined
+
+- name: "MMN openwrtuhttpd - Validate json_script variable"
+  ansible.builtin.assert:
+    that:
+      - openwrt_uhttpd_main_json_script | type_debug == 'list'
+      - "(openwrt_uhttpd_main_json_script | reject('none') | reject('equalto', '') | list | length) == (openwrt_uhttpd_main_json_script | length)"
+    fail_msg: "openwrt_uhttpd_main_json_script must be a list of non-empty file paths."
+    success_msg: "openwrt_uhttpd_main_json_script is valid."
+  when: openwrt_uhttpd_main_json_script is defined
+
+- name: "MMN openwrtuhttpd - Validate httpauth variable"
+  ansible.builtin.assert:
+    that:
+      - openwrt_uhttpd_main_httpauth | type_debug == 'list'
+      - "(openwrt_uhttpd_main_httpauth | reject('none') | reject('equalto', '') | list | length) == (openwrt_uhttpd_main_httpauth | length)"
+      - "(openwrt_uhttpd_main_httpauth | select('match', '^[^:]+:[^:]+:.+$') | list | length) == (openwrt_uhttpd_main_httpauth | length)"
+    fail_msg: "openwrt_uhttpd_main_httpauth must be a list of 'prefix:username:password' strings."
+    success_msg: "openwrt_uhttpd_main_httpauth is valid."
+  when: openwrt_uhttpd_main_httpauth is defined
+
+# --- String options ---
+- name: "MMN openwrtuhttpd - Validate error_page variable"
+  ansible.builtin.assert:
+    that:
+      - openwrt_uhttpd_main_error_page | string is regex('^/.*')
+    fail_msg: "openwrt_uhttpd_main_error_page must begin with '/'."
+    success_msg: "openwrt_uhttpd_main_error_page is valid."
+  when: openwrt_uhttpd_main_error_page is defined
+
+- name: "MMN openwrtuhttpd - Validate home variable"
+  ansible.builtin.assert:
+    that:
+      - openwrt_uhttpd_main_home | string | length > 0
+    fail_msg: "openwrt_uhttpd_main_home must be a non-empty directory path."
+    success_msg: "openwrt_uhttpd_main_home is valid."
+  when: openwrt_uhttpd_main_home is defined
+
+# --- Certificate section ---
+- name: "MMN openwrtuhttpd - Validate cert_days variable"
+  ansible.builtin.assert:
+    that:
+      - openwrt_uhttpd_cert_days | string is regex('^[0-9]+$')
+    fail_msg: "openwrt_uhttpd_cert_days must be a non-negative integer."
+    success_msg: "openwrt_uhttpd_cert_days is valid."
+  when: openwrt_uhttpd_cert_days is defined
+
+- name: "MMN openwrtuhttpd - Validate cert_bits variable"
+  ansible.builtin.assert:
+    that:
+      - openwrt_uhttpd_cert_bits | string is regex('^[0-9]+$')
+      - openwrt_uhttpd_cert_bits | int >= 1024
+    fail_msg: "openwrt_uhttpd_cert_bits must be an integer >= 1024."
+    success_msg: "openwrt_uhttpd_cert_bits is valid."
+  when: openwrt_uhttpd_cert_bits is defined
+
+- name: "MMN openwrtuhttpd - Validate cert_key_type variable"
+  ansible.builtin.assert:
+    that:
+      - openwrt_uhttpd_cert_key_type | string in ['rsa', 'ec']
+    fail_msg: "openwrt_uhttpd_cert_key_type must be 'rsa' or 'ec'."
+    success_msg: "openwrt_uhttpd_cert_key_type is valid."
+  when: openwrt_uhttpd_cert_key_type is defined
+
+- name: "MMN openwrtuhttpd - Validate cert_ec_curve variable"
+  ansible.builtin.assert:
+    that:
+      - openwrt_uhttpd_cert_ec_curve | string in ['P-256', 'P-384', 'P-521', 'prime256v1', 'secp384r1', 'secp521r1']
+    fail_msg: "openwrt_uhttpd_cert_ec_curve must be a known EC curve name (e.g. P-256)."
+    success_msg: "openwrt_uhttpd_cert_ec_curve is valid."
+  when: openwrt_uhttpd_cert_ec_curve is defined

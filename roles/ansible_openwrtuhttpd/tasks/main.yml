@@ -5,6 +5,9 @@
   ansible.builtin.set_fact:
     _uhttpd_target_host: "{{ openwrt_imagebuilder_buildhost if (openwrt_imagebuilder_buildhost is defined and openwrt_imagebuilder_buildhost != inventory_hostname) else inventory_hostname }}"
 
+- name: "MMN openwrtuhttpd - Run checks if variables meet the requirements"
+  ansible.builtin.include_tasks: checks.yml
+
 # Setup tasks for ansible_openwrtuhttpd
 - name: MMN openwrtuhttpd - Make sure deploypath is present
   ansible.builtin.file:

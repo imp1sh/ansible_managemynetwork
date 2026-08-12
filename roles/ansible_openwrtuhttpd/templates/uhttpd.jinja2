@@ -27,11 +27,20 @@ config uhttpd 'main'
 {% if openwrt_uhttpd_main_config is defined %}
 	option config "{{ openwrt_uhttpd_main_config }}"
 {% endif %}
-{% if openwrt_uhttpd_main_index_file is defined %}
-	option index_file "{{ openwrt_uhttpd_main_index_file }}"
-{% endif %}
 {% if openwrt_uhttpd_main_index_page is defined %}
-	option index_page "{{ openwrt_uhttpd_main_index_page }}"
+{% for idxpage in openwrt_uhttpd_main_index_page %}
+	list index_page "{{ idxpage }}"
+{% endfor %}
+{% endif %}
+{% if openwrt_uhttpd_main_interpreter is defined %}
+{% for interp in openwrt_uhttpd_main_interpreter %}
+	list interpreter "{{ interp }}"
+{% endfor %}
+{% endif %}
+{% if openwrt_uhttpd_main_alias is defined %}
+{% for urlalias in openwrt_uhttpd_main_alias %}
+	list alias "{{ urlalias }}"
+{% endfor %}
 {% endif %}
 {% if openwrt_uhttpd_main_error_page is defined %}
 	option error_page "{{ openwrt_uhttpd_main_error_page }}"
@@ -45,11 +54,32 @@ config uhttpd 'main'
 {% if openwrt_uhttpd_main_ubus_socket is defined %}
 	option ubus_socket "{{ openwrt_uhttpd_main_ubus_socket }}"
 {% endif %}
-{% if openwrt_uhttpd_main_ubus_noauth is defined %}
-	option ubus_noauth "{{ openwrt_uhttpd_main_ubus_noauth }}"
+{% if openwrt_uhttpd_main_no_ubusauth is defined %}
+	option no_ubusauth "{{ openwrt_uhttpd_main_no_ubusauth }}"
 {% endif %}
 {% if openwrt_uhttpd_main_ubus_cors is defined %}
 	option ubus_cors "{{ openwrt_uhttpd_main_ubus_cors }}"
+{% endif %}
+{% if openwrt_uhttpd_main_lua_handler is defined %}
+	option lua_handler "{{ openwrt_uhttpd_main_lua_handler }}"
+{% endif %}
+{% if openwrt_uhttpd_main_ucode_prefix is defined %}
+{% for ucprefix in openwrt_uhttpd_main_ucode_prefix %}
+	list ucode_prefix "{{ ucprefix }}"
+{% endfor %}
+{% endif %}
+{% if openwrt_uhttpd_main_json_script is defined %}
+{% for jscript in openwrt_uhttpd_main_json_script %}
+	list json_script "{{ jscript }}"
+{% endfor %}
+{% endif %}
+{% if openwrt_uhttpd_main_httpauth is defined %}
+{% for htauth in openwrt_uhttpd_main_httpauth %}
+	list httpauth "{{ htauth }}"
+{% endfor %}
+{% endif %}
+{% if openwrt_uhttpd_main_enabled is defined %}
+	option enabled "{{ openwrt_uhttpd_main_enabled }}"
 {% endif %}
 
 config cert 'defaults'
@@ -60,5 +90,8 @@ config cert 'defaults'
 	option country "{{ openwrt_uhttpd_cert_country }}"
 	option state "{{ openwrt_uhttpd_cert_state }}"
 	option location "{{ openwrt_uhttpd_cert_location }}"
+{% if openwrt_uhttpd_cert_organization is defined %}
+	option organization "{{ openwrt_uhttpd_cert_organization }}"
+{% endif %}
 	option commonname "{{ openwrt_uhttpd_cert_commonname }}"
 
