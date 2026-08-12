@@ -31,7 +31,11 @@ When in doubt, imitate these three roles — they are the de facto style guide:
 - `roles/ansible_groups/`
 
 For OpenWrt roles, `roles/ansible_openwrtsystem/` is the clearest exemplar of the
-imagebuilder-aware delegation pattern described below.
+imagebuilder-aware delegation pattern described below. Not for all roles it makes
+sense to support imagebuilder. ansible_podman e.g. is a no no for imagebuilder it
+is not possible to deploy container images onto a firmware image. Don't blindly add
+imagebuilder support. First evaluate if imagebuilder support makes sense in the first
+place.
 
 ## Paradigms (carry forward from README.md)
 
