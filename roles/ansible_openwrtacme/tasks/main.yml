@@ -22,7 +22,9 @@
   delegate_to: "{{ _openwrt_acme_target_host }}"
 
 - name: "MMN openwrtacme - Setup hooks"
-  when: openwrt_acme_hooks is defined
+  when:
+    - openwrt_acme_cert is defined
+    - openwrt_acme_hooks is defined
   block:
     - name: "MMN openwrtacme - Make sure hookpath is present"
       ansible.builtin.file:
@@ -61,7 +63,9 @@
   delegate_to: "{{ _openwrt_acme_target_host }}"
 
 - name: "MMN openwrtacme - Setup for webroot"
-  when: openwrt_acme_webroot_config
+  when:
+    - openwrt_acme_cert is defined
+    - openwrt_acme_webroot_config
   block:
     - name: "MMN openwrtacme - Make sure /www/.well-known is present"
       ansible.builtin.file:
