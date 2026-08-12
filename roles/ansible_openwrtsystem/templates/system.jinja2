@@ -78,6 +78,12 @@ config system 'system'
 {% if openwrt_system_zonename is defined %}
 	option zonename "{{ openwrt_system_zonename }}"
 {% endif %}
+{% if openwrt_system_clock_timestyle is defined %}
+	option clock_timestyle "{{ openwrt_system_clock_timestyle }}"
+{% endif %}
+{% if openwrt_system_clock_hourcycle is defined %}
+	option clock_hourcycle "{{ openwrt_system_clock_hourcycle }}"
+{% endif %}
 {% if openwrt_system_zram_comp_algo is defined %}
 	option zram_comp_algo "{{ openwrt_system_system_zram_comp_algo }}"
 {% endif %}
