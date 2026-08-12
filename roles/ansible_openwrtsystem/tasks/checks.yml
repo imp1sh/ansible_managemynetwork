@@ -1,9 +1,26 @@
 ---
+- name: "MMN openwrtsystem - Validate hostname variable"
+  ansible.builtin.assert:
+    that:
+      - openwrt_system_hostname | length <= 63
+      - openwrt_system_hostname is regex('^[A-Za-z0-9]([A-Za-z0-9\-]*[A-Za-z0-9])?$')
+    fail_msg: "openwrt_system_hostname must be a valid hostname (up to 63 alphanumeric characters or hyphens, not starting or ending with a hyphen)."
+    success_msg: "openwrt_system_hostname is valid."
+  when: openwrt_system_hostname is defined
+- name: "MMN openwrtsystem - Validate ttylogin variable"
+  ansible.builtin.assert:
+    that:
+      - openwrt_system_ttylogin | type_debug == 'int'
+      - openwrt_system_ttylogin in [0, 1]
+    fail_msg: "openwrt_system_ttylogin must be 0 or 1."
+    success_msg: "openwrt_system_ttylogin is valid."
+  when: openwrt_system_ttylogin is defined
 - name: "MMN openwrtsystem - Validate buffersize variable"
   ansible.builtin.assert:
     that:
       - openwrt_system_buffersize | type_debug == 'int'
-    fail_msg: "openwrt_system_buffersize must be of type integer."
+      - openwrt_system_buffersize >= 0
+    fail_msg: "openwrt_system_buffersize must be a non-negative integer."
     success_msg: "openwrt_system_buffersize seems valid."
   when: openwrt_system_buffersize is defined
 - name: "MMN openwrtsystem - Validate conloglevel variable"
@@ -77,12 +94,30 @@
     fail_msg: "openwrt_system_log_proto must be either tcp or udp."
     success_msg: "openwrt_system_log_proto seems valid."
   when: openwrt_system_log_proto is defined
+- name: "MMN openwrtsystem - Validate log_remote variable"
+  ansible.builtin.assert:
+    that:
+      - openwrt_system_log_remote | type_debug == 'int'
+      - openwrt_system_log_remote in [0, 1]
+    fail_msg: "openwrt_system_log_remote must be 0 or 1."
+    success_msg: "openwrt_system_log_remote is valid."
+  when: openwrt_system_log_remote is defined
+- name: "MMN openwrtsystem - Validate log_trailer_null variable"
+  ansible.builtin.assert:
+    that:
+      - openwrt_system_log_trailer_null | type_debug == 'int'
+      - openwrt_system_log_trailer_null in [0, 1]
+    fail_msg: "openwrt_system_log_trailer_null must be 0 or 1."
+    success_msg: "openwrt_system_log_trailer_null is valid."
+  when: openwrt_system_log_trailer_null is defined
 - name: "MMN openwrtsystem - Validate openwrt_system_ntp_server variable"
   ansible.builtin.assert:
     that:
       - openwrt_system_ntp_server | type_debug == 'list'
-    fail_msg: "openwrt_system_ntp_server must be of type list."
-    success_msg: "openwrt_system_ntp_server is a list."
+      - openwrt_system_ntp_server | length > 0
+      - "(openwrt_system_ntp_server | reject('none') | reject('equalto', '') | list | length) == (openwrt_system_ntp_server | length)"
+    fail_msg: "openwrt_system_ntp_server must be a non-empty list whose entries are all non-empty strings."
+    success_msg: "openwrt_system_ntp_server is a valid list."
   when: openwrt_system_ntp_server is defined
 - name: "MMN openwrtsystem - Validate openwrt_system_ntp_enabled variable"
   ansible.builtin.assert:
@@ -92,6 +127,22 @@
     fail_msg: "openwrt_system_ntp_enabled must be either 0 or 1."
     success_msg: "openwrt_system_ntp_enabled is valid."
   when: openwrt_system_ntp_enabled is defined
+- name: "MMN openwrtsystem - Validate openwrt_system_ntp_enable_server variable"
+  ansible.builtin.assert:
+    that:
+      - openwrt_system_ntp_enable_server | type_debug == 'int'
+      - openwrt_system_ntp_enable_server in [0, 1]
+    fail_msg: "openwrt_system_ntp_enable_server must be 0 or 1."
+    success_msg: "openwrt_system_ntp_enable_server is valid."
+  when: openwrt_system_ntp_enable_server is defined
+- name: "MMN openwrtsystem - Validate openwrt_system_ntp_use_dhcp variable"
+  ansible.builtin.assert:
+    that:
+      - openwrt_system_ntp_use_dhcp | type_debug == 'int'
+      - openwrt_system_ntp_use_dhcp in [0, 1]
+    fail_msg: "openwrt_system_ntp_use_dhcp must be 0 or 1."
+    success_msg: "openwrt_system_ntp_use_dhcp is valid."
+  when: openwrt_system_ntp_use_dhcp is defined
 #  not working, check later, why
 # - name: run checkint tasks
 #   include_tasks: checkint.yml
