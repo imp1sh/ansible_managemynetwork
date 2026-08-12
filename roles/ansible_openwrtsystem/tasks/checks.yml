@@ -2,9 +2,13 @@
 - name: "MMN openwrtsystem - Validate hostname variable"
   ansible.builtin.assert:
     that:
-      - openwrt_system_hostname | length <= 63
-      - openwrt_system_hostname is regex('^[A-Za-z0-9]([A-Za-z0-9\-]*[A-Za-z0-9])?$')
-    fail_msg: "openwrt_system_hostname must be a valid hostname (up to 63 alphanumeric characters or hyphens, not starting or ending with a hyphen)."
+      - openwrt_system_hostname | length <= 253
+      - >
+        (openwrt_system_hostname is regex('^[A-Za-z0-9_]+$'))
+        or
+        ((openwrt_system_hostname is regex('^[A-Za-z0-9_][A-Za-z0-9_.-]*[A-Za-z0-9][.]?$'))
+         and (openwrt_system_hostname is regex('[^0-9.]')))
+    fail_msg: "openwrt_system_hostname must be a valid hostname (up to 253 characters, alphanumeric, underscore, hyphen or dot; not purely numeric; must not start/end with a hyphen or dot)."
     success_msg: "openwrt_system_hostname is valid."
   when: openwrt_system_hostname is defined
 - name: "MMN openwrtsystem - Validate ttylogin variable"
