@@ -6,23 +6,70 @@
     fail_msg: "openwrt_system_buffersize must be of type integer."
     success_msg: "openwrt_system_buffersize seems valid."
   when: openwrt_system_buffersize is defined
-# - name: "MMN openwrtsystem - Validate conloglevel variable"
-#   ansible.builtin.assert:
-#     that:
-#       - openwrt_system_conloglevel | type_debug == 'int'
-#       - openwrt_system_conloglevel >= 0
-#       - openwrt_system_conloglevel < 10
-#     fail_msg: "openwrt_system_conloglevel must be of type integer and between 1 and 8."
-#     success_msg: "openwrt_system_conloglevel is valid."
-#   when: openwrt_system_conloglevel is defined
-# - name: "MMN openwrtsystem - Validate cronloglevel variable"
-#   ansible.builtin.assert:
-#     that:
-#       - openwrt_system_cronloglevel | type_debug == 'int'
-#       - openwrt_system_cronloglevel is regex("^[0-20]+$")
-#     fail_msg: "openwrt_system_conloglevel must be of type integer of 1 or bigger."
-#     success_msg: "openwrt_system_conloglevel is valid."
-#   when: openwrt_system_cronloglevel is defined
+- name: "MMN openwrtsystem - Validate conloglevel variable"
+  ansible.builtin.assert:
+    that:
+      - openwrt_system_conloglevel | type_debug == 'int'
+      - openwrt_system_conloglevel >= 1
+      - openwrt_system_conloglevel <= 8
+    fail_msg: "openwrt_system_conloglevel must be an integer between 1 and 8."
+    success_msg: "openwrt_system_conloglevel is valid."
+  when: openwrt_system_conloglevel is defined
+- name: "MMN openwrtsystem - Validate cronloglevel variable"
+  ansible.builtin.assert:
+    that:
+      - openwrt_system_cronloglevel | type_debug == 'int'
+      - openwrt_system_cronloglevel in [5, 7, 9]
+    fail_msg: "openwrt_system_cronloglevel must be one of 5, 7 or 9."
+    success_msg: "openwrt_system_cronloglevel is valid."
+  when: openwrt_system_cronloglevel is defined
+- name: "MMN openwrtsystem - Validate clock_timestyle variable"
+  ansible.builtin.assert:
+    that:
+      - openwrt_system_clock_timestyle | type_debug == 'int'
+      - openwrt_system_clock_timestyle in [0, 1]
+    fail_msg: "openwrt_system_clock_timestyle must be 0 or 1."
+    success_msg: "openwrt_system_clock_timestyle is valid."
+  when: openwrt_system_clock_timestyle is defined
+- name: "MMN openwrtsystem - Validate clock_hourcycle variable"
+  ansible.builtin.assert:
+    that:
+      - openwrt_system_clock_hourcycle in ['', 'h12', 'h23']
+    fail_msg: "openwrt_system_clock_hourcycle must be '', 'h12' or 'h23'."
+    success_msg: "openwrt_system_clock_hourcycle is valid."
+  when: openwrt_system_clock_hourcycle is defined
+- name: "MMN openwrtsystem - Validate zram_comp_algo variable"
+  ansible.builtin.assert:
+    that:
+      - openwrt_system_zram_comp_algo in ['lzo', 'lz4', 'zstd']
+    fail_msg: "openwrt_system_zram_comp_algo must be 'lzo', 'lz4' or 'zstd'."
+    success_msg: "openwrt_system_zram_comp_algo is valid."
+  when: openwrt_system_zram_comp_algo is defined
+- name: "MMN openwrtsystem - Validate log_port variable"
+  ansible.builtin.assert:
+    that:
+      - openwrt_system_log_port | type_debug == 'int'
+      - openwrt_system_log_port >= 1
+      - openwrt_system_log_port <= 65535
+    fail_msg: "openwrt_system_log_port must be an integer between 1 and 65535."
+    success_msg: "openwrt_system_log_port is valid."
+  when: openwrt_system_log_port is defined
+- name: "MMN openwrtsystem - Validate logsize variable"
+  ansible.builtin.assert:
+    that:
+      - openwrt_system_logsize | type_debug == 'int'
+      - openwrt_system_logsize >= 0
+    fail_msg: "openwrt_system_logsize must be a non-negative integer."
+    success_msg: "openwrt_system_logsize is valid."
+  when: openwrt_system_logsize is defined
+- name: "MMN openwrtsystem - Validate zram_size_mb variable"
+  ansible.builtin.assert:
+    that:
+      - openwrt_system_zram_size_mb | type_debug == 'int'
+      - openwrt_system_zram_size_mb >= 0
+    fail_msg: "openwrt_system_zram_size_mb must be a non-negative integer."
+    success_msg: "openwrt_system_zram_size_mb is valid."
+  when: openwrt_system_zram_size_mb is defined
 - name: "MMN openwrtsystem - Validate openwrt_system_log_proto variable"
   ansible.builtin.assert:
     that:

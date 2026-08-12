@@ -10,3 +10,14 @@
     name: system
     state: restarted
   when: not openwrt_system_runimagebuilder | default(false) | bool
+- name: restart sysntpd
+  ansible.builtin.service:
+    name: sysntpd
+    state: restarted
+  when:
+    - not openwrt_system_runimagebuilder | default(false) | bool
+    - >
+      (openwrt_system_ntp_server is defined) or
+      (openwrt_system_ntp_enabled is defined) or
+      (openwrt_system_ntp_enable_server is defined) or
+      (openwrt_system_ntp_use_dhcp is defined)

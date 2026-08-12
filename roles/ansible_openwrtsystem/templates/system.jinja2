@@ -85,7 +85,7 @@ config system 'system'
 	option clock_hourcycle "{{ openwrt_system_clock_hourcycle }}"
 {% endif %}
 {% if openwrt_system_zram_comp_algo is defined %}
-	option zram_comp_algo "{{ openwrt_system_system_zram_comp_algo }}"
+	option zram_comp_algo "{{ openwrt_system_zram_comp_algo }}"
 {% endif %}
 {% if openwrt_system_zram_size_mb is defined %}
 	option zram_size_mb "{{ openwrt_system_zram_size_mb }}"
