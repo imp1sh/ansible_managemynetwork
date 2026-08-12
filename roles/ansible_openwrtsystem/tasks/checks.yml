@@ -14,41 +14,37 @@
 - name: "MMN openwrtsystem - Validate ttylogin variable"
   ansible.builtin.assert:
     that:
-      - openwrt_system_ttylogin | type_debug == 'int'
-      - openwrt_system_ttylogin in [0, 1]
+      - openwrt_system_ttylogin | string in ['0', '1']
     fail_msg: "openwrt_system_ttylogin must be 0 or 1."
     success_msg: "openwrt_system_ttylogin is valid."
   when: openwrt_system_ttylogin is defined
 - name: "MMN openwrtsystem - Validate buffersize variable"
   ansible.builtin.assert:
     that:
-      - openwrt_system_buffersize | type_debug == 'int'
-      - openwrt_system_buffersize >= 0
+      - openwrt_system_buffersize | string is regex('^[0-9]+$')
     fail_msg: "openwrt_system_buffersize must be a non-negative integer."
     success_msg: "openwrt_system_buffersize seems valid."
   when: openwrt_system_buffersize is defined
 - name: "MMN openwrtsystem - Validate conloglevel variable"
   ansible.builtin.assert:
     that:
-      - openwrt_system_conloglevel | type_debug == 'int'
-      - openwrt_system_conloglevel >= 1
-      - openwrt_system_conloglevel <= 8
+      - openwrt_system_conloglevel | string is regex('^[0-9]+$')
+      - openwrt_system_conloglevel | int >= 1
+      - openwrt_system_conloglevel | int <= 8
     fail_msg: "openwrt_system_conloglevel must be an integer between 1 and 8."
     success_msg: "openwrt_system_conloglevel is valid."
   when: openwrt_system_conloglevel is defined
 - name: "MMN openwrtsystem - Validate cronloglevel variable"
   ansible.builtin.assert:
     that:
-      - openwrt_system_cronloglevel | type_debug == 'int'
-      - openwrt_system_cronloglevel in [5, 7, 9]
+      - openwrt_system_cronloglevel | string in ['5', '7', '9']
     fail_msg: "openwrt_system_cronloglevel must be one of 5, 7 or 9."
     success_msg: "openwrt_system_cronloglevel is valid."
   when: openwrt_system_cronloglevel is defined
 - name: "MMN openwrtsystem - Validate clock_timestyle variable"
   ansible.builtin.assert:
     that:
-      - openwrt_system_clock_timestyle | type_debug == 'int'
-      - openwrt_system_clock_timestyle in [0, 1]
+      - openwrt_system_clock_timestyle | string in ['0', '1']
     fail_msg: "openwrt_system_clock_timestyle must be 0 or 1."
     success_msg: "openwrt_system_clock_timestyle is valid."
   when: openwrt_system_clock_timestyle is defined
@@ -69,25 +65,23 @@
 - name: "MMN openwrtsystem - Validate log_port variable"
   ansible.builtin.assert:
     that:
-      - openwrt_system_log_port | type_debug == 'int'
-      - openwrt_system_log_port >= 1
-      - openwrt_system_log_port <= 65535
+      - openwrt_system_log_port | string is regex('^[0-9]+$')
+      - openwrt_system_log_port | int >= 1
+      - openwrt_system_log_port | int <= 65535
     fail_msg: "openwrt_system_log_port must be an integer between 1 and 65535."
     success_msg: "openwrt_system_log_port is valid."
   when: openwrt_system_log_port is defined
 - name: "MMN openwrtsystem - Validate logsize variable"
   ansible.builtin.assert:
     that:
-      - openwrt_system_logsize | type_debug == 'int'
-      - openwrt_system_logsize >= 0
+      - openwrt_system_logsize | string is regex('^[0-9]+$')
     fail_msg: "openwrt_system_logsize must be a non-negative integer."
     success_msg: "openwrt_system_logsize is valid."
   when: openwrt_system_logsize is defined
 - name: "MMN openwrtsystem - Validate zram_size_mb variable"
   ansible.builtin.assert:
     that:
-      - openwrt_system_zram_size_mb | type_debug == 'int'
-      - openwrt_system_zram_size_mb >= 0
+      - openwrt_system_zram_size_mb | string is regex('^[0-9]+$')
     fail_msg: "openwrt_system_zram_size_mb must be a non-negative integer."
     success_msg: "openwrt_system_zram_size_mb is valid."
   when: openwrt_system_zram_size_mb is defined
@@ -101,16 +95,14 @@
 - name: "MMN openwrtsystem - Validate log_remote variable"
   ansible.builtin.assert:
     that:
-      - openwrt_system_log_remote | type_debug == 'int'
-      - openwrt_system_log_remote in [0, 1]
+      - openwrt_system_log_remote | string in ['0', '1']
     fail_msg: "openwrt_system_log_remote must be 0 or 1."
     success_msg: "openwrt_system_log_remote is valid."
   when: openwrt_system_log_remote is defined
 - name: "MMN openwrtsystem - Validate log_trailer_null variable"
   ansible.builtin.assert:
     that:
-      - openwrt_system_log_trailer_null | type_debug == 'int'
-      - openwrt_system_log_trailer_null in [0, 1]
+      - openwrt_system_log_trailer_null | string in ['0', '1']
     fail_msg: "openwrt_system_log_trailer_null must be 0 or 1."
     success_msg: "openwrt_system_log_trailer_null is valid."
   when: openwrt_system_log_trailer_null is defined
@@ -126,32 +118,29 @@
 - name: "MMN openwrtsystem - Validate openwrt_system_ntp_enabled variable"
   ansible.builtin.assert:
     that:
-      - openwrt_system_ntp_enabled | type_debug == 'int'
-      - (openwrt_system_ntp_enabled == 0) or (openwrt_system_ntp_enabled == 1)
+      - openwrt_system_ntp_enabled | string in ['0', '1']
     fail_msg: "openwrt_system_ntp_enabled must be either 0 or 1."
     success_msg: "openwrt_system_ntp_enabled is valid."
   when: openwrt_system_ntp_enabled is defined
 - name: "MMN openwrtsystem - Validate openwrt_system_ntp_enable_server variable"
   ansible.builtin.assert:
     that:
-      - openwrt_system_ntp_enable_server | type_debug == 'int'
-      - openwrt_system_ntp_enable_server in [0, 1]
+      - openwrt_system_ntp_enable_server | string in ['0', '1']
     fail_msg: "openwrt_system_ntp_enable_server must be 0 or 1."
     success_msg: "openwrt_system_ntp_enable_server is valid."
   when: openwrt_system_ntp_enable_server is defined
 - name: "MMN openwrtsystem - Validate openwrt_system_ntp_use_dhcp variable"
   ansible.builtin.assert:
     that:
-      - openwrt_system_ntp_use_dhcp | type_debug == 'int'
-      - openwrt_system_ntp_use_dhcp in [0, 1]
+      - openwrt_system_ntp_use_dhcp | string in ['0', '1']
     fail_msg: "openwrt_system_ntp_use_dhcp must be 0 or 1."
     success_msg: "openwrt_system_ntp_use_dhcp is valid."
   when: openwrt_system_ntp_use_dhcp is defined
 - name: "MMN openwrtsystem - Validate openwrt_system_ntp_interface variable"
   ansible.builtin.assert:
     that:
-      - openwrt_system_ntp_interface | type_debug == 'str'
-    fail_msg: "openwrt_system_ntp_interface must be a string (UCI interface name)."
+      - openwrt_system_ntp_interface | string | length > 0
+    fail_msg: "openwrt_system_ntp_interface must be a non-empty string (UCI interface name)."
     success_msg: "openwrt_system_ntp_interface is valid."
   when: openwrt_system_ntp_interface is defined
 - name: "MMN openwrtsystem - Validate openwrt_system_ntp_dhcp_interface variable"
