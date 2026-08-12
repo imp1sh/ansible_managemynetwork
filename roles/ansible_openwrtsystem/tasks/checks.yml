@@ -143,6 +143,22 @@
     fail_msg: "openwrt_system_ntp_use_dhcp must be 0 or 1."
     success_msg: "openwrt_system_ntp_use_dhcp is valid."
   when: openwrt_system_ntp_use_dhcp is defined
+- name: "MMN openwrtsystem - Validate openwrt_system_ntp_interface variable"
+  ansible.builtin.assert:
+    that:
+      - openwrt_system_ntp_interface | type_debug == 'str'
+    fail_msg: "openwrt_system_ntp_interface must be a string (UCI interface name)."
+    success_msg: "openwrt_system_ntp_interface is valid."
+  when: openwrt_system_ntp_interface is defined
+- name: "MMN openwrtsystem - Validate openwrt_system_ntp_dhcp_interface variable"
+  ansible.builtin.assert:
+    that:
+      - openwrt_system_ntp_dhcp_interface | type_debug == 'list'
+      - openwrt_system_ntp_dhcp_interface | length > 0
+      - "(openwrt_system_ntp_dhcp_interface | reject('none') | reject('equalto', '') | list | length) == (openwrt_system_ntp_dhcp_interface | length)"
+    fail_msg: "openwrt_system_ntp_dhcp_interface must be a non-empty list of UCI interface names."
+    success_msg: "openwrt_system_ntp_dhcp_interface is valid."
+  when: openwrt_system_ntp_dhcp_interface is defined
 #  not working, check later, why
 # - name: run checkint tasks
 #   include_tasks: checkint.yml

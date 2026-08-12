@@ -20,4 +20,6 @@
       (openwrt_system_ntp_server is defined) or
       (openwrt_system_ntp_enabled is defined) or
       (openwrt_system_ntp_enable_server is defined) or
-      (openwrt_system_ntp_use_dhcp is defined)
+      (openwrt_system_ntp_use_dhcp is defined) or
+      (openwrt_system_ntp_interface is defined) or
+      (openwrt_system_ntp_dhcp_interface is defined)

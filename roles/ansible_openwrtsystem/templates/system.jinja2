@@ -2,9 +2,6 @@ config system 'system'
 	# Configuration distributed by Ansible
 	# Basic Node configuration
 	option hostname "{{ openwrt_system_hostname | default('OpenWrt', true) }}"
-{% if openwrt_system_maintainer is defined %}
-	option maintainer "{{ openwrt_system_maintainer }}"
-{% endif %}
 {% if openwrt_system_description is defined %}
 	option description "{{ openwrt_system_description }}"
 {% endif %}
@@ -28,9 +25,6 @@ config system 'system'
 {% if openwrt_system_log_trailer_null is defined %}
 	option log_trailer_null "{{ openwrt_system_log_trailer_null }}"
 {% endif %}
-{% if openwrt_system_log_type is defined %}
-	option log_type "{{ openwrt_system_log_type }}"
-{% endif %}
 {% if openwrt_system_cronloglevel is defined %}
 	option cronloglevel "{{ openwrt_system_cronloglevel }}"
 {% endif %}
@@ -39,9 +33,6 @@ config system 'system'
 {% endif %}
 {% if openwrt_system_buffersize is defined %}
 	option buffersize "{{ openwrt_system_buffersize }}"
-{% endif %}
-{% if openwrt_system_klogconloglevel is defined %}
-	option klogconloglevel "{{ openwrt_system_klogconloglevel }}"
 {% endif %}
 {% if openwrt_system_log_buffer_size is defined %}
 	option log_buffer_size "{{ openwrt_system_log_buffer_size }}"
@@ -104,6 +95,14 @@ config timeserver 'ntp'
 {% endif %}
 {% if openwrt_system_ntp_enabled is defined %}
 	option enabled "{{ openwrt_system_ntp_enabled }}"
+{% endif %}
+{% if openwrt_system_ntp_interface is defined %}
+	option interface "{{ openwrt_system_ntp_interface }}"
+{% endif %}
+{% if openwrt_system_ntp_dhcp_interface is defined %}
+{% for dhcpiface in openwrt_system_ntp_dhcp_interface %}
+	list dhcp_interface "{{ dhcpiface }}"
+{% endfor %}
 {% endif %}
 {% endif %}
 
