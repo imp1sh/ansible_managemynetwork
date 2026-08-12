@@ -83,7 +83,9 @@
   delegate_to: "{{ _openwrt_acme_target_host }}"
 
 - name: "MMN openwrtacme - Setup acme first run in imagebuilder"
-  when: openwrt_acme_runimagebuilder
+  when:
+    - openwrt_acme_cert is defined
+    - openwrt_acme_runimagebuilder
   block:
     - name: "MMN openwrtacme - Make sure uci-defaults dir is present"
       ansible.builtin.file:

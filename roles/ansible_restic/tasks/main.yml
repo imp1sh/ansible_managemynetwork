@@ -33,7 +33,9 @@
   delegate_to: "{{ _restic_target_host }}"
 
 - name: "MMN restic - sysupgrade integration for OpenWrt"
-  when: ansible_distribution == 'OpenWrt'
+  when:
+    - ansible_distribution == 'OpenWrt'
+    - restic_backups is defined
   block:
     - include_tasks: 1sysupgrade.yml
   delegate_to: "{{ _restic_target_host }}"
