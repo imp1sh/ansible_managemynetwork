@@ -7,7 +7,7 @@ config queue "{{ key }}"
 	option enabled "{{ value.enabled | default('1', true) }}"
 	option upload "{{ value.upload }}"
 	option download "{{ value.download }}"
-	option debug_logging "{{ value.debug_loggin | default('0', true) }}"
+	option debug_logging "{{ value.debug_logging | default('0', true) }}"
 	option verbosity "{{ value.verbosity | default('5', true) }}"
 	option interface "{{ value.interface }}"
 {% endfor %}

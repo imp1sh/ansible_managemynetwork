@@ -4,7 +4,44 @@
   ansible.builtin.set_fact:
     _openwrt_sqm_target_host: "{{ openwrt_imagebuilder_buildhost if (openwrt_imagebuilder_buildhost is defined and openwrt_imagebuilder_buildhost != inventory_hostname) else inventory_hostname }}"
 
-- name: deploy sqm configuration
+- name: Detect imagebuilder
+  ansible.builtin.set_fact:
+    openwrt_sqm_deployroot: "{{ openwrt_imagebuilder_deployroot }}"
+    openwrt_sqm_runimagebuilder: true
+  when: openwrt_imagebuilder_deployroot is defined
+
+- name: Make sure deploypath is present
+  ansible.builtin.file:
+    path: "{{ openwrt_sqm_deploypath }}"
+    state: directory
+    mode: '0755'
+  delegate_to: "{{ _openwrt_sqm_target_host }}"
+
+- name: Install needed packages
+  block:
+    - name: Set install role vars
+      ansible.builtin.set_fact:
+        packages_installrole:
+          - "sqm-scripts"
+          - "luci-app-sqm"
+    - name: Call packages role
+      ansible.builtin.include_role:
+        name: imp1sh.ansible_managemynetwork.ansible_packages
+  when: not openwrt_sqm_runimagebuilder | default(false)
+
+- name: Initialize packages_installimagebuilder
+  ansible.builtin.set_fact:
+    packages_installimagebuilder: []
+  when:
+    - packages_installimagebuilder is not defined
+    - openwrt_sqm_runimagebuilder | default(false)
+
+- name: Merge role packages into packages_installimagebuilder
+  ansible.builtin.set_fact:
+    packages_installimagebuilder: "{{ packages_installimagebuilder + ['sqm-scripts', 'luci-app-sqm'] }}"
+  when: openwrt_sqm_runimagebuilder | default(false)
+
+- name: Deploy sqm configuration
   ansible.builtin.template:
     src: sqm.jinja2
     dest: "{{ openwrt_sqm_deploypath }}/{{ openwrt_sqm_deployfile }}"
