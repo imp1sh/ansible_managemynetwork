@@ -1,0 +1,12 @@
+---
+- name: MMN openwrtwireless - No devices or interfaces were found. Continue?
+  ansible.builtin.pause:
+    prompt: >-
+      Rendering produced {{ openwrt_wifi_devices | default({}) | length }} wifi-device(s)
+      and {{ openwrt_wifi_interfaces | default({}) | length }} wifi-interface(s)
+      — at least one is empty, which may wipe your radios.
+      Do you still want to deploy wireless config? [yes/no]
+  register: openwrt_wifi_deploybool
+  when:
+    - (openwrt_wifi_devices | default({}) | length == 0) or
+      (openwrt_wifi_interfaces | default({}) | length == 0)

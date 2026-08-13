@@ -13,6 +13,9 @@
 - name: MMN openwrtwireless - Merge devices and interfaces
   import_tasks: 1merge.yml
 
+- name: MMN openwrtwireless - Safety check on merged devices and interfaces
+  import_tasks: 2checks.yml
+
 - name: MMN openwrtwireless - deploy wireless config
   ansible.builtin.template:
     src: "wireless.jinja2"
@@ -20,5 +23,7 @@
     backup: "{{ openwrt_wireless_backupconfig | default(false)}}"
     mode: "0600"
   delegate_to: "{{ _wireless_target_host }}"
-  when: openwrt_wifi_devices is defined
+  when:
+    - openwrt_wifi_devices is defined
+    - openwrt_wifi_deploybool.user_input is undefined or openwrt_wifi_deploybool.user_input == 'yes'
   notify: restart wireless
