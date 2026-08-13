@@ -124,3 +124,17 @@ config usteer
 	list ssid_list "{{ ssid }}"
 {% endfor %}
 {% endif %}
+{% if openwrt_usteer_config.aggressiveness is defined %}
+	option aggressiveness "{{ openwrt_usteer_config.aggressiveness }}"
+{% endif %}
+{% if openwrt_usteer_config.aggressiveness_mac_list is defined %}
+{% for mac_entry in openwrt_usteer_config.aggressiveness_mac_list %}
+	list aggressiveness_mac_list "{{ mac_entry }}"
+{% endfor %}
+{% endif %}
+{% if openwrt_usteer_config.reassociation_delay is defined %}
+	option reassociation_delay "{{ openwrt_usteer_config.reassociation_delay }}"
+{% endif %}
+{% if openwrt_usteer_config.band_steering_signal_threshold is defined %}
+	option band_steering_signal_threshold "{{ openwrt_usteer_config.band_steering_signal_threshold }}"
+{% endif %}
