@@ -60,21 +60,6 @@
     mode: '0644'
   when: not wallpaper_stat.stat.exists
 
-- name: MMN sway - Check if sway config already exists
-  ansible.builtin.stat:
-    path: "{{ target_user_home }}/.config/sway/{{ sway_fileconfig }}"
-  register: config_stat
-
-- name: MMN sway - Backup existing sway config if it exists
-  ansible.builtin.copy:
-    src: "{{ target_user_home }}/.config/sway/{{ sway_fileconfig }}"
-    dest: "{{ target_user_home }}/.config/sway/{{ sway_fileconfig }}.backup.{{ ansible_date_time.epoch }}"
-    remote_src: yes
-    owner: "{{ target_user }}"
-    group: "{{ target_user }}"
-    mode: '0644'
-  when: config_stat.stat.exists
-
 - name: MMN sway - Deploy sway configuration file for {{ target_user }}
   ansible.builtin.template:
     src: "{{ sway_filetemplate }}"

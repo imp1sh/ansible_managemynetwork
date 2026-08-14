@@ -554,10 +554,10 @@ swaymsg -t get_tree
 
 **Backup files:**
 
-If the role fails, backup files are created with the `.backup.<timestamp>` suffix. You can restore them:
+When the templated config changes, Ansible keeps a backup alongside the live file named `config.<pid>.<YYYY-MM-DD>@<HH:MM:SS>~`. The cleanup timer prunes these (and any leftover `*.backup.*` files) once they exceed `sway_cleanup_age_minutes`. To restore one manually:
 
 ```bash
-cp ~/.config/sway/config.backup.<timestamp> ~/.config/sway/config
+cp ~/.config/sway/config.<pid>.<YYYY-MM-DD>@<HH:MM:SS>~ ~/.config/sway/config
 ```
 
 ## Changelog
