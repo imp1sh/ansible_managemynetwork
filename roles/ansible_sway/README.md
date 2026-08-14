@@ -6,7 +6,7 @@ This role installs and configures the Sway window manager on Linux systems.
 
 ## Requirements
 
-- Ansible 2.9 or higher
+- Ansible 2.11 or higher
 - Fedora 43 or 44
 - Debian 13
 - The role depends on `imp1sh.ansible_managemynetwork.ansible_packages` for package management
@@ -47,20 +47,12 @@ These variables are automatically set based on the target distribution:
 
 #### Color Configuration
 
-- `sway_colors`: Dictionary of color settings for different elements.
-  - `background`: Background color (default: "#1c1c1c")
-  - `statusline`: Status line color (default: "#ffffff")
-  - `focused`: Focused window color (default: "#ffaa00")
-  - `border`: Border color (default: "#ffaa00")
-  - `child_border`: Child border color (default: "#ffaa00")
-  - `indicator`: Indicator color (default: "#1c1c1c")
-  - `separator`: Separator color (default: "#1c1c1c")
-  - `workspace`: Workspace color (default: "#ffaa00")
-  - `inactive`: Inactive window color (default: "#2d2d2d")
-  - `urgent`: Urgent window color (default: "#e63946")
-  - `binding_mode`: Binding mode color (default: "#e63946")
-  - `binding_mode_statusline`: Binding mode status line color (default: "#ffffff")
-  - `binding_mode_separator`: Binding mode separator color (default: "#83343b")
+- `sway_colors`: Nested dictionary of color settings. Top-level keys are
+  `background` and `statusline`; the per-class dictionaries `focused`,
+  `inactive`, `urgent` and `binding_mode` each contain `border`, `background`,
+  `text`, `indicator`, `child_border` (and `separator`/`statusline` where
+  applicable). See `defaults/main.yml` for the full structure. These map to
+  the `client.<class>` commands in sway(5).
 
 #### Gaps Configuration
 
@@ -89,19 +81,19 @@ These variables are automatically set based on the target distribution:
 
 #### Focus Configuration
 
-- `sway_focus_wrapping`: Whether to wrap focus when reaching edges (default: null)
+- `sway_focus_wrapping`: Focus wrapping - "yes", "no", "force", or "workspace" (default: null; boolean true/false map to yes/no)
 - `sway_focus_on_window_activation`: How to handle focus on window activation (default: null)
-  - "smart", "urgent", or "none"
+  - "smart", "urgent", "focus", or "none"
 - `sway_mouse_warping`: How to handle mouse movement (default: null)
   - "output", "container", or "none"
 
 #### Layout Configuration
 
 - `sway_workspace_layout`: Default workspace layout (default: null)
-  - "stacking", "tabbed", or "split"
+  - "default", "stacking", or "tabbed"
 - `sway_workspace_auto_back_and_forth`: Whether to auto-switch between workspaces (default: null)
 - `sway_default_orientation`: Default orientation (default: null)
-  - "horizontal" or "vertical"
+  - "horizontal", "vertical", or "auto"
 
 #### Floating Configuration
 
@@ -113,7 +105,6 @@ These variables are automatically set based on the target distribution:
 
 - `sway_xwayland_disable`: Disable Xwayland (default: null)
 - `sway_force_xwayland`: Force Xwayland (default: null)
-- `sway_title_format`: Title format for windows (default: null)
 - `sway_includes`: List of additional config files to include (default: [])
 
 #### Output Configuration
@@ -243,7 +234,7 @@ If not specified, a default resize mode is created.
 
 - `sway_bar_enabled`: Enable status bar (default: true)
 - `sway_bar_id`: Bar identifier (default: "bar0")
-- `sway_bar_mode`: Bar mode - "dock", "hide", or "invisible" (default: null)
+- `sway_bar_mode`: Bar mode - "dock", "hide", "invisible", or "overlay" (default: null)
 - `sway_bar_hidden_state`: Hidden state - "hide" or "show" (default: null)
 - `sway_bar_modifier`: Modifier key for bar (default: null)
 - `sway_bar_position`: Bar position - "top" or "bottom" (default: "bottom")
@@ -256,7 +247,6 @@ If not specified, a default resize mode is created.
 - `sway_bar_separator_symbol`: Separator symbol (default: null)
 - `sway_bar_tray_output`: Tray output (default: null)
 - `sway_bar_tray_padding`: Tray padding (default: null)
-- `sway_bar_colors`: Custom bar colors dictionary (default: null)
 - `sway_bar_swaybar_command`: Swaybar command (default: null)
 
 #### Window Assignments, Floating, Marking
@@ -386,17 +376,15 @@ sway_exec_commands:
 
 #### Additional Settings
 
-- `sway_focus_wrapping`: Focus wrapping (default: null)
-- `sway_focus_on_window_activation`: Focus on window activation - "smart", "urgent", or "none" (default: null)
+- `sway_focus_wrapping`: Focus wrapping - "yes", "no", "force", or "workspace" (default: null; boolean true/false map to yes/no)
+- `sway_focus_on_window_activation`: Focus on window activation - "smart", "urgent", "focus", or "none" (default: null)
 - `sway_mouse_warping`: Mouse warping - "output", "container", or "none" (default: null)
 - `sway_popup_during_fullscreen`: Popup during fullscreen - "smart", "ignore", or "leave_fullscreen" (default: null)
 - `sway_workspace_auto_back_and_forth`: Workspace auto back and forth (default: null)
 - `sway_workspace_layout`: Workspace layout - "default", "stacking", or "tabbed" (default: null)
-- `sway_default_orientation`: Default orientation - "horizontal" or "vertical" (default: null)
-- `sway_default_floating_size`: Default floating size (default: null)
+- `sway_default_orientation`: Default orientation - "horizontal", "vertical", or "auto" (default: null)
 - `sway_force_xwayland`: Force Xwayland (default: null)
 - `sway_xwayland_disable`: Disable Xwayland (default: null)
-- `sway_title_format`: Title format (default: null)
 - `sway_includes`: List of additional config files to include (default: [])
 
 See `defaults/main.yml` for the complete list of all available variables.
@@ -530,12 +518,12 @@ swaymsg -t get_tree
 
 2. Validate the configuration syntax:
    ```bash
-   swaymsg -c ~/.config/sway/config
+   sway --validate --config ~/.config/sway/config
    ```
 
-3. Check for syntax errors in the configuration:
+3. Inspect sway's runtime errors/logs (config warnings are printed on load):
    ```bash
-   swaymsg -t get_tree 2>&1 | grep -i error
+   journalctl --user -u sway
    ```
 
 **Configuration not applied:**

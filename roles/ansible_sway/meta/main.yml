@@ -1,3 +1,4 @@
+---
 galaxy_info:
   author: Jochen Demmer
   company: libcom.de
@@ -5,7 +6,7 @@ galaxy_info:
   galaxy_tags: [sway]
   issue_tracker_url: https://github.com/imp1sh/ansible_managemynetwork/issues
   license: BSD-3-Clause
-  min_ansible_version: 2.9
+  min_ansible_version: "2.11"
   platforms:
     - name: Fedora
       versions:
@@ -14,4 +15,4 @@ galaxy_info:
     - name: Debian
       versions:
         - 13
-  dependencies: []
+dependencies: []

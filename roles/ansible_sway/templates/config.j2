@@ -31,7 +31,7 @@ output {{ output.name }} {
     disable
 {% endif %}
 {% if output.color_profile is defined %}
-    color_profile "{{ output.color_profile }}"
+    color_profile {{ output.color_profile }}
 {% endif %}
 {% if output.mode is defined %}
     mode "{{ output.mode }}"
@@ -78,13 +78,13 @@ input "{{ input.identifier }}" {
     dwt {{ 'enabled' if input.dwt else 'disabled' }}
 {% endif %}
 {% if input.dwtp is defined %}
-    dwtp {{ 'enabled' if input.dwtp else 'disable' }}
+    dwtp {{ 'enabled' if input.dwtp else 'disabled' }}
 {% endif %}
 {% if input.left_handed is defined %}
     left_handed {{ 'enabled' if input.left_handed else 'disabled' }}
 {% endif %}
 {% if input.natural_scroll is defined %}
-    natural_scroll "{{ 'enabled' if input.natural_scroll else 'disabled' }}"
+    natural_scroll {{ 'enabled' if input.natural_scroll else 'disabled' }}
 {% endif %}
 {% if input.pointer_accel is defined %}
     pointer_accel "{{ input.pointer_accel }}"
@@ -111,7 +111,7 @@ input "{{ input.identifier }}" {
     xkb_file "{{ input.xkb_file }}"
 {% endif %}
 {% if input.xkb_capslock is defined %}
-    xkb_capslock "{{ 'enable' if input.xkb_capslock else 'disable' }}"
+    xkb_capslock "{{ 'enabled' if input.xkb_capslock else 'disabled' }}"
 {% endif %}
 {% if input.xkb_layout is defined %}
     xkb_layout "{{ input.xkb_layout }}"
@@ -120,7 +120,7 @@ input "{{ input.identifier }}" {
     xkb_model "{{ input.xkb_model }}"
 {% endif %}
 {% if input.xkb_numlock is defined %}
-    xkb_numlock "{{ 'enable' if input.xkb_numlock else 'disable' }}"
+    xkb_numlock "{{ 'enabled' if input.xkb_numlock else 'disabled' }}"
 {% endif %}
 {% if input.xkb_options is defined %}
     xkb_options "{{ input.xkb_options }}"
@@ -144,7 +144,7 @@ input "{{ input.identifier }}" {
 seat {{ seat.name }} {
 {% if seat.fallback is defined %}    fallback {{ 'true' if seat.fallback else 'false' }}{% endif %}
 {% if seat.cursor is defined %}    cursor {{ seat.cursor }}{% endif %}
-{% if seat.hide_cursor_when_typing is defined %}    hide_cursor_when_typing {{ 'enabled' if seat.hide_cursor_when_typing else 'disabled' }}{% endif %}
+{% if seat.hide_cursor_when_typing is defined %}    hide_cursor when-typing {{ 'enable' if seat.hide_cursor_when_typing else 'disable' }}{% endif %}
 }
 {% endfor %}
 {% endif %}
@@ -180,10 +180,10 @@ gaps inner {{ sway_gaps_inner }}
 gaps outer {{ sway_gaps_outer }}
 {% endif %}
 {% if sway_gaps_smart_borders is defined %}
-smart_borders {{ 'on' if sway_gaps_smart_borders else 'off' }}
+smart_borders {{ sway_gaps_smart_borders if sway_gaps_smart_borders is string else ('on' if sway_gaps_smart_borders else 'off') }}
 {% endif %}
 {% if sway_gaps_smart_gaps is defined %}
-smart_gaps {{ 'on' if sway_gaps_smart_gaps else 'off' }}
+smart_gaps {{ sway_gaps_smart_gaps if sway_gaps_smart_gaps is string else ('on' if sway_gaps_smart_gaps else 'off') }}
 {% endif %}
 
 # Colors
@@ -202,8 +202,11 @@ font {{ sway_font }}
 # Workspace keybindings
 {% if sway_workspaces %}
 {% for workspace in sway_workspaces %}
-bindsym $mod+{{ workspace.number }} workspace number {{ workspace.number }}{% if workspace.output is defined %} output {{ workspace.output }}{% endif %}
-bindsym $mod+Shift+{{ workspace.number }} move container to workspace number {{ workspace.number }}{% if workspace.output is defined %} output {{ workspace.output }}{% endif %}
+{% if workspace.output is defined %}
+workspace {{ workspace.number }} output {{ workspace.output }}
+{% endif %}
+bindsym $mod+{{ workspace.number }} workspace number {{ workspace.number }}
+bindsym $mod+Shift+{{ workspace.number }} move container to workspace number {{ workspace.number }}
 {% endfor %}
 {% else %}
 # Default workspace keybindings (1-10)
@@ -472,12 +475,12 @@ exec {{ exec_cmd.command }}
 
 # Focus wrapping
 {% if sway_focus_wrapping is defined %}
-focus_wrapping {{ 'yes' if sway_focus_wrapping else 'no' }}
+focus_wrapping {{ sway_focus_wrapping if sway_focus_wrapping is string else ('yes' if sway_focus_wrapping else 'no') }}
 {% endif %}
 
 # Focus on window activation
-{% if sway_focus_on_window_activation is defined %}
-focus_on_window_activation {{ 'smart' if sway_focus_on_window_activation == 'smart' else ('urgent' if sway_focus_on_window_activation == 'urgent' else 'none') }}
+{% if sway_focus_on_window_activation is defined and sway_focus_on_window_activation is not none %}
+focus_on_window_activation {{ sway_focus_on_window_activation }}
 {% endif %}
 
 # Mouse warping
@@ -505,21 +508,11 @@ workspace_layout {{ sway_workspace_layout }}
 default_orientation {{ sway_default_orientation }}
 {% endif %}
 
-# Default floating size
-{% if sway_default_floating_size is defined and sway_default_floating_size is not none and sway_default_floating_size != '' %}
-default_floating_size {{ sway_default_floating_size }}
-{% endif %}
-
 # Xwayland configuration
 {% if sway_xwayland_disable is defined and sway_xwayland_disable %}
 xwayland disable
 {% elif sway_force_xwayland is defined and sway_force_xwayland %}
 xwayland force
-{% endif %}
-
-# Title format
-{% if sway_title_format is defined and sway_title_format is not none and sway_title_format != '' %}
-title_format {{ sway_title_format }}
 {% endif %}
 
 # Bar configuration

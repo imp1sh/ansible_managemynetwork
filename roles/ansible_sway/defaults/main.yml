@@ -194,7 +194,6 @@ sway_bar_binding_mode_indicator: null
 sway_bar_separator_symbol: null
 sway_bar_tray_output: null
 sway_bar_tray_padding: null
-sway_bar_colors: null
 sway_bar_swaybar_command: null
 
 # Window attributes (marks, floating, workspace assignment, per-window commands)
@@ -334,17 +333,11 @@ sway_workspace_layout: null
 # Default orientation
 sway_default_orientation: null
 
-# Default floating size
-sway_default_floating_size: null
-
 # Force xwayland
 sway_force_xwayland: null
 
 # Xwayland disable
 sway_xwayland_disable: null
-
-# Title format
-sway_title_format: null
 
 # Include files
 # List of additional config files to include
