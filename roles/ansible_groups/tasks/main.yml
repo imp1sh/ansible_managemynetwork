@@ -4,14 +4,11 @@
   block:
     - name: "MMN groups - Run live mode"
       ansible.builtin.include_tasks: 01live.yml
-      when: ( system_groups_runimagebuilder is not defined ) or
-            ( system_groups_runimagebuilder is defined and not system_groups_runimagebuilder )
+      when: not system_groups_runimagebuilder | default(false) | bool
 
     - name: "MMN groups - Run imagebuilder mode"
       ansible.builtin.include_tasks: 01imagebuilder.yml
-      when:
-        - system_groups_runimagebuilder is defined
-        - system_groups_runimagebuilder
+      when: system_groups_runimagebuilder | default(false) | bool
 
 - name: "MMN groups - Fail status feedback"
   ansible.builtin.debug:

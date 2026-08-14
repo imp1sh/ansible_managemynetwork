@@ -53,6 +53,21 @@ while the users playbook looking like this:
 | `system_users_additional_packages` | _(OpenWrt only)_ | List of extra packages to install via the `ansible_packages` role. Defined per-OS in `vars/`; on OpenWrt this is `shadow-useradd`, `shadow-userdel`, `shadow-usermod`, `sudo`. Override to add more. |
 | `system_users_setpassword_deployroot` | _(unset, imagebuilder mode)_ | Root directory on the build host where the uci-defaults scripts are deployed. Required for imagebuilder mode — typically set to the OpenWrt imagebuilder output directory (e.g. `/tmp/openwrt-imagebuilder/build_dir/target-armvirt_cortex-a15/root-ext4`). |
 | `system_users_setpassword_deployfile` | `99-set-password` | Filename prefix for the uci-defaults init script. Final path is `{deployroot}/etc/uci-defaults/{deployfile}-{username}`. |
+| `system_users_enable_checks` | `true` | When `true`, validates `system_users` structure and password hashes before applying anything. Set to `false` to skip all input validation. See [Input validation](#input-validation). |
+
+## Input validation
+
+When `system_users_enable_checks` is `true` (the default), the role validates its inputs before touching any host:
+
+- `system_users` must be a dict (rejects scalars, lists, `null`).
+- Each user entry must be a dict with a valid `state` (`present` or `absent`).
+- Sequence-typed fields (`groups`, `deployfiles`) must be lists, not strings.
+- Mapping-typed fields (`groups_byhostname`) must be dicts.
+- `system_users_create_on_hosts` and `system_users_create_on_hostgroups` if defined must be dicts.
+- Every `password` field must be a hash (modular crypt format `$<id>$...`) or a lock marker (`!`, `!!`, `*`). Plaintext passwords are rejected — this catches the common mistake of vault-encrypting a plaintext password instead of a hash.
+- On OpenWrt targets (live or imagebuilder mode), password hashes are additionally checked for musl compatibility. Yescrypt (`$y$`), bcrypt (`$2a$`/`$2b$`/`$2y$`), scrypt (`$7$`), gost-yescrypt (`$gy$`), and the `rounds=` parameter are rejected. See [OpenWrt password hash constraints](#openwrt-password-hash-constraints).
+
+Validation failures abort the play with a descriptive message naming the offending user and the failing condition. To bypass validation entirely, set `system_users_enable_checks: false`.
 
 ## Variables
 
@@ -73,13 +88,92 @@ system_users:
     shell: "zsh"
 ```
 
-The password is expected to be encrypted. The easiest way to get such an encrypted password is to use the following command: 
+The password must be a **hash**, never plaintext. The role validates this at runtime (see [Input validation](#input-validation)) and refuses to apply a plaintext password, because storing one in `/etc/shadow` breaks authentication on every target OS.
 
-``` bash
+### Generating a password hash
+
+Use SHA-512 (`$6$`) — it is the strongest widely-supported method and works on all supported operating systems including OpenWrt:
+
+```bash
 mkpasswd --method=sha-512
 ```
 
-Some might even want to put this into ansible-vault encryption on top.
+Enter the desired password when prompted. The command prints a hash beginning with `$6$`. Paste that string (quotes and all) into the `password` field.
+
+Alternatively, generate a hash non-interactively with an explicit salt:
+
+```bash
+mkpasswd --method=sha-512 --salt='yourrandomsalt'
+```
+
+To disable password login without removing the account, use a lock marker instead of a hash:
+
+```yaml
+system_users:
+  monitoring:
+    password: "!"
+```
+
+### Encrypting the hash with ansible-vault
+
+The hash itself is sensitive — anyone with the hash can attempt offline cracking. Protect it with `ansible-vault`.
+
+**Correct order:** hash first, then encrypt the file or variable containing the hash.
+
+```bash
+# 1. Generate the hash
+mkpasswd --method=sha-512
+# Output: $6$AbCdEf123...$...  ← copy this
+
+# 2. Put it in your variables file
+#    ./group_vars/all.yml
+#    system_users:
+#      jdenker:
+#        password: "$6$..."
+
+# 3. Encrypt the file
+ansible-vault encrypt ./group_vars/all.yml
+```
+
+**Common mistake:** encrypting the plaintext password instead of the hash. If you run `ansible-vault encrypt_string` on a plaintext password and paste the resulting `!vault` blob into the `password` field, the decrypted plaintext — not a hash — ends up in `/etc/shadow`. Authentication silently breaks on every target. The role's input validation catches this and fails before any harm is done, but the correct workflow is to hash first, then vault-encrypt the hash.
+
+**Shell quoting pitfall:** SHA-512 hashes contain `$` delimiters (e.g. `$6$salt$hash`). If you pass such a hash to `ansible-vault encrypt_string` in **double quotes**, the shell expands `$6`, `$salt`, etc. as (empty) variables and strips them, corrupting the value. Always use **single quotes**:
+
+```bash
+# WRONG — shell eats the $ segments
+ansible-vault encrypt_string "$6$AbCdEf$....." --name system_users_root_password
+
+# CORRECT — single quotes preserve $ literally
+ansible-vault encrypt_string '$6$AbCdEf$.....' --name system_users_root_password
+```
+
+### OpenWrt password hash constraints
+
+OpenWrt uses **musl libc**, whose `crypt()` supports a subset of the algorithms available on glibc-based distributions:
+
+| Algorithm | Prefix | OpenWrt (musl) | Desktop/Server (glibc) |
+|-----------|--------|---------------|----------------------|
+| SHA-512 | `$6$` | supported | supported |
+| SHA-256 | `$5$` | supported | supported |
+| MD5 | `$1$` | supported | supported |
+| DES | _(13-char, no prefix)_ | supported | supported |
+| yescrypt | `$y$` | **unsupported** | default on Fedora 36+, RHEL 9, Debian bookworm |
+| bcrypt | `$2a$`/`$2b$`/`$2y$` | **unsupported** | supported (libxcrypt) |
+| scrypt | `$7$` | **unsupported** | supported (libxcrypt) |
+| gost-yescrypt | `$gy$` | **unsupported** | supported (libxcrypt) |
+
+Additionally, the `rounds=` parameter inside a SHA-512/SHA-256 hash (e.g. `$6$rounds=656000$salt$hash`) behaves **inconsistently** between glibc and musl — glibc honours the iteration count, musl treats it as part of the salt, producing a different hash. Login fails silently.
+
+Because modern desktop and server distributions default to yescrypt, a hash generated on your workstation with `passwd` or `mkpasswd` (without `--method`) may be a `$y$` hash that is unusable on OpenWrt.
+
+**Always generate OpenWrt passwords with an explicit method:**
+
+```bash
+mkpasswd --method=sha-512
+```
+
+The role's input validation rejects yescrypt, bcrypt, scrypt, gost-yescrypt, and `rounds=` hashes when the target is OpenWrt (detected via `ansible_distribution == "OpenWrt"` or imagebuilder mode). On non-OpenWrt targets these algorithms are permitted.
+
 A more complete list of available options can be found in the [role's documentation](https://docs.ansible.com/ansible/latest/collections/ansible/builtin/user_module.html).
 
 This role has a dependency to [imp1sh.ansible_managemynetwork.ansible_packages](/junicast/docs/AnsibleManagemynetworkCollection/rolePackages) and will install the shell package you choose for the users automatically.
@@ -92,7 +186,7 @@ Each key in `system_users` is the username. The value is a dictionary of attribu
 |-----------|------|-------------|
 | `comment` | string | GECOS / full name |
 | `uid` | int | Numeric user ID |
-| `password` | string | Encrypted password hash (use `mkpasswd --method=sha-512`) |
+| `password` | string | Hashed password (use `mkpasswd --method=sha-512`). See [Generating a password hash](#generating-a-password-hash) and [OpenWrt password hash constraints](#openwrt-password-hash-constraints). |
 | `shell` | string | Shell binary name (not full path), e.g. `zsh`, `bash`, `fish`, `nologin`, `false`. The role maps this to the correct path per-OS. |
 | `home` | string | Home directory path |
 | `group` | string | Primary group name |

@@ -1,0 +1,93 @@
+---
+- name: "MMN users - Validate system_users is a mapping"
+  ansible.builtin.assert:
+    that:
+      - system_users is mapping
+    fail_msg: "system_users must be a dict keyed by username, got {{ system_users | type_debug }}."
+    success_msg: "system_users is a mapping."
+
+- name: "MMN users - Determine if target is OpenWrt"
+  ansible.builtin.set_fact:
+    _system_users_is_openwrt_target: >-
+      {{
+        (ansible_distribution is defined and ansible_distribution == "OpenWrt")
+        or (system_users_runimagebuilder | default(false) | bool)
+      }}
+
+- name: "MMN users - Validate each user entry"
+  ansible.builtin.assert:
+    that:
+      - user.value is mapping
+      - user.value.state | default('present') in ['present', 'absent']
+      - user.value.groups is not defined or (user.value.groups is sequence and user.value.groups is not string)
+      - user.value.groups_byhostname is not defined or user.value.groups_byhostname is mapping
+      - user.value.deployfiles is not defined or (user.value.deployfiles is sequence and user.value.deployfiles is not string)
+    fail_msg: "Invalid entry for user '{{ user.key }}'; review the failing condition(s) above."
+    success_msg: "User '{{ user.key }}' passed validation."
+  loop: "{{ system_users | dict2items }}"
+  loop_control:
+    loop_var: user
+
+- name: "MMN users - Validate system_users_create_on_hosts"
+  ansible.builtin.assert:
+    that:
+      - system_users_create_on_hosts is mapping
+    fail_msg: "system_users_create_on_hosts must be a dict mapping username to a list of hostnames, got {{ system_users_create_on_hosts | type_debug }}."
+    success_msg: "system_users_create_on_hosts is a mapping."
+  when: system_users_create_on_hosts is defined
+
+- name: "MMN users - Validate system_users_create_on_hostgroups"
+  ansible.builtin.assert:
+    that:
+      - system_users_create_on_hostgroups is mapping
+    fail_msg: "system_users_create_on_hostgroups must be a dict mapping username to a list of group names, got {{ system_users_create_on_hostgroups | type_debug }}."
+    success_msg: "system_users_create_on_hostgroups is a mapping."
+  when: system_users_create_on_hostgroups is defined
+
+- name: "MMN users - Validate password is hashed"
+  ansible.builtin.assert:
+    that:
+      - >-
+        system_users[_user].password is not defined
+        or system_users[_user].password is not string
+        or system_users[_user].password in ['!', '!!', '*']
+        or system_users[_user].password is regex('^\$[^$]+\$')
+    fail_msg: >-
+      Password for user '{{ _user }}' does not appear to be a hash.
+      A plaintext password stored in /etc/shadow prevents login on any system.
+      Generate a hash with: mkpasswd --method=sha-512
+    success_msg: "Password for user '{{ _user }}' is a hash or lock marker."
+  loop: "{{ list_of_users }}"
+  loop_control:
+    loop_var: _user
+
+- name: "MMN users - Validate password hash compatibility with OpenWrt"
+  ansible.builtin.assert:
+    that:
+      - >-
+        system_users[_user].password is not defined
+        or system_users[_user].password is not string
+        or system_users[_user].password in ['!', '!!', '*']
+        or (
+          not system_users[_user].password.startswith('$y$')
+          and not system_users[_user].password.startswith('$2a$')
+          and not system_users[_user].password.startswith('$2b$')
+          and not system_users[_user].password.startswith('$2y$')
+          and not system_users[_user].password.startswith('$gy$')
+          and not system_users[_user].password.startswith('$7$')
+          and 'rounds=' not in system_users[_user].password
+        )
+    fail_msg: >-
+      Password hash for user '{{ _user }}' uses an algorithm or parameter not supported by musl libc on OpenWrt.
+      Yescrypt ($y$), bcrypt ($2a$/$2b$/$2y$), scrypt ($7$), gost-yescrypt ($gy$), and the rounds= parameter are unsupported or behave inconsistently.
+      Regenerate with: mkpasswd --method=sha-512 (without rounds)
+    success_msg: "Password hash for user '{{ _user }}' is compatible with OpenWrt."
+  loop: "{{ list_of_users }}"
+  loop_control:
+    loop_var: _user
+  when: _system_users_is_openwrt_target | bool
+
+- name: "MMN users - Show users considered for this host"
+  ansible.builtin.debug:
+    msg: "Users defined: {{ system_users.keys() | list }}. Placement hints present: create_on_hosts={{ system_users_create_on_hosts is defined }}, create_on_hostgroups={{ system_users_create_on_hostgroups is defined }}."
+  when: mmn_verbose | default(false) | bool

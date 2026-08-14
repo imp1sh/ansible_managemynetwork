@@ -2,6 +2,7 @@
 - name: "MMN users - Checking the following user"
   ansible.builtin.debug:
     var: user.key
+  when: mmn_verbose | default(false) | bool
 
 - name: "MMN users - Add user from group-based assignments"
   ansible.builtin.set_fact:
@@ -23,3 +24,4 @@
 - name: "MMN users - Print result"
   ansible.builtin.debug:
     msg: "Host {{ inventory_hostname }} will get the following users {{ list_of_users }}"
+  when: mmn_verbose | default(false) | bool

@@ -2,16 +2,53 @@
 - name: "MMN users - is system_users defined?"
   when: system_users is defined
   block:
+    - name: "MMN users - Determine if host is targeted for user deployment"
+      ansible.builtin.set_fact:
+        _system_users_host_is_targeted: >-
+          {{
+            ((system_users_create_on_hosts | default({})) | dict2items
+              | map(attribute='value') | flatten | intersect([inventory_hostname]) | length > 0)
+            or
+            ((system_users_create_on_hostgroups | default({})) | dict2items
+              | map(attribute='value') | flatten | intersect(group_names) | length > 0)
+          }}
+
+    - name: "MMN users - Host not targeted for any user"
+      ansible.builtin.debug:
+        msg: >-
+          The role system_users did not run on host {{ inventory_hostname }}
+          because no user is assigned to it via system_users_create_on_hosts
+          or system_users_create_on_hostgroups.
+      when: not _system_users_host_is_targeted | bool
+
+    - name: "MMN users - Initialize list of users to deploy"
+      ansible.builtin.set_fact:
+        list_of_users: []
+
+    - name: "MMN users - Determine which users shall be deployed on host"
+      ansible.builtin.include_tasks: "02check_if_user_shall_be_deployed.yml"
+      loop: "{{ system_users | dict2items }}"
+      loop_control:
+        loop_var: user
+      when: _system_users_host_is_targeted | bool
+
+    - name: "MMN users - Run input checks"
+      ansible.builtin.include_tasks: checks.yml
+      when:
+        - _system_users_host_is_targeted | bool
+        - system_users_enable_checks | default(true) | bool
+
     - name: "MMN users - Run live mode"
       ansible.builtin.include_tasks: 01live.yml
-      when: ( system_users_runimagebuilder is not defined ) or
-            ( system_users_runimagebuilder is defined and not system_users_runimagebuilder )
+      when:
+        - _system_users_host_is_targeted | bool
+        - not system_users_runimagebuilder | default(false) | bool
 
     - name: "MMN users - Run imagebuilder mode"
       ansible.builtin.include_tasks: 01imagebuilder.yml
       when:
-        - system_users_runimagebuilder is defined
-        - system_users_runimagebuilder
+        - _system_users_host_is_targeted | bool
+        - system_users_runimagebuilder | default(false) | bool
 
 - name: "MMN users - Fail status feedback"
   ansible.builtin.debug:
