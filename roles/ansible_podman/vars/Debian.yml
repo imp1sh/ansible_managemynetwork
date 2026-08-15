@@ -5,5 +5,5 @@ podman_packages:
   - "conmon"
   - "aardvark-dns"
   - "netavark"
-  - "iptables"
+#   - "iptables" # Dunno what that bug was. I will disable it for now
 # iptables only needed because of bug in Debian
