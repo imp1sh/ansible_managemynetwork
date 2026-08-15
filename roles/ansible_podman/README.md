@@ -3,6 +3,7 @@ This role sets up podman containers, networks and secrets. It utilizes the offic
 
 ## Supported OSes
 - Debian
+- Fedora (incl. SELinux and firewalld support)
 - OpenWrt (imagebuilder support is yet to come)
 
 ## Supported Features
@@ -153,9 +154,62 @@ flag.
 Supported `podman_containers` keys mapped to the `.container` file: `name`,
 `image`, `state`, `network`, `ip`, `ip6`, `volume`/`volumes`, `ports`/`publish`,
 `env`, `cap_add`, `cap_drop`, `user`, `group`, `timezone`, `readonly_rootfs`,
-`dns`, `label`, `secret`/`secrets`, `hostname`, `command`, `pull`.
+`dns`, `label`, `secret`/`secrets`, `hostname`, `command`, `pull`,
+`selinux_type`, `selinux_disable`.
 Optional tuning keys: `stop_timeout` (default 10), `start_timeout` (default
 180), `kill_signal` (e.g. `SIGINT` for PostgreSQL smart shutdown).
+
+## Fedora / SELinux
+
+On Fedora SELinux is enforcing by default. A container process (type
+`container_t`) cannot access the Podman API socket (`podman.sock`) — SELinux
+denies it because the socket belongs to the podman runtime. This affects
+containers that need to talk to the Podman API, e.g. traefik with the Podman
+provider.
+
+### Automatic detection (Quadlet path)
+
+When `podman_use_quadlet: true` the role detects the situation automatically:
+if the target host has SELinux in enforcing mode **and** a container mounts a
+volume whose path contains `podman.sock` or `docker.sock`, the role emits
+`SecurityLabelType=container_runtime_t` for that container without any user
+input. This gives the container process the same SELinux type that podman
+itself uses, granting socket access without disabling SELinux.
+
+Explicit settings take precedence over auto-detection:
+- `selinux_disable: true` disables SELinux confinement entirely (last resort).
+- `selinux_type: "<type>"` sets an arbitrary type, overriding the auto-detected
+  `container_runtime_t`.
+
+### Manual override
+
+If you need a different type or use the non-Quadlet path, set it explicitly:
+
+```yaml
+podman_containers:
+  - name: traefik0
+    state: started
+    image: docker.io/traefik:v3.0
+    network: podmannetGUA
+    volume:
+      - "/run/podman/podman.sock:/run/podman/podman.sock"
+    selinux_type: "container_runtime_t"
+```
+
+For the non-Quadlet path (`podman_use_quadlet: false`) pass `security_opt`
+directly — the `podman_containers` module forwards it unchanged:
+
+```yaml
+podman_containers:
+  - name: traefik0
+    ...
+    security_opt:
+      - "label=type:container_runtime_t"
+```
+
+To disable SELinux confinement entirely for a container (last resort), set
+`selinux_disable: true` (Quadlet) or `security_opt: ["label=disable"]`
+(non-Quadlet).
 
 ## OpenWrt specifics
 Podman will be deployed on OpenWrt using aardvark-dns. This will clash with dnsmasq as it will usually bind to all interfaces, also the podman interface. This is why it is a requirement to only bind dnsmasq to specific interfaces and blacklist it for others like this.

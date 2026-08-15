@@ -77,10 +77,11 @@
   ansible.builtin.set_fact:
     podman_containers: "{{ podman_containers | selectattr('name', 'in', podman_limited_containers) | list }}"
   when:
+    - podman_containers is defined
     - podman_limited_containers is defined
     - not podman_runimagebuilder | default(false) | bool
 
-- name: "MMN podman - Ensure podman container directories"
+- name: "MMN podman - Ensure podman container parent directories"
   ansible.builtin.file:
     path: "{{ item.1 | split(':') | first | ansible.builtin.dirname }}"
     state: directory
@@ -89,12 +90,37 @@
     - podman_containers is defined
     - not podman_runimagebuilder | default(false) | bool
 
+- name: "MMN podman - Ensure podman container volume directories (leaf)"
+  ansible.builtin.file:
+    path: "{{ item.1 | split(':') | first }}"
+    state: directory
+  loop: "{{ podman_containers | subelements('volume', 'skip_missing=True') }}"
+  when:
+    - podman_containers is defined
+    - not podman_runimagebuilder | default(false) | bool
+  failed_when: false
+
 - name: "MMN Podman - Login docker.io"
   containers.podman.podman_login:
     registry: docker.io
     username: "{{ podman_dockerio_username }}"
     password: "{{ podman_dockerio_password }}"
   when:
+    - podman_containers is defined
+    - podman_dockerio_username is defined
+    - podman_dockerio_password is defined
+    - not podman_runimagebuilder | default(false) | bool
+
+- name: "MMN Podman - Warn about missing docker.io credentials"
+  ansible.builtin.debug:
+    msg: >-
+      docker.io credentials (podman_dockerio_username / podman_dockerio_password)
+      are not set. Skipping login. Anonymous pulls are rate-limited to roughly
+      10 images/hour/IP since April 2025. Define these vars if any container
+      pulls from docker.io.
+  when:
+    - podman_containers is defined
+    - (podman_dockerio_username is not defined) or (podman_dockerio_password is not defined)
     - not podman_runimagebuilder | default(false) | bool
 
 - name: "MMN Podman - Login additional registries"
@@ -104,5 +130,6 @@
     password: "{{ item.password }}"
   loop: "{{ podman_additional_registries }}"
   when:
+    - podman_containers is defined
     - not podman_runimagebuilder | default(false) | bool
     - podman_additional_registries is defined

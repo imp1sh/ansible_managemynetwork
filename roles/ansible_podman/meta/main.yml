@@ -6,11 +6,17 @@ galaxy_info:
   company: libcom.de
   issue_tracker_url: https://github.com/imp1sh/ansible_managemynetwork/issues
   license: BSD-3-Clause
-  min_ansible_version: "2.9"
+  min_ansible_version: "2.11"
   platforms:
     - name: Debian
       versions:
         - "bookworm"
         - "bullseye"
+    - name: Fedora
+      versions:
+        - "39"
+        - "40"
+        - "41"
+        - "42"
   galaxy_tags: [podman, container, docker]
 dependencies: []

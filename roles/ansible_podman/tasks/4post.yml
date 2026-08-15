@@ -1,4 +1,50 @@
 ---
+- name: "MMN Podman - Firewalld port management"
+  when:
+    - ansible_distribution != "OpenWrt"
+    - podman_containers is defined
+  block:
+    - name: "MMN Podman - Check firewalld state"
+      ansible.builtin.command: firewall-cmd --state
+      register: _podman_firewalld_state
+      changed_when: false
+      failed_when: false
+
+    - name: "MMN Podman - Normalize published ports"
+      ansible.builtin.set_fact:
+        _podman_all_ports: >-
+          {%- set ns = namespace(result=[]) -%}
+          {%- for c in podman_containers -%}
+          {%-   set p = c.publish | default(c.ports | default([])) -%}
+          {%-   if p is string -%}
+          {%-     set ns.result = ns.result + [p] -%}
+          {%-   else -%}
+          {%-     set ns.result = ns.result + p -%}
+          {%-   endif -%}
+          {%- endfor -%}
+          {{- ns.result | to_json -}}
+
+    - name: "MMN Podman - Open published ports in firewalld"
+      ansible.posix.firewalld:
+        port: "{{ _host_port }}/{{ _proto }}"
+        state: enabled
+        permanent: true
+        immediate: true
+      loop: "{{ _podman_all_ports | from_json }}"
+      loop_control:
+        loop_var: _raw_port
+      vars:
+        _proto: "{{ _raw_port.split('/')[1] | default('tcp') }}"
+        _port_part: "{{ _raw_port.split('/')[0] }}"
+        _stripped: "{{ _port_part | regex_replace('^\\[[0-9a-f:A-F]+\\]:', '') | regex_replace('^[0-9]{1,3}(\\.[0-9]{1,3}){3}:', '') }}"
+        _host_port: "{{ _stripped.split(':')[0] }}"
+      when:
+        - _podman_firewalld_state.rc == 0
+        - not _port_part.startswith('127.')
+        - not _port_part.startswith('localhost')
+        - not _port_part.startswith('[::1]')
+        - _host_port | length > 0
+
 - name: "MMN Podman - systemd tasks"
   ansible.builtin.include_tasks:
     file: 3systemd.yml

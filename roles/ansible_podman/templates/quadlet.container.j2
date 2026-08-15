@@ -55,6 +55,14 @@ AddCapability={{ _cap }}
 DropCapability={{ _cap }}
 {% endfor %}
 {% endif %}
+{% set _quadlet_socket_vol = _quadlet_vols | map('regex_search', '(?:podman|docker)\.sock') | select('truthy') | list | length > 0 %}
+{% if podman_container.selinux_disable | default(false) | bool %}
+SecurityLabelDisable=true
+{% elif podman_container.selinux_type is defined %}
+SecurityLabelType={{ podman_container.selinux_type }}
+{% elif (ansible_selinux.mode | default('')) == 'enforcing' and _quadlet_socket_vol %}
+SecurityLabelType=container_runtime_t
+{% endif %}
 {% if podman_container.user is defined %}
 User={{ podman_container.user }}
 {% endif %}
@@ -107,6 +115,12 @@ Environment={{ _envln }}
 {% endif %}
 {% if podman_container.pull is defined %}
 Pull={{ podman_container.pull }}
+{% endif %}
+{% if podman_container.tmpfs is defined %}
+{% set _quadlet_tmpfs = podman_container.tmpfs if (podman_container.tmpfs is iterable and podman_container.tmpfs is not string) else [podman_container.tmpfs] %}
+{% for _tmp in _quadlet_tmpfs %}
+Tmpfs={{ _tmp }}
+{% endfor %}
 {% endif %}
 
 [Service]
