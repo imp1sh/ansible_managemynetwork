@@ -1,4 +1,8 @@
 ---
+# Smoke test: role must not fail when podman_containers is undefined.
+# This exercises the guards added to prevent failures on hosts that only
+# use the role for package installation / socket enabling without
+# deploying containers.
 - hosts: localhost
   remote_user: root
   roles:

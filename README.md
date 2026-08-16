@@ -24,7 +24,7 @@ If my collection lacks a feature or you find a bug, open an [issue in the git bu
 This collection will offer support for:
 - **Debian Linux** (main focus)
 - **OpenWrt** (main focus)
-- Some roles like `ansible_users` or `ansible_groups` also support a variety of different Linux Distributions
+- Some roles like `ansible_users`, `ansible_groups` or `ansible_podman` also support a variety of different Linux Distributions
 
 
 | Role | Regular Linux | OpenWrt | Imagebuilder |

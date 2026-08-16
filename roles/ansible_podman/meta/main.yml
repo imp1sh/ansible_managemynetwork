@@ -18,5 +18,10 @@ galaxy_info:
         - "40"
         - "41"
         - "42"
+    - name: OpenWrt
+      versions:
+        - "23.05"
+        - "24.10"
+        - "25.12"
   galaxy_tags: [podman, container, docker]
 dependencies: []

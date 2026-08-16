@@ -1,2 +1,7 @@
 localhost
 
+[fedora]
+fedora.example.net
+
+[debian]
+debian.example.net

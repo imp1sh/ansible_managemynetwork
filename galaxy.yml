@@ -8,7 +8,10 @@ authors:
 description: A collection of several roles that I need to manage my network. You can use it as well.
 license_file: 'LICENSE'
 tags: [server, system, management, freebsd, debian, network, services, openwrt]
-dependencies: {}
+dependencies:
+  "containers.podman": "*"
+  "community.general": "*"
+  "ansible.posix": "*"
 repository: https://github.com/imp1sh/ansible_managemynetwork
 documentation: https://github.com/imp1sh/ansible_managemynetwork/blob/main/README.md
 homepage: https://wiki.junicast.de
