@@ -1,0 +1,6 @@
+---
+- name: Restart traefik container
+  ansible.builtin.systemd:
+    name: "{{ ('container-' ~ traefik_containername) if not (podman_use_quadlet | default(false) | bool) else traefik_containername }}"
+    state: restarted
+  when: traefik_containername is not none

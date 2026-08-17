@@ -1,0 +1,70 @@
+---
+- name: "MMN traefik - Validate config path"
+  ansible.builtin.assert:
+    that:
+      - traefik_path_config is defined
+      - traefik_path_config | string | length > 0
+    fail_msg: "traefik_path_config must be a non-empty string giving the host bind-mount directory for traefik.yml."
+    success_msg: "traefik_path_config is set."
+  when: traefik_path_config is defined
+
+- name: "MMN traefik - Validate acme path is a file path"
+  ansible.builtin.assert:
+    that:
+      - traefik_path_acme is defined
+      - traefik_path_acme | string | length > 0
+      - traefik_path_acme is regex('[^/]+\.(json|ya?ml)$')
+    fail_msg: "traefik_path_acme must be a file path ending in .json, .yml or .yaml (not a directory)."
+    success_msg: "traefik_path_acme looks like a file path."
+  when: traefik_path_acme is defined
+
+- name: "MMN traefik - Validate acme mode is 0600"
+  ansible.builtin.assert:
+    that:
+      - traefik_mode_acme | string == "0600"
+    fail_msg: "traefik_mode_acme must be '0600' — traefik refuses to start with looser permissions on acme.json."
+    success_msg: "traefik_mode_acme is 0600."
+  when: traefik_mode_acme is defined
+
+- name: "MMN traefik - Validate entrypoints type"
+  ansible.builtin.assert:
+    that:
+      - traefik_entrypoints | type_debug == 'dict'
+    fail_msg: "traefik_entrypoints must be a dict keyed by entrypoint name."
+    success_msg: "traefik_entrypoints is a dict."
+  when: traefik_entrypoints is defined
+
+- name: "MMN traefik - Validate providers type"
+  ansible.builtin.assert:
+    that:
+      - traefik_providers | type_debug == 'dict'
+    fail_msg: "traefik_providers must be a dict (e.g. with docker/file subsections)."
+    success_msg: "traefik_providers is a dict."
+  when: traefik_providers is defined
+
+- name: "MMN traefik - Validate certificates_resolvers type"
+  ansible.builtin.assert:
+    that:
+      - traefik_certificates_resolvers | type_debug == 'dict'
+    fail_msg: "traefik_certificates_resolvers must be a dict keyed by resolver name."
+    success_msg: "traefik_certificates_resolvers is a dict."
+  when: traefik_certificates_resolvers is defined
+
+- name: "MMN traefik - Validate dynamic_config type"
+  ansible.builtin.assert:
+    that:
+      - traefik_dynamic_config | type_debug == 'dict'
+    fail_msg: "traefik_dynamic_config must be a dict keyed by filename stem; each value is a dynamic-config object."
+    success_msg: "traefik_dynamic_config is a dict."
+  when: traefik_dynamic_config is defined
+
+- name: "MMN traefik - Validate owner/group"
+  ansible.builtin.assert:
+    that:
+      - traefik_owner is defined
+      - traefik_owner | string | length > 0
+      - traefik_group is defined
+      - traefik_group | string | length > 0
+    fail_msg: "traefik_owner and traefik_group must be non-empty strings (matching the container image UID/GID)."
+    success_msg: "traefik_owner/traefik_group are set."
+  when: traefik_owner is defined or traefik_group is defined

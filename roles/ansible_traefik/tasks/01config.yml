@@ -1,0 +1,61 @@
+---
+- name: "MMN traefik - Ensure config directory exists"
+  ansible.builtin.file:
+    path: "{{ traefik_path_config }}"
+    state: directory
+    owner: "{{ traefik_owner }}"
+    group: "{{ traefik_group }}"
+    mode: "{{ traefik_mode_config }}"
+
+- name: "MMN traefik - Ensure dynamic config directory exists"
+  ansible.builtin.file:
+    path: "{{ traefik_path_dynamic }}"
+    state: directory
+    owner: "{{ traefik_owner }}"
+    group: "{{ traefik_group }}"
+    mode: "{{ traefik_mode_dynamic }}"
+
+- name: "MMN traefik - Initialise acme.json (create if absent, never overwrite)"
+  ansible.builtin.copy:
+    content: ""
+    dest: "{{ traefik_path_acme }}"
+    owner: "{{ traefik_owner }}"
+    group: "{{ traefik_group }}"
+    mode: "{{ traefik_mode_acme }}"
+    force: false
+
+- name: "MMN traefik - Render traefik.yml (static config)"
+  ansible.builtin.template:
+    src: traefik.yml.j2
+    dest: "{{ traefik_path_config }}/{{ traefik_file_config }}"
+    owner: "{{ traefik_owner }}"
+    group: "{{ traefik_group }}"
+    mode: "{{ traefik_mode_config }}"
+  notify: Restart traefik container
+
+- name: "MMN traefik - Render dynamic config files"
+  ansible.builtin.template:
+    src: dynamic.yml.j2
+    dest: "{{ traefik_path_dynamic }}/{{ traefik_dynamic_entry.key }}.yml"
+    owner: "{{ traefik_owner }}"
+    group: "{{ traefik_group }}"
+    mode: "{{ traefik_mode_dynamic }}"
+  loop: "{{ traefik_dynamic_config | dict2items }}"
+  loop_control:
+    loop_var: traefik_dynamic_entry
+  vars:
+    _traefik_dynamic_content: "{{ traefik_dynamic_entry.value }}"
+  when: traefik_dynamic_config | length > 0
+
+- name: "MMN traefik - Debug static config"
+  ansible.builtin.debug:
+    msg:
+      entrypoints: "{{ traefik_entrypoints }}"
+      providers: "{{ traefik_providers }}"
+      certificates_resolvers: "{{ traefik_certificates_resolvers }}"
+  when: mmn_verbose | default(false) | bool
+
+- name: "MMN traefik - Debug dynamic config"
+  ansible.builtin.debug:
+    var: traefik_dynamic_config
+  when: mmn_verbose | default(false) | bool

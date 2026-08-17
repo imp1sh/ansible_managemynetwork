@@ -1,0 +1,40 @@
+---
+# Managed by imp1sh.ansible_managemynetwork.ansible_traefik — do not edit by hand.
+{% if traefik_entrypoints %}
+entryPoints:
+{% for _ep_name, _ep_config in traefik_entrypoints.items() %}
+  {{ _ep_name }}:
+{{ _ep_config | to_nice_yaml(indent=2) | indent(4, true) }}
+{% endfor %}
+{% endif %}
+{% if traefik_providers %}
+providers:
+{{ traefik_providers | to_nice_yaml(indent=2) | indent(2, true) }}
+{% endif %}
+{% if traefik_certificates_resolvers %}
+certificatesResolvers:
+{% for _cr_name, _cr_config in traefik_certificates_resolvers.items() %}
+  {{ _cr_name }}:
+{{ _cr_config | to_nice_yaml(indent=2) | indent(4, true) }}
+{% endfor %}
+{% endif %}
+{% if traefik_api is not none %}
+api:
+{{ traefik_api | to_nice_yaml(indent=2) | indent(2, true) }}
+{% endif %}
+{% if traefik_log is not none %}
+log:
+{{ traefik_log | to_nice_yaml(indent=2) | indent(2, true) }}
+{% endif %}
+{% if traefik_access_log is not none %}
+accessLog:
+{{ traefik_access_log | to_nice_yaml(indent=2) | indent(2, true) }}
+{% endif %}
+{% if traefik_ping is not none %}
+ping:
+{{ traefik_ping | to_nice_yaml(indent=2) | indent(2, true) }}
+{% endif %}
+{% if traefik_experimental is not none %}
+experimental:
+{{ traefik_experimental | to_nice_yaml(indent=2) | indent(2, true) }}
+{% endif %}

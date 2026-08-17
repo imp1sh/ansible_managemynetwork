@@ -1,0 +1,15 @@
+---
+- name: "MMN traefik - Validate inputs"
+  ansible.builtin.include_tasks: checks.yml
+  when: traefik_entrypoints is defined
+
+- name: "MMN traefik - Render configuration"
+  ansible.builtin.include_tasks: 01config.yml
+  when: traefik_entrypoints is defined
+
+- name: "MMN traefik - Skip status feedback"
+  ansible.builtin.debug:
+    msg: >-
+      The role ansible_traefik did not run on host {{ inventory_hostname }}
+      because the var traefik_entrypoints is not set.
+  when: traefik_entrypoints is not defined

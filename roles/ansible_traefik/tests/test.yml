@@ -1,0 +1,48 @@
+---
+- hosts: traefik
+  remote_user: root
+  roles:
+    - ansible_traefik
+  vars:
+    traefik_path_config: "/tmp/traefik-test/etc"
+    traefik_path_dynamic: "/tmp/traefik-test/etc/dynamic"
+    traefik_path_acme: "/tmp/traefik-test/etc/acme.json"
+    traefik_entrypoints:
+      web:
+        address: ":80"
+      websecure:
+        address: ":443"
+        http:
+          tls:
+            certResolver: letsencrypt
+    traefik_providers:
+      docker:
+        endpoint: "unix:///var/run/docker.sock"
+        exposedByDefault: false
+      file:
+        directory: "/etc/traefik/dynamic"
+        watch: true
+    traefik_certificates_resolvers:
+      letsencrypt:
+        acme:
+          email: "admin@example.com"
+          storage: "/etc/traefik/acme.json"
+          httpChallenge:
+            entryPoint: web
+    traefik_api:
+      dashboard: true
+    traefik_log:
+      level: INFO
+    traefik_dynamic_config:
+      redirect:
+        http:
+          routers:
+            router0:
+              rule: "Host(`example.com`)"
+              middlewares:
+                - redirect-to-https
+              service: noop
+          middlewares:
+            redirect-to-https:
+              redirectScheme:
+                scheme: https

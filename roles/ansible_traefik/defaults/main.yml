@@ -1,0 +1,111 @@
+---
+# ansible_traefik — container-only role.
+#
+# Renders Traefik static configuration (traefik.yml), dynamic file-provider
+# configuration, and initialises the ACME certificate store (acme.json) onto
+# host-side bind-mount paths consumed by a podman container. The container
+# itself is declared by the caller via the ansible_podman role; this role only
+# owns the configuration files. It performs no package installation and no
+# service management.
+#
+# Many traefik options can alternatively be set via env vars or labels on the
+# container definition; those are the caller's responsibility. This role
+# handles the parts that must be files: static config, dynamic file-provider
+# config, and acme.json.
+
+# --- Paths (host bind-mount roots) ---
+# Where traefik.yml is rendered. Bind-mount into the container (typically
+# /etc/traefik).
+traefik_path_config: "/mnt/cntr/unsynced/traefik/0/etc"
+
+# Where dynamic file-provider configs are rendered. Bind-mount into the
+# container (typically /etc/traefik/dynamic). Traefik watches this directory and
+# hot-reloads on file changes — no container restart needed for dynamic config.
+traefik_path_dynamic: "{{ traefik_path_config }}/dynamic"
+
+# Path to acme.json (a FILE, not a directory). Bind-mount into the container
+# (typically /etc/traefik/acme.json). Created with mode 0600 if absent; NEVER
+# overwritten if it already exists (holds irreplaceable Let's Encrypt
+# certificates).
+traefik_path_acme: "{{ traefik_path_config }}/acme.json"
+
+# --- Filenames ---
+traefik_file_config: "traefik.yml"
+
+# --- Ownership / modes ---
+# The official traefik image runs as root by default (needs :80/:443). Override
+# per image if yours runs as a non-root user.
+traefik_owner: "root"
+traefik_group: "root"
+traefik_mode_config: "0644"
+traefik_mode_dynamic: "0644"
+# acme.json MUST be 0600 — traefik refuses to start otherwise (security).
+traefik_mode_acme: "0600"
+
+# --- Static configuration (traefik.yml) ---
+# Structured vars serialised to YAML. Each maps directly to the corresponding
+# top-level key in traefik's static config. Leave at the default (empty/null)
+# to omit the section.
+#
+# traefik_entrypoints: dict of entrypoint name -> config
+#   traefik_entrypoints:
+#     web:
+#       address: ":80"
+#     websecure:
+#       address: ":443"
+#       http:
+#         tls:
+#           certResolver: letsencrypt
+traefik_entrypoints: {}
+
+# traefik_providers: dict with docker/file/other subsections
+#   traefik_providers:
+#     docker:
+#       endpoint: "unix:///var/run/docker.sock"
+#       exposedByDefault: false
+#     file:
+#       directory: "/etc/traefik/dynamic"
+#       watch: true
+traefik_providers: {}
+
+# traefik_certificates_resolvers: dict of resolver name -> config
+#   traefik_certificates_resolvers:
+#     letsencrypt:
+#       acme:
+#         email: "admin@example.com"
+#         storage: "/etc/traefik/acme.json"
+#         httpChallenge:
+#           entryPoint: web
+traefik_certificates_resolvers: {}
+
+# Optional top-level static-config sections (dict/struct or null to omit).
+traefik_api: null
+traefik_log: null
+traefik_access_log: null
+traefik_ping: null
+traefik_experimental: null
+
+# --- Dynamic configuration (file provider) ---
+# Dict keyed by filename stem; each value is a dynamic-config dict (routers,
+# services, middlewares, tls, http, tcp, udp — whatever traefik's file provider
+# accepts). Rendered as <stem>.yml in traefik_path_dynamic.
+#   traefik_dynamic_config:
+#     redirect:
+#       http:
+#         routers:
+#           router0:
+#             rule: "Host(`example.com`)"
+#             middlewares:
+#               - "redirect-to-https"
+#         middlewares:
+#           redirect-to-https:
+#             redirectScheme:
+#               scheme: "https"
+traefik_dynamic_config: {}
+
+# --- reload mechanism ---
+# Name of the podman container running traefik. When set, static-config changes
+# notify a handler that restarts the container (traefik cannot reload static
+# config on SIGHUP — a full restart is required). Dynamic config files are
+# hot-reloaded by traefik's file watcher and need no handler.
+traefik_containername: null
