@@ -1,7 +1,8 @@
 galaxy_info:
   role_name: nftables
   author: imp1sh
-  description: configures nftables plain without the need of wrappers. firewall/workstation/server mode. Best nftables role out there.
+  deprecated: true
+  description: "[DEPRECATED] configures nftables plain without the need of wrappers. firewall/workstation/server mode. Development stopped; prefer OS-integrated wrappers (ufw/firewalld)."
   license: BSD-3-Clause
   min_ansible_version: 2.0
   platforms:

@@ -1,3 +1,6 @@
+> **STALE / UNMAINTAINED**
+> Development of this role has stopped. It still works as-is but receives no active improvements or fixes beyond emergency patches. Prefer OS-integrated wrappers around nftables — e.g. `ufw` on Debian/Ubuntu or `firewalld` on RHEL-family — which integrate better with distro tooling, logging and service management.
+
 # ansible_nftables
 This role lets you run your nftables firewall without ufw or firewalld or any other wrapper. It's native nftables code. No more iptables.
 ## setup
