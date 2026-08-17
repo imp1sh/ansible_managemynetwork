@@ -1,5 +1,5 @@
 ---
-# defaults file for ansible_cacert
+# ansible_cacert defaults
 cacert_tag_privatekey: "privatekey"
 cacert_tag_certificate: "certificate"
 cacert_tag_clientcert: "clientcert"
@@ -14,13 +14,16 @@ cacert_cas: {}
 # client cert definitions (list)
 cacert_clientcerts: []
 
-# server cert defaults
-cacert_servercert_common_name: "{{ inventory_hostname }}"
-cacert_servercert_bitsize: 4096
-cacert_servercert_type: "RSA"
-cacert_servercert_not_before: "-1d"
-cacert_servercert_not_after: "+52w"
-cacert_servercert_force: false
+# default cert (the automatic per-host server cert) controls + inheritance base
+# for additional certs (cacert_additionalcerts). Set state to "absent" to skip
+# generating and to remove the default cert on a host.
+cacert_defaultcert_state: "present"
+cacert_defaultcert_common_name: "{{ inventory_hostname }}"
+cacert_defaultcert_bitsize: 4096
+cacert_defaultcert_type: "RSA"
+cacert_defaultcert_not_before: "-1d"
+cacert_defaultcert_not_after: "+52w"
+cacert_defaultcert_force: false
 
 # client cert defaults
 cacert_clientcert_bitsize: 4096

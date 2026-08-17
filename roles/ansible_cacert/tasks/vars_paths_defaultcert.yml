@@ -1,0 +1,10 @@
+---
+- name: "MMN cacert - Default cert filename vars"
+  ansible.builtin.set_fact:
+    cacert_filename_defaultcert: "{{ cacert_ca.key }}_{{ inventory_hostname }}_{{ cacert_tag_certificate }}.pem"
+    cacert_filename_defaultkey: "{{ cacert_ca.key }}_{{ inventory_hostname }}_{{ cacert_tag_privatekey }}.pem"
+
+- name: "MMN cacert - Default cert and key path"
+  ansible.builtin.set_fact:
+    cacert_path_defaultcert: "{{ cacert_openssl_path_certificate_server }}/{{ cacert_filename_defaultcert }}"
+    cacert_path_defaultkey: "{{ cacert_openssl_path_key_server }}/{{ cacert_filename_defaultkey }}"

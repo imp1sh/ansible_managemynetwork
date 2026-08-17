@@ -1,0 +1,18 @@
+---
+- name: "MMN cacert - Default cert other host paths must exist"
+  delegate_to: "{{ cacert_defaultcert_additionalhost.targethost }}"
+  become: True
+  ansible.builtin.file:
+    state: directory
+    path: "{{ cacert_defaultcert_additionalhost.targethostpath }}"
+    owner: "{{ cacert_defaultcert_additionalhost.targethostuser | default(omit) }}"
+    group: "{{ cacert_defaultcert_additionalhost.targethostgroup | default(omit) }}"
+
+- name: "MMN cacert - Copy default cert also to other hosts"
+  delegate_to: "{{ cacert_defaultcert_additionalhost.targethost }}"
+  become: True
+  ansible.builtin.copy:
+    content: "{{ cacert_defaultcert_existing.content | b64decode }}"
+    dest: "{{ cacert_defaultcert_additionalhost.targethostpath }}/{{ cacert_filename_defaultcert }}"
+    owner: "{{ cacert_defaultcert_additionalhost.targethostuser | default(omit) }}"
+    group: "{{ cacert_defaultcert_additionalhost.targethostgroup | default(omit) }}"

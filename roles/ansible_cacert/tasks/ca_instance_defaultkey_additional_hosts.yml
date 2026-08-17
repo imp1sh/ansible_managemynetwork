@@ -1,0 +1,39 @@
+---
+- name: "MMN cacert - Default key additional hosts block"
+  when:
+    - cacert_ca.value.state | default('present') == 'present'
+    - cacert_defaultcert_state | default('present') == 'present'
+  block:
+    # COPY DEFAULT KEY ALSO TO OTHER HOSTS
+    - name: "MMN cacert - Additional hosts for default key block"
+      when:
+        - cacert_defaultcert_additionalhosts is defined
+        - cacert_defaultcert_additionalhosts | selectattr('alsokey', 'defined') | selectattr('alsokey', 'equalto', true) | list | length > 0
+      block:
+        - name: "MMN cacert - Get default key from file into var"
+          become: True
+          ansible.builtin.slurp:
+            src: "{{ cacert_path_defaultkey }}"
+          register: cacert_defaultkey_existing
+
+        - name: "MMN cacert - Iterate over default key additional hosts"
+          ansible.builtin.include_tasks: ca_instance_defaultkey_additional_hosts_instance.yml
+          loop: "{{ cacert_defaultcert_additionalhosts }}"
+          loop_control:
+            loop_var: "cacert_defaultkey_additionalhost"
+          when:
+            - cacert_defaultkey_additionalhost.state | default('present') == 'present'
+            - cacert_defaultkey_additionalhost.alsokey | default(False)
+
+- name: "MMN cacert - Remove default key from additional hosts"
+  delegate_to: "{{ cacert_defaultkey_additionalhost.targethost }}"
+  become: True
+  ansible.builtin.file:
+    path: "{{ cacert_defaultkey_additionalhost.targethostpath }}/{{ cacert_filename_defaultkey }}"
+    state: absent
+  loop: "{{ cacert_defaultcert_additionalhosts | default([]) }}"
+  loop_control:
+    loop_var: "cacert_defaultkey_additionalhost"
+  when:
+    - cacert_defaultcert_additionalhosts is defined
+    - (cacert_defaultkey_additionalhost.state | default('present') == 'absent') or (cacert_ca.value.state | default('present') == 'absent') or (cacert_defaultcert_state | default('present') == 'absent')

@@ -61,8 +61,8 @@
 - name: "MMN cacert - Build CA variables for target host"
   ansible.builtin.include_tasks: vars_paths_ca_targethost.yml
 
-- name: "MMN cacert - Build servercert and key variables"
-  ansible.builtin.include_tasks: vars_paths_server.yml
+- name: "MMN cacert - Build default cert and key variables"
+  ansible.builtin.include_tasks: vars_paths_defaultcert.yml
 
 - name: "MMN cacert - Build client cert and key variables"
   ansible.builtin.include_tasks: vars_paths_client.yml
@@ -79,22 +79,21 @@
     - not cacert_runimagebuilder | default(false) | bool
     - cacert_browser_trust | default(true) | bool
 
-# SERVER CERT PRIVATE KEY - TARGET HOST
-- name: "MMN cacert - Manage server key on target host"
-  ansible.builtin.include_tasks: ca_instance_serverkey.yml
+# DEFAULT CERT PRIVATE KEY - TARGET HOST
+- name: "MMN cacert - Manage default cert key on target host"
+  ansible.builtin.include_tasks: ca_instance_defaultkey.yml
 
-# SERVER CERT PRIVATE KEY - ADDITIONAL HOSTS
-- name: "MMN cacert - Manage server key on additional hosts"
-  ansible.builtin.include_tasks: ca_instance_serverkey_additional_hosts.yml
+# DEFAULT CERT PRIVATE KEY - ADDITIONAL HOSTS
+- name: "MMN cacert - Manage default cert key on additional hosts"
+  ansible.builtin.include_tasks: ca_instance_defaultkey_additional_hosts.yml
 
-# SERVER CERT - TARGET HOST
-- name: "MMN cacert - Manage server cert on target host"
-  ansible.builtin.include_tasks: ca_instance_servercert.yml
+# DEFAULT CERT - TARGET HOST
+- name: "MMN cacert - Manage default cert on target host"
+  ansible.builtin.include_tasks: ca_instance_defaultcert.yml
 
-# SERVER CERT - ADDITIONAL HOSTS
-- name: "MMN cacert - Manage server cert on additional hosts"
-  ansible.builtin.include_tasks: ca_instance_servercert_additional_hosts.yml
-
+# DEFAULT CERT - ADDITIONAL HOSTS
+- name: "MMN cacert - Manage default cert on additional hosts"
+  ansible.builtin.include_tasks: ca_instance_defaultcert_additional_hosts.yml
 
 # CLIENT CERT PRIVATE KEY
 - name: "MMN cacert - Manage client key"

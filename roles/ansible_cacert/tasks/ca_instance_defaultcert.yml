@@ -1,0 +1,158 @@
+---
+- name: "MMN cacert - Default cert present block"
+  when:
+    - cacert_ca.value.state | default('present') == 'present'
+    - cacert_defaultcert_state | default('present') == 'present'
+  block:
+    - name: "MMN cacert - Check if default cert exists"
+      ansible.builtin.stat:
+        path: "{{ cacert_path_defaultcert }}"
+      register: stat_defaultcert
+      delegate_to: "{{ _cacert_target_host }}"
+
+    - name: "MMN cacert - Read existing default certificate"
+      ansible.builtin.slurp:
+        src: "{{ cacert_path_defaultcert }}"
+      register: cacert_defaultcert_existing
+      when: stat_defaultcert.stat.exists
+      delegate_to: "{{ _cacert_target_host }}"
+
+    - name: "MMN cacert - Check if default cert is expired"
+      become: "{{ _cacert_become }}"
+      ansible.builtin.command:
+        cmd: "openssl x509 -in {{ cacert_path_defaultcert }} -checkend 0 -noout"
+      register: _defaultcert_expiry
+      changed_when: false
+      failed_when: false
+      when: stat_defaultcert.stat.exists
+      delegate_to: "{{ _cacert_target_host }}"
+
+    - name: "MMN cacert - Combine default and user-defined SANs for default cert"
+      ansible.builtin.set_fact:
+        cacert_defaultcert_altnames_combined: "{{ cacert_defaultcert_altnames | default([]) }}"
+
+    - name: "MMN cacert - Manage default cert CSR"
+      become: "{{ _cacert_become }}"
+      community.crypto.openssl_csr_pipe:
+        privatekey_path: "{{ cacert_path_defaultkey }}"
+        privatekey_passphrase: "{{ cacert_defaultcert_passphrase | default(omit) }}"
+        common_name: "{{ cacert_defaultcert_common_name | default(inventory_hostname) }}"
+        organization_name: "{{ cacert_defaultcert_organization_name | default(omit) }}"
+        organizational_unit_name: "{{ cacert_defaultcert_organizational_unit_name | default(omit) }}"
+        state_or_province_name: "{{ cacert_defaultcert_state_or_province_name | default(omit) }}"
+        locality_name: "{{ cacert_defaultcert_locality_name | default(omit) }}"
+        country_name: "{{ cacert_defaultcert_country_name | default(omit) }}"
+        email_address: "{{ cacert_defaultcert_email_address | default(omit) }}"
+        subject_alt_name: >-
+          {{
+            (
+              ['DNS:' ~ (cacert_defaultcert_common_name | default(inventory_hostname))]
+              +
+              (
+                cacert_defaultcert_altnames_combined
+                | map(attribute='prefix')
+                | zip(cacert_defaultcert_altnames_combined | map(attribute='name'))
+                | map('join', ':')
+                | list
+              )
+            )
+          }}
+      register: csr_defaultcert
+      changed_when: false
+      delegate_to: "{{ _cacert_target_host }}"
+
+    - name: "MMN cacert - Normalize default cert validity timespecs (y->w)"
+      ansible.builtin.set_fact:
+        _cacert_def_na: >-
+          {%- set t = cacert_defaultcert_not_after | default('+52w') -%}
+          {%- if t[-1] == 'y' -%}{{ t[0] }}{{ (t[1:-1] | int) * 52 }}w{%- else -%}{{ t }}{%- endif -%}
+        _cacert_def_nb: >-
+          {%- set t = cacert_defaultcert_not_before | default('-1d') -%}
+          {%- if t[-1] == 'y' -%}{{ t[0] }}{{ (t[1:-1] | int) * 52 }}w{%- else -%}{{ t }}{%- endif -%}
+
+    - name: "MMN cacert - Sign default certificate with our CA"
+      become: True
+      delegate_to: "{{ cacert_ca_manager_host }}"
+      community.crypto.x509_certificate_pipe:
+        csr_content: "{{ csr_defaultcert.csr }}"
+        content: "{{ (cacert_defaultcert_existing.content | b64decode) if stat_defaultcert.stat.exists else omit }}"
+        force: "{{ (cacert_defaultcert_force | default(false) | bool) or ((_defaultcert_expiry.rc | default(0)) != 0) }}"
+        provider: ownca
+        ownca_path: "{{ cacert_path_cacert }}"
+        ownca_privatekey_path: "{{ cacert_path_cakey }}"
+        ownca_privatekey_passphrase: "{{ cacert_ca.value.key.passphrase | default(omit) }}"
+        ownca_not_after: "{{ _cacert_def_na }}"
+        ownca_not_before: "{{ _cacert_def_nb }}"
+      register: cacert_defaultcert_result
+
+    - name: "MMN cacert - Make sure default cert directory exists"
+      become: "{{ _cacert_become }}"
+      ansible.builtin.file:
+        state: directory
+        path: "{{ cacert_openssl_path_certificate_server }}"
+        mode: "0755"
+      delegate_to: "{{ _cacert_target_host }}"
+
+    - name: "MMN cacert - Write default cert to file"
+      become: "{{ _cacert_become }}"
+      ansible.builtin.copy:
+        dest: "{{ cacert_path_defaultcert }}"
+        content: "{{ cacert_defaultcert_result.certificate }}"
+      when:
+        - cacert_defaultcert_result is changed
+      delegate_to: "{{ _cacert_target_host }}"
+
+    # ADDITIONAL PATHS
+    - name: "MMN cacert - Make sure default cert additional paths exist"
+      become: "{{ _cacert_become }}"
+      ansible.builtin.file:
+        state: directory
+        path: "{{ additionalpaths.dest }}"
+      loop: "{{ cacert_defaultcert_additionalpaths }}"
+      loop_control:
+        loop_var: "additionalpaths"
+      when:
+        - cacert_defaultcert_additionalpaths is defined
+        - additionalpaths.state | default('present') == 'present'
+        - not cacert_runimagebuilder | default(false) | bool
+      delegate_to: "{{ _cacert_target_host }}"
+
+    - name: "MMN cacert - Write default cert to additional paths"
+      become: "{{ _cacert_become }}"
+      ansible.builtin.copy:
+        src: "{{ cacert_path_defaultcert }}"
+        remote_src: True
+        dest: "{{ additionalpaths.dest }}/{{ cacert_filename_defaultcert }}"
+        owner: "{{ additionalpaths.user | default(omit) }}"
+        group: "{{ additionalpaths.group | default(omit) }}"
+      loop: "{{ cacert_defaultcert_additionalpaths }}"
+      loop_control:
+        loop_var: "additionalpaths"
+      when:
+        - cacert_defaultcert_additionalpaths is defined
+        - additionalpaths.state | default('present') == 'present'
+        - not cacert_runimagebuilder | default(false) | bool
+      delegate_to: "{{ _cacert_target_host }}"
+
+- name: "MMN cacert - Remove default cert"
+  become: "{{ _cacert_become }}"
+  ansible.builtin.file:
+    path: "{{ cacert_path_defaultcert }}"
+    state: absent
+  when:
+    - (cacert_ca.value.state | default('present') == 'absent') or (cacert_defaultcert_state | default('present') == 'absent')
+  delegate_to: "{{ _cacert_target_host }}"
+
+- name: "MMN cacert - Remove default cert from additional paths"
+  become: "{{ _cacert_become }}"
+  ansible.builtin.file:
+    path: "{{ additionalpaths.dest }}/{{ cacert_filename_defaultcert }}"
+    state: absent
+  loop: "{{ cacert_defaultcert_additionalpaths }}"
+  loop_control:
+    loop_var: "additionalpaths"
+  when:
+    - cacert_defaultcert_additionalpaths is defined
+    - (additionalpaths.state | default('present') == 'absent') or (cacert_ca.value.state | default('present') == 'absent') or (cacert_defaultcert_state | default('present') == 'absent')
+    - not cacert_runimagebuilder | default(false) | bool
+  delegate_to: "{{ _cacert_target_host }}"

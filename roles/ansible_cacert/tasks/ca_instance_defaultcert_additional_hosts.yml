@@ -1,0 +1,32 @@
+---
+- name: "MMN cacert - Default cert additional hosts block"
+  when:
+    - cacert_ca.value.state | default('present') == 'present'
+    - cacert_defaultcert_state | default('present') == 'present'
+    - cacert_defaultcert_additionalhosts is defined
+  block:
+    - name: "MMN cacert - Read existing default certificate"
+      become: True
+      ansible.builtin.slurp:
+        src: "{{ cacert_path_defaultcert }}"
+      register: cacert_defaultcert_existing
+
+    - name: "MMN cacert - Iterate over default cert additional hosts"
+      ansible.builtin.include_tasks: ca_instance_defaultcert_additional_hosts_instance.yml
+      loop: "{{ cacert_defaultcert_additionalhosts }}"
+      loop_control:
+        loop_var: "cacert_defaultcert_additionalhost"
+      when: cacert_defaultcert_additionalhost.state | default('present') == 'present'
+
+- name: "MMN cacert - Remove default cert from additional hosts"
+  delegate_to: "{{ cacert_defaultcert_additionalhost.targethost }}"
+  become: True
+  ansible.builtin.file:
+    path: "{{ cacert_defaultcert_additionalhost.targethostpath }}/{{ cacert_filename_defaultcert }}"
+    state: absent
+  loop: "{{ cacert_defaultcert_additionalhosts | default([]) }}"
+  loop_control:
+    loop_var: "cacert_defaultcert_additionalhost"
+  when:
+    - cacert_defaultcert_additionalhosts is defined
+    - (cacert_defaultcert_additionalhost.state | default('present') == 'absent') or (cacert_ca.value.state | default('present') == 'absent') or (cacert_defaultcert_state | default('present') == 'absent')

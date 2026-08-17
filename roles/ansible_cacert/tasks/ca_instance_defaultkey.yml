@@ -1,0 +1,81 @@
+---
+# PRIVATE KEY FOR DEFAULT CERT
+
+- name: "MMN cacert - Default cert key present block"
+  when:
+    - cacert_ca.value.state | default('present') == 'present'
+    - cacert_defaultcert_state | default('present') == 'present'
+  block:
+    - name: "MMN cacert - Make sure default key directory exists"
+      become: "{{ _cacert_become }}"
+      ansible.builtin.file:
+        state: directory
+        path: "{{ cacert_openssl_path_key_server }}"
+        mode: "0755"
+      delegate_to: "{{ _cacert_target_host }}"
+
+    - name: "MMN cacert - Create default cert private key"
+      become: "{{ _cacert_become }}"
+      community.crypto.openssl_privatekey:
+        path: "{{ cacert_path_defaultkey }}"
+        passphrase: "{{ cacert_defaultcert_passphrase | default(omit) }}"
+        size: "{{ cacert_defaultcert_bitsize | default('4096') }}"
+        type: "{{ cacert_defaultcert_type | default('RSA') }}"
+        curve: "{{ cacert_defaultcert_curve | default(omit) }}"
+        mode: "0600"
+      delegate_to: "{{ _cacert_target_host }}"
+
+    - name: "MMN cacert - Make sure default key additional paths exist"
+      become: "{{ _cacert_become }}"
+      ansible.builtin.file:
+        state: directory
+        path: "{{ additionalpaths.dest }}"
+      loop: "{{ cacert_defaultkey_additionalpaths }}"
+      loop_control:
+        loop_var: "additionalpaths"
+      when:
+        - cacert_defaultkey_additionalpaths is defined
+        - additionalpaths.state | default('present') == 'present'
+        - not cacert_runimagebuilder | default(false) | bool
+      delegate_to: "{{ _cacert_target_host }}"
+
+    - name: "MMN cacert - Write default private key to additional paths"
+      become: "{{ _cacert_become }}"
+      ansible.builtin.copy:
+        src: "{{ cacert_path_defaultkey }}"
+        remote_src: True
+        dest: "{{ additionalpaths.dest }}/{{ cacert_filename_defaultkey }}"
+        mode: "0600"
+        owner: "{{ additionalpaths.user | default(omit) }}"
+        group: "{{ additionalpaths.group | default(omit) }}"
+      loop: "{{ cacert_defaultkey_additionalpaths }}"
+      loop_control:
+        loop_var: "additionalpaths"
+      when:
+        - cacert_defaultkey_additionalpaths is defined
+        - additionalpaths.state | default('present') == 'present'
+        - not cacert_runimagebuilder | default(false) | bool
+      delegate_to: "{{ _cacert_target_host }}"
+
+- name: "MMN cacert - Remove default private key"
+  become: "{{ _cacert_become }}"
+  ansible.builtin.file:
+    path: "{{ cacert_path_defaultkey }}"
+    state: absent
+  when:
+    - (cacert_ca.value.state | default('present') == 'absent') or (cacert_defaultcert_state | default('present') == 'absent')
+  delegate_to: "{{ _cacert_target_host }}"
+
+- name: "MMN cacert - Remove default private key from additional paths"
+  become: "{{ _cacert_become }}"
+  ansible.builtin.file:
+    path: "{{ additionalpaths.dest }}/{{ cacert_filename_defaultkey }}"
+    state: absent
+  loop: "{{ cacert_defaultkey_additionalpaths }}"
+  loop_control:
+    loop_var: "additionalpaths"
+  when:
+    - cacert_defaultkey_additionalpaths is defined
+    - (additionalpaths.state | default('present') == 'absent') or (cacert_ca.value.state | default('present') == 'absent') or (cacert_defaultcert_state | default('present') == 'absent')
+    - not cacert_runimagebuilder | default(false) | bool
+  delegate_to: "{{ _cacert_target_host }}"
