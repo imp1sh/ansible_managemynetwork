@@ -283,6 +283,18 @@ cacert_defaultcert_not_before: "-2d"
   #          6462363132653932353963333665336434393035633565656337
 ```
 
+## Multiple CAs
+
+You can define more than one CA in `cacert_cas` (e.g. an RSA root and an ECC root for algorithm agility). The role iterates over every CA and, **for each CA**, issues the full set of certs on every target host:
+
+- the **default cert** (one per CA),
+- every **additional cert** in `cacert_additionalcerts` (one per CA per entry),
+- every **client cert** in `cacert_clientcerts` (one per CA per entry).
+
+There is **no per-cert CA binding**: a cert spec cannot ask to be signed by a specific CA. With N CAs you therefore get N copies of each cert, distinguished only by the CA-identifier filename prefix (`<cakey>_<id>_<tag>.pem`). Each copy is signed by a different CA.
+
+This is deliberate when you want redundant chains (clients pick whichever CA they trust), but it multiplies the issued artefacts linearly with the number of CAs. If you only ever use one CA, the multiplier is invisible. Selective signing ("this additional cert should be signed by CA X only") is not implemented today; a future `ca:` key on each cert spec would add it.
+
 ## OS-Specific Paths
 
 The role automatically sets certificate and key paths based on the target OS:
