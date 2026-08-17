@@ -1,7 +1,10 @@
 ---
-- name: "MMN cacert - {{ _cacert_cert_label | capitalize }} cert - Build filename and path vars"
+- name: "MMN cacert - {{ _cacert_cert_label | capitalize }} cert - Build filename vars"
   ansible.builtin.set_fact:
     _cacert_onecert_filename: "{{ cacert_ca.key }}_{{ _cacert_cert_spec.id }}_{{ cacert_tag_certificate }}.pem"
     _cacert_onekey_filename: "{{ cacert_ca.key }}_{{ _cacert_cert_spec.id }}_{{ cacert_tag_privatekey }}.pem"
+
+- name: "MMN cacert - {{ _cacert_cert_label | capitalize }} cert - Build path vars"
+  ansible.builtin.set_fact:
     _cacert_onecert_path: "{{ cacert_openssl_path_certificate_server }}/{{ _cacert_onecert_filename }}"
     _cacert_onekey_path: "{{ cacert_openssl_path_key_server }}/{{ _cacert_onekey_filename }}"
