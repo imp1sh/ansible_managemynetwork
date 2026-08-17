@@ -11,6 +11,18 @@
     - not cacert_runimagebuilder | default(false) | bool
   notify: "MMN cacert - Update trust store"
 
+- name: "MMN cacert - Remove legacy .pem CA cert artifact from target host"
+  become: "{{ _cacert_become }}"
+  ansible.builtin.file:
+    path: "{{ cacert_openssl_path_certificate_ca }}/{{ cacert_ca.key }}_ca_{{ cacert_tag_certificate }}.pem"
+    state: absent
+  when:
+    - cacert_ca.value.state | default('present') == 'present'
+    - cacert_openssl_suffix_certificate_ca != 'pem'
+    - ansible_distribution != 'OpenWrt'
+    - not cacert_runimagebuilder | default(false) | bool
+  notify: "MMN cacert - Update trust store"
+
 - name: "MMN cacert - Merge CA cert into OpenWrt trust bundle"
   become: "{{ _cacert_become }}"
   ansible.builtin.blockinfile:
