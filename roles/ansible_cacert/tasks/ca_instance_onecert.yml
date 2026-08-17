@@ -1,0 +1,241 @@
+---
+# Parametric pipeline for a single server cert (default OR additional).
+# Caller must set before include:
+#   _cacert_cert_label: "default" | "additional"
+#   _cacert_cert_spec:  dict with id, state, common_name, altnames, not_after,
+#                       not_before, type, bitsize, curve, passphrase, force,
+#                       organization_name, organizational_unit_name, country_name,
+#                       state_or_province_name, locality_name, email_address,
+#                       additionalpaths, key_additionalpaths
+
+- name: "MMN cacert - {{ _cacert_cert_label | capitalize }} cert - Build path vars"
+  ansible.builtin.include_tasks: vars_paths_onecert.yml
+
+# --- KEY ---
+- name: "MMN cacert - {{ _cacert_cert_label | capitalize }} cert - Key present block"
+  when:
+    - cacert_ca.value.state | default('present') == 'present'
+    - _cacert_cert_spec.state | default('present') == 'present'
+  block:
+    - name: "MMN cacert - {{ _cacert_cert_label | capitalize }} cert - Make sure key directory exists"
+      become: "{{ _cacert_become }}"
+      ansible.builtin.file:
+        state: directory
+        path: "{{ cacert_openssl_path_key_server }}"
+        mode: "0755"
+      delegate_to: "{{ _cacert_target_host }}"
+
+    - name: "MMN cacert - {{ _cacert_cert_label | capitalize }} cert - Create private key"
+      become: "{{ _cacert_become }}"
+      community.crypto.openssl_privatekey:
+        path: "{{ _cacert_onekey_path }}"
+        passphrase: "{{ _cacert_cert_spec.passphrase | default(omit) }}"
+        size: "{{ _cacert_cert_spec.bitsize | default('4096') }}"
+        type: "{{ _cacert_cert_spec.type | default('RSA') }}"
+        curve: "{{ _cacert_cert_spec.curve | default(omit) }}"
+        mode: "0600"
+      delegate_to: "{{ _cacert_target_host }}"
+
+    - name: "MMN cacert - {{ _cacert_cert_label | capitalize }} cert - Make sure key additional paths exist"
+      become: "{{ _cacert_become }}"
+      ansible.builtin.file:
+        state: directory
+        path: "{{ additionalpaths.dest }}"
+      loop: "{{ _cacert_cert_spec.key_additionalpaths | default([]) }}"
+      loop_control:
+        loop_var: "additionalpaths"
+      when:
+        - additionalpaths.state | default('present') == 'present'
+        - not cacert_runimagebuilder | default(false) | bool
+      delegate_to: "{{ _cacert_target_host }}"
+
+    - name: "MMN cacert - {{ _cacert_cert_label | capitalize }} cert - Write private key to additional paths"
+      become: "{{ _cacert_become }}"
+      ansible.builtin.copy:
+        src: "{{ _cacert_onekey_path }}"
+        remote_src: True
+        dest: "{{ additionalpaths.dest }}/{{ _cacert_onekey_filename }}"
+        mode: "0600"
+        owner: "{{ additionalpaths.user | default(omit) }}"
+        group: "{{ additionalpaths.group | default(omit) }}"
+      loop: "{{ _cacert_cert_spec.key_additionalpaths | default([]) }}"
+      loop_control:
+        loop_var: "additionalpaths"
+      when:
+        - additionalpaths.state | default('present') == 'present'
+        - not cacert_runimagebuilder | default(false) | bool
+      delegate_to: "{{ _cacert_target_host }}"
+
+- name: "MMN cacert - {{ _cacert_cert_label | capitalize }} cert - Remove private key"
+  become: "{{ _cacert_become }}"
+  ansible.builtin.file:
+    path: "{{ _cacert_onekey_path }}"
+    state: absent
+  when:
+    - (cacert_ca.value.state | default('present') == 'absent') or (_cacert_cert_spec.state | default('present') == 'absent')
+  delegate_to: "{{ _cacert_target_host }}"
+
+- name: "MMN cacert - {{ _cacert_cert_label | capitalize }} cert - Remove private key from additional paths"
+  become: "{{ _cacert_become }}"
+  ansible.builtin.file:
+    path: "{{ additionalpaths.dest }}/{{ _cacert_onekey_filename }}"
+    state: absent
+  loop: "{{ _cacert_cert_spec.key_additionalpaths | default([]) }}"
+  loop_control:
+    loop_var: "additionalpaths"
+  when:
+    - (additionalpaths.state | default('present') == 'absent') or (cacert_ca.value.state | default('present') == 'absent') or (_cacert_cert_spec.state | default('present') == 'absent')
+    - not cacert_runimagebuilder | default(false) | bool
+  delegate_to: "{{ _cacert_target_host }}"
+
+# --- CERT ---
+- name: "MMN cacert - {{ _cacert_cert_label | capitalize }} cert - Cert present block"
+  when:
+    - cacert_ca.value.state | default('present') == 'present'
+    - _cacert_cert_spec.state | default('present') == 'present'
+  block:
+    - name: "MMN cacert - {{ _cacert_cert_label | capitalize }} cert - Check if cert exists"
+      ansible.builtin.stat:
+        path: "{{ _cacert_onecert_path }}"
+      register: _cacert_onecert_stat
+      delegate_to: "{{ _cacert_target_host }}"
+
+    - name: "MMN cacert - {{ _cacert_cert_label | capitalize }} cert - Read existing certificate"
+      ansible.builtin.slurp:
+        src: "{{ _cacert_onecert_path }}"
+      register: _cacert_onecert_existing
+      when: _cacert_onecert_stat.stat.exists
+      delegate_to: "{{ _cacert_target_host }}"
+
+    - name: "MMN cacert - {{ _cacert_cert_label | capitalize }} cert - Check if cert is expired"
+      become: "{{ _cacert_become }}"
+      ansible.builtin.command:
+        cmd: "openssl x509 -in {{ _cacert_onecert_path }} -checkend 0 -noout"
+      register: _cacert_onecert_expiry
+      changed_when: false
+      failed_when: false
+      when: _cacert_onecert_stat.stat.exists
+      delegate_to: "{{ _cacert_target_host }}"
+
+    - name: "MMN cacert - {{ _cacert_cert_label | capitalize }} cert - Manage CSR"
+      become: "{{ _cacert_become }}"
+      community.crypto.openssl_csr_pipe:
+        privatekey_path: "{{ _cacert_onekey_path }}"
+        privatekey_passphrase: "{{ _cacert_cert_spec.passphrase | default(omit) }}"
+        common_name: "{{ _cacert_cert_spec.common_name }}"
+        organization_name: "{{ _cacert_cert_spec.organization_name | default(omit) }}"
+        organizational_unit_name: "{{ _cacert_cert_spec.organizational_unit_name | default(omit) }}"
+        state_or_province_name: "{{ _cacert_cert_spec.state_or_province_name | default(omit) }}"
+        locality_name: "{{ _cacert_cert_spec.locality_name | default(omit) }}"
+        country_name: "{{ _cacert_cert_spec.country_name | default(omit) }}"
+        email_address: "{{ _cacert_cert_spec.email_address | default(omit) }}"
+        subject_alt_name: >-
+          {{
+            (
+              ['DNS:' ~ (_cacert_cert_spec.common_name)]
+              +
+              (
+                _cacert_cert_spec.altnames | default([])
+                | map(attribute='prefix')
+                | zip(_cacert_cert_spec.altnames | default([]) | map(attribute='name'))
+                | map('join', ':')
+                | list
+              )
+            )
+          }}
+      register: _cacert_onecert_csr
+      changed_when: false
+      delegate_to: "{{ _cacert_target_host }}"
+
+    - name: "MMN cacert - {{ _cacert_cert_label | capitalize }} cert - Normalize validity timespecs (y->w)"
+      ansible.builtin.set_fact:
+        _cacert_onecert_na: >-
+          {%- set t = _cacert_cert_spec.not_after | default('+52w') -%}
+          {%- if t[-1] == 'y' -%}{{ t[0] }}{{ (t[1:-1] | int) * 52 }}w{%- else -%}{{ t }}{%- endif -%}
+        _cacert_onecert_nb: >-
+          {%- set t = _cacert_cert_spec.not_before | default('-1d') -%}
+          {%- if t[-1] == 'y' -%}{{ t[0] }}{{ (t[1:-1] | int) * 52 }}w{%- else -%}{{ t }}{%- endif -%}
+
+    - name: "MMN cacert - {{ _cacert_cert_label | capitalize }} cert - Sign certificate with our CA"
+      become: True
+      delegate_to: "{{ cacert_ca_manager_host }}"
+      community.crypto.x509_certificate_pipe:
+        csr_content: "{{ _cacert_onecert_csr.csr }}"
+        content: "{{ (_cacert_onecert_existing.content | b64decode) if _cacert_onecert_stat.stat.exists else omit }}"
+        force: "{{ (_cacert_cert_spec.force | default(false) | bool) or ((_cacert_onecert_expiry.rc | default(0)) != 0) }}"
+        provider: ownca
+        ownca_path: "{{ cacert_path_cacert }}"
+        ownca_privatekey_path: "{{ cacert_path_cakey }}"
+        ownca_privatekey_passphrase: "{{ cacert_ca.value.key.passphrase | default(omit) }}"
+        ownca_not_after: "{{ _cacert_onecert_na }}"
+        ownca_not_before: "{{ _cacert_onecert_nb }}"
+      register: _cacert_onecert_result
+
+    - name: "MMN cacert - {{ _cacert_cert_label | capitalize }} cert - Make sure cert directory exists"
+      become: "{{ _cacert_become }}"
+      ansible.builtin.file:
+        state: directory
+        path: "{{ cacert_openssl_path_certificate_server }}"
+        mode: "0755"
+      delegate_to: "{{ _cacert_target_host }}"
+
+    - name: "MMN cacert - {{ _cacert_cert_label | capitalize }} cert - Write cert to file"
+      become: "{{ _cacert_become }}"
+      ansible.builtin.copy:
+        dest: "{{ _cacert_onecert_path }}"
+        content: "{{ _cacert_onecert_result.certificate }}"
+      when:
+        - _cacert_onecert_result is changed
+      delegate_to: "{{ _cacert_target_host }}"
+
+    # CERT ADDITIONAL PATHS
+    - name: "MMN cacert - {{ _cacert_cert_label | capitalize }} cert - Make sure cert additional paths exist"
+      become: "{{ _cacert_become }}"
+      ansible.builtin.file:
+        state: directory
+        path: "{{ additionalpaths.dest }}"
+      loop: "{{ _cacert_cert_spec.additionalpaths | default([]) }}"
+      loop_control:
+        loop_var: "additionalpaths"
+      when:
+        - additionalpaths.state | default('present') == 'present'
+        - not cacert_runimagebuilder | default(false) | bool
+      delegate_to: "{{ _cacert_target_host }}"
+
+    - name: "MMN cacert - {{ _cacert_cert_label | capitalize }} cert - Write cert to additional paths"
+      become: "{{ _cacert_become }}"
+      ansible.builtin.copy:
+        src: "{{ _cacert_onecert_path }}"
+        remote_src: True
+        dest: "{{ additionalpaths.dest }}/{{ _cacert_onecert_filename }}"
+        owner: "{{ additionalpaths.user | default(omit) }}"
+        group: "{{ additionalpaths.group | default(omit) }}"
+      loop: "{{ _cacert_cert_spec.additionalpaths | default([]) }}"
+      loop_control:
+        loop_var: "additionalpaths"
+      when:
+        - additionalpaths.state | default('present') == 'present'
+        - not cacert_runimagebuilder | default(false) | bool
+      delegate_to: "{{ _cacert_target_host }}"
+
+- name: "MMN cacert - {{ _cacert_cert_label | capitalize }} cert - Remove cert"
+  become: "{{ _cacert_become }}"
+  ansible.builtin.file:
+    path: "{{ _cacert_onecert_path }}"
+    state: absent
+  when:
+    - (cacert_ca.value.state | default('present') == 'absent') or (_cacert_cert_spec.state | default('present') == 'absent')
+  delegate_to: "{{ _cacert_target_host }}"
+
+- name: "MMN cacert - {{ _cacert_cert_label | capitalize }} cert - Remove cert from additional paths"
+  become: "{{ _cacert_become }}"
+  ansible.builtin.file:
+    path: "{{ additionalpaths.dest }}/{{ _cacert_onecert_filename }}"
+    state: absent
+  loop: "{{ _cacert_cert_spec.additionalpaths | default([]) }}"
+  loop_control:
+    loop_var: "additionalpaths"
+  when:
+    - (additionalpaths.state | default('present') == 'absent') or (cacert_ca.value.state | default('present') == 'absent') or (_cacert_cert_spec.state | default('present') == 'absent')
+    - not cacert_runimagebuilder | default(false) | bool
+  delegate_to: "{{ _cacert_target_host }}"

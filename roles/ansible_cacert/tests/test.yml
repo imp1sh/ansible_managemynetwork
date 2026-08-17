@@ -19,5 +19,11 @@
       - common_name: "test-client"
         dest: "/tmp/cacert-test-client"
         state: present
+    cacert_additionalcerts:
+      - id: "wildcard_test"
+        common_name: "*.test.example.com"
+        altnames:
+          - name: "*.test.example.com"
+            prefix: "DNS"
   roles:
     - imp1sh.ansible_managemynetwork.ansible_cacert

@@ -50,6 +50,7 @@ The generated cert/key filenames are unchanged for the default cert (still `<cak
 | - | - | - | - | - |
 | cacert_ca_manager_host | Hostname where CA data is stored. Keep this host secure. Must be a hostname that ansible will accept for `delegate_to:`. | - | String | Yes |
 | cacert_cacert_additionalpaths | Optional list of additional paths where CA certificates should be copied. Each entry: dest, state, user, group. | - | List | No |
+| cacert_additionalcerts | Optional list of **additional server certs** (e.g. wildcards) beyond the default cert. Each entry: id (mandatory, stable slug for filenames), common_name (mandatory), state, altnames, not_after, not_before, type, bitsize, curve, passphrase, force, organization_name, organizational_unit_name, country_name, state_or_province_name, locality_name, email_address, additionalpaths, key_additionalpaths. Unset fields inherit from the `cacert_defaultcert_*` scalars. | [] | List | No |
 | cacert_browser_trust | Deploy Firefox/LibreWolf enterprise policies to trust the system CA store. | true | Boolean | No |
 | cacert_cas | Dictionary of CA definitions. Each key is a CA identifier, value contains CA configuration: state, common_name, country_name, email_address, organization_name, organizational_unit_name, state_or_province_name, locality_name, not_after, not_before, key (dict with type, backup, passphrase, curve, etc.), cert (dict with backup). See example below. | {} | Dict | Yes |
 | cacert_clientcert_bitsize | Key size in bits for client certificates. | 4096 | Integer | No |
@@ -368,3 +369,50 @@ To opt out of the default cert on a host (e.g. when you only want additional cer
 ```yaml
 cacert_defaultcert_state: "absent"
 ```
+
+## Additional certs
+Beyond the automatic default cert, you can request extra server certs via `cacert_additionalcerts`. Typical use case: wildcard certificates for a reverse proxy (e.g. traefik). Each entry requires a stable `id` (used in the generated filename) and a `common_name`; everything else inherits from the `cacert_defaultcert_*` scalars or defaults to sane values.
+
+```yaml
+cacert_additionalcerts:
+  - id: "wildcard_lpv4"
+    common_name: "*.lpv4.net"
+    altnames:
+      - name: "*.lpv4.net"
+        prefix: "DNS"
+    additionalpaths:
+      - dest: "/mnt/cntr/unsynced/traefik/0/etc"
+        state: present
+        user: root
+        group: root
+    key_additionalpaths:
+      - dest: "/mnt/cntr/unsynced/traefik/0/etc"
+        state: present
+        user: root
+        group: root
+  - id: "wildcard_libcom"
+    common_name: "*.libcom.de"
+    altnames:
+      - name: "*.libcom.de"
+        prefix: "DNS"
+    additionalpaths:
+      - dest: "/mnt/cntr/unsynced/traefik/0/etc"
+        state: present
+        user: root
+        group: root
+    key_additionalpaths:
+      - dest: "/mnt/cntr/unsynced/traefik/0/etc"
+        state: present
+        user: root
+        group: root
+```
+
+Generated filenames follow the same scheme as the default cert: `<cakey>_<id>_<tag>.pem` (e.g. `libcom_root_wildcard_lpv4_certificate.pem`). The certs land in the OS-specific server-cert directory (`/etc/ssl/certs` on Debian) plus any `additionalpaths` you specify.
+
+Rules enforced by `checks.yml`:
+- `id` is mandatory, non-empty, and must not equal `inventory_hostname` (reserved for the default cert).
+- `id`s must be unique across all additional certs.
+- `common_name` is mandatory.
+- `state` (if set) must be `present` or `absent`.
+
+Set `state: absent` to remove an additional cert and its key; the role cleans up `additionalpaths` copies too.

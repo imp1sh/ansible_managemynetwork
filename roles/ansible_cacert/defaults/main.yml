@@ -14,6 +14,14 @@ cacert_cas: {}
 # client cert definitions (list)
 cacert_clientcerts: []
 
+# additional server certs (list) — extra certs beyond the default cert,
+# e.g. wildcards. Each entry: id, state, common_name, altnames, not_after,
+# not_before, type, bitsize, curve, passphrase, force, organization_name,
+# organizational_unit_name, country_name, state_or_province_name, locality_name,
+# email_address, additionalpaths, key_additionalpaths.
+# Unset fields inherit from the cacert_defaultcert_* scalars above.
+cacert_additionalcerts: []
+
 # default cert (the automatic per-host server cert) controls + inheritance base
 # for additional certs (cacert_additionalcerts). Set state to "absent" to skip
 # generating and to remove the default cert on a host.

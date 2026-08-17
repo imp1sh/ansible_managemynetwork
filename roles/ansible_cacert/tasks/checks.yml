@@ -1,0 +1,44 @@
+---
+- name: "MMN cacert - Validate required variables"
+  ansible.builtin.assert:
+    that:
+      - cacert_ca_manager_host is defined
+      - cacert_ca_manager_host | length > 0
+      - cacert_cas is defined
+      - cacert_cas | length > 0
+    fail_msg: "cacert_ca_manager_host and cacert_cas must be defined and non-empty"
+    success_msg: "Required variables are valid"
+
+- name: "MMN cacert - Validate default cert state"
+  ansible.builtin.assert:
+    that:
+      - cacert_defaultcert_state | default('present') in ['present', 'absent']
+    fail_msg: "cacert_defaultcert_state must be 'present' or 'absent'."
+    success_msg: "cacert_defaultcert_state seems valid."
+  when: cacert_defaultcert_state is defined
+
+- name: "MMN cacert - Validate additional certs have id and common_name"
+  ansible.builtin.assert:
+    that:
+      - cacert_additionalcerts | length > 0 implies cacert_additionalcerts | selectattr('id', 'defined') | rejectattr('id', 'equalto', '') | list | length == cacert_additionalcerts | length
+      - cacert_additionalcerts | length > 0 implies cacert_additionalcerts | selectattr('common_name', 'defined') | rejectattr('common_name', 'equalto', '') | list | length == cacert_additionalcerts | length
+    fail_msg: "Each entry in cacert_additionalcerts must have non-empty 'id' and 'common_name'."
+    success_msg: "cacert_additionalcerts ids and common_names are present."
+  when: cacert_additionalcerts is defined
+
+- name: "MMN cacert - Validate additional cert ids are unique and do not clash with default cert"
+  ansible.builtin.assert:
+    that:
+      - cacert_additionalcerts | map(attribute='id') | list | unique | length == cacert_additionalcerts | length
+      - cacert_additionalcerts | map(attribute='id') | intersect([inventory_hostname]) | length == 0
+    fail_msg: "cacert_additionalcerts ids must be unique and must not equal inventory_hostname (reserved for the default cert)."
+    success_msg: "cacert_additionalcerts ids are unique and do not clash with the default cert."
+  when: cacert_additionalcerts is defined
+
+- name: "MMN cacert - Validate additional cert states"
+  ansible.builtin.assert:
+    that:
+      - cacert_additionalcerts | selectattr('state', 'defined') | map(attribute='state') | intersect(['present', 'absent']) | list | length == cacert_additionalcerts | selectattr('state', 'defined') | list | length
+    fail_msg: "Each 'state' in cacert_additionalcerts must be 'present' or 'absent'."
+    success_msg: "cacert_additionalcerts states seem valid."
+  when: cacert_additionalcerts is defined

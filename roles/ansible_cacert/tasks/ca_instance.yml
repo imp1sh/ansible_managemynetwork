@@ -61,9 +61,6 @@
 - name: "MMN cacert - Build CA variables for target host"
   ansible.builtin.include_tasks: vars_paths_ca_targethost.yml
 
-- name: "MMN cacert - Build default cert and key variables"
-  ansible.builtin.include_tasks: vars_paths_defaultcert.yml
-
 - name: "MMN cacert - Build client cert and key variables"
   ansible.builtin.include_tasks: vars_paths_client.yml
 
@@ -79,21 +76,77 @@
     - not cacert_runimagebuilder | default(false) | bool
     - cacert_browser_trust | default(true) | bool
 
-# DEFAULT CERT PRIVATE KEY - TARGET HOST
-- name: "MMN cacert - Manage default cert key on target host"
-  ansible.builtin.include_tasks: ca_instance_defaultkey.yml
+# DEFAULT CERT (automatic per-host server cert)
+- name: "MMN cacert - Synthesize default cert spec"
+  ansible.builtin.set_fact:
+    _cacert_cert_label: "default"
+    _cacert_cert_spec:
+      id: "{{ inventory_hostname }}"
+      state: "{{ cacert_defaultcert_state | default('present') }}"
+      common_name: "{{ cacert_defaultcert_common_name | default(inventory_hostname) }}"
+      altnames: "{{ cacert_defaultcert_altnames | default([]) }}"
+      not_after: "{{ cacert_defaultcert_not_after | default('+52w') }}"
+      not_before: "{{ cacert_defaultcert_not_before | default('-1d') }}"
+      type: "{{ cacert_defaultcert_type | default('RSA') }}"
+      bitsize: "{{ cacert_defaultcert_bitsize | default(4096) }}"
+      curve: "{{ cacert_defaultcert_curve | default(omit) }}"
+      passphrase: "{{ cacert_defaultcert_passphrase | default(omit) }}"
+      force: "{{ cacert_defaultcert_force | default(false) }}"
+      organization_name: "{{ cacert_defaultcert_organization_name | default(omit) }}"
+      organizational_unit_name: "{{ cacert_defaultcert_organizational_unit_name | default(omit) }}"
+      country_name: "{{ cacert_defaultcert_country_name | default(omit) }}"
+      state_or_province_name: "{{ cacert_defaultcert_state_or_province_name | default(omit) }}"
+      locality_name: "{{ cacert_defaultcert_locality_name | default(omit) }}"
+      email_address: "{{ cacert_defaultcert_email_address | default(omit) }}"
+      additionalpaths: "{{ cacert_defaultcert_additionalpaths | default([]) }}"
+      key_additionalpaths: "{{ cacert_defaultkey_additionalpaths | default([]) }}"
 
-# DEFAULT CERT PRIVATE KEY - ADDITIONAL HOSTS
+- name: "MMN cacert - Manage default cert (key + cert)"
+  ansible.builtin.include_tasks: ca_instance_onecert.yml
+
+- name: "MMN cacert - Publish default cert public facts"
+  ansible.builtin.set_fact:
+    cacert_filename_defaultcert: "{{ _cacert_onecert_filename }}"
+    cacert_filename_defaultkey: "{{ _cacert_onekey_filename }}"
+    cacert_path_defaultcert: "{{ _cacert_onecert_path }}"
+    cacert_path_defaultkey: "{{ _cacert_onekey_path }}"
+
+# DEFAULT CERT - CROSS-HOST DISTRIBUTION (default cert only, not additional certs)
 - name: "MMN cacert - Manage default cert key on additional hosts"
   ansible.builtin.include_tasks: ca_instance_defaultkey_additional_hosts.yml
 
-# DEFAULT CERT - TARGET HOST
-- name: "MMN cacert - Manage default cert on target host"
-  ansible.builtin.include_tasks: ca_instance_defaultcert.yml
-
-# DEFAULT CERT - ADDITIONAL HOSTS
 - name: "MMN cacert - Manage default cert on additional hosts"
   ansible.builtin.include_tasks: ca_instance_defaultcert_additional_hosts.yml
+
+# ADDITIONAL CERTS (extra server certs, e.g. wildcards)
+- name: "MMN cacert - Manage additional certs"
+  ansible.builtin.include_tasks: ca_instance_onecert.yml
+  loop: "{{ cacert_additionalcerts | default([]) }}"
+  loop_control:
+    loop_var: cacert_additionalcert
+  vars:
+    _cacert_cert_label: "additional"
+    _cacert_cert_spec:
+      id: "{{ cacert_additionalcert.id }}"
+      state: "{{ cacert_additionalcert.state | default('present') }}"
+      common_name: "{{ cacert_additionalcert.common_name }}"
+      altnames: "{{ cacert_additionalcert.altnames | default([]) }}"
+      not_after: "{{ cacert_additionalcert.not_after | default(cacert_defaultcert_not_after) | default('+52w') }}"
+      not_before: "{{ cacert_additionalcert.not_before | default(cacert_defaultcert_not_before) | default('-1d') }}"
+      type: "{{ cacert_additionalcert.type | default(cacert_defaultcert_type) | default('RSA') }}"
+      bitsize: "{{ cacert_additionalcert.bitsize | default(cacert_defaultcert_bitsize) | default(4096) }}"
+      curve: "{{ cacert_additionalcert.curve | default(cacert_defaultcert_curve) | default(omit) }}"
+      passphrase: "{{ cacert_additionalcert.passphrase | default(cacert_defaultcert_passphrase) | default(omit) }}"
+      force: "{{ cacert_additionalcert.force | default(cacert_defaultcert_force) | default(false) }}"
+      organization_name: "{{ cacert_additionalcert.organization_name | default(cacert_defaultcert_organization_name) | default(omit) }}"
+      organizational_unit_name: "{{ cacert_additionalcert.organizational_unit_name | default(cacert_defaultcert_organizational_unit_name) | default(omit) }}"
+      country_name: "{{ cacert_additionalcert.country_name | default(cacert_defaultcert_country_name) | default(omit) }}"
+      state_or_province_name: "{{ cacert_additionalcert.state_or_province_name | default(cacert_defaultcert_state_or_province_name) | default(omit) }}"
+      locality_name: "{{ cacert_additionalcert.locality_name | default(cacert_defaultcert_locality_name) | default(omit) }}"
+      email_address: "{{ cacert_additionalcert.email_address | default(cacert_defaultcert_email_address) | default(omit) }}"
+      additionalpaths: "{{ cacert_additionalcert.additionalpaths | default([]) }}"
+      key_additionalpaths: "{{ cacert_additionalcert.key_additionalpaths | default([]) }}"
+  when: cacert_additionalcerts is defined
 
 # CLIENT CERT PRIVATE KEY
 - name: "MMN cacert - Manage client key"
