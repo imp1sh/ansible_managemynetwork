@@ -34,6 +34,10 @@ accessLog:
 ping:
 {{ traefik_ping | to_nice_yaml(indent=2) | indent(2, true) }}
 {% endif %}
+{% if traefik_metrics is not none %}
+metrics:
+{{ traefik_metrics | to_nice_yaml(indent=2) | indent(2, true) }}
+{% endif %}
 {% if traefik_experimental is not none %}
 experimental:
 {{ traefik_experimental | to_nice_yaml(indent=2) | indent(2, true) }}

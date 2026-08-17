@@ -83,6 +83,7 @@ traefik_api: null
 traefik_log: null
 traefik_access_log: null
 traefik_ping: null
+traefik_metrics: null
 traefik_experimental: null
 
 # --- Dynamic configuration (file provider) ---
