@@ -1,0 +1,31 @@
+---
+# Managed by imp1sh.ansible_managemynetwork.ansible_prometheus — do not edit by hand.
+global:
+  scrape_interval: {{ prometheus_global_scrape_interval }}
+  scrape_timeout: {{ prometheus_global_scrape_timeout }}
+  evaluation_interval: {{ prometheus_global_evaluation_interval }}
+{% if prometheus_external_labels %}
+  external_labels:
+{{ prometheus_external_labels | to_nice_yaml(indent=2) | indent(4, true) }}
+{% endif %}
+{% if prometheus_rules | length > 0 %}
+rule_files:
+  - "{{ prometheus_rules_glob }}"
+{% endif %}
+{% if prometheus_alertmanagers is not none %}
+alerting:
+  alertmanagers:
+{{ prometheus_alertmanagers | to_nice_yaml(indent=2) | indent(4, true) }}
+{% endif %}
+{% if prometheus_remote_write is not none %}
+remote_write:
+{{ prometheus_remote_write | to_nice_yaml(indent=2) | indent(2, true) }}
+{% endif %}
+{% if prometheus_remote_read is not none %}
+remote_read:
+{{ prometheus_remote_read | to_nice_yaml(indent=2) | indent(2, true) }}
+{% endif %}
+{% if prometheus_scrape_configs %}
+scrape_configs:
+{{ prometheus_scrape_configs | to_nice_yaml(indent=2) | indent(2, true) }}
+{% endif %}

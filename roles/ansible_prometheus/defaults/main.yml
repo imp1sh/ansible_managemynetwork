@@ -1,0 +1,105 @@
+---
+# ansible_prometheus — container-only role.
+#
+# Renders Prometheus server configuration (prometheus.yml + rule files) and the
+# TSDB data directory onto host-side bind-mount paths consumed by a podman
+# container. The container itself is declared by the caller via the
+# ansible_podman role (see the "Plugins" section of the ansible_podman README);
+# this role only owns the configuration files. It performs no package
+# installation and no service management.
+
+# Host directory where prometheus.yml is rendered. Bind-mount this into the
+# container (typically to /etc/prometheus).
+prometheus_path_config: "/mnt/cntr/unsynced/prometheus/0/etc"
+
+# Host directory where rule files are rendered. Bind-mount into the container
+# (typically to /etc/prometheus/rules). Defaults to a "rules" subdir beneath the
+# config dir so a single bind-mount covers both, but you can decouple it.
+prometheus_path_rules: "{{ prometheus_path_config }}/rules"
+
+# Host directory used for the Prometheus TSDB. Created with the configured
+# owner/group so the container process can write to it. Bind-mount into the
+# container (typically to /prometheus).
+prometheus_path_data: "/mnt/cntr/unsynced/prometheus/0/data"
+
+# Filename of the main config inside prometheus_path_config.
+prometheus_file_config: "prometheus.yml"
+
+# Ownership for rendered files and the data directory. The official
+# prom/prometheus image runs as nobody/nogroup (UID/GID 65534) by default;
+# override per image if yours differs.
+prometheus_owner: "nobody"
+prometheus_group: "nogroup"
+
+# File modes.
+prometheus_mode_config: "0640"
+prometheus_mode_rules: "0644"
+prometheus_mode_data: "0750"
+
+# --- prometheus.yml: global section ---
+prometheus_global_scrape_interval: "15s"
+prometheus_global_scrape_timeout: "10s"
+prometheus_global_evaluation_interval: "15s"
+prometheus_external_labels: {}
+
+# --- prometheus.yml: alerting section (optional) ---
+# Leave undefined/null to omit the `alerting:` block. Structure mirrors the
+# Prometheus `alerting.alertmanagers` stanza, e.g.:
+#   prometheus_alertmanagers:
+#     - static_configs:
+#         - targets:
+#             - "alertmanager0:9093"
+prometheus_alertmanagers: null
+
+# --- prometheus.yml: remote_write / remote_read (optional) ---
+# Leave undefined/null to omit. Each is a list of stanzas as Prometheus expects.
+prometheus_remote_write: null
+prometheus_remote_read: null
+
+# --- scrape configs (PRIMARY INPUT) ---
+# List of scrape_config stanzas as Prometheus expects them. Each entry MUST
+# contain a `job_name`; everything else is passed through verbatim.
+#   prometheus_scrape_configs:
+#     - job_name: "node"
+#       static_configs:
+#         - targets: ["host1:9100", "host2:9100"]
+#     - job_name: "blackbox"
+#       metrics_path: /probe
+#       params:
+#         module: ["http_2xx"]
+#       static_configs:
+#         - targets: ["https://example.com"]
+prometheus_scrape_configs: []
+
+# --- rule files (SECONDARY INPUT) ---
+# Dict keyed by rule-file stem; each value is a LIST OF GROUPS, each group a
+# dict with `name` and `rules` (as Prometheus expects under `groups:`). Rendered
+# as <stem>.rules.yml in prometheus_path_rules.
+#   prometheus_rules:
+#     node_alerts:
+#       - name: node.rules
+#         rules:
+#           - alert: NodeDown
+#             expr: "up{job=\"node\"} == 0"
+#             for: "5m"
+#             labels:
+#               severity: page
+#             annotations:
+#               summary: "Node {{ $labels.instance }} down"
+prometheus_rules: {}
+
+# Glob pattern used in prometheus.yml's `rule_files` section. This is a
+# CONTAINER-INTERNAL path — prometheus resolves it relative to the config file
+# (/etc/prometheus/prometheus.yml by convention). The default "rules/*.rules.yml"
+# matches the default layout where prometheus_path_rules is a "rules" subdir
+# beneath prometheus_path_config, mounted into the container at
+# /etc/prometheus/rules/. Adjust if you mount the rules directory elsewhere
+# inside the container.
+prometheus_rules_glob: "rules/*.rules.yml"
+
+# --- reload mechanism ---
+# Name of the podman container running prometheus. When set, config/rule changes
+# trigger a SIGHUP reload via `podman exec ... kill -HUP 1` (Prometheus reloads
+# prometheus.yml and rule files on SIGHUP). Leave unset to skip automatic
+# reload (e.g. when invoking the role outside of podman).
+prometheus_containername: null

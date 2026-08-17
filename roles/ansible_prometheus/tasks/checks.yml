@@ -1,0 +1,75 @@
+---
+- name: "MMN prometheus - Validate config path"
+  ansible.builtin.assert:
+    that:
+      - prometheus_path_config is defined
+      - prometheus_path_config | string | length > 0
+    fail_msg: "prometheus_path_config must be a non-empty string giving the host bind-mount directory for prometheus.yml."
+    success_msg: "prometheus_path_config is set."
+  when: prometheus_path_config is defined
+
+- name: "MMN prometheus - Validate data path"
+  ansible.builtin.assert:
+    that:
+      - prometheus_path_data is defined
+      - prometheus_path_data | string | length > 0
+    fail_msg: "prometheus_path_data must be a non-empty string giving the host bind-mount directory for the TSDB."
+    success_msg: "prometheus_path_data is set."
+  when: prometheus_path_data is defined
+
+- name: "MMN prometheus - Validate scrape configs type"
+  ansible.builtin.assert:
+    that:
+      - prometheus_scrape_configs | type_debug == 'list'
+      - prometheus_scrape_configs | length > 0
+    fail_msg: "prometheus_scrape_configs must be a non-empty list of scrape_config stanzas (each requiring a job_name)."
+    success_msg: "prometheus_scrape_configs is a non-empty list."
+  when: prometheus_scrape_configs is defined
+
+- name: "MMN prometheus - Validate each scrape config has a job_name"
+  ansible.builtin.assert:
+    that:
+      - "'job_name' in prometheus_scrape_item"
+      - prometheus_scrape_item.job_name | string | length > 0
+    fail_msg: "Every entry in prometheus_scrape_configs must define a non-empty string 'job_name'."
+    success_msg: "scrape_config '{{ prometheus_scrape_item.job_name }}' defines job_name."
+  loop: "{{ prometheus_scrape_configs }}"
+  loop_control:
+    loop_var: prometheus_scrape_item
+  when: prometheus_scrape_configs is defined
+
+- name: "MMN prometheus - Validate rules type"
+  ansible.builtin.assert:
+    that:
+      - prometheus_rules | type_debug == 'dict'
+    fail_msg: "prometheus_rules must be a dict keyed by rule-file stem; each value is a list of group objects."
+    success_msg: "prometheus_rules is a dict."
+  when: prometheus_rules is defined
+
+- name: "MMN prometheus - Validate owner/group"
+  ansible.builtin.assert:
+    that:
+      - prometheus_owner is defined
+      - prometheus_owner | string | length > 0
+      - prometheus_group is defined
+      - prometheus_group | string | length > 0
+    fail_msg: "prometheus_owner and prometheus_group must be non-empty strings (matching the container image UID/GID)."
+    success_msg: "prometheus_owner/prometheus_group are set."
+  when: prometheus_owner is defined or prometheus_group is defined
+
+- name: "MMN prometheus - Validate durations"
+  ansible.builtin.assert:
+    that:
+      - prometheus_duration_check_item is regex('^[0-9]+(ms|s|m|h|d|w|y)$')
+    fail_msg: "{{ prometheus_duration_check_item }} must be a Prometheus duration like 15s, 10m, 1h."
+    success_msg: "{{ prometheus_duration_check_item }} looks like a valid duration."
+  loop:
+    - "{{ prometheus_global_scrape_interval }}"
+    - "{{ prometheus_global_scrape_timeout }}"
+    - "{{ prometheus_global_evaluation_interval }}"
+  loop_control:
+    loop_var: prometheus_duration_check_item
+  when:
+    - prometheus_global_scrape_interval is defined
+    - prometheus_global_scrape_timeout is defined
+    - prometheus_global_evaluation_interval is defined

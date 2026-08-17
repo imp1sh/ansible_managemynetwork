@@ -1,0 +1,6 @@
+---
+- name: Reload prometheus config
+  containers.podman.podman_container_exec:
+    name: "{{ prometheus_containername }}"
+    command: "kill -HUP 1"
+  when: prometheus_containername is not none

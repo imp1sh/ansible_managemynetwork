@@ -11,7 +11,7 @@ Supporting the following roles from the [containers.podman collection](https://g
 - podman_containers
 - podman_secrets
 - podman network
-- Run only on specific containers by setting var `podman_limited_containers` to the container instance name. By default it will iterate over all defined containers for the host.
+- Run only on specific containers by setting `podman_limited_containers` to a **list** of container instance names (e.g. `["borgmatic0"]`). By default the role iterates over all defined containers for the host.
 - Optional Quadlet backend (recommended on Podman >= 4.4 / 5.x). See [Quadlet](#quadlet) below.
 
 # Role Workflow
@@ -27,43 +27,38 @@ Supporting the following roles from the [containers.podman collection](https://g
   - We see logging into dockerhub as mandatory as they limit to 10 images per hour per IP since April 1st of 2025. Set `podman_dockerio_username` and `podman_dockerio_password`
 
 **main.yml**:
-  - Installing podman secrets and referencing further task files.
+  - The dispatcher. Installs podman secrets, includes the plugin chooser, creates containers with the `containers.podman.podman_containers` module (or via Quadlet — see below), runs the second plugin pass, and finally includes `4post.yml`.
 
-**2plugins.yml**:
-  - Meta task that will delegate further to the specific plugin files, e.g. *plugin_psql.yaml*. This calls another role from MMN that has been modified to work with managing the configuration of a podman container.
-  - For this to work you need to set what plugins shall be run on what container instances, here the psql plugin will be run for the psql0 podman container instance.
+**2plugin_chooser.yml**:
+  - Meta task that delegates to the specific plugin files, e.g. *plugin_psql_run1.yml*. Each plugin calls another role from MMN that has been adapted to manage the configuration of a podman container.
+  - Enabling a plugin is done via a `podman_container_plugin_<name>` list naming the container instances it should run against — no `plugin` key on the container definition is needed. Here the psql plugin runs for the `psql0` container:
 ```yaml
 podman_container_plugin_psql:
   - "psql0"
 ```
-  - For detailed information for each plugin, look into the README of the corresponding role, for instance `ansible_psqlserver` for the plugin `psql`.
-```yaml
-podman_containers:
-  - name: psql0 
-    plugin: psql
-    state: started
-    [...]
-```
-**main.yml**
-  - Creating containers with the *podman_containers* role.
+  - For detailed information on each plugin, see the README of the corresponding role, e.g. `ansible_psqlserver` for the `psql` plugin.
 
-**2plugins2.yml**
-  - Some plugins require to run the plugin's role a second time as psql for example expects an empty data dir at first initialization. After the containers have been initialized, only then we can place the target configuration files.
+**plugin_psql_run2.yml**
+  - Some plugins require the plugin's role to run a second time: psql, for example, expects an empty data dir at first initialization. After the container has been initialised, only then can the target configuration files be placed.
 
 **4post.yml**
 
-Handling service state for the container. Possible state values for your container element definition:
-- started
-- present
-- stopped
-- absent
-splitted into two variants:
+Post-container tasks:
+- Opening published container ports in firewalld on non-OpenWrt hosts where firewalld is active.
+- Deploying the OpenWrt hotplug iface script that reloads podman networking on interface events.
+- Managing service state for the container. Possible state values for your container element definition:
+  - started
+  - present
+  - stopped
+  - absent
 
-  **systemd.yml**:
-    - Install systemd service unit files and set correct state
+  split into two OS-specific variants:
 
-  **procd.yml**:
-    - OpenWrt init scripts and hotplug scripts
+  **3systemd.yml** (non-OpenWrt):
+    - Generate systemd service unit files via `podman generate systemd` and set the correct state.
+
+  **3procd.yml** (OpenWrt):
+    - Deploy procd init scripts and enable them.
 
 ## Containers
 It basically works like this. You define the variable `podman_containers`. Normally you don't set static IP addresses though.
@@ -85,7 +80,7 @@ podman_containers:
       DATA_DIR: /data
 ```
 ## Secrets
-This will effectively put the secret into a plaintext file at `/run/secrets/
+This will effectively put the secret into a plaintext file at `/run/secrets/<name>`.
 ```yaml
 podman_secrets:
   - name: "psql0_replicationuser_password"
@@ -154,8 +149,8 @@ flag.
 Supported `podman_containers` keys mapped to the `.container` file: `name`,
 `image`, `state`, `network`, `ip`, `ip6`, `volume`/`volumes`, `ports`/`publish`,
 `env`, `cap_add`, `cap_drop`, `user`, `group`, `timezone`, `readonly_rootfs`,
-`dns`, `label`, `secret`/`secrets`, `hostname`, `command`, `pull`,
-`selinux_type`, `selinux_disable`.
+`dns`, `label`/`labels`, `secret`/`secrets`, `hostname`, `command`, `pull`,
+`tmpfs`, `selinux_type`, `selinux_disable`.
 Optional tuning keys: `stop_timeout` (default 10), `start_timeout` (default
 180), `kill_signal` (e.g. `SIGINT` for PostgreSQL smart shutdown).
 
@@ -312,6 +307,8 @@ Supported plugin:
 | psql | [imp1sh.ansible_managemynetwork.ansible_psqlserver](https://github.com/imp1sh/ansible_managemynetwork/tree/main/roles/ansible_psqlserver) | |
 | borgmatic | [imp1sh.ansible_managemynetwork.ansible_borgmatic](https://github.com/imp1sh/ansible_managemynetwork/tree/main/roles/ansible_borgmatic) | |
 | pdnsauth | [imp1sh.ansible_managemynetwork.ansible_pdnsauth](https://github.com/imp1sh/ansible_managemynetwork/tree/main/roles/ansible_pdnsauth) | |
+| prometheus | [imp1sh.ansible_managemynetwork.ansible_prometheus](https://github.com/imp1sh/ansible_managemynetwork/tree/main/roles/ansible_prometheus) | Renders `prometheus.yml` + rule files for the prometheus container |
+| traefik | [imp1sh.ansible_managemynetwork.ansible_traefik](https://github.com/imp1sh/ansible_managemynetwork/tree/main/roles/ansible_traefik) | Renders `traefik.yml` static config, dynamic file-provider configs and `acme.json` |
 | dnsdist | planned | |
 | cacert | planned | |
 
@@ -419,4 +416,139 @@ podman_containers:
     ports:
       - 8083:8081
 ```
+
+### prometheus
+
+Prometheus server plugin. The `ansible_podman` role spins up the container; the
+[`ansible_prometheus`](https://github.com/imp1sh/ansible_managemynetwork/tree/main/roles/ansible_prometheus)
+role renders `prometheus.yml` and rule files into the host bind-mount
+directories *before* the container starts. Enable the plugin for the
+`prometheus0` container:
+
+```yaml
+podman_container_plugin_prometheus:
+  - "prometheus0"
+prometheus_containername: "prometheus0"
+```
+
+Then define the container and the prometheus vars:
+
+```yaml
+podman_containers:
+  - name: prometheus0
+    state: started
+    network: podmannetGUA
+    image: docker.io/prom/prometheus:latest
+    volume:
+      - "/mnt/cntr/unsynced/prometheus/0/etc/:/etc/prometheus/"
+      - "/mnt/cntr/unsynced/prometheus/0/etc/rules/:/etc/prometheus/rules/"
+      - "/mnt/cntr/unsynced/prometheus/0/data/:/prometheus/"
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=30d"
+      - "--web.enable-lifecycle"
+    ports:
+      - "9090:9090"
+
+prometheus_scrape_configs:
+  - job_name: "prometheus"
+    static_configs:
+      - targets:
+          - "localhost:9090"
+  - job_name: "node"
+    static_configs:
+      - targets:
+          - "host1:9100"
+          - "host2:9100"
+
+prometheus_rules:
+  node_alerts:
+    - name: node.rules
+      rules:
+        - alert: NodeDown
+          expr: 'up{job="node"} == 0'
+          for: "5m"
+          labels:
+            severity: page
+          annotations:
+            summary: "Node {{ $labels.instance }} is down"
+```
+
+See the `ansible_prometheus` README for the full variable reference.
+
+### traefik
+
+Traefik reverse-proxy plugin. The `ansible_podman` role spins up the container;
+the [`ansible_traefik`](https://github.com/imp1sh/ansible_managemynetwork/tree/main/roles/ansible_traefik)
+role renders the static config (`traefik.yml`), dynamic file-provider configs,
+and initialises `acme.json` (mode `0600`, never overwritten) *before* the
+container starts. Enable the plugin for the `traefik0` container:
+
+```yaml
+podman_container_plugin_traefik:
+  - "traefik0"
+traefik_containername: "traefik0"
+```
+
+Then define the container and the traefik vars:
+
+```yaml
+podman_containers:
+  - name: traefik0
+    state: started
+    network: podmannet
+    image: docker.io/traefik:v3.7.10
+    volume:
+      - "/run/podman/podman.sock:/var/run/docker.sock"
+      - "/mnt/cntr/unsynced/traefik/0/etc/:/etc/traefik/"
+      - "/mnt/cntr/unsynced/traefik/0/etc/dynamic/:/etc/traefik/dynamic/"
+    ports:
+      - "80:80"
+      - "443:443"
+
+traefik_entrypoints:
+  web:
+    address: ":80"
+  websecure:
+    address: ":443"
+    http:
+      tls:
+        certResolver: letsencrypt
+
+traefik_providers:
+  docker:
+    endpoint: "unix:///var/run/docker.sock"
+    exposedByDefault: false
+  file:
+    directory: "/etc/traefik/dynamic"
+    watch: true
+
+traefik_certificates_resolvers:
+  letsencrypt:
+    acme:
+      email: "admin@example.com"
+      storage: "/etc/traefik/acme.json"
+      httpChallenge:
+        entryPoint: web
+
+traefik_dynamic_config:
+  redirect:
+    http:
+      routers:
+        router0:
+          rule: "Host(`example.com`)"
+          middlewares:
+            - redirect-to-https
+          service: noop
+      middlewares:
+        redirect-to-https:
+          redirectScheme:
+            scheme: https
+```
+
+On Fedora / SELinux-enforcing hosts the podman role auto-detects the podman
+socket mount and emits `SecurityLabelType=container_runtime_t` under Quadlet —
+see [Fedora / SELinux](#fedora--selinux) above. See the `ansible_traefik` README
+for the full variable reference.
 

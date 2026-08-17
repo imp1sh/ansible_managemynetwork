@@ -1,0 +1,32 @@
+---
+- hosts: prometheus
+  remote_user: root
+  roles:
+    - ansible_prometheus
+  vars:
+    prometheus_path_config: "/tmp/prom-test/etc"
+    prometheus_path_rules: "/tmp/prom-test/rules"
+    prometheus_path_data: "/tmp/prom-test/data"
+    prometheus_owner: "nobody"
+    prometheus_group: "nogroup"
+    prometheus_scrape_configs:
+      - job_name: "prometheus"
+        static_configs:
+          - targets:
+              - "localhost:9090"
+      - job_name: "node"
+        static_configs:
+          - targets:
+              - "host1:9100"
+              - "host2:9100"
+    prometheus_rules:
+      prometheus_alerts:
+        - name: prometheus.rules
+          rules:
+            - alert: PrometheusDown
+              expr: "prometheus_ready == 0"
+              for: "5m"
+              labels:
+                severity: page
+              annotations:
+                summary: "Prometheus is down"

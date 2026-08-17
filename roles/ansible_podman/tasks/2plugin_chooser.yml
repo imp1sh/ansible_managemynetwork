@@ -26,3 +26,23 @@
     - podman_container_plugin_pdnsauth is defined
     # Below filter is needed so the plugin only runs when the choosen container images are related to the plugin
     - podman_containers | map(attribute='name') | intersect(podman_container_plugin_pdnsauth) | length > 0
+
+# PROMETHEUS
+- name: "MMN Podman - Plugin prometheus"
+  ansible.builtin.include_tasks:
+    file: plugin_prometheus.yml
+  when:
+    - podman_container_plugin_prometheus is defined
+    - podman_containers is defined
+    # Below filter is needed so the plugin only runs when the choosen container images are related to the plugin
+    - podman_containers | map(attribute='name') | intersect(podman_container_plugin_prometheus) | length > 0
+
+# TRAEFIK
+- name: "MMN Podman - Plugin traefik"
+  ansible.builtin.include_tasks:
+    file: plugin_traefik.yml
+  when:
+    - podman_container_plugin_traefik is defined
+    - podman_containers is defined
+    # Below filter is needed so the plugin only runs when the choosen container images are related to the plugin
+    - podman_containers | map(attribute='name') | intersect(podman_container_plugin_traefik) | length > 0

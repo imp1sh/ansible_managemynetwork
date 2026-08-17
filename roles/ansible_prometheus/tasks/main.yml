@@ -1,0 +1,15 @@
+---
+- name: "MMN prometheus - Validate inputs"
+  ansible.builtin.include_tasks: checks.yml
+  when: prometheus_scrape_configs is defined
+
+- name: "MMN prometheus - Render configuration"
+  ansible.builtin.include_tasks: 01config.yml
+  when: prometheus_scrape_configs is defined
+
+- name: "MMN prometheus - Skip status feedback"
+  ansible.builtin.debug:
+    msg: >-
+      The role ansible_prometheus did not run on host {{ inventory_hostname }}
+      because the var prometheus_scrape_configs is not set.
+  when: prometheus_scrape_configs is not defined

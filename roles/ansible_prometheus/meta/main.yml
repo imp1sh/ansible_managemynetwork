@@ -1,0 +1,22 @@
+---
+galaxy_info:
+  role_name: ansible_prometheus
+  author: Jochen Demmer
+  description: Renders Prometheus server configuration (prometheus.yml + rule files) for a podman container.
+  company: libcom.de
+  issue_tracker_url: https://github.com/imp1sh/ansible_managemynetwork/issues
+  license: BSD-3-Clause
+  min_ansible_version: "2.11"
+  platforms:
+    - name: Debian
+      versions:
+        - "bookworm"
+        - "bullseye"
+    - name: Fedora
+      versions:
+        - "39"
+        - "40"
+        - "41"
+        - "42"
+  galaxy_tags: [prometheus, monitoring, metrics, container, podman]
+dependencies: []

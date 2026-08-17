@@ -1,0 +1,58 @@
+---
+- name: "MMN prometheus - Ensure config directory exists"
+  ansible.builtin.file:
+    path: "{{ prometheus_path_config }}"
+    state: directory
+    owner: "{{ prometheus_owner }}"
+    group: "{{ prometheus_group }}"
+    mode: "{{ prometheus_mode_config }}"
+
+- name: "MMN prometheus - Ensure rules directory exists"
+  ansible.builtin.file:
+    path: "{{ prometheus_path_rules }}"
+    state: directory
+    owner: "{{ prometheus_owner }}"
+    group: "{{ prometheus_group }}"
+    mode: "{{ prometheus_mode_rules }}"
+
+- name: "MMN prometheus - Ensure TSDB data directory exists"
+  ansible.builtin.file:
+    path: "{{ prometheus_path_data }}"
+    state: directory
+    owner: "{{ prometheus_owner }}"
+    group: "{{ prometheus_group }}"
+    mode: "{{ prometheus_mode_data }}"
+
+- name: "MMN prometheus - Render prometheus.yml"
+  ansible.builtin.template:
+    src: prometheus.yml.j2
+    dest: "{{ prometheus_path_config }}/{{ prometheus_file_config }}"
+    owner: "{{ prometheus_owner }}"
+    group: "{{ prometheus_group }}"
+    mode: "{{ prometheus_mode_config }}"
+  notify: Reload prometheus config
+
+- name: "MMN prometheus - Render rule files"
+  ansible.builtin.template:
+    src: rules.yml.j2
+    dest: "{{ prometheus_path_rules }}/{{ prometheus_rule_entry.key }}.rules.yml"
+    owner: "{{ prometheus_owner }}"
+    group: "{{ prometheus_group }}"
+    mode: "{{ prometheus_mode_rules }}"
+  loop: "{{ prometheus_rules | dict2items }}"
+  loop_control:
+    loop_var: prometheus_rule_entry
+  vars:
+    _prometheus_rule_groups: "{{ prometheus_rule_entry.value }}"
+  notify: Reload prometheus config
+  when: prometheus_rules | length > 0
+
+- name: "MMN prometheus - Debug rendered scrape configs"
+  ansible.builtin.debug:
+    var: prometheus_scrape_configs
+  when: mmn_verbose | default(false) | bool
+
+- name: "MMN prometheus - Debug rendered rules"
+  ansible.builtin.debug:
+    var: prometheus_rules
+  when: mmn_verbose | default(false) | bool
