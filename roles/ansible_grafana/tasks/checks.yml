@@ -1,0 +1,123 @@
+---
+- name: "MMN grafana - Validate config path"
+  ansible.builtin.assert:
+    that:
+      - grafana_path_config is defined
+      - grafana_path_config is not none
+      - grafana_path_config | string | length > 0
+    fail_msg: "grafana_path_config is required — set it in host_vars to the host bind-mount directory for grafana.ini (no portable default exists)."
+    success_msg: "grafana_path_config is set."
+  when: grafana_path_config is defined
+
+- name: "MMN grafana - Validate data path"
+  ansible.builtin.assert:
+    that:
+      - grafana_path_data is defined
+      - grafana_path_data is not none
+      - grafana_path_data | string | length > 0
+    fail_msg: "grafana_path_data is required — set it in host_vars to the host bind-mount directory for the grafana state/sqlite (no portable default exists)."
+    success_msg: "grafana_path_data is set."
+  when: grafana_path_data is defined
+
+- name: "MMN grafana - Validate grafana_ini type"
+  ansible.builtin.assert:
+    that:
+      - grafana_ini | type_debug == 'dict'
+    fail_msg: "grafana_ini must be a dict of section-name -> {key: value} pairs (e.g. {server: {http_port: '3000'}})."
+    success_msg: "grafana_ini is a dict."
+  when: grafana_ini is defined
+
+- name: "MMN grafana - Validate each grafana_ini section is a dict"
+  ansible.builtin.assert:
+    that:
+      - grafana_ini_section_entry.value | type_debug == 'dict'
+    fail_msg: "grafana_ini['{{ grafana_ini_section_entry.key }}'] must be a dict of key/value pairs."
+    success_msg: "grafana.ini section '{{ grafana_ini_section_entry.key }}' is a dict."
+  loop: "{{ grafana_ini | dict2items }}"
+  loop_control:
+    loop_var: grafana_ini_section_entry
+  when: grafana_ini is defined
+
+- name: "MMN grafana - Validate datasources type"
+  ansible.builtin.assert:
+    that:
+      - grafana_datasources | type_debug == 'dict'
+    fail_msg: "grafana_datasources must be a dict keyed by filename stem; each value is a list of datasource objects."
+    success_msg: "grafana_datasources is a dict."
+  when: grafana_datasources is defined
+
+- name: "MMN grafana - Validate dashboard_providers type"
+  ansible.builtin.assert:
+    that:
+      - grafana_dashboard_providers | type_debug == 'dict'
+    fail_msg: "grafana_dashboard_providers must be a dict keyed by filename stem; each value is a list of provider objects."
+    success_msg: "grafana_dashboard_providers is a dict."
+  when: grafana_dashboard_providers is defined
+
+- name: "MMN grafana - Validate owner/group"
+  ansible.builtin.assert:
+    that:
+      - grafana_owner is defined
+      - grafana_owner | string | length > 0
+      - grafana_group is defined
+      - grafana_group | string | length > 0
+    fail_msg: "grafana_owner and grafana_group must be non-empty strings (matching the container image UID/GID)."
+    success_msg: "grafana_owner/grafana_group are set."
+  when: grafana_owner is defined or grafana_group is defined
+
+- name: "MMN grafana - Validate dashboards repo URL"
+  ansible.builtin.assert:
+    that:
+      - grafana_dashboards_repo | string | length > 0
+    fail_msg: "grafana_dashboards_repo must be a non-empty git URL string."
+    success_msg: "grafana_dashboards_repo is set."
+  when: grafana_dashboards_repo is defined
+
+- name: "MMN grafana - Validate dashboards destination path"
+  ansible.builtin.assert:
+    that:
+      - grafana_dashboards_dest is defined
+      - grafana_dashboards_dest | string | length > 0
+    fail_msg: "grafana_dashboards_dest must be a non-empty string giving the host directory for dashboard JSON files."
+    success_msg: "grafana_dashboards_dest is set."
+  when: grafana_dashboards_dest is defined
+
+- name: "MMN grafana - Validate git auth pairing"
+  ansible.builtin.assert:
+    that:
+      - (grafana_dashboards_git_username is none) == (grafana_dashboards_git_password is none)
+    fail_msg: "grafana_dashboards_git_username and grafana_dashboards_git_password must be both set or both unset."
+    success_msg: "grafana git auth credentials are paired correctly."
+  when:
+    - grafana_dashboards_git_username is defined or grafana_dashboards_git_password is defined
+
+- name: "MMN grafana - Validate hub dashboards list type"
+  ansible.builtin.assert:
+    that:
+      - grafana_dashboards_from_hub | type_debug == 'list'
+    fail_msg: "grafana_dashboards_from_hub must be a list of dicts with keys: id (positive int, required), revision (int or 'latest', optional), filename (str, optional)."
+    success_msg: "grafana_dashboards_from_hub is a list."
+  when: grafana_dashboards_from_hub is defined
+
+- name: "MMN grafana - Validate each hub dashboard entry"
+  ansible.builtin.assert:
+    that:
+      - _grafana_hub_check | type_debug == 'dict'
+      - _grafana_hub_check.id is defined
+      - _grafana_hub_check.id | int > 0
+      - >
+        _grafana_hub_check.revision is not defined or
+        _grafana_hub_check.revision | string == 'latest' or
+        _grafana_hub_check.revision | int > 0
+      - >
+        _grafana_hub_check.filename is not defined or
+        _grafana_hub_check.filename | string | length > 0
+    fail_msg: >-
+      Each grafana_dashboards_from_hub entry must be a dict with a positive
+      integer 'id'; optional 'revision' (positive int or the literal 'latest')
+      and optional 'filename' (non-empty string).
+    success_msg: "Hub dashboard entry '{{ _grafana_hub_check.id | default('?') }}' is valid."
+  loop: "{{ grafana_dashboards_from_hub | default([]) }}"
+  loop_control:
+    loop_var: _grafana_hub_check
+  when: grafana_dashboards_from_hub is defined

@@ -1,0 +1,20 @@
+# Managed by imp1sh.ansible_managemynetwork.ansible_grafana — do not edit by hand.
+{% set lines = [] %}
+{% for section, settings in grafana_ini.items() %}
+{% set _ = lines.append('[' ~ section ~ ']') %}
+{% for key, value in settings.items() %}
+{% if value is not none %}
+{% if value is boolean %}
+{% set _ = lines.append(key ~ ' = ' ~ (value | lower)) %}
+{% elif value is iterable and value is not string and value is not mapping %}
+{% for item in value if item is not none %}
+{% set _ = lines.append(key ~ ' = ' ~ item) %}
+{% endfor %}
+{% else %}
+{% set _ = lines.append(key ~ ' = ' ~ value) %}
+{% endif %}
+{% endif %}
+{% endfor %}
+{% set _ = lines.append('') %}
+{% endfor %}
+{{ lines | join('\n') }}

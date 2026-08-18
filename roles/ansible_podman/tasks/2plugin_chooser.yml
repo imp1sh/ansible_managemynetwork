@@ -46,3 +46,13 @@
     - podman_containers is defined
     # Below filter is needed so the plugin only runs when the choosen container images are related to the plugin
     - podman_containers | map(attribute='name') | intersect(podman_container_plugin_traefik) | length > 0
+
+# GRAFANA
+- name: "MMN Podman - Plugin grafana"
+  ansible.builtin.include_tasks:
+    file: plugin_grafana.yml
+  when:
+    - podman_container_plugin_grafana is defined
+    - podman_containers is defined
+    # Below filter is needed so the plugin only runs when the choosen container images are related to the plugin
+    - podman_containers | map(attribute='name') | intersect(podman_container_plugin_grafana) | length > 0

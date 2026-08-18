@@ -309,6 +309,7 @@ Supported plugin:
 | pdnsauth | [imp1sh.ansible_managemynetwork.ansible_pdnsauth](https://github.com/imp1sh/ansible_managemynetwork/tree/main/roles/ansible_pdnsauth) | |
 | prometheus | [imp1sh.ansible_managemynetwork.ansible_prometheus](https://github.com/imp1sh/ansible_managemynetwork/tree/main/roles/ansible_prometheus) | Renders `prometheus.yml` + rule files for the prometheus container |
 | traefik | [imp1sh.ansible_managemynetwork.ansible_traefik](https://github.com/imp1sh/ansible_managemynetwork/tree/main/roles/ansible_traefik) | Renders `traefik.yml` static config, dynamic file-provider configs and `acme.json` |
+| grafana | [imp1sh.ansible_managemynetwork.ansible_grafana](https://github.com/imp1sh/ansible_managemynetwork/tree/main/roles/ansible_grafana) | Renders `grafana.ini` and datasource/dashboard provisioning files |
 | dnsdist | planned | |
 | cacert | planned | |
 
@@ -551,4 +552,56 @@ On Fedora / SELinux-enforcing hosts the podman role auto-detects the podman
 socket mount and emits `SecurityLabelType=container_runtime_t` under Quadlet —
 see [Fedora / SELinux](#fedora--selinux) above. See the `ansible_traefik` README
 for the full variable reference.
+
+### grafana
+
+Grafana visualization plugin. The `ansible_podman` role spins up the container;
+the [`ansible_grafana`](https://github.com/imp1sh/ansible_managemynetwork/tree/main/roles/ansible_grafana)
+role renders `grafana.ini` and the datasource/dashboard-provider provisioning
+files into the host bind-mount directories *before* the container starts.
+Enable the plugin for the `grafana0` container:
+
+```yaml
+podman_container_plugin_grafana:
+  - "grafana0"
+grafana_containername: "grafana0"
+```
+
+Then define the container and the grafana vars:
+
+```yaml
+podman_containers:
+  - name: grafana0
+    state: started
+    network: podmannetGUA
+    image: docker.io/grafana/grafana:13.0.6
+    volume:
+      - "/mnt/cntr/unsynced/grafana/0/etc/grafana.ini:/etc/grafana/grafana.ini"
+      - "/mnt/cntr/unsynced/grafana/0/etc/provisioning/:/etc/grafana/provisioning/"
+      - "/mnt/cntr/unsynced/grafana/0/data/:/var/lib/grafana/"
+    ports:
+      - "3000:3000"
+
+grafana_ini:
+  server:
+    domain: "grafana.example.com"
+    root_url: "%(protocol)s://%(domain)s/"
+  security:
+    admin_user: "admin"
+    admin_password: "changeme"
+  auth.anonymous:
+    enabled: true
+    org_role: "Viewer"
+
+grafana_datasources:
+  prometheus:
+    - name: Prometheus
+      type: prometheus
+      access: proxy
+      url: http://prometheus0:9090
+      isDefault: true
+```
+
+See the `ansible_grafana` README for the full variable reference.
+
 

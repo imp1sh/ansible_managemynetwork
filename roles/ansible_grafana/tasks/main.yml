@@ -1,0 +1,26 @@
+---
+- name: "MMN grafana - Validate inputs"
+  ansible.builtin.include_tasks: checks.yml
+
+- name: "MMN grafana - Render configuration"
+  ansible.builtin.include_tasks: 01config.yml
+  when: grafana_ini is defined
+
+- name: "MMN grafana - Deploy dashboards from git"
+  ansible.builtin.include_tasks: 02dashboards.yml
+  when: grafana_dashboards_repo is not none
+
+- name: "MMN grafana - Deploy dashboards from grafana.com hub"
+  ansible.builtin.include_tasks: 03dashboards_hub.yml
+  when: (grafana_dashboards_from_hub | default([])) | length > 0
+
+- name: "MMN grafana - Skip status feedback"
+  ansible.builtin.debug:
+    msg: >-
+      The role ansible_grafana did not run on host {{ inventory_hostname }}
+      because none of grafana_ini, grafana_dashboards_repo, or
+      grafana_dashboards_from_hub is set.
+  when:
+    - (grafana_ini | default({})) | length == 0
+    - (grafana_dashboards_repo | default(none)) is none
+    - (grafana_dashboards_from_hub | default([])) | length == 0

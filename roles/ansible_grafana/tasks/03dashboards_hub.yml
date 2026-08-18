@@ -1,0 +1,23 @@
+---
+- name: "MMN grafana - Ensure hub dashboards directory exists"
+  ansible.builtin.file:
+    path: "{{ grafana_dashboards_hub_dest }}"
+    state: directory
+    owner: "{{ grafana_owner }}"
+    group: "{{ grafana_group }}"
+    mode: "0755"
+
+- name: "MMN grafana - Pull each dashboard from grafana.com hub"
+  ansible.builtin.include_tasks: 03dashboards_hub_item.yml
+  loop: "{{ grafana_dashboards_from_hub }}"
+  loop_control:
+    loop_var: _grafana_hub_dashboard
+    label: "{{ _grafana_hub_dashboard.id | default('?') }}"
+
+- name: "MMN grafana - Debug hub dashboards"
+  ansible.builtin.debug:
+    msg:
+      dest: "{{ grafana_dashboards_hub_dest }}"
+      count: "{{ grafana_dashboards_from_hub | length }}"
+      api: "{{ grafana_dashboards_hub_api }}"
+  when: mmn_verbose | default(false) | bool

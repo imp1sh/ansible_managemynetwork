@@ -1,0 +1,39 @@
+---
+- hosts: grafana
+  remote_user: root
+  roles:
+    - ansible_grafana
+  vars:
+    grafana_path_config: "/tmp/grafana-test/etc"
+    grafana_path_data: "/tmp/grafana-test/data"
+    grafana_owner: "472"
+    grafana_group: "0"
+    grafana_ini:
+      server:
+        http_port: "3000"
+        domain: "grafana.example.com"
+      security:
+        admin_user: "admin"
+        admin_password: "admin"
+      database:
+        type: "sqlite3"
+      auth.anonymous:
+        enabled: true
+        org_role: "Viewer"
+    grafana_datasources:
+      prometheus:
+        - name: Prometheus
+          type: prometheus
+          access: proxy
+          url: http://prometheus0:9090
+          isDefault: true
+    grafana_dashboard_providers:
+      default:
+        - name: default
+          orgId: 1
+          folder: ""
+          type: file
+          disableDeletion: false
+          editable: true
+          options:
+            path: /var/lib/grafana/dashboards

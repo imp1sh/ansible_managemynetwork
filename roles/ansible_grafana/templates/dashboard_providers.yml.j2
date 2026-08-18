@@ -1,0 +1,5 @@
+---
+# Managed by imp1sh.ansible_managemynetwork.ansible_grafana — do not edit by hand.
+apiVersion: 1
+providers:
+{{ _grafana_dp_entries | to_nice_yaml(indent=2) | indent(2, true) }}

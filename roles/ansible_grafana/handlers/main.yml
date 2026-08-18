@@ -1,0 +1,12 @@
+---
+- name: Restart grafana container
+  ansible.builtin.systemd:
+    name: "{{ ('container-' ~ grafana_containername) if not (podman_use_quadlet | default(false) | bool) else grafana_containername }}"
+    state: restarted
+  when: grafana_containername is not none
+
+- name: Reload grafana provisioning
+  containers.podman.podman_container_exec:
+    name: "{{ grafana_containername }}"
+    command: "kill -HUP 1"
+  when: grafana_containername is not none

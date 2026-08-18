@@ -1,0 +1,68 @@
+---
+- name: "MMN grafana - Ensure dashboards directory exists"
+  ansible.builtin.file:
+    path: "{{ grafana_dashboards_dest }}"
+    state: directory
+    owner: "{{ grafana_owner }}"
+    group: "{{ grafana_group }}"
+    mode: "0755"
+
+- name: "MMN grafana - Compose authenticated git URL"
+  ansible.builtin.set_fact:
+    _grafana_git_repo: >-
+      https://{{ grafana_dashboards_git_username | urlencode }}:{{ grafana_dashboards_git_password | urlencode }}@{{ grafana_dashboards_repo | regex_replace('^https?://', '') }}
+  no_log: true
+  when:
+    - grafana_dashboards_git_username is not none
+    - grafana_dashboards_git_password is not none
+
+- name: "MMN grafana - Fall back to anonymous git URL"
+  ansible.builtin.set_fact:
+    _grafana_git_repo: "{{ grafana_dashboards_repo }}"
+  when: >-
+    grafana_dashboards_git_username is none or
+    grafana_dashboards_git_password is none
+
+- name: "MMN grafana - Trust dashboards repo dir for git (ownership)"
+  ansible.builtin.git_config:
+    name: safe.directory
+    value: "{{ grafana_dashboards_dest }}"
+    scope: global
+  # The worktree is owned by grafana_owner (UID 472) for the container, but the
+  # git task runs as the ansible connection user (often root). Modern git rejects
+  # operating on a worktree whose owner differs from the calling EUID; registering
+  # the path as safe.directory lets git proceed regardless of the mismatch.
+
+- name: "MMN grafana - Sync dashboards from git"
+  ansible.builtin.git:
+    repo: "{{ _grafana_git_repo }}"
+    dest: "{{ grafana_dashboards_dest }}"
+    version: "{{ grafana_dashboards_version | default(omit, true) }}"
+    depth: "{{ grafana_dashboards_clone_depth }}"
+    update: true
+    force: true
+  no_log: true
+  notify: Reload grafana provisioning
+
+- name: "MMN grafana - Strip credentials from git remote URL"
+  ansible.builtin.git_config:
+    repo: "{{ grafana_dashboards_dest }}"
+    name: "remote.origin.url"
+    scope: local
+    value: "{{ grafana_dashboards_repo }}"
+  when:
+    - grafana_dashboards_git_username is not none
+    - grafana_dashboards_git_password is not none
+
+- name: "MMN grafana - Clear cached authenticated git URL"
+  ansible.builtin.set_fact:
+    _grafana_git_repo: null
+
+- name: "MMN grafana - Debug dashboards sync"
+  ansible.builtin.debug:
+    msg:
+      repo: "{{ grafana_dashboards_repo }}"
+      dest: "{{ grafana_dashboards_dest }}"
+      version: "{{ grafana_dashboards_version | default('HEAD') }}"
+      auth: "{{ (grafana_dashboards_git_username is not none) | ternary('http-basic', 'anonymous') }}"
+  when: mmn_verbose | default(false) | bool

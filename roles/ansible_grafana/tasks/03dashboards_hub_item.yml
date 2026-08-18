@@ -1,0 +1,34 @@
+---
+# Per-dashboard worker included once per entry of grafana_dashboards_from_hub.
+# Resolves the effective revision (pinned int OR "latest" looked up via the
+# hub metadata API), then downloads the dashboard JSON into
+# grafana_dashboards_hub_dest. Notifies the SIGHUP handler on change so grafana
+# hot-reloads the new file.
+
+- name: "MMN grafana - Resolve latest revision for dashboard {{ _grafana_hub_dashboard.id }}"
+  ansible.builtin.uri:
+    url: "{{ grafana_dashboards_hub_api }}/{{ _grafana_hub_dashboard.id }}"
+    method: GET
+    return_content: true
+    status_code: 200
+  register: _grafana_hub_meta
+  when: (_grafana_hub_dashboard.revision | default('latest')) == 'latest'
+
+- name: "MMN grafana - Set pinned revision for dashboard {{ _grafana_hub_dashboard.id }}"
+  ansible.builtin.set_fact:
+    _grafana_hub_revision: "{{ _grafana_hub_dashboard.revision | int }}"
+  when: (_grafana_hub_dashboard.revision | default('latest')) != 'latest'
+
+- name: "MMN grafana - Set resolved latest revision for dashboard {{ _grafana_hub_dashboard.id }}"
+  ansible.builtin.set_fact:
+    _grafana_hub_revision: "{{ _grafana_hub_meta.json.revision | int }}"
+  when: (_grafana_hub_dashboard.revision | default('latest')) == 'latest'
+
+- name: "MMN grafana - Download dashboard {{ _grafana_hub_dashboard.id }} rev {{ _grafana_hub_revision }}"
+  ansible.builtin.get_url:
+    url: "{{ grafana_dashboards_hub_api }}/{{ _grafana_hub_dashboard.id }}/revisions/{{ _grafana_hub_revision }}/download"
+    dest: "{{ grafana_dashboards_hub_dest }}/{{ _grafana_hub_dashboard.filename | default(_grafana_hub_dashboard.id) }}.json"
+    owner: "{{ grafana_owner }}"
+    group: "{{ grafana_group }}"
+    mode: "0644"
+  notify: Reload grafana provisioning

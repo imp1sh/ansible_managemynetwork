@@ -34,6 +34,7 @@ This collection will offer support for:
 | [ansible_chrony](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_chrony/README.md) | yes | — | — |
 | [ansible_dehydrated](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_dehydrated/README.md) | yes | — | — |
 | [ansible_groups](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_groups/README.md) | yes | yes | yes |
+| [ansible_grafana](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_grafana/README.md) | yes | — | — |
 | [ansible_hostname](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_hostname/README.md) | yes | — | — |
 | [ansible_motd](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_motd/README.md) | yes | — | — |
 | [ansible_netbox2yaml](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_netbox2yaml/README.md) | yes | — | — |
@@ -59,6 +60,7 @@ This collection will offer support for:
 | [ansible_openwrtwireless](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_openwrtwireless/README.md) | — | yes | yes |
 | [ansible_packages](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_packages/README.md) | yes | yes | yes |
 | [ansible_podman](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_podman/README.md) | yes | yes | yes |
+| [ansible_prometheus](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_prometheus/README.md) | yes | — | — |
 | [ansible_qemuagent](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_qemuagent/README.md) | yes | — | — |
 | [ansible_restic](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_restic/README.md) | yes | yes | yes |
 | [ansible_sshkeys](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_sshkeys/README.md) | yes | yes | — |

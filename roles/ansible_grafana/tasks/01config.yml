@@ -1,0 +1,94 @@
+---
+- name: "MMN grafana - Ensure config directory exists"
+  ansible.builtin.file:
+    path: "{{ grafana_path_config }}"
+    state: directory
+    owner: "{{ grafana_owner }}"
+    group: "{{ grafana_group }}"
+    mode: "0755"
+
+- name: "MMN grafana - Ensure provisioning directory exists"
+  ansible.builtin.file:
+    path: "{{ grafana_path_provisioning }}"
+    state: directory
+    owner: "{{ grafana_owner }}"
+    group: "{{ grafana_group }}"
+    mode: "0755"
+
+- name: "MMN grafana - Ensure datasources provisioning directory exists"
+  ansible.builtin.file:
+    path: "{{ grafana_path_datasources }}"
+    state: directory
+    owner: "{{ grafana_owner }}"
+    group: "{{ grafana_group }}"
+    mode: "0755"
+
+- name: "MMN grafana - Ensure dashboards provisioning directory exists"
+  ansible.builtin.file:
+    path: "{{ grafana_path_dashboards }}"
+    state: directory
+    owner: "{{ grafana_owner }}"
+    group: "{{ grafana_group }}"
+    mode: "0755"
+
+- name: "MMN grafana - Ensure data directory exists"
+  ansible.builtin.file:
+    path: "{{ grafana_path_data }}"
+    state: directory
+    owner: "{{ grafana_owner }}"
+    group: "{{ grafana_group }}"
+    mode: "{{ grafana_mode_data }}"
+
+- name: "MMN grafana - Render grafana.ini"
+  ansible.builtin.template:
+    src: grafana.ini.j2
+    dest: "{{ grafana_path_config }}/{{ grafana_file_config }}"
+    owner: "{{ grafana_owner }}"
+    group: "{{ grafana_group }}"
+    mode: "{{ grafana_mode_config }}"
+  notify: Restart grafana container
+
+- name: "MMN grafana - Render datasource provisioning files"
+  ansible.builtin.template:
+    src: datasources.yml.j2
+    dest: "{{ grafana_path_datasources }}/{{ grafana_datasource_entry.key }}.yml"
+    owner: "{{ grafana_owner }}"
+    group: "{{ grafana_group }}"
+    mode: "{{ grafana_mode_provisioning }}"
+  loop: "{{ grafana_datasources | dict2items }}"
+  loop_control:
+    loop_var: grafana_datasource_entry
+  vars:
+    _grafana_ds_entries: "{{ grafana_datasource_entry.value }}"
+  notify: Reload grafana provisioning
+  when: grafana_datasources | length > 0
+
+- name: "MMN grafana - Render dashboard provider provisioning files"
+  ansible.builtin.template:
+    src: dashboard_providers.yml.j2
+    dest: "{{ grafana_path_dashboards }}/{{ grafana_dashboard_provider_entry.key }}.yml"
+    owner: "{{ grafana_owner }}"
+    group: "{{ grafana_group }}"
+    mode: "{{ grafana_mode_provisioning }}"
+  loop: "{{ grafana_dashboard_providers | dict2items }}"
+  loop_control:
+    loop_var: grafana_dashboard_provider_entry
+  vars:
+    _grafana_dp_entries: "{{ grafana_dashboard_provider_entry.value }}"
+  notify: Reload grafana provisioning
+  when: grafana_dashboard_providers | length > 0
+
+- name: "MMN grafana - Debug rendered grafana.ini sections"
+  ansible.builtin.debug:
+    var: grafana_ini
+  when: mmn_verbose | default(false) | bool
+
+- name: "MMN grafana - Debug rendered datasources"
+  ansible.builtin.debug:
+    var: grafana_datasources
+  when: mmn_verbose | default(false) | bool
+
+- name: "MMN grafana - Debug rendered dashboard providers"
+  ansible.builtin.debug:
+    var: grafana_dashboard_providers
+  when: mmn_verbose | default(false) | bool

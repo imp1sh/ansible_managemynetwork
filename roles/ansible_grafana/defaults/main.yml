@@ -1,0 +1,198 @@
+---
+# ansible_grafana — container-only role.
+#
+# Renders grafana.ini and Grafana provisioning files (datasources, dashboard
+# providers) onto host-side bind-mount paths consumed by a podman container.
+# The container itself is declared by the caller via the ansible_podman role
+# (see the "Plugins" section of the ansible_podman README); this role only owns
+# the configuration files. It performs no package installation and no service
+# management.
+#
+# Settings that grafana equally accepts as GF_* environment variables on the
+# container definition are the caller's responsibility — this role handles the
+# parts that must be files: grafana.ini and the provisioning tree.
+
+# --- Paths (host bind-mount roots) ---
+# These two ROOT paths are REQUIRED — there is no sane portable default since
+# every deployment sites container bind-mount data differently. Set them in
+# host_vars/group_vars (e.g. "/opt/grafana/etc", "/srv/grafana/data", or
+# wherever your podman volumes live). The derived paths below compose off them
+# automatically.
+grafana_path_config: null
+
+# Root of the provisioning tree. Bind-mount into the container (typically
+# /etc/grafana/provisioning). Grafana scans this directory at startup (and on
+# SIGHUP) for datasource and dashboard provider definitions.
+grafana_path_provisioning: "{{ (grafana_path_config | default('', true)) }}/provisioning"
+
+# Where datasource provisioning files are rendered. Bind-mount into the
+# container (typically /etc/grafana/provisioning/datasources).
+grafana_path_datasources: "{{ (grafana_path_provisioning | default('', true)) }}/datasources"
+
+# Where dashboard provider provisioning files are rendered. Bind-mount into the
+# container (typically /etc/grafana/provisioning/dashboards).
+grafana_path_dashboards: "{{ (grafana_path_provisioning | default('', true)) }}/dashboards"
+
+# Host directory used for the grafana state (sqlite database, sessions,
+# plugins). Bind-mount into the container (typically /var/lib/grafana). Required.
+grafana_path_data: null
+
+# Filename of the main config inside grafana_path_config.
+grafana_file_config: "grafana.ini"
+
+# --- Ownership / modes ---
+# The official grafana/grafana image runs as UID 472, GID 0 by default. Numeric
+# ids are used because the host usually has no grafana system user. Override
+# per image if yours differs.
+grafana_owner: "472"
+grafana_group: "0"
+grafana_mode_config: "0644"
+grafana_mode_provisioning: "0644"
+grafana_mode_data: "0755"
+
+# --- grafana.ini (PRIMARY INPUT) ---
+# Dict of INI section name -> {key: value}. Each top-level key becomes an
+# `[section]` header; nested key/value pairs become `key = value` lines.
+# Section names may contain dots (e.g. "auth.anonymous"). Values may be
+# strings, numbers or booleans (rendered lowercase). Leave a value as null to
+# omit the line. Anything not listed here falls back to grafana's compiled-in
+# defaults (plus any GF_* env vars set on the container).
+#   grafana_ini:
+#     server:
+#       http_port: "3000"
+#       domain: "grafana.example.com"
+#       root_url: "%(protocol)s://%(domain)s/"
+#     security:
+#       admin_user: "admin"
+#       admin_password: "changeme"
+#       disable_gravatar: true
+#     auth.anonymous:
+#       enabled: true
+#       org_role: "Viewer"
+#     database:
+#       type: "postgres"
+#       host: "psql0:5432"
+#       name: "grafana"
+#       user: "grafana"
+#       password: "secret"
+#     smtp:
+#       enabled: true
+#       host: "localhost:25"
+#       from_address: "grafana@example.com"
+grafana_ini: {}
+
+# --- datasource provisioning (SECONDARY INPUT) ---
+# Dict keyed by filename stem; each value is a LIST OF DATASOURCE OBJECTS as
+# grafana's provisioning schema expects under `datasources:`. Rendered as
+# <stem>.yml in grafana_path_datasources.
+#   grafana_datasources:
+#     prometheus:
+#       - name: Prometheus
+#         type: prometheus
+#         access: proxy
+#         url: http://prometheus0:9090
+#         isDefault: true
+#       - name: VictoriaMetrics
+#         type: prometheus
+#         access: proxy
+#         url: http://victoria0:8428
+grafana_datasources: {}
+
+# --- dashboard provider provisioning (SECONDARY INPUT) ---
+# Dict keyed by filename stem; each value is a LIST OF PROVIDER OBJECTS as
+# grafana's provisioning schema expects under `providers:`. Rendered as
+# <stem>.yml in grafana_path_dashboards. Actual dashboard JSON files are out of
+# scope — drop them into the directory each provider's `options.path` points at
+# (inside the container).
+#   grafana_dashboard_providers:
+#     default:
+#       - name: default
+#         orgId: 1
+#         folder: ""
+#         type: file
+#         disableDeletion: false
+#         editable: true
+#         options:
+#           path: /var/lib/grafana/dashboards
+grafana_dashboard_providers: {}
+
+# --- dashboards from git (OPTIONAL INPUT) ---
+# Git repository holding dashboard JSON files. When set, the role clones/updates
+# it to grafana_dashboards_dest and notifies the provisioning-reload handler so
+# grafana picks up new dashboards on SIGHUP. Leave unset to skip git sync (e.g.
+# if you deliver dashboards another way).
+grafana_dashboards_repo: null
+
+# Host directory where dashboard JSONs are synced. Defaults to a "dashboards"
+# subdir under grafana_path_data, which the typical /var/lib/grafana bind-mount
+# exposes inside the container at /var/lib/grafana/dashboards — match this to
+# the `options.path` of your grafana_dashboard_providers entry.
+grafana_dashboards_dest: "{{ grafana_path_data }}/dashboards"
+
+# Branch/tag/commit to check out. Leave unset (null) to track the repository's
+# default branch (HEAD).
+grafana_dashboards_version: null
+
+# Shallow-clone depth. 1 fetches only the latest commit for speed; set to 0
+# for a full-history clone.
+grafana_dashboards_clone_depth: 1
+
+# --- git authentication (OPTIONAL) ---
+# For private repos over HTTP(S). Supply BOTH a username and a password/token
+# to enable HTTP Basic Auth on the clone/fetch. The password is a secret —
+# vault it. Use a read-only, repo-scoped deploy token/personal access token as
+# the password rather than a human account password.
+#
+# ansible.builtin.git has no native username/password parameters, so the role
+# embeds the credentials in the clone URL (https://user:token@host/...) for the
+# fetch, then resets remote.origin.url back to the clean grafana_dashboards_repo
+# so credentials do not rest in .git/config on the target between runs. The
+# composition and git tasks carry no_log:true so the token never surfaces in
+# task output or logs.
+#
+# Leave both unset for anonymous/public repos or when authenticating another
+# way (SSH deploy key, pre-seeded credential helper, etc.). SSH URLs
+# (git@host:..., ssh://...) ignore these — use an SSH deploy key instead.
+grafana_dashboards_git_username: null
+grafana_dashboards_git_password: null
+
+# --- dashboards from grafana.com hub (OPTIONAL INPUT) ---
+# Community dashboards hosted on grafana.com, pulled by numeric ID. Each entry
+# is a dict:
+#   id       – positive integer dashboard ID on grafana.com (required)
+#   revision – integer revision, or the literal string "latest" (optional;
+#              defaults to "latest", which queries the hub API for the newest
+#              published revision on every run)
+#   filename – basename WITHOUT ".json" to save as on disk (optional; defaults
+#              to the id, so re-runs stay idempotent across renames)
+# Files land in grafana_dashboards_hub_dest; pair it with a
+# grafana_dashboard_providers entry whose options.path points at the in-container
+# equivalent (typical default below mounts to /var/lib/grafana/dashboards-hub).
+# Example:
+#   grafana_dashboards_from_hub:
+#     - id: 1860          # Node Exporter Full
+#       filename: node_exporter_full
+#     - id: 11074         # Redis Dashboard
+#       revision: 1
+#       filename: redis
+grafana_dashboards_from_hub: []
+
+# Host directory where hub-downloaded dashboards are stored. Kept separate from
+# the git-staged repo (grafana_dashboards_dest) so the two flows don't collide.
+grafana_dashboards_hub_dest: "{{ grafana_path_data }}/dashboards-hub"
+
+# Base URL of the grafana.com public dashboard API. Override only if you run a
+# private mirror exposing the same shape (/api/dashboards/<id>,
+# /api/dashboards/<id>/revisions/<rev>/download).
+grafana_dashboards_hub_api: "https://grafana.com/api/dashboards"
+
+# --- reload mechanism ---
+# Name of the podman container running grafana. When set:
+#   - grafana.ini changes notify a handler that restarts the container (most
+#     ini settings are only read at startup).
+#   - provisioning file changes notify a handler that sends SIGHUP via
+#     `podman exec <name> kill -HUP 1` (grafana hot-reloads provisioning on
+#     SIGHUP).
+# Leave unset to skip automatic reload/restart (e.g. when invoking the role
+# outside of podman).
+grafana_containername: null
