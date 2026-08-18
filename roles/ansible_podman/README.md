@@ -310,6 +310,7 @@ Supported plugin:
 | prometheus | [imp1sh.ansible_managemynetwork.ansible_prometheus](https://github.com/imp1sh/ansible_managemynetwork/tree/main/roles/ansible_prometheus) | Renders `prometheus.yml` + rule files for the prometheus container |
 | traefik | [imp1sh.ansible_managemynetwork.ansible_traefik](https://github.com/imp1sh/ansible_managemynetwork/tree/main/roles/ansible_traefik) | Renders `traefik.yml` static config, dynamic file-provider configs and `acme.json` |
 | grafana | [imp1sh.ansible_managemynetwork.ansible_grafana](https://github.com/imp1sh/ansible_managemynetwork/tree/main/roles/ansible_grafana) | Renders `grafana.ini` and datasource/dashboard provisioning files |
+| opensearch | [imp1sh.ansible_managemynetwork.ansible_opensearch](https://github.com/imp1sh/ansible_managemynetwork/tree/main/roles/ansible_opensearch) | Renders `opensearch.yml` for the opensearch container |
 | dnsdist | planned | |
 | cacert | planned | |
 

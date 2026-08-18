@@ -99,6 +99,52 @@ prometheus_rules: {}
 # inside the container.
 prometheus_rules_glob: "rules/*.rules.yml"
 
+# --- automatic scrape targets from ansible inventory groups (OPTIONAL) ---
+# Dict keyed by ansible group name; each value is a scrape-config fragment
+# describing HOW to scrape members of that group. The role looks up
+# groups[group_name], builds a static_configs target list of
+# "inventory_hostname:port" for each member, and appends the resulting
+# scrape_config to prometheus_scrape_configs before rendering prometheus.yml.
+# Members that are unreachable from the prometheus container (different DNS,
+# NAT, custom port) can set a per-host var `prometheus_scrape_address` to
+# override the inventory hostname used as the target address.
+#   prometheus_scrape_group_targets:
+#     os_openwrt_25_12:
+#       job_name: "openwrt"
+#       port: 9100
+#     tags_debian:
+#       job_name: "debian"
+#       port: 9100
+#       metrics_path: /metrics
+prometheus_scrape_group_targets: {}
+
+# --- file-based service discovery (OPTIONAL) ---
+# Enables a file_sd_configs scrape job in prometheus.yml that reads
+# operator-managed target files from a directory. Drop YAML files there
+# (outside Ansible) to add/remove targets without touching the role or
+# re-running the playbook — Prometheus re-reads them every refresh_interval.
+#   prometheus_file_sd_enabled: true
+# The role creates the host-side directory (prometheus_path_file_sd, defaults
+# to prometheus_path_config/file_sd) and emits a scrape_config entry pointing
+# at the container-internal glob (prometheus_file_sd_path).
+prometheus_file_sd_enabled: false
+
+# Container-internal glob Prometheus reads. Must match where you mount
+# prometheus_path_file_sd inside the container (default assumes
+# /etc/prometheus/file_sd/).
+prometheus_file_sd_path: "/etc/prometheus/file_sd/*.yml"
+
+# How often Prometheus re-reads the target files.
+prometheus_file_sd_refresh_interval: "30s"
+
+# Job name for the file_sd scrape config in prometheus.yml.
+prometheus_file_sd_job_name: "file_sd"
+
+# Host-side directory for operator-managed target files. Defaults to a
+# "file_sd" subdir beneath prometheus_path_config so a single config
+# bind-mount covers both. Decouple by setting this independently.
+prometheus_path_file_sd: "{{ (prometheus_path_config | default('', true)) }}/file_sd"
+
 # --- reload mechanism ---
 # Name of the podman container running prometheus. When set, config/rule changes
 # trigger a SIGHUP reload via `podman exec ... kill -HUP 1` (Prometheus reloads

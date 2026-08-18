@@ -1,0 +1,24 @@
+---
+galaxy_info:
+  role_name: ansible_opensearch
+  author: Jochen Demmer
+  description: Renders opensearch.yml and the data directory for a podman container.
+  company: libcom.de
+  issue_tracker_url: https://github.com/imp1sh/ansible_managemynetwork/issues
+  license: BSD-3-Clause
+  min_ansible_version: "2.11"
+  platforms:
+    - name: Debian
+      versions:
+        - "bookworm"
+        - "bullseye"
+        - "trixie"
+    - name: Fedora
+      versions:
+        - "40"
+        - "41"
+        - "42"
+        - "43"
+        - "44"
+  galaxy_tags: [opensearch, elasticsearch, search, logging, container, podman]
+dependencies: []

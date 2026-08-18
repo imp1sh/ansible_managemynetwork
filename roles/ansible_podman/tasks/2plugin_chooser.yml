@@ -56,3 +56,13 @@
     - podman_containers is defined
     # Below filter is needed so the plugin only runs when the choosen container images are related to the plugin
     - podman_containers | map(attribute='name') | intersect(podman_container_plugin_grafana) | length > 0
+
+# OPENSEARCH
+- name: "MMN Podman - Plugin opensearch"
+  ansible.builtin.include_tasks:
+    file: plugin_opensearch.yml
+  when:
+    - podman_container_plugin_opensearch is defined
+    - podman_containers is defined
+    # Below filter is needed so the plugin only runs when the choosen container images are related to the plugin
+    - podman_containers | map(attribute='name') | intersect(podman_container_plugin_opensearch) | length > 0

@@ -1,0 +1,53 @@
+---
+- name: "MMN opensearch - Validate config path"
+  ansible.builtin.assert:
+    that:
+      - opensearch_path_config is defined
+      - opensearch_path_config is not none
+      - opensearch_path_config | string | length > 0
+    fail_msg: "opensearch_path_config is required — set it in host_vars to the host bind-mount directory for opensearch.yml (no portable default exists)."
+    success_msg: "opensearch_path_config is set."
+
+- name: "MMN opensearch - Validate data path"
+  ansible.builtin.assert:
+    that:
+      - opensearch_path_data is defined
+      - opensearch_path_data is not none
+      - opensearch_path_data | string | length > 0
+    fail_msg: "opensearch_path_data is required — set it in host_vars to the host bind-mount directory for the OpenSearch data (no portable default exists)."
+    success_msg: "opensearch_path_data is set."
+
+- name: "MMN opensearch - Validate opensearch_yml type"
+  ansible.builtin.assert:
+    that:
+      - opensearch_yml | type_debug == 'dict'
+    fail_msg: "opensearch_yml must be a dict of top-level OpenSearch settings (e.g. {cluster.name: 'homelab', node.name: 'opensearch0'})."
+    success_msg: "opensearch_yml is a dict."
+
+- name: "MMN opensearch - Validate owner/group"
+  ansible.builtin.assert:
+    that:
+      - opensearch_owner is defined
+      - opensearch_owner | string | length > 0
+      - opensearch_group is defined
+      - opensearch_group | string | length > 0
+    fail_msg: "opensearch_owner and opensearch_group must be non-empty strings (matching the container image UID/GID)."
+    success_msg: "opensearch_owner/opensearch_group are set."
+
+- name: "MMN opensearch - Validate dashboards config path"
+  ansible.builtin.assert:
+    that:
+      - opensearch_path_dashboards_config is defined
+      - opensearch_path_dashboards_config is not none
+      - opensearch_path_dashboards_config | string | length > 0
+    fail_msg: "opensearch_path_dashboards_config is required when opensearch_dashboards_enabled is true — set it in host_vars to the host bind-mount directory for opensearch_dashboards.yml."
+    success_msg: "opensearch_path_dashboards_config is set."
+  when: opensearch_dashboards_enabled | default(false) | bool
+
+- name: "MMN opensearch - Validate dashboards yml type"
+  ansible.builtin.assert:
+    that:
+      - opensearch_dashboards_yml | type_debug == 'dict'
+    fail_msg: "opensearch_dashboards_yml must be a dict of top-level OpenSearch Dashboards settings (e.g. {server.name: 'opensearch0', opensearch.hosts: ['http://opensearch0:9200']})."
+    success_msg: "opensearch_dashboards_yml is a dict."
+  when: opensearch_dashboards_enabled | default(false) | bool

@@ -38,6 +38,7 @@ This collection will offer support for:
 | [ansible_hostname](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_hostname/README.md) | yes | — | — |
 | [ansible_motd](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_motd/README.md) | yes | — | — |
 | [ansible_netbox2yaml](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_netbox2yaml/README.md) | yes | — | — |
+| [ansible_opensearch](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_opensearch/README.md) | yes | — | — |
 | [ansible_nsupdate_bash](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_nsupdate_bash/README.md) | yes | — | — |
 | [ansible_ohmyzsh](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_ohmyzsh/README.md) | yes | — | — |
 | [ansible_openwrtacme](https://github.com/imp1sh/ansible_managemynetwork/blob/main/roles/ansible_openwrtacme/README.md) | — | yes | yes |

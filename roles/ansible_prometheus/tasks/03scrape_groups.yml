@@ -1,0 +1,76 @@
+---
+# Builds scrape_config stanzas from ansible inventory groups and merges them
+# into prometheus_scrape_configs so the template renders a single combined list.
+# Auto-generated configs are APPENDED after any manually-defined entries.
+#
+# Each entry in prometheus_scrape_group_targets is:
+#   <group_name>:
+#     job_name: "..."      # required
+#     port: 9100           # required (target TCP port)
+#     metrics_path: /metrics  # optional
+#     ...any other scrape_config keys...  # optional, passed through verbatim
+#
+# Target addresses default to the inventory hostname; a per-host var
+# prometheus_scrape_address overrides that when set.
+
+- name: "MMN prometheus - Initialize group scrape configs accumulator"
+  ansible.builtin.set_fact:
+    _prometheus_group_scrape_configs: []
+
+- name: "MMN prometheus - Build scrape config for each inventory group"
+  ansible.builtin.set_fact:
+    _prometheus_group_scrape_configs: >-
+      {{
+        _prometheus_group_scrape_configs
+        + [_prometheus_group_frag]
+      }}
+  loop: "{{ prometheus_scrape_group_targets | dict2items }}"
+  loop_control:
+    loop_var: _prometheus_group_entry
+    label: "{{ _prometheus_group_entry.key }}"
+  vars:
+    _prometheus_group_name: "{{ _prometheus_group_entry.key }}"
+    _prometheus_group_spec: "{{ _prometheus_group_entry.value }}"
+    _prometheus_group_members: "{{ groups[_prometheus_group_name] | default([]) }}"
+    # Build target addresses: prometheus_scrape_address per-host, else inventory name.
+    # Uses namespace because Jinja2 set inside a for-loop doesn't escape the loop scope.
+    _prometheus_group_addrs: >-
+      {%- set _ns = namespace(addrs=[]) -%}
+      {%- for _m in _prometheus_group_members -%}
+        {%- set _addr = hostvars[_m]['prometheus_scrape_address'] | default(_m) -%}
+        {%- set _ns.addrs = _ns.addrs + [_addr ~ ':' ~ (_prometheus_group_spec.port | default(9100))] -%}
+      {%- endfor -%}
+      {{ _ns.addrs }}
+    # Fragment: job_name + static_configs(targets), plus any passthrough keys.
+    _prometheus_group_passthrough: >-
+      {{
+        _prometheus_group_spec
+        | dict2items
+        | rejectattr('key', 'in', ['job_name', 'port'])
+        | items2dict
+      }}
+    _prometheus_group_frag: >-
+      {{
+        {'job_name': _prometheus_group_spec.job_name,
+         'static_configs': [{'targets': _prometheus_group_addrs}]}
+        | combine(_prometheus_group_passthrough)
+      }}
+  when:
+    - groups[_prometheus_group_name] is defined
+    - groups[_prometheus_group_name] | length > 0
+
+- name: "MMN prometheus - Merge group scrape configs into scrape_configs"
+  ansible.builtin.set_fact:
+    prometheus_scrape_configs: >-
+      {{
+        (prometheus_scrape_configs | default([]))
+        + _prometheus_group_scrape_configs
+      }}
+  when: _prometheus_group_scrape_configs | length > 0
+
+- name: "MMN prometheus - Debug group scrape configs"
+  ansible.builtin.debug:
+    var: _prometheus_group_scrape_configs
+  when:
+    - mmn_verbose | default(false) | bool
+    - _prometheus_group_scrape_configs | length > 0

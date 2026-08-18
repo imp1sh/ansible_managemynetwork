@@ -1,0 +1,16 @@
+---
+- hosts: opensearch
+  remote_user: root
+  roles:
+    - ansible_opensearch
+  vars:
+    opensearch_path_config: "/tmp/os-test/config"
+    opensearch_path_data: "/tmp/os-test/data"
+    opensearch_owner: "1000"
+    opensearch_group: "0"
+    opensearch_yml:
+      cluster.name: "test-cluster"
+      node.name: "opensearch0"
+      network.host: "0.0.0.0"
+      discovery.type: "single-node"
+      plugins.security.disabled: true

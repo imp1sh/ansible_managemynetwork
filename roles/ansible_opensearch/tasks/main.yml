@@ -1,0 +1,18 @@
+---
+- name: "MMN opensearch - Validate inputs"
+  ansible.builtin.include_tasks: checks.yml
+
+- name: "MMN opensearch - Render configuration"
+  ansible.builtin.include_tasks: 01config.yml
+  when: opensearch_yml is defined
+
+- name: "MMN opensearch - Render dashboards configuration"
+  ansible.builtin.include_tasks: 02dashboards.yml
+  when: opensearch_dashboards_enabled | default(false) | bool
+
+- name: "MMN opensearch - Skip status feedback"
+  ansible.builtin.debug:
+    msg: >-
+      The role ansible_opensearch did not run on host {{ inventory_hostname }}
+      because opensearch_yml is not set.
+  when: opensearch_yml is not defined

@@ -1,0 +1,30 @@
+---
+- name: "MMN opensearch - Ensure config directory exists"
+  ansible.builtin.file:
+    path: "{{ opensearch_path_config }}"
+    state: directory
+    owner: "{{ opensearch_owner }}"
+    group: "{{ opensearch_group }}"
+    mode: "0750"
+
+- name: "MMN opensearch - Ensure data directory exists"
+  ansible.builtin.file:
+    path: "{{ opensearch_path_data }}"
+    state: directory
+    owner: "{{ opensearch_owner }}"
+    group: "{{ opensearch_group }}"
+    mode: "0750"
+
+- name: "MMN opensearch - Render opensearch.yml"
+  ansible.builtin.template:
+    src: opensearch.yml.j2
+    dest: "{{ opensearch_path_config }}/{{ opensearch_file_config }}"
+    owner: "{{ opensearch_owner }}"
+    group: "{{ opensearch_group }}"
+    mode: "{{ opensearch_mode_config }}"
+  notify: Restart opensearch container
+
+- name: "MMN opensearch - Debug rendered opensearch.yml"
+  ansible.builtin.debug:
+    var: opensearch_yml
+  when: mmn_verbose | default(false) | bool

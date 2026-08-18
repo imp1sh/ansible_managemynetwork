@@ -1,0 +1,95 @@
+---
+# ansible_opensearch — container-only role.
+#
+# Renders OpenSearch server configuration (opensearch.yml) and the data
+# directory onto host-side bind-mount paths consumed by a podman container.
+# The container itself is declared by the caller via the ansible_podman role
+# (see the "Plugins" section of the ansible_podman README); this role only
+# owns the configuration files. It performs no package installation and no
+# service management.
+#
+# Settings that OpenSearch equally accepts as env vars on the container
+# definition (e.g. OPENSEARCH_JAVA_OPTS for heap sizing) are the caller's
+# responsibility — this role handles the parts that must be files: opensearch.yml
+# and the writable data directory.
+
+# --- Paths (host bind-mount roots) ---
+# These two ROOT paths are REQUIRED — there is no sane portable default since
+# every deployment sites container bind-mount data differently. Set them in
+# host_vars/group_vars (e.g. "/opt/opensearch/config", "/srv/opensearch/data").
+# Derived paths below compose off them automatically.
+opensearch_path_config: null
+
+# Host directory used for the OpenSearch data (indices, shards, cluster state).
+# Created with the configured owner/group so the container process can write to
+# it. Bind-mount into the container (typically to /usr/share/opensearch/data).
+# REQUIRED — no portable default.
+opensearch_path_data: null
+
+# Filename of the main config inside opensearch_path_config.
+opensearch_file_config: "opensearch.yml"
+
+# --- Ownership / modes ---
+# The official opensearchproject/opensearch image runs as UID 1000, GID 0 by
+# default. Numeric ids are used because the host usually has no opensearch
+# system user. Override per image if yours differs.
+opensearch_owner: "1000"
+opensearch_group: "0"
+opensearch_mode_config: "0640"
+opensearch_mode_data: "0750"
+
+# --- opensearch.yml (PRIMARY INPUT) ---
+# Dict of top-level settings as OpenSearch expects them in opensearch.yml.
+# Serialized to YAML verbatim — keys become top-level YAML keys. Leave empty
+# ({}) to ship a header-only file and rely on OpenSearch's compiled-in
+# defaults plus any env vars set on the container.
+#   opensearch_yml:
+#     cluster.name: "homelab"
+#     node.name: "opensearch0"
+#     network.host: "0.0.0.0"
+#     discovery.type: "single-node"
+#     plugins.security.disabled: true
+opensearch_yml: {}
+
+# --- reload mechanism ---
+# Name of the podman container running opensearch. When set, opensearch.yml
+# changes notify a handler that restarts the container — most opensearch.yml
+# settings are only read at startup (unlike prometheus, OpenSearch has no
+# SIGHUP reload for core config). Leave unset to skip automatic restart
+# (e.g. when invoking the role outside of podman).
+opensearch_containername: null
+
+# --- OpenSearch Dashboards (OPTIONAL) ---
+# Companion visualization container (the OpenSearch fork of Kibana). The role
+# renders opensearch_dashboards.yml into opensearch_path_dashboards_config;
+# the caller declares the dashboards container in podman_containers and
+# bind-mounts that file into it. Enable by flipping the flag and supplying
+# the config path + yml dict below.
+#
+# The dashboards container talks to the backend over the podman network
+# (http://opensearch0:9200 by default) — no published port needed for the
+# backend when dashboards fronts it. Expose dashboards behind traefik with
+# lan-whitelist; the backend stays internal.
+opensearch_dashboards_enabled: false
+
+# Host directory where opensearch_dashboards.yml is rendered. REQUIRED when
+# opensearch_dashboards_enabled is true. Keep it separate from
+# opensearch_path_config so the two containers don't share a config dir.
+opensearch_path_dashboards_config: null
+
+# Filename of the dashboards config inside opensearch_path_dashboards_config.
+opensearch_dashboards_file_config: "opensearch_dashboards.yml"
+
+# Dict of top-level settings as OpenSearch Dashboards expects them, serialized
+# to YAML verbatim. Minimal working example for a single-node backend with the
+# security plugin disabled:
+#   opensearch_dashboards_yml:
+#     server.name: "opensearch.example.com"
+#     server.host: "::"                      # dual-stack listen
+#     opensearch.hosts: ["http://opensearch0:9200"]
+#     opensearch.ssl.verificationMode: none  # backend has no TLS
+opensearch_dashboards_yml: {}
+
+# Name of the podman container running dashboards. When set, dashboards config
+# changes notify a handler that restarts that container. Leave unset to skip.
+opensearch_dashboards_containername: null

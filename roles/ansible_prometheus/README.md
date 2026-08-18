@@ -45,6 +45,7 @@ The official `prom/prometheus` image runs as `nobody`/`nogroup` (UID/GID 65534);
 | `prometheus_scrape_configs` | `[]` | **Primary input.** List of `scrape_config` stanzas (each requires `job_name`). |
 | `prometheus_rules` | `{}` | Dict keyed by rule-file stem; each value is a list of group objects. |
 | `prometheus_rules_glob` | `rules/*.rules.yml` | Glob pattern emitted in `prometheus.yml`'s `rule_files` section. **Container-internal** path — must match where you mount `prometheus_path_rules` inside the container (default assumes `/etc/prometheus/rules/`). |
+| `prometheus_scrape_group_targets` | `{}` | Dict keyed by ansible group name; each value is a scrape-config fragment (`job_name` + `port` required, other keys like `metrics_path` passed through). The role looks up `groups[name]`, builds `static_configs` targets of `inventory_hostname:port` per member, and appends the resulting scrape configs to `prometheus_scrape_configs`. Set a per-host var `prometheus_scrape_address` to override the target address when the inventory hostname isn't resolvable from the prometheus container. |
 
 ### Reload
 
@@ -162,6 +163,43 @@ ansible-playbook playbooks/podman.yml -l prom0.example.com \
 
 With `podman_limited_containers` unset, the podman role processes all defined
 containers including `prometheus0`.
+
+### 4. Automatic scrape targets from ansible inventory groups
+
+Instead of manually listing every target in `prometheus_scrape_configs`, map
+ansible groups to scrape jobs. The role resolves group membership at runtime
+and generates `static_configs` targets automatically — one
+`inventory_hostname:port` per member:
+
+```yaml
+# Scrape all OpenWrt 25.12 hosts on port 9100.
+# Scrape all Debian hosts on port 9100 with a custom metrics_path.
+prometheus_scrape_group_targets:
+  os_openwrt_25_12:
+    job_name: "openwrt"
+    port: 9100
+  tags_debian:
+    job_name: "debian"
+    port: 9100
+    metrics_path: /metrics
+```
+
+Auto-generated configs are **appended** to any manually-defined
+`prometheus_scrape_configs`, so both methods coexist. Extra keys besides
+`job_name` and `port` (e.g. `metrics_path`, `scrape_interval`, `params`)
+are passed through to the scrape_config verbatim.
+
+If a host's inventory name isn't DNS-resolvable from the prometheus container,
+set a per-host var `prometheus_scrape_address` to override the target address:
+
+```yaml
+# In host_vars/router1.yml:
+prometheus_scrape_address: "10.0.0.1"
+# Result: target becomes 10.0.0.1:9100 instead of router1:9100
+```
+
+Groups that don't exist in the inventory (or have no members) are silently
+skipped — no error, no empty scrape config emitted.
 
 ## Notes
 

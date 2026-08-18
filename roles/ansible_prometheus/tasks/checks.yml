@@ -23,9 +23,9 @@
   ansible.builtin.assert:
     that:
       - prometheus_scrape_configs | type_debug == 'list'
-      - prometheus_scrape_configs | length > 0
-    fail_msg: "prometheus_scrape_configs must be a non-empty list of scrape_config stanzas (each requiring a job_name)."
-    success_msg: "prometheus_scrape_configs is a non-empty list."
+      - (prometheus_scrape_configs | length > 0) or (prometheus_file_sd_enabled | default(false) | bool)
+    fail_msg: "prometheus_scrape_configs must be a non-empty list of scrape_config stanzas (each requiring a job_name), unless prometheus_file_sd_enabled is true."
+    success_msg: "prometheus_scrape_configs is valid."
   when: prometheus_scrape_configs is defined
 
 - name: "MMN prometheus - Validate each scrape config has a job_name"
@@ -47,6 +47,33 @@
     fail_msg: "prometheus_rules must be a dict keyed by rule-file stem; each value is a list of group objects."
     success_msg: "prometheus_rules is a dict."
   when: prometheus_rules is defined
+
+- name: "MMN prometheus - Validate scrape group targets type"
+  ansible.builtin.assert:
+    that:
+      - prometheus_scrape_group_targets | type_debug == 'dict'
+    fail_msg: "prometheus_scrape_group_targets must be a dict keyed by ansible group name; each value is a scrape-config fragment (job_name + port required)."
+    success_msg: "prometheus_scrape_group_targets is a dict."
+  when:
+    - prometheus_scrape_group_targets is defined
+    - prometheus_scrape_group_targets | length > 0
+
+- name: "MMN prometheus - Validate each scrape group target entry"
+  ansible.builtin.assert:
+    that:
+      - _prometheus_sg_check.value | type_debug == 'dict'
+      - "'job_name' in _prometheus_sg_check.value"
+      - _prometheus_sg_check.value.job_name | string | length > 0
+      - "'port' in _prometheus_sg_check.value"
+      - _prometheus_sg_check.value.port | int > 0
+    fail_msg: "Each prometheus_scrape_group_targets entry (key '{{ _prometheus_sg_check.key }}') must be a dict with a non-empty 'job_name' string and a positive integer 'port'."
+    success_msg: "Scrape group target '{{ _prometheus_sg_check.key }}' is valid."
+  loop: "{{ prometheus_scrape_group_targets | dict2items }}"
+  loop_control:
+    loop_var: _prometheus_sg_check
+  when:
+    - prometheus_scrape_group_targets is defined
+    - prometheus_scrape_group_targets | length > 0
 
 - name: "MMN prometheus - Validate owner/group"
   ansible.builtin.assert:

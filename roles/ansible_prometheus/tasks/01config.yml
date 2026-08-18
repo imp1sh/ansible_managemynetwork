@@ -23,6 +23,15 @@
     group: "{{ prometheus_group }}"
     mode: "0750"
 
+- name: "MMN prometheus - Ensure file_sd directory exists"
+  ansible.builtin.file:
+    path: "{{ prometheus_path_file_sd }}"
+    state: directory
+    owner: "{{ prometheus_owner }}"
+    group: "{{ prometheus_group }}"
+    mode: "0750"
+  when: prometheus_file_sd_enabled | default(false) | bool
+
 - name: "MMN prometheus - Render prometheus.yml"
   ansible.builtin.template:
     src: prometheus.yml.j2

@@ -3,6 +3,12 @@
   ansible.builtin.include_tasks: checks.yml
   when: prometheus_scrape_configs is defined
 
+- name: "MMN prometheus - Generate scrape configs from inventory groups"
+  ansible.builtin.include_tasks: 03scrape_groups.yml
+  when:
+    - prometheus_scrape_group_targets is defined
+    - prometheus_scrape_group_targets | length > 0
+
 - name: "MMN prometheus - Render configuration"
   ansible.builtin.include_tasks: 01config.yml
   when: prometheus_scrape_configs is defined

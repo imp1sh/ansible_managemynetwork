@@ -1,0 +1,20 @@
+---
+- name: Restart opensearch container
+  ansible.builtin.systemd:
+    name: "{{ ('container-' ~ opensearch_containername) if not (podman_use_quadlet | default(false) | bool) else opensearch_containername }}"
+    state: restarted
+  register: _opensearch_restart
+  failed_when:
+    - _opensearch_restart.failed
+    - "'Could not find the requested service' not in _opensearch_restart.msg"
+  when: opensearch_containername is not none
+
+- name: Restart opensearch dashboards container
+  ansible.builtin.systemd:
+    name: "{{ ('container-' ~ opensearch_dashboards_containername) if not (podman_use_quadlet | default(false) | bool) else opensearch_dashboards_containername }}"
+    state: restarted
+  register: _opensearch_dashboards_restart
+  failed_when:
+    - _opensearch_dashboards_restart.failed
+    - "'Could not find the requested service' not in _opensearch_dashboards_restart.msg"
+  when: opensearch_dashboards_containername is not none
