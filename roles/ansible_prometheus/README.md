@@ -14,9 +14,9 @@ The role is intentionally limited to the Prometheus server. Alertmanager, Grafan
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `prometheus_path_config` | `/mnt/cntr/unsynced/prometheus/0/etc` | Where `prometheus.yml` is rendered. Bind-mount into the container (typically `/etc/prometheus`). |
+| `prometheus_path_config` | **required** | Where `prometheus.yml` is rendered. Bind-mount into the container (typically `/etc/prometheus`). No portable default — set in host_vars. |
 | `prometheus_path_rules` | `{{ prometheus_path_config }}/rules` | Where rule files are rendered. Bind-mount into the container (typically `/etc/prometheus/rules`). |
-| `prometheus_path_data` | `/mnt/cntr/unsynced/prometheus/0/data` | TSDB data directory. Bind-mount into the container (typically `/prometheus`). |
+| `prometheus_path_data` | **required** | TSDB data directory. Bind-mount into the container (typically `/prometheus`). No portable default — set in host_vars. |
 | `prometheus_file_config` | `prometheus.yml` | Main config filename. |
 
 ### Ownership / modes
@@ -25,8 +25,8 @@ The role is intentionally limited to the Prometheus server. Alertmanager, Grafan
 |----------|---------|-------------|
 | `prometheus_owner` | `nobody` | Owner of rendered files and the data dir. Match the container image UID. |
 | `prometheus_group` | `nogroup` | Group of rendered files and the data dir. Match the container image GID. |
-| `prometheus_mode_config` | `0640` | Mode for `prometheus.yml`. |
-| `prometheus_mode_rules` | `0644` | Mode for rule files. |
+| `prometheus_mode_config` | `0640` | Mode for the `prometheus.yml` **file**. Directories are always `0750`. |
+| `prometheus_mode_rules` | `0644` | Mode for rule **files**. The rules directory is always `0750`. |
 | `prometheus_mode_data` | `0750` | Mode for the TSDB data directory. |
 
 The official `prom/prometheus` image runs as `nobody`/`nogroup` (UID/GID 65534); the defaults match. Override per image if yours differs.

@@ -12,11 +12,13 @@ galaxy_info:
       versions:
         - "bookworm"
         - "bullseye"
+        - "trixie"
     - name: Fedora
       versions:
-        - "39"
         - "40"
         - "41"
         - "42"
+        - "43"
+        - "44"
   galaxy_tags: [prometheus, monitoring, metrics, container, podman]
 dependencies: []

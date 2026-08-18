@@ -3,8 +3,9 @@
   ansible.builtin.assert:
     that:
       - prometheus_path_config is defined
+      - prometheus_path_config is not none
       - prometheus_path_config | string | length > 0
-    fail_msg: "prometheus_path_config must be a non-empty string giving the host bind-mount directory for prometheus.yml."
+    fail_msg: "prometheus_path_config is required — set it in host_vars to the host bind-mount directory for prometheus.yml (no portable default exists)."
     success_msg: "prometheus_path_config is set."
   when: prometheus_path_config is defined
 
@@ -12,8 +13,9 @@
   ansible.builtin.assert:
     that:
       - prometheus_path_data is defined
+      - prometheus_path_data is not none
       - prometheus_path_data | string | length > 0
-    fail_msg: "prometheus_path_data must be a non-empty string giving the host bind-mount directory for the TSDB."
+    fail_msg: "prometheus_path_data is required — set it in host_vars to the host bind-mount directory for the TSDB (no portable default exists)."
     success_msg: "prometheus_path_data is set."
   when: prometheus_path_data is defined
 

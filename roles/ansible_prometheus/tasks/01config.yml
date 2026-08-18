@@ -5,7 +5,7 @@
     state: directory
     owner: "{{ prometheus_owner }}"
     group: "{{ prometheus_group }}"
-    mode: "{{ prometheus_mode_config }}"
+    mode: "0750"
 
 - name: "MMN prometheus - Ensure rules directory exists"
   ansible.builtin.file:
@@ -13,7 +13,7 @@
     state: directory
     owner: "{{ prometheus_owner }}"
     group: "{{ prometheus_group }}"
-    mode: "{{ prometheus_mode_rules }}"
+    mode: "0750"
 
 - name: "MMN prometheus - Ensure TSDB data directory exists"
   ansible.builtin.file:
@@ -21,7 +21,7 @@
     state: directory
     owner: "{{ prometheus_owner }}"
     group: "{{ prometheus_group }}"
-    mode: "{{ prometheus_mode_data }}"
+    mode: "0750"
 
 - name: "MMN prometheus - Render prometheus.yml"
   ansible.builtin.template:

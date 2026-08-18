@@ -9,18 +9,20 @@
 # installation and no service management.
 
 # Host directory where prometheus.yml is rendered. Bind-mount this into the
-# container (typically to /etc/prometheus).
-prometheus_path_config: "/mnt/cntr/unsynced/prometheus/0/etc"
+# container (typically to /etc/prometheus). REQUIRED — no portable default
+# exists since every deployment sites container bind-mount data differently.
+# Set in host_vars/group_vars.
+prometheus_path_config: null
 
 # Host directory where rule files are rendered. Bind-mount into the container
 # (typically to /etc/prometheus/rules). Defaults to a "rules" subdir beneath the
 # config dir so a single bind-mount covers both, but you can decouple it.
-prometheus_path_rules: "{{ prometheus_path_config }}/rules"
+prometheus_path_rules: "{{ (prometheus_path_config | default('', true)) }}/rules"
 
 # Host directory used for the Prometheus TSDB. Created with the configured
 # owner/group so the container process can write to it. Bind-mount into the
-# container (typically to /prometheus).
-prometheus_path_data: "/mnt/cntr/unsynced/prometheus/0/data"
+# container (typically to /prometheus). REQUIRED — no portable default.
+prometheus_path_data: null
 
 # Filename of the main config inside prometheus_path_config.
 prometheus_file_config: "prometheus.yml"
