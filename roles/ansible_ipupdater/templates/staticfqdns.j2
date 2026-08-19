@@ -1,3 +1,1 @@
-{% for fqdn in ipupdater_staticfqdns %}
-{{ fqdn.name }} {{ fqdn.scope }}
-{% endfor %}
+{{ ipupdater_staticfqdns | to_json(indent=2) }}

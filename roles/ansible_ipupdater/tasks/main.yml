@@ -67,6 +67,15 @@
     - ipupdater_staticfqdns_enable | default(false)
     - ipupdater_staticfqdns is defined
 
+- name: "MMN ipupdater - Remove legacy extensionless staticfqdns file"
+  ansible.builtin.file:
+    path: "{{ ipupdater_deploypath_staticfqdns | regex_replace('\\.json$', '') }}"
+    state: absent
+  delegate_to: "{{ _ipupdater_target_host }}"
+  when:
+    - ipupdater_staticfqdns_enable | default(false)
+    - ipupdater_staticfqdns is defined
+
 # NEIGHBORS
 
 - name: "MMN ipupdater - Deploy neighbors vars file"

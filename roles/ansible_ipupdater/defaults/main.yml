@@ -11,7 +11,7 @@ ipupdater_deploypath_hetzner_apitoken: "{{ ipupdater_deployroot }}etc/ipupdater/
 ipupdater_deploypath_ownipvars: "{{ ipupdater_deployroot }}etc/ipupdater/ownip_vars.sh"
 
 # STATICFQDNS
-ipupdater_deploypath_staticfqdns: "{{ ipupdater_deployroot }}etc/ipupdater/staticfqdns"
+ipupdater_deploypath_staticfqdns: "{{ ipupdater_deployroot }}etc/ipupdater/staticfqdns.json"
 ipupdater_deploypath_staticfqdnsvars: "{{ ipupdater_deployroot }}etc/ipupdater/staticfqdns_vars.sh"
 
 # NEIGHBORS
