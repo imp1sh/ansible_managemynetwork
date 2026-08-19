@@ -42,7 +42,7 @@
     update: true
     force: true
   no_log: true
-  notify: Reload grafana provisioning
+  notify: Restart grafana container
 
 - name: "MMN grafana - Strip credentials from git remote URL"
   ansible.builtin.git_config:

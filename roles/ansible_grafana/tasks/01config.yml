@@ -60,7 +60,7 @@
     loop_var: grafana_datasource_entry
   vars:
     _grafana_ds_entries: "{{ grafana_datasource_entry.value }}"
-  notify: Reload grafana provisioning
+  notify: Restart grafana container
   when: grafana_datasources | length > 0
 
 - name: "MMN grafana - Render dashboard provider provisioning files"
@@ -75,7 +75,7 @@
     loop_var: grafana_dashboard_provider_entry
   vars:
     _grafana_dp_entries: "{{ grafana_dashboard_provider_entry.value }}"
-  notify: Reload grafana provisioning
+  notify: Restart grafana container
   when: grafana_dashboard_providers | length > 0
 
 - name: "MMN grafana - Debug rendered grafana.ini sections"

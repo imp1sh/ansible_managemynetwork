@@ -31,4 +31,4 @@
     owner: "{{ grafana_owner }}"
     group: "{{ grafana_group }}"
     mode: "0644"
-  notify: Reload grafana provisioning
+  notify: Restart grafana container
