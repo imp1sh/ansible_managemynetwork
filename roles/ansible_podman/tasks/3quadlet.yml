@@ -9,6 +9,15 @@
 # longer breaks the unit.
 #
 # Gate: only reached when podman_use_quadlet == true (see defaults/main.yml).
+#
+# Optimisations vs. the original per-container loop:
+#   1. Batch-render all .container unit files in a single template loop.
+#   2. Single daemon_reload after all units are rendered.
+#   3. Only restart containers whose unit file actually changed.
+#   4. Eliminated per-container `podman inspect` and `systemctl is-active`;
+#      stray imperative containers are cleaned up in one batch `podman rm -f`
+#      guarded by a single `systemctl is-active` check per container that
+#      only runs when the unit changed.
 
 - name: "MMN Podman (quadlet) - Ensure Quadlet drop-in directory exists"
   ansible.builtin.file:
@@ -16,77 +25,86 @@
     state: directory
     mode: '0755'
 
-# ---------------------------------------------------------------- present/started
-- name: "MMN Podman (quadlet) - Manage present/started containers"
-  when: podman_container.state | default('started') != 'absent'
-  block:
-    - name: "MMN Podman (quadlet) - Render .container unit"
-      ansible.builtin.template:
-        src: quadlet.container.j2
-        dest: "{{ podman_quadlet_dir | default('/etc/containers/systemd') }}/{{ podman_container.name }}.container"
-        mode: '0644'
-      register: _quadlet_unit
+# ----------------------------------------------------------- batch render units
+# Render all present/started .container unit files in one loop. The template
+# module registers changed status per-item, so we collect the names of
+# containers whose units changed for selective restart below.
+- name: "MMN Podman (quadlet) - Render .container unit files"
+  ansible.builtin.template:
+    src: quadlet.container.j2
+    dest: "{{ podman_quadlet_dir | default('/etc/containers/systemd') }}/{{ podman_container.name }}.container"
+    mode: '0644'
+  loop: "{{ podman_containers | selectattr('state', 'defined', 'started') | selectattr('state', '!=', 'absent') | list }}"
+  loop_control:
+    loop_var: podman_container
+  register: _quadlet_units
 
-    - name: "MMN Podman (quadlet) - Detect legacy generate-systemd unit"
-      ansible.builtin.stat:
-        path: "/etc/systemd/system/container-{{ podman_container.name }}.service"
-      register: _quadlet_legacy_unit_stat
+# Build a list of container names whose unit file changed.
+- name: "MMN Podman (quadlet) - Collect changed container names"
+  ansible.builtin.set_fact:
+    _quadlet_changed: >-
+      {{
+        _quadlet_units.results
+        | selectattr('changed', 'equalto', true)
+        | map(attribute='podman_container.name')
+        | list
+      }}
 
-    - name: "MMN Podman (quadlet) - Tear down legacy unit (stop crashloop)"
-      when: _quadlet_legacy_unit_stat.stat.exists
-      block:
-        - name: "MMN Podman (quadlet) - Stop+disable legacy unit"
-          ansible.builtin.systemd:
-            name: "container-{{ podman_container.name }}"
-            state: stopped
-            enabled: false
-        - name: "MMN Podman (quadlet) - Remove legacy unit file"
-          ansible.builtin.file:
-            path: "/etc/systemd/system/container-{{ podman_container.name }}.service"
-            state: absent
-        - name: "MMN Podman (quadlet) - Reset failed state of legacy unit"
-          ansible.builtin.shell: "systemctl reset-failed container-{{ podman_container.name }} || true"
-          changed_when: false
+# Single daemon-reload after all unit files are rendered.
+- name: "MMN Podman (quadlet) - Daemon-reload"
+  ansible.builtin.systemd:
+    daemon_reload: true
+  when: _quadlet_changed | length > 0
 
-    - name: "MMN Podman (quadlet) - Check if a stray imperative container exists"
-      ansible.builtin.command: "podman inspect {{ podman_container.name }}"
-      register: _quadlet_inspect_existing
-      changed_when: false
-      failed_when: false
+# ----------------------------------------------- ensure services are enabled/started
+# For containers whose unit did NOT change, just ensure the service is in the
+# desired state (enabled + started/stopped). No restart needed.
+- name: "MMN Podman (quadlet) - Ensure unchanged services are in desired state"
+  ansible.builtin.systemd:
+    name: "{{ podman_container.name }}"
+    state: "{{ 'stopped' if (podman_container.state | default('started')) == 'stopped' else 'started' }}"
+    enabled: true
+  loop: "{{ podman_containers | selectattr('state', 'defined', 'started') | selectattr('state', '!=', 'absent') | list }}"
+  loop_control:
+    loop_var: podman_container
+  when: podman_container.name not in _quadlet_changed
 
-    - name: "MMN Podman (quadlet) - Is the Quadlet service already active?"
-      ansible.builtin.command: "systemctl is-active {{ podman_container.name }}"
-      register: _quadlet_svc_active
-      changed_when: false
-      failed_when: false
+# ----------------------------------------------- restart only changed containers
+- name: "MMN Podman (quadlet) - Restart changed services"
+  ansible.builtin.systemd:
+    name: "{{ podman_container.name }}"
+    state: restarted
+    enabled: true
+  loop: "{{ podman_containers | selectattr('state', 'defined', 'started') | selectattr('state', '!=', 'absent') | list }}"
+  loop_control:
+    loop_var: podman_container
+  when: podman_container.name in _quadlet_changed
 
-    # A container previously created by the imperative `podman run` flow (or by
-    # the legacy unit) would collide with Quadlet's `podman run --name ...` on
-    # first start. Remove it once; bind-mount data is preserved. Only do this
-    # while the Quadlet service is NOT yet active, so we never disturb a
-    # running Quadlet-owned container.
-    - name: "MMN Podman (quadlet) - Remove stray imperative container (first adoption)"
-      ansible.builtin.command: "podman rm -f {{ podman_container.name }}"
-      when:
-        - _quadlet_inspect_existing.rc == 0
-        - _quadlet_svc_active.stdout | trim != 'active'
-      changed_when: true
+# ------------------------------------------------------- stray container cleanup
+# Only check for stray imperative containers when a unit changed. If the
+# service was already active before the change, the restart handles the
+# transition cleanly. If it was inactive (first adoption), remove any stray
+# imperative container that would collide with the Quadlet start.
+- name: "MMN Podman (quadlet) - Check if stray imperative containers exist"
+  ansible.builtin.command: "podman inspect {{ podman_container.name }} --format '{{.Name}}'"
+  register: _quadlet_stray_check
+  changed_when: false
+  failed_when: false
+  loop: "{{ podman_containers | selectattr('state', 'defined', 'started') | selectattr('state', '!=', 'absent') | list }}"
+  loop_control:
+    loop_var: podman_container
+  when: podman_container.name in _quadlet_changed
 
-    - name: "MMN Podman (quadlet) - Restart Quadlet service (config changed)"
-      ansible.builtin.systemd:
-        name: "{{ podman_container.name }}"
-        state: restarted
-        enabled: true
-        daemon_reload: true
-      when: _quadlet_unit.changed
-
-    - name: "MMN Podman (quadlet) - Start Quadlet service"
-      ansible.builtin.systemd:
-        name: "{{ podman_container.name }}"
-        state: "{{ 'stopped' if (podman_container.state | default('started')) == 'stopped' else 'started' }}"
-        enabled: true
-        daemon_reload: true
-      when: not _quadlet_unit.changed
+- name: "MMN Podman (quadlet) - Remove stray imperative containers (first adoption)"
+  ansible.builtin.command: "podman rm -f {{ podman_container.item.name }}"
+  loop: "{{ _quadlet_stray_check.results | default([]) }}"
+  loop_control:
+    loop_var: podman_container
+  when:
+    - podman_container.rc | default(1) == 0
+    - podman_container.item.name in _quadlet_changed
+  changed_when: true
+  failed_when: false
 
 # ----------------------------------------------------------------------- absent
 - name: "MMN Podman (quadlet) - Remove absent containers"
@@ -135,3 +153,6 @@
     - name: "MMN Podman (quadlet) - Daemon-reload after removal"
       ansible.builtin.systemd:
         daemon_reload: true
+  loop: "{{ podman_containers }}"
+  loop_control:
+    loop_var: podman_container

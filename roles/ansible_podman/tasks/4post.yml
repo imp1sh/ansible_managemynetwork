@@ -23,6 +23,7 @@
           {%-   endif -%}
           {%- endfor -%}
           {{- ns.result | to_json -}}
+      when: _podman_firewalld_state.rc == 0
 
     - name: "MMN Podman - Open published ports in firewalld"
       ansible.posix.firewalld:
@@ -40,6 +41,7 @@
         _host_port: "{{ _stripped.split(':')[0] }}"
       when:
         - _podman_firewalld_state.rc == 0
+        - _port_part | length > 0
         - not _port_part.startswith('127.')
         - not _port_part.startswith('localhost')
         - not _port_part.startswith('[::1]')

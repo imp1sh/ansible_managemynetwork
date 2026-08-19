@@ -10,11 +10,30 @@
       paths:
         - "vars"
 
-# Installations
+# Check if any required package is missing before invoking the packages
+# role. The package manager's "is installed" check is far cheaper than a
+# full apt/dnf cache update + install round-trip.
+- name: "MMN Podman - Check which packages are missing"
+  ansible.builtin.command: "rpm -q {{ podman_packages | join(' ') }} --quiet"
+  register: _podman_pkg_check
+  changed_when: false
+  failed_when: false
+  when: ansible_os_family == "RedHat" or ansible_distribution == "Fedora"
+
+- name: "MMN Podman - Check which packages are missing (dpkg)"
+  ansible.builtin.shell: "dpkg -l {{ podman_packages | join(' ') }} 2>/dev/null | grep -q '^ii'"
+  register: _podman_pkg_check
+  changed_when: false
+  failed_when: false
+  when: ansible_os_family == "Debian"
+
 - name: "MMN Podman - Set package name for calling packages role"
   ansible.builtin.set_fact:
     packages_installrole: "{{ podman_packages }}"
 
+# Installations — only invoke the heavy packages role if the quick check
+# above detected a missing package.
 - name: "MMN Podman - Install required packages"
   ansible.builtin.include_role:
     name: imp1sh.ansible_managemynetwork.ansible_packages
+  when: _podman_pkg_check.rc | default(0) != 0
