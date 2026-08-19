@@ -1,0 +1,22 @@
+---
+- name: "MMN alertmanager - Ensure config directory exists"
+  ansible.builtin.file:
+    path: "{{ alertmanager_path_config }}"
+    state: directory
+    owner: "{{ alertmanager_owner }}"
+    group: "{{ alertmanager_group }}"
+    mode: "0755"
+
+- name: "MMN alertmanager - Render alertmanager.yml"
+  ansible.builtin.template:
+    src: alertmanager.yml.j2
+    dest: "{{ alertmanager_path_config }}/{{ alertmanager_file_config }}"
+    owner: "{{ alertmanager_owner }}"
+    group: "{{ alertmanager_group }}"
+    mode: "{{ alertmanager_mode_config }}"
+  notify: Restart alertmanager container
+
+- name: "MMN alertmanager - Debug rendered config"
+  ansible.builtin.debug:
+    var: alertmanager_config
+  when: mmn_verbose | default(false) | bool

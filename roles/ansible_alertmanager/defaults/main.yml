@@ -1,0 +1,63 @@
+---
+# ansible_alertmanager — container-only role.
+#
+# Renders Alertmanager configuration (alertmanager.yml) onto host-side
+# bind-mount paths consumed by a podman container. The container itself is
+# declared by the caller via the ansible_podman role (see the "Plugins"
+# section of the ansible_podman README); this role only owns the configuration
+# files. It performs no package installation and no service management.
+#
+# Settings that Alertmanager equally accepts as AM_* environment variables on
+# the container definition are the caller's responsibility — this role handles
+# the parts that must be files: alertmanager.yml.
+
+# --- Paths (host bind-mount roots) ---
+# Host directory where alertmanager.yml is rendered. Bind-mount this into the
+# container (typically to /etc/alertmanager). REQUIRED — no portable default
+# exists since every deployment sites container bind-mount data differently.
+# Set in host_vars/group_vars.
+alertmanager_path_config: null
+
+# Filename of the main config inside alertmanager_path_config.
+alertmanager_file_config: "alertmanager.yml"
+
+# --- Ownership / modes ---
+# The official prom/alertmanager image runs as root (UID 0, GID 0) by default.
+# Override per image if yours differs.
+alertmanager_owner: "root"
+alertmanager_group: "root"
+alertmanager_mode_config: "0644"
+
+# --- alertmanager.yml (PRIMARY INPUT) ---
+# Structured representation of alertmanager.yml. The role renders this dict
+# into YAML via a Jinja2 template. Top-level keys mirror the alertmanager.yml
+# structure: global, route, receivers, inhibit_rules, templates.
+#
+# Minimal example:
+#   alertmanager_config:
+#     route:
+#       receiver: gotify-bridge
+#       group_by: ['alertname', 'instance']
+#       group_wait: 30s
+#       group_interval: 5m
+#       repeat_interval: 12h
+#     receivers:
+#       - name: gotify-bridge
+#         webhook_configs:
+#           - url: 'http://gotifybridge0:8080/gotify_webhook'
+#             send_resolved: true
+#
+# The global section is optional; if omitted alertmanager uses its defaults.
+#   alertmanager_config:
+#     global:
+#       resolve_timeout: 5m
+#     route:
+#       ...
+alertmanager_config: {}
+
+# --- reload mechanism ---
+# Name of the podman container running alertmanager. When set, config changes
+# trigger a container restart (most alertmanager.yml settings are only read at
+# startup). Leave unset to skip automatic reload (e.g. when invoking the role
+# outside of podman).
+alertmanager_containername: null

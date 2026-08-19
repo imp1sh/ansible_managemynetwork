@@ -1,0 +1,15 @@
+---
+- name: "MMN alertmanager - Validate inputs"
+  ansible.builtin.include_tasks: checks.yml
+  when: alertmanager_config is defined
+
+- name: "MMN alertmanager - Render configuration"
+  ansible.builtin.include_tasks: 01config.yml
+  when: alertmanager_config is defined
+
+- name: "MMN alertmanager - Skip status feedback"
+  ansible.builtin.debug:
+    msg: >-
+      The role ansible_alertmanager did not run on host {{ inventory_hostname }}
+      because the var alertmanager_config is not set.
+  when: alertmanager_config is not defined

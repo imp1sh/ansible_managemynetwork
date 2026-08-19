@@ -66,3 +66,13 @@
     - podman_containers is defined
     # Below filter is needed so the plugin only runs when the choosen container images are related to the plugin
     - podman_containers | map(attribute='name') | intersect(podman_container_plugin_opensearch) | length > 0
+
+# ALERTMANAGER
+- name: "MMN Podman - Plugin alertmanager"
+  ansible.builtin.include_tasks:
+    file: plugin_alertmanager.yml
+  when:
+    - podman_container_plugin_alertmanager is defined
+    - podman_containers is defined
+    # Below filter is needed so the plugin only runs when the choosen container images are related to the plugin
+    - podman_containers | map(attribute='name') | intersect(podman_container_plugin_alertmanager) | length > 0

@@ -1,0 +1,48 @@
+---
+- name: "MMN alertmanager - Validate config path"
+  ansible.builtin.assert:
+    that:
+      - alertmanager_path_config is defined
+      - alertmanager_path_config is not none
+      - alertmanager_path_config | string | length > 0
+    fail_msg: "alertmanager_path_config is required — set it in host_vars to the host bind-mount directory for alertmanager.yml (no portable default exists)."
+    success_msg: "alertmanager_path_config is set."
+  when: alertmanager_path_config is defined
+
+- name: "MMN alertmanager - Validate config type"
+  ansible.builtin.assert:
+    that:
+      - alertmanager_config | type_debug == 'dict'
+    fail_msg: "alertmanager_config must be a dict mirroring the alertmanager.yml structure (global, route, receivers, inhibit_rules, templates)."
+    success_msg: "alertmanager_config is a dict."
+  when: alertmanager_config is defined
+
+- name: "MMN alertmanager - Validate route exists"
+  ansible.builtin.assert:
+    that:
+      - "'route' in alertmanager_config"
+      - alertmanager_config.route | type_debug == 'dict'
+    fail_msg: "alertmanager_config must contain a 'route' key with a dict value defining at least a 'receiver'."
+    success_msg: "alertmanager_config.route is set."
+  when: alertmanager_config is defined
+
+- name: "MMN alertmanager - Validate receivers exist"
+  ansible.builtin.assert:
+    that:
+      - "'receivers' in alertmanager_config"
+      - alertmanager_config.receivers | type_debug == 'list'
+      - alertmanager_config.receivers | length > 0
+    fail_msg: "alertmanager_config must contain a 'receivers' key with a non-empty list of receiver objects."
+    success_msg: "alertmanager_config.receivers is set."
+  when: alertmanager_config is defined
+
+- name: "MMN alertmanager - Validate owner/group"
+  ansible.builtin.assert:
+    that:
+      - alertmanager_owner is defined
+      - alertmanager_owner | string | length > 0
+      - alertmanager_group is defined
+      - alertmanager_group | string | length > 0
+    fail_msg: "alertmanager_owner and alertmanager_group must be non-empty strings (matching the container image UID/GID)."
+    success_msg: "alertmanager_owner/alertmanager_group are set."
+  when: alertmanager_owner is defined or alertmanager_group is defined

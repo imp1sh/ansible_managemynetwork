@@ -1,0 +1,5 @@
+---
+- hosts: localhost
+  gather_facts: false
+  roles:
+    - imp1sh.ansible_managemynetwork.ansible_alertmanager

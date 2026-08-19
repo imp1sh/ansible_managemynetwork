@@ -1,0 +1,6 @@
+---
+- name: Restart alertmanager container
+  ansible.builtin.systemd:
+    name: "{{ ('container-' ~ alertmanager_containername) if not (podman_use_quadlet | default(false) | bool) else alertmanager_containername }}"
+    state: restarted
+  when: alertmanager_containername is not none
