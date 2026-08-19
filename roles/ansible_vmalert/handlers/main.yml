@@ -1,0 +1,6 @@
+---
+- name: Restart vmalert container
+  ansible.builtin.systemd:
+    name: "{{ ('container-' ~ vmalert_containername) if not (podman_use_quadlet | default(false) | bool) else vmalert_containername }}"
+    state: restarted
+  when: vmalert_containername is not none

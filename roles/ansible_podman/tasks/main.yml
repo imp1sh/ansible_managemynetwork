@@ -40,7 +40,8 @@
       ( podman_container_plugin_traefik is defined ) or
       ( podman_container_plugin_grafana is defined ) or
       ( podman_container_plugin_opensearch is defined ) or
-      ( podman_container_plugin_alertmanager is defined )
+      ( podman_container_plugin_alertmanager is defined ) or
+      ( podman_container_plugin_vmalert is defined )
     - podman_containers is defined
     - not podman_runimagebuilder | default(false) | bool
 

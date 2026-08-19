@@ -76,3 +76,13 @@
     - podman_containers is defined
     # Below filter is needed so the plugin only runs when the choosen container images are related to the plugin
     - podman_containers | map(attribute='name') | intersect(podman_container_plugin_alertmanager) | length > 0
+
+# VMALERT
+- name: "MMN Podman - Plugin vmalert"
+  ansible.builtin.include_tasks:
+    file: plugin_vmalert.yml
+  when:
+    - podman_container_plugin_vmalert is defined
+    - podman_containers is defined
+    # Below filter is needed so the plugin only runs when the choosen container images are related to the plugin
+    - podman_containers | map(attribute='name') | intersect(podman_container_plugin_vmalert) | length > 0

@@ -1,0 +1,15 @@
+---
+- name: "MMN vmalert - Validate inputs"
+  ansible.builtin.include_tasks: checks.yml
+  when: vmalert_rules is defined
+
+- name: "MMN vmalert - Render rule files"
+  ansible.builtin.include_tasks: 01config.yml
+  when: vmalert_rules is defined
+
+- name: "MMN vmalert - Skip status feedback"
+  ansible.builtin.debug:
+    msg: >-
+      The role ansible_vmalert did not run on host {{ inventory_hostname }}
+      because the var vmalert_rules is not set.
+  when: vmalert_rules is not defined

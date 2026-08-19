@@ -1,0 +1,52 @@
+---
+# ansible_vmalert — container-only role.
+#
+# Renders vmalert rule files onto host-side bind-mount paths consumed by a
+# podman container. The container itself is declared by the caller via the
+# ansible_podman role (see the "Plugins" section of the ansible_podman README);
+# this role only owns the configuration files. It performs no package
+# installation and no service management.
+
+# --- Paths (host bind-mount roots) ---
+# Host directory where vmalert rule files are rendered. Bind-mount this into
+# the container (typically to /etc/vmalert/rules). REQUIRED — no portable
+# default exists since every deployment sites container bind-mount data
+# differently. Set in host_vars/group_vars.
+vmalert_path_rules: null
+
+# --- Ownership / modes ---
+# The official victoriametrics/vmalert image runs as root (UID 0, GID 0) by
+# default. Override per image if yours differs.
+vmalert_owner: "root"
+vmalert_group: "root"
+vmalert_mode_rules: "0644"
+
+# --- Rule files (PRIMARY INPUT) ---
+# Dict keyed by rule-file stem; each value is a LIST OF GROUPS, each group a
+# dict with `name` and `rules` (as vmalert/Prometheus expects under `groups:`).
+# Rendered as <stem>.yml in vmalert_path_rules.
+#
+# Annotation strings containing {{ $labels.* }} or {{ $value }} MUST be tagged
+# !unsafe to prevent Ansible's Jinja2 engine from interpreting them — they are
+# Prometheus/vmalert template expressions that must reach the rule files
+# verbatim.
+#
+#   vmalert_rules:
+#     node_alerts:
+#       - name: node-alerts
+#         interval: 1m
+#         rules:
+#           - alert: NodeDown
+#             expr: 'up{job=~"openwrt|debian"} == 0'
+#             for: 2m
+#             labels:
+#               severity: critical
+#             annotations:
+#               summary: !unsafe "Node {{ $labels.instance }} is down"
+#               description: !unsafe "{{ $labels.instance }} has been unreachable for 2 minutes."
+vmalert_rules: {}
+
+# --- reload mechanism ---
+# Name of the podman container running vmalert. When set, rule changes trigger
+# a container restart (vmalert reloads rules on restart).
+vmalert_containername: null

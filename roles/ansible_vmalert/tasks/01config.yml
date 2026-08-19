@@ -1,0 +1,28 @@
+---
+- name: "MMN vmalert - Ensure rules directory exists"
+  ansible.builtin.file:
+    path: "{{ vmalert_path_rules }}"
+    state: directory
+    owner: "{{ vmalert_owner }}"
+    group: "{{ vmalert_group }}"
+    mode: "0755"
+
+- name: "MMN vmalert - Render rule files"
+  ansible.builtin.template:
+    src: rules.yml.j2
+    dest: "{{ vmalert_path_rules }}/{{ vmalert_rule_entry.key }}.yml"
+    owner: "{{ vmalert_owner }}"
+    group: "{{ vmalert_group }}"
+    mode: "{{ vmalert_mode_rules }}"
+  loop: "{{ vmalert_rules | dict2items }}"
+  loop_control:
+    loop_var: vmalert_rule_entry
+  vars:
+    _vmalert_rule_groups: "{{ vmalert_rule_entry.value }}"
+  notify: Restart vmalert container
+  when: vmalert_rules | length > 0
+
+- name: "MMN vmalert - Debug rendered rules"
+  ansible.builtin.debug:
+    var: vmalert_rules
+  when: mmn_verbose | default(false) | bool

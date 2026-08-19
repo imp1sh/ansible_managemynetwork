@@ -1,0 +1,29 @@
+---
+- name: "MMN vmalert - Validate rules path"
+  ansible.builtin.assert:
+    that:
+      - vmalert_path_rules is defined
+      - vmalert_path_rules is not none
+      - vmalert_path_rules | string | length > 0
+    fail_msg: "vmalert_path_rules is required — set it in host_vars to the host bind-mount directory for rule files (no portable default exists)."
+    success_msg: "vmalert_path_rules is set."
+  when: vmalert_path_rules is defined
+
+- name: "MMN vmalert - Validate rules type"
+  ansible.builtin.assert:
+    that:
+      - vmalert_rules | type_debug == 'dict'
+    fail_msg: "vmalert_rules must be a dict keyed by rule-file stem; each value is a list of group objects."
+    success_msg: "vmalert_rules is a dict."
+  when: vmalert_rules is defined
+
+- name: "MMN vmalert - Validate owner/group"
+  ansible.builtin.assert:
+    that:
+      - vmalert_owner is defined
+      - vmalert_owner | string | length > 0
+      - vmalert_group is defined
+      - vmalert_group | string | length > 0
+    fail_msg: "vmalert_owner and vmalert_group must be non-empty strings (matching the container image UID/GID)."
+    success_msg: "vmalert_owner/vmalert_group are set."
+  when: vmalert_owner is defined or vmalert_group is defined
