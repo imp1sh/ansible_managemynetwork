@@ -34,7 +34,7 @@
     src: quadlet.container.j2
     dest: "{{ podman_quadlet_dir | default('/etc/containers/systemd') }}/{{ podman_container.name }}.container"
     mode: '0644'
-  loop: "{{ podman_containers | selectattr('state', 'defined', 'started') | selectattr('state', '!=', 'absent') | list }}"
+  loop: "{{ podman_containers | rejectattr('state', 'equalto', 'absent') | list }}"
   loop_control:
     loop_var: podman_container
   register: _quadlet_units
@@ -64,7 +64,7 @@
     name: "{{ podman_container.name }}"
     state: "{{ 'stopped' if (podman_container.state | default('started')) == 'stopped' else 'started' }}"
     enabled: true
-  loop: "{{ podman_containers | selectattr('state', 'defined', 'started') | selectattr('state', '!=', 'absent') | list }}"
+  loop: "{{ podman_containers | rejectattr('state', 'equalto', 'absent') | list }}"
   loop_control:
     loop_var: podman_container
   when: podman_container.name not in _quadlet_changed
@@ -75,7 +75,7 @@
     name: "{{ podman_container.name }}"
     state: restarted
     enabled: true
-  loop: "{{ podman_containers | selectattr('state', 'defined', 'started') | selectattr('state', '!=', 'absent') | list }}"
+  loop: "{{ podman_containers | rejectattr('state', 'equalto', 'absent') | list }}"
   loop_control:
     loop_var: podman_container
   when: podman_container.name in _quadlet_changed
@@ -90,7 +90,7 @@
   register: _quadlet_stray_check
   changed_when: false
   failed_when: false
-  loop: "{{ podman_containers | selectattr('state', 'defined', 'started') | selectattr('state', '!=', 'absent') | list }}"
+  loop: "{{ podman_containers | rejectattr('state', 'equalto', 'absent') | list }}"
   loop_control:
     loop_var: podman_container
   when: podman_container.name in _quadlet_changed
@@ -114,7 +114,7 @@
     enabled: false
     daemon_reload: true
   failed_when: false
-  loop: "{{ podman_containers | selectattr('state', 'defined', 'absent') | list }}"
+  loop: "{{ podman_containers | selectattr('state', 'equalto', 'absent') | list }}"
   loop_control:
     loop_var: podman_container
 
@@ -122,7 +122,7 @@
   ansible.builtin.file:
     path: "{{ podman_quadlet_dir | default('/etc/containers/systemd') }}/{{ podman_container.name }}.container"
     state: absent
-  loop: "{{ podman_containers | selectattr('state', 'defined', 'absent') | list }}"
+  loop: "{{ podman_containers | selectattr('state', 'equalto', 'absent') | list }}"
   loop_control:
     loop_var: podman_container
 
@@ -130,7 +130,7 @@
   ansible.builtin.stat:
     path: "/etc/systemd/system/container-{{ podman_container.name }}.service"
   register: _quadlet_legacy_absent_stats
-  loop: "{{ podman_containers | selectattr('state', 'defined', 'absent') | list }}"
+  loop: "{{ podman_containers | selectattr('state', 'equalto', 'absent') | list }}"
   loop_control:
     loop_var: podman_container
 
@@ -140,7 +140,7 @@
     state: stopped
     enabled: false
   failed_when: false
-  loop: "{{ podman_containers | selectattr('state', 'defined', 'absent') | list }}"
+  loop: "{{ podman_containers | selectattr('state', 'equalto', 'absent') | list }}"
   loop_control:
     loop_var: podman_container
   when: podman_container.name in (_quadlet_legacy_absent_stats.results | selectattr('stat.exists', 'equalto', true) | map(attribute='podman_container.name') | list)
@@ -149,14 +149,14 @@
   ansible.builtin.file:
     path: "/etc/systemd/system/container-{{ podman_container.name }}.service"
     state: absent
-  loop: "{{ podman_containers | selectattr('state', 'defined', 'absent') | list }}"
+  loop: "{{ podman_containers | selectattr('state', 'equalto', 'absent') | list }}"
   loop_control:
     loop_var: podman_container
 
 - name: "MMN Podman (quadlet) - Reset failed states for absent containers"
   ansible.builtin.shell: "systemctl reset-failed {{ podman_container.name }} container-{{ podman_container.name }} || true"
   changed_when: false
-  loop: "{{ podman_containers | selectattr('state', 'defined', 'absent') | list }}"
+  loop: "{{ podman_containers | selectattr('state', 'equalto', 'absent') | list }}"
   loop_control:
     loop_var: podman_container
 
@@ -164,11 +164,11 @@
   ansible.builtin.command: "podman rm -f {{ podman_container.name }}"
   failed_when: false
   changed_when: true
-  loop: "{{ podman_containers | selectattr('state', 'defined', 'absent') | list }}"
+  loop: "{{ podman_containers | selectattr('state', 'equalto', 'absent') | list }}"
   loop_control:
     loop_var: podman_container
 
 - name: "MMN Podman (quadlet) - Daemon-reload after removal"
   ansible.builtin.systemd:
     daemon_reload: true
-  when: podman_containers | selectattr('state', 'defined', 'absent') | list | length > 0
+  when: podman_containers | selectattr('state', 'equalto', 'absent') | list | length > 0
