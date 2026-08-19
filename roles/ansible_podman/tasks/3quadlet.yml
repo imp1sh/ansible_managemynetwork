@@ -107,52 +107,68 @@
   failed_when: false
 
 # ----------------------------------------------------------------------- absent
-- name: "MMN Podman (quadlet) - Remove absent containers"
-  when: podman_container.state | default('started') == 'absent'
-  block:
-    - name: "MMN Podman (quadlet) - Stop+disable Quadlet service"
-      ansible.builtin.systemd:
-        name: "{{ podman_container.name }}"
-        state: stopped
-        enabled: false
-        daemon_reload: true
-      failed_when: false
-
-    - name: "MMN Podman (quadlet) - Remove .container unit"
-      ansible.builtin.file:
-        path: "{{ podman_quadlet_dir | default('/etc/containers/systemd') }}/{{ podman_container.name }}.container"
-        state: absent
-
-    - name: "MMN Podman (quadlet) - Detect+remove legacy unit"
-      ansible.builtin.stat:
-        path: "/etc/systemd/system/container-{{ podman_container.name }}.service"
-      register: _quadlet_legacy_absent_stat
-
-    - name: "MMN Podman (quadlet) - Stop+disable legacy unit"
-      ansible.builtin.systemd:
-        name: "container-{{ podman_container.name }}"
-        state: stopped
-        enabled: false
-      when: _quadlet_legacy_absent_stat.stat.exists
-      failed_when: false
-
-    - name: "MMN Podman (quadlet) - Remove legacy unit file"
-      ansible.builtin.file:
-        path: "/etc/systemd/system/container-{{ podman_container.name }}.service"
-        state: absent
-
-    - name: "MMN Podman (quadlet) - Reset failed states"
-      ansible.builtin.shell: "systemctl reset-failed {{ podman_container.name }} container-{{ podman_container.name }} || true"
-      changed_when: false
-
-    - name: "MMN Podman (quadlet) - Remove container"
-      ansible.builtin.command: "podman rm -f {{ podman_container.name }}"
-      failed_when: false
-      changed_when: true
-
-    - name: "MMN Podman (quadlet) - Daemon-reload after removal"
-      ansible.builtin.systemd:
-        daemon_reload: true
-  loop: "{{ podman_containers }}"
+- name: "MMN Podman (quadlet) - Stop+disable Quadlet service for absent containers"
+  ansible.builtin.systemd:
+    name: "{{ podman_container.name }}"
+    state: stopped
+    enabled: false
+    daemon_reload: true
+  failed_when: false
+  loop: "{{ podman_containers | selectattr('state', 'defined', 'absent') | list }}"
   loop_control:
     loop_var: podman_container
+
+- name: "MMN Podman (quadlet) - Remove .container unit for absent containers"
+  ansible.builtin.file:
+    path: "{{ podman_quadlet_dir | default('/etc/containers/systemd') }}/{{ podman_container.name }}.container"
+    state: absent
+  loop: "{{ podman_containers | selectattr('state', 'defined', 'absent') | list }}"
+  loop_control:
+    loop_var: podman_container
+
+- name: "MMN Podman (quadlet) - Detect legacy units for absent containers"
+  ansible.builtin.stat:
+    path: "/etc/systemd/system/container-{{ podman_container.name }}.service"
+  register: _quadlet_legacy_absent_stats
+  loop: "{{ podman_containers | selectattr('state', 'defined', 'absent') | list }}"
+  loop_control:
+    loop_var: podman_container
+
+- name: "MMN Podman (quadlet) - Stop+disable legacy units for absent containers"
+  ansible.builtin.systemd:
+    name: "container-{{ podman_container.name }}"
+    state: stopped
+    enabled: false
+  failed_when: false
+  loop: "{{ podman_containers | selectattr('state', 'defined', 'absent') | list }}"
+  loop_control:
+    loop_var: podman_container
+  when: podman_container.name in (_quadlet_legacy_absent_stats.results | selectattr('stat.exists', 'equalto', true) | map(attribute='podman_container.name') | list)
+
+- name: "MMN Podman (quadlet) - Remove legacy unit files for absent containers"
+  ansible.builtin.file:
+    path: "/etc/systemd/system/container-{{ podman_container.name }}.service"
+    state: absent
+  loop: "{{ podman_containers | selectattr('state', 'defined', 'absent') | list }}"
+  loop_control:
+    loop_var: podman_container
+
+- name: "MMN Podman (quadlet) - Reset failed states for absent containers"
+  ansible.builtin.shell: "systemctl reset-failed {{ podman_container.name }} container-{{ podman_container.name }} || true"
+  changed_when: false
+  loop: "{{ podman_containers | selectattr('state', 'defined', 'absent') | list }}"
+  loop_control:
+    loop_var: podman_container
+
+- name: "MMN Podman (quadlet) - Remove absent containers"
+  ansible.builtin.command: "podman rm -f {{ podman_container.name }}"
+  failed_when: false
+  changed_when: true
+  loop: "{{ podman_containers | selectattr('state', 'defined', 'absent') | list }}"
+  loop_control:
+    loop_var: podman_container
+
+- name: "MMN Podman (quadlet) - Daemon-reload after removal"
+  ansible.builtin.systemd:
+    daemon_reload: true
+  when: podman_containers | selectattr('state', 'defined', 'absent') | list | length > 0
