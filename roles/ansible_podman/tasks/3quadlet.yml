@@ -38,6 +38,7 @@
   loop_control:
     loop_var: podman_container
   register: _quadlet_units
+  no_log: true
 
 # Build a list of container names whose unit file changed.
 - name: "MMN Podman (quadlet) - Collect changed container names"
@@ -86,7 +87,7 @@
 # transition cleanly. If it was inactive (first adoption), remove any stray
 # imperative container that would collide with the Quadlet start.
 - name: "MMN Podman (quadlet) - Check if stray imperative containers exist"
-  ansible.builtin.command: "podman inspect {{ podman_container.name }} --format '{{.Name}}'"
+  ansible.builtin.command: "podman inspect {{ podman_container.name }}"
   register: _quadlet_stray_check
   changed_when: false
   failed_when: false

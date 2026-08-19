@@ -13,7 +13,7 @@
     state: directory
     owner: "{{ traefik_owner }}"
     group: "{{ traefik_group }}"
-    mode: "{{ traefik_mode_dynamic }}"
+    mode: "0755"
 
 - name: "MMN traefik - Initialise acme.json (create if absent, never overwrite)"
   ansible.builtin.copy:
