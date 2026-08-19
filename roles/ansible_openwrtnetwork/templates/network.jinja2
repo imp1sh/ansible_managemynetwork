@@ -13,6 +13,9 @@ config globals "globals"
 {% if openwrt_network_globals_steering_flows is defined %}
 	option steering_flows "{{ openwrt_network_globals_steering_flows }}"
 {% endif %}
+{% if openwrt_network_globals_dhcp_default_duid is defined %}
+	option dhcp_default_duid "{{ openwrt_network_globals_dhcp_default_duid }}"
+{% endif %}
 
 # Devices
 {% if openwrt_network_devices is defined and openwrt_network_devices is not none %}
@@ -48,6 +51,26 @@ config dsl "dsl"
 {% endif %}
 {% if openwrt_network_dsl.xfer_mode is defined %}
 	option xfer_mode "{{ openwrt_network_dsl.xfer_mode }}"
+{% endif %}
+{% endif %}
+
+# ATM bridge
+{% if openwrt_network_atm_bridge is defined and openwrt_network_atm_bridge is not none %}
+config atm-bridge "atm"
+{% if openwrt_network_atm_bridge.vpi is defined %}
+	option vpi "{{ openwrt_network_atm_bridge.vpi }}"
+{% endif %}
+{% if openwrt_network_atm_bridge.vci is defined %}
+	option vci "{{ openwrt_network_atm_bridge.vci }}"
+{% endif %}
+{% if openwrt_network_atm_bridge.encaps is defined %}
+	option encaps "{{ openwrt_network_atm_bridge.encaps }}"
+{% endif %}
+{% if openwrt_network_atm_bridge.payload is defined %}
+	option payload "{{ openwrt_network_atm_bridge.payload }}"
+{% endif %}
+{% if openwrt_network_atm_bridge.nameprefix is defined %}
+	option nameprefix "{{ openwrt_network_atm_bridge.nameprefix }}"
 {% endif %}
 {% endif %}
 
