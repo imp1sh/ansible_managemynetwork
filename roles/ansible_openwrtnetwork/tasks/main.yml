@@ -48,6 +48,25 @@
     or
     (openwrt_network_wireguardpeers | default({})).values() | selectattr('managekeys', 'defined') | selectattr('managekeys', 'equalto', true) | list | length > 0
 
+- name: "MMN network - Check if qrencode binary is available on controller when QR generation is enabled"
+  ansible.builtin.command: which qrencode
+  register: _qrencode_binary_check
+  changed_when: false
+  failed_when: false
+  delegate_to: 127.0.0.1
+  become: false
+  when: openwrt_network_wg_generateqr | default(false) | bool
+
+- name: "MMN network - Assert qrencode binary is installed when QR generation is enabled"
+  ansible.builtin.assert:
+    that:
+      - _qrencode_binary_check.rc == 0
+    fail_msg: "qrencode must be installed on the Ansible controller when openwrt_network_wg_generateqr is enabled"
+    success_msg: "qrencode binary is available on controller"
+  delegate_to: 127.0.0.1
+  become: false
+  when: openwrt_network_wg_generateqr | default(false) | bool
+
 - name: make sure wireguard management dir exists
   ansible.builtin.file:
     path: "{{ openwrt_network_wg_keypath }}"

@@ -22,3 +22,6 @@ openwrt_network_wg_keypath: "~/wireguard-keys"
 
 # Wireguard peers (empty by default)
 openwrt_network_wireguardpeers: {}
+
+# Generate QR code PNGs for wireguard client configs (requires qrencode on the controller)
+openwrt_network_wg_generateqr: false

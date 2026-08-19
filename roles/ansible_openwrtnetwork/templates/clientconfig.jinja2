@@ -2,6 +2,7 @@
 Address    = {{ item.value.allowed_ips | join(', ') }}
 PrivateKey = {{ client_privatekey_data_decoded | default('PRIVATE_KEY_MISSING') }}
 MTU = {{ item.value.mtu | default("1420", true) }}
+DNS = {{ hostvars[inventory_hostname]['openwrt_network_interfaceshost'][item.value.interface]['wg_addresses'] | ansible.utils.ipaddr('address') | join(', ') }}
 
 [Peer]
 PublicKey    = {{ server_publickey_data_decoded | default('SERVER_PUBLIC_KEY_MISSING') }}

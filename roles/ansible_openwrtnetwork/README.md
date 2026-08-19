@@ -444,6 +444,7 @@ openwrt_network_interfaceshost:
 - `remote_peer` must be set to `{{ inventory_hostname }}` (the server's hostname) so Ansible can fetch the server's public key for client config generation
 - `keepalive` (typically 25 seconds) is highly recommended for clients behind NAT to keep the connection alive. This sets the PersistentKeepalive value in the generated client config.
 - `generateclientconfig: true` will create a client configuration file at `{{ openwrt_network_wg_keypath }}/ROADWARRIOR/mylaptop.conf` that can be imported into the client device
+- Set `openwrt_network_wg_generateqr: true` (global) to also generate a scannable QR code PNG (`mylaptop.png`) alongside each client config. Requires `qrencode` installed on the Ansible controller. The PNG is regenerated only when the client config changes.
 - The MTU defaults to 1420 but can be overridden with the `mtu` property
 - If you want additional routes inserted into the client config, use the `routes_to` variable (list)
 - `endpoint_host` and `endpoint_port` can be set on the peer to override the interface's `wg_myendpoint` and `wg_listen_port` for client config generation (useful if different clients need different endpoints)

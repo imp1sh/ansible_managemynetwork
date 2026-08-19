@@ -205,3 +205,11 @@
         dest: "{{ openwrt_network_wg_keypath }}/{{ item.value.interface }}/{{ item.key }}.conf"
       when:
         - item.value.generateclientconfig | default(false) | bool
+      register: _wg_clientconf
+
+    - name: generate qr code for client config
+      ansible.builtin.command: "qrencode -t PNG -o {{ openwrt_network_wg_keypath }}/{{ item.value.interface }}/{{ item.key }}.png -r {{ openwrt_network_wg_keypath }}/{{ item.value.interface }}/{{ item.key }}.conf"
+      when:
+        - item.value.generateclientconfig | default(false) | bool
+        - openwrt_network_wg_generateqr | default(false) | bool
+        - _wg_clientconf.changed | default(false)
