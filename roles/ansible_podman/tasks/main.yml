@@ -47,7 +47,7 @@
 
 - name: "MMN Podman - Create containers"
   containers.podman.podman_containers:
-    containers: "{{ podman_containers }}"
+    containers: "{{ podman_containers | rejectattr('state', 'equalto', 'absent') | list }}"
   when:
     - podman_containers is defined
     - not podman_runimagebuilder | default(false) | bool
@@ -82,4 +82,4 @@
   when:
     - podman_container_plugin_borgmatic is defined
     - podman_containers is defined
-    - podman_containers | map(attribute='name') | intersect(podman_container_plugin_borgmatic) | length > 0
+    - podman_containers | rejectattr('state', 'equalto', 'absent') | list | map(attribute='name') | intersect(podman_container_plugin_borgmatic) | length > 0

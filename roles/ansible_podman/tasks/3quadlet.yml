@@ -98,7 +98,7 @@
 
 - name: "MMN Podman (quadlet) - Remove stray imperative containers (first adoption)"
   ansible.builtin.command: "podman rm -f {{ podman_container.item.name }}"
-  loop: "{{ _quadlet_stray_check.results | default([]) }}"
+  loop: "{{ _quadlet_stray_check.results | default([]) | rejectattr('skipped', 'equalto', true) | list }}"
   loop_control:
     loop_var: podman_container
   when:

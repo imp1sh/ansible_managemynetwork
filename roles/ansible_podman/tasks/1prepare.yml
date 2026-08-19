@@ -85,7 +85,7 @@
   ansible.builtin.file:
     path: "{{ item.1 | split(':') | first | ansible.builtin.dirname }}"
     state: directory
-  loop: "{{ podman_containers | subelements('volume', 'skip_missing=True') }}"
+  loop: "{{ podman_containers | rejectattr('state', 'equalto', 'absent') | list | subelements('volume', 'skip_missing=True') }}"
   when:
     - podman_containers is defined
     - not podman_runimagebuilder | default(false) | bool

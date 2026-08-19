@@ -14,7 +14,7 @@
       ansible.builtin.set_fact:
         _podman_all_ports: >-
           {%- set ns = namespace(result=[]) -%}
-          {%- for c in podman_containers -%}
+          {%- for c in podman_containers | rejectattr('state', 'equalto', 'absent') | list -%}
           {%-   set p = c.publish | default(c.ports | default([])) -%}
           {%-   if p is string -%}
           {%-     set ns.result = ns.result + [p] -%}
@@ -50,7 +50,7 @@
 - name: "MMN Podman - systemd tasks"
   ansible.builtin.include_tasks:
     file: 3systemd.yml
-  loop: "{{ podman_containers }}"
+  loop: "{{ podman_containers | rejectattr('state', 'equalto', 'absent') | list }}"
   loop_control:
     loop_var: podman_container
   when:
@@ -73,7 +73,7 @@
 - name: "MMN Podman - procd tasks for OpenWrt"
   ansible.builtin.include_tasks:
     file: 3procd.yml
-  loop: "{{ podman_containers }}"
+  loop: "{{ podman_containers | rejectattr('state', 'equalto', 'absent') | list }}"
   loop_control:
     loop_var: podman_container
   when: ansible_distribution == "OpenWrt"
