@@ -9,7 +9,7 @@
 - name: "MMN systemd-networkd - Extract WireGuard interfaces with hostname endpoints"
   ansible.builtin.set_fact:
     _wg_refresh_interfaces: >-
-      {%- set _ifs = [] -%}
+      {%- set ns = namespace(ifs=[]) -%}
       {%- for _iface, _sections in systemd_networkd_netdev.items() -%}
         {%- for _section in _sections -%}
           {%- for _stype, _opts in _section.items() -%}
@@ -18,7 +18,7 @@
                 {%- if _opt.Endpoint is defined -%}
                   {%- set _ep = _opt.Endpoint | split(':') | first -%}
                   {%- if _ep | regex_search('^[0-9a-fA-F:]+$') is none -%}
-                    {%- set _ifs = _ifs + [{'iface': _iface, 'endpoint': _opt.Endpoint}] -%}
+                    {%- set ns.ifs = ns.ifs + [{'iface': _iface, 'endpoint': _opt.Endpoint}] -%}
                   {%- endif -%}
                 {%- endif -%}
               {%- endfor -%}
@@ -26,7 +26,7 @@
           {%- endfor -%}
         {%- endfor -%}
       {%- endfor -%}
-      {{ _ifs }}
+      {{ ns.ifs }}
   when:
     - systemd_networkd_wireguard_refresh | bool
     - systemd_networkd_netdev | length > 0
@@ -43,7 +43,7 @@
     label: "{{ item.iface }}"
   notify: daemon-reload and enable wg refresh
   when:
-    - systemd_networkd_wireground_refresh | default(systemd_networkd_wireguard_refresh) | bool
+    - systemd_networkd_wireguard_refresh | bool
     - _wg_refresh_interfaces | default([]) | length > 0
 
 - name: "MMN systemd-networkd - Remove stale WireGuard endpoint refresh services"
