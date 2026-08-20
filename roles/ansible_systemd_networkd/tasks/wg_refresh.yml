@@ -3,8 +3,9 @@
 # a oneshot systemd service that waits for DNS to become available after boot,
 # then reconfigures the interface so networkd re-resolves the endpoint.
 #
-# This fixes the race condition where rw0 comes up before ens3 has DNS, causing
-# networkd to permanently cache a failed DNS lookup for the WG endpoint.
+# This fixes the race condition where a WireGuard interface comes up before the
+# physical interface has DNS, causing networkd to permanently cache a failed
+# DNS lookup for the WG endpoint.
 
 - name: "MMN systemd-networkd - Extract WireGuard interfaces with hostname endpoints"
   ansible.builtin.set_fact:
