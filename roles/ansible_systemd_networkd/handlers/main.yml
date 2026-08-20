@@ -10,15 +10,15 @@
 
 - name: daemon-reload and enable wg refresh
   become: true
-  block:
-    - name: Reload systemd daemon
-      ansible.builtin.systemd:
-        daemon_reload: true
-    - name: Enable and start wg-endpoint-refresh services
-      ansible.builtin.systemd:
-        name: "wg-endpoint-refresh-{{ item.iface }}"
-        enabled: true
-        state: started
-      loop: "{{ _wg_refresh_interfaces | default([]) }}"
-      loop_control:
-        label: "{{ item.iface }}"
+  ansible.builtin.systemd:
+    daemon_reload: true
+
+- name: Enable and start wg-endpoint-refresh services
+  become: true
+  ansible.builtin.systemd:
+    name: "wg-endpoint-refresh-{{ item.iface }}"
+    enabled: true
+    state: started
+  loop: "{{ _wg_refresh_interfaces | default([]) }}"
+  loop_control:
+    label: "{{ item.iface }}"
