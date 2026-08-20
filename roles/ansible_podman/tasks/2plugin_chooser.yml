@@ -1,12 +1,19 @@
 ---
+# Use the full container list (preserved before limiting) for plugin
+# intersection checks so config generation always runs regardless of
+# podman_limited_containers. Falls back to podman_containers when no
+# limiting was applied.
+- name: "MMN Podman - Resolve full container list for plugin checks"
+  ansible.builtin.set_fact:
+    _podman_containers_for_plugins: "{{ podman_containers_all | default(podman_containers) }}"
+
 # PSQL
 - name: "MMN Podman - Plugin psql"
   ansible.builtin.include_tasks:
     file: plugin_psql_run1.yml
   when:
     - podman_container_plugin_psql is defined
-    # Below filter is needed so the plugin only runs when the choosen container images are related to the plugin
-    - podman_containers | rejectattr('state', 'equalto', 'absent') | list | map(attribute='name') | intersect(podman_container_plugin_psql) | length > 0
+    - _podman_containers_for_plugins | rejectattr('state', 'equalto', 'absent') | list | map(attribute='name') | intersect(podman_container_plugin_psql) | length > 0
 
 # BORGMATIC
 - name: "MMN Podman - Plugin borgmatic"
@@ -15,8 +22,7 @@
   when:
     - podman_container_plugin_borgmatic is defined
     - podman_containers is defined
-    # Below filter is needed so the plugin only runs when the choosen container images are related to the plugin
-    - podman_containers | rejectattr('state', 'equalto', 'absent') | list | map(attribute='name') | intersect(podman_container_plugin_borgmatic) | length > 0
+    - _podman_containers_for_plugins | rejectattr('state', 'equalto', 'absent') | list | map(attribute='name') | intersect(podman_container_plugin_borgmatic) | length > 0
 
 # PDNSAUTH
 - name: "MMN Podman - Plugin pdnsauth"
@@ -24,8 +30,7 @@
     file: plugin_pdnsauth.yml
   when:
     - podman_container_plugin_pdnsauth is defined
-    # Below filter is needed so the plugin only runs when the choosen container images are related to the plugin
-    - podman_containers | rejectattr('state', 'equalto', 'absent') | list | map(attribute='name') | intersect(podman_container_plugin_pdnsauth) | length > 0
+    - _podman_containers_for_plugins | rejectattr('state', 'equalto', 'absent') | list | map(attribute='name') | intersect(podman_container_plugin_pdnsauth) | length > 0
 
 # PROMETHEUS
 - name: "MMN Podman - Plugin prometheus"
@@ -34,8 +39,7 @@
   when:
     - podman_container_plugin_prometheus is defined
     - podman_containers is defined
-    # Below filter is needed so the plugin only runs when the choosen container images are related to the plugin
-    - podman_containers | rejectattr('state', 'equalto', 'absent') | list | map(attribute='name') | intersect(podman_container_plugin_prometheus) | length > 0
+    - _podman_containers_for_plugins | rejectattr('state', 'equalto', 'absent') | list | map(attribute='name') | intersect(podman_container_plugin_prometheus) | length > 0
 
 # TRAEFIK
 - name: "MMN Podman - Plugin traefik"
@@ -44,8 +48,7 @@
   when:
     - podman_container_plugin_traefik is defined
     - podman_containers is defined
-    # Below filter is needed so the plugin only runs when the choosen container images are related to the plugin
-    - podman_containers | rejectattr('state', 'equalto', 'absent') | list | map(attribute='name') | intersect(podman_container_plugin_traefik) | length > 0
+    - _podman_containers_for_plugins | rejectattr('state', 'equalto', 'absent') | list | map(attribute='name') | intersect(podman_container_plugin_traefik) | length > 0
 
 # GRAFANA
 - name: "MMN Podman - Plugin grafana"
@@ -54,8 +57,7 @@
   when:
     - podman_container_plugin_grafana is defined
     - podman_containers is defined
-    # Below filter is needed so the plugin only runs when the choosen container images are related to the plugin
-    - podman_containers | rejectattr('state', 'equalto', 'absent') | list | map(attribute='name') | intersect(podman_container_plugin_grafana) | length > 0
+    - _podman_containers_for_plugins | rejectattr('state', 'equalto', 'absent') | list | map(attribute='name') | intersect(podman_container_plugin_grafana) | length > 0
 
 # OPENSEARCH
 - name: "MMN Podman - Plugin opensearch"
@@ -64,8 +66,7 @@
   when:
     - podman_container_plugin_opensearch is defined
     - podman_containers is defined
-    # Below filter is needed so the plugin only runs when the choosen container images are related to the plugin
-    - podman_containers | rejectattr('state', 'equalto', 'absent') | list | map(attribute='name') | intersect(podman_container_plugin_opensearch) | length > 0
+    - _podman_containers_for_plugins | rejectattr('state', 'equalto', 'absent') | list | map(attribute='name') | intersect(podman_container_plugin_opensearch) | length > 0
 
 # ALERTMANAGER
 - name: "MMN Podman - Plugin alertmanager"
@@ -74,8 +75,7 @@
   when:
     - podman_container_plugin_alertmanager is defined
     - podman_containers is defined
-    # Below filter is needed so the plugin only runs when the choosen container images are related to the plugin
-    - podman_containers | rejectattr('state', 'equalto', 'absent') | list | map(attribute='name') | intersect(podman_container_plugin_alertmanager) | length > 0
+    - _podman_containers_for_plugins | rejectattr('state', 'equalto', 'absent') | list | map(attribute='name') | intersect(podman_container_plugin_alertmanager) | length > 0
 
 # VMALERT
 - name: "MMN Podman - Plugin vmalert"
@@ -84,5 +84,4 @@
   when:
     - podman_container_plugin_vmalert is defined
     - podman_containers is defined
-    # Below filter is needed so the plugin only runs when the choosen container images are related to the plugin
-    - podman_containers | rejectattr('state', 'equalto', 'absent') | list | map(attribute='name') | intersect(podman_container_plugin_vmalert) | length > 0
+    - _podman_containers_for_plugins | rejectattr('state', 'equalto', 'absent') | list | map(attribute='name') | intersect(podman_container_plugin_vmalert) | length > 0

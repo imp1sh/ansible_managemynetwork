@@ -73,6 +73,14 @@
 
 
 # Thirdly all tasks for both OpenWrt and non-OpenWrt
+- name: "MMN Podman - Preserve full container list before limiting"
+  ansible.builtin.set_fact:
+    podman_containers_all: "{{ podman_containers }}"
+  when:
+    - podman_containers is defined
+    - podman_limited_containers is defined
+    - not podman_runimagebuilder | default(false) | bool
+
 - name: "MMN Podman - Select subset of containers, because you asked for it"
   ansible.builtin.set_fact:
     podman_containers: "{{ podman_containers | selectattr('name', 'in', podman_limited_containers) | list }}"
