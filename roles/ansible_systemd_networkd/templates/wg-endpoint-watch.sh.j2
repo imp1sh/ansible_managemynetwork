@@ -1,8 +1,9 @@
 #!/bin/bash
 # WireGuard endpoint DNS watcher
 # Resolves the endpoint hostname, compares to the current wg endpoint,
-# and reconfigures the interface via networkctl when the IP changed.
-# Called by wg-endpoint-watch@.service on a timer.
+# and updates it directly via wg set when the IP changed.
+# No interface restart, no tunnel flap.
+# Called by wg-endpoint-watch-<iface>.service on a timer.
 
 set -eu
 
@@ -24,14 +25,28 @@ CURRENT_EP=$(wg show "$IFACE" endpoints 2>/dev/null | awk '{print $2}')
 CURRENT_IP=$(echo "$CURRENT_EP" | sed 's/\[//;s/\]//;s/:.*$//')
 
 if [ -z "$CURRENT_IP" ]; then
-    echo "No current endpoint for $IFACE, reconfiguring"
-    networkctl reconfigure "$IFACE"
+    echo "No current endpoint for $IFACE, setting to $NEW_IP:$PORT"
+    PEER_KEY=$(wg show "$IFACE" peers 2>/dev/null | head -1)
+    if [ -n "$PEER_KEY" ]; then
+        wg set "$IFACE" peer "$PEER_KEY" endpoint "[$NEW_IP]:$PORT"
+        echo "Set endpoint for $IFACE to [$NEW_IP]:$PORT"
+    else
+        echo "No peer found for $IFACE, cannot set endpoint"
+        exit 1
+    fi
     exit 0
 fi
 
 if [ "$NEW_IP" != "$CURRENT_IP" ]; then
-    echo "Endpoint changed: $CURRENT_IP -> $NEW_IP, reconfiguring $IFACE"
-    networkctl reconfigure "$IFACE"
+    echo "Endpoint changed: $CURRENT_IP -> $NEW_IP, updating $IFACE"
+    PEER_KEY=$(wg show "$IFACE" peers 2>/dev/null | head -1)
+    if [ -n "$PEER_KEY" ]; then
+        wg set "$IFACE" peer "$PEER_KEY" endpoint "[$NEW_IP]:$PORT"
+        echo "Updated endpoint for $IFACE to [$NEW_IP]:$PORT"
+    else
+        echo "No peer found for $IFACE, cannot update endpoint"
+        exit 1
+    fi
 else
     echo "Endpoint unchanged ($CURRENT_IP), no action"
 fi
