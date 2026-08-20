@@ -1,0 +1,9 @@
+---
+# handlers for ansible_systemd_networkd
+
+- name: restart systemd-networkd
+  become: true
+  service:
+    name: systemd-networkd
+    state: restarted
+  when: systemd_networkd_apply_config

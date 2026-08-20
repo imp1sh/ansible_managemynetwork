@@ -1,0 +1,13 @@
+[Unit]
+Description=Reconfigure WireGuard {{ item.iface }} after DNS is available
+After=systemd-networkd-wait-online.service
+Wants=systemd-networkd-wait-online.service
+
+[Service]
+Type=oneshot
+ExecStartPre=/bin/sh -c 'for i in $(seq 1 30); do getent ahosts {{ item.endpoint | split(":") | first }} && exit 0; sleep 1; done; exit 1'
+ExecStart=/bin/sh -c 'networkctl reconfigure {{ item.iface }}'
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,21 @@
+---
+
+systemd_networkd_link: {}
+systemd_networkd_netdev: {}
+systemd_networkd_network: {}
+
+systemd_networkd_apply_config: false
+systemd_networkd_enable_resolved: true
+systemd_networkd_symlink_resolv_conf: true
+
+systemd_networkd_cleanup: false
+systemd_networkd_cleanup_patterns: []
+systemd_networkd_cleanup_patterns_use_regex: false
+
+# WireGuard endpoint DNS refresh
+# When a WireGuard .netdev specifies an Endpoint as a hostname, systemd-networkd
+# resolves it once at interface creation time. If DNS is not yet available (race
+# with DHCP/RA on the physical interface), the endpoint stays unresolved and the
+# tunnel never connects. This deploys a oneshot systemd service that waits for
+# DNS to become available, then reconfigures the WireGuard interface.
+systemd_networkd_wireguard_refresh: true

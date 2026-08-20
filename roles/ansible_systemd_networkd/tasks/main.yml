@@ -1,0 +1,37 @@
+---
+- import_tasks: cleanup.yml
+  when: systemd_networkd_cleanup | bool
+
+- import_tasks: config.yml
+
+- name: Make sure systemd-resolved is installed
+  become: true
+  ansible.builtin.package:
+    name: systemd-resolved
+    state: present
+  when:
+    - ansible_facts.distribution | lower == 'debian'
+    - ansible_facts.distribution_major_version | int >= 12
+
+- name: start and enable systemd-resolved
+  become: true
+  service:
+    name: systemd-resolved
+    enabled: yes
+    state: started
+  when: systemd_networkd_enable_resolved
+
+- name: replace /etc/resolv.conf with a symlink to the systemd-resolved stub
+  become: true
+  file:
+    path: /etc/resolv.conf
+    src: /run/systemd/resolve/stub-resolv.conf
+    state: link
+    force: yes
+  when: systemd_networkd_symlink_resolv_conf
+
+- name: WireGuard endpoint DNS refresh
+  ansible.builtin.import_tasks: wg_refresh.yml
+  when:
+    - systemd_networkd_wireguard_refresh | bool
+    - systemd_networkd_netdev | length > 0

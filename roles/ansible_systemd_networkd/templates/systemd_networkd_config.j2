@@ -1,0 +1,19 @@
+# {{ ansible_managed }}
+
+{% for section_dict in item.1.value %}
+{% for section, options in section_dict.items() %}
+[{{ section }}]
+{% for opt in options %}
+{% for key, val in opt.items() %}
+{% if val is string or val is not iterable %}
+{{ key }}={{ val }}
+{% else %}
+{% for subval in val %}
+{{ key }}={{ subval }}
+{% endfor %}
+{% endif %}
+{% endfor %}
+{% endfor %}
+
+{% endfor %}
+{% endfor %}

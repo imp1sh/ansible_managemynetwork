@@ -1,0 +1,26 @@
+---
+galaxy_info:
+  role_name: ansible_systemd_networkd
+  author: imp1sh
+  description: Configures systemd-networkd with WireGuard endpoint refresh support
+  license: BSD
+  min_ansible_version: "2.14"
+  platforms:
+    - name: Debian
+      versions:
+        - all
+    - name: Ubuntu
+      versions:
+        - all
+    - name: EL
+      versions:
+        - all
+    - name: Fedora
+      versions:
+        - all
+  galaxy_tags:
+    - networking
+    - systemd
+    - networkd
+    - wireguard
+dependencies: []

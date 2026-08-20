@@ -1,0 +1,22 @@
+---
+
+- name: Ensure systemd-networkd configuration files exist
+  become: true
+  vars:
+    all_files:
+      - type: link
+        files: "{{ systemd_networkd_link | dict2items }}"
+      - type: netdev
+        files: "{{ systemd_networkd_netdev | dict2items }}"
+      - type: network
+        files: "{{ systemd_networkd_network | dict2items }}"
+  template:
+    src: "systemd_networkd_config.j2"
+    dest: "/etc/systemd/network/{{ item.1.key }}.{{ item.0.type }}"
+    owner: root
+    group: systemd-network
+    mode: 0640
+  loop: "{{ query('subelements', all_files, 'files') }}"
+  loop_control:
+    label: "{{ item.0.type }} - {{ item.1.key }}"
+  notify: restart systemd-networkd
