@@ -73,7 +73,9 @@
   loop: "{{ _wg_refresh_interfaces | default([]) }}"
   loop_control:
     label: "{{ item.iface }}"
-  notify: daemon-reload and enable wg watch
+  notify:
+    - daemon-reload and enable wg watch
+    - Enable wg-endpoint-watch timers
   when:
     - systemd_networkd_wireguard_refresh | bool
     - _wg_refresh_interfaces | default([]) | length > 0
@@ -88,7 +90,9 @@
   loop: "{{ _wg_refresh_interfaces | default([]) }}"
   loop_control:
     label: "{{ item.iface }}"
-  notify: daemon-reload and enable wg watch
+  notify:
+    - daemon-reload and enable wg watch
+    - Enable wg-endpoint-watch timers
   when:
     - systemd_networkd_wireguard_refresh | bool
     - _wg_refresh_interfaces | default([]) | length > 0
