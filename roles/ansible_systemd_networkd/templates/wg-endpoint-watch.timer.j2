@@ -1,0 +1,10 @@
+[Unit]
+Description=Periodically watch WireGuard {{ item.iface }} endpoint for DNS changes
+
+[Timer]
+OnBootSec=60
+OnUnitActiveSec={{ systemd_networkd_wireguard_watch_interval | default(300) }}
+AccuracySec=10
+
+[Install]
+WantedBy=timers.target

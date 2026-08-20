@@ -19,3 +19,5 @@ systemd_networkd_cleanup_patterns_use_regex: false
 # tunnel never connects. This deploys a oneshot systemd service that waits for
 # DNS to become available, then reconfigures the WireGuard interface.
 systemd_networkd_wireguard_refresh: true
+# Interval (seconds) for the periodic endpoint DNS watcher timer
+systemd_networkd_wireguard_watch_interval: 300

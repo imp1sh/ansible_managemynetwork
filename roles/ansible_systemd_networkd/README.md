@@ -1,8 +1,8 @@
 # ansible_systemd_networkd
 
 Configures systemd-networkd network interfaces, links, and netdevs (including
-WireGuard) from simple dictionary variables. Optionally deploys a oneshot
-systemd service per WireGuard interface to fix a DNS race condition at boot.
+WireGuard) from simple dictionary variables. Deploys automatic DNS endpoint
+management for WireGuard interfaces with dynamic endpoints.
 
 ## Origin
 
@@ -13,22 +13,45 @@ OpenStack Foundation.
 
 ## Enhancements over upstream
 
-### WireGuard endpoint DNS refresh
+### WireGuard endpoint DNS management
 
 When a WireGuard `.netdev` specifies an `Endpoint` as a hostname (not an IP),
-systemd-networkd resolves it **once** at interface creation time. If DNS is not
-yet available — a common race when the physical interface uses DHCP/RA and
-comes up simultaneously — the endpoint stays unresolved permanently and the
-tunnel never connects.
+systemd-networkd resolves it **once** at interface creation time and never
+updates it. This causes two problems:
 
-This role detects WireGuard interfaces with hostname-based endpoints and deploys
-a oneshot systemd service (`wg-endpoint-refresh-<iface>.service`) for each. The
-service waits up to 30 seconds for DNS to become available, then runs
-`networkctl reconfigure <iface>` so networkd re-resolves the endpoint.
+1. **Boot race**: WG interface comes up before DNS is available — endpoint
+   stays unresolved permanently, tunnel never connects.
+2. **Dynamic endpoint**: server IP changes, DNS updates, but networkd keeps
+   sending to the old cached IP forever.
 
-Disable with:
+This role detects WireGuard interfaces with hostname-based endpoints and
+deploys two mechanisms per interface:
+
+#### Boot refresh (`wg-endpoint-refresh-<iface>.service`)
+
+A oneshot service that waits up to 30 seconds for DNS to become available
+after boot, then runs `networkctl reconfigure <iface>` so networkd re-resolves
+the endpoint. Ordered after `systemd-networkd-wait-online.service`.
+
+#### Periodic DNS watcher (`wg-endpoint-watch-<iface>.timer`)
+
+A timer that fires every `systemd_networkd_wireguard_watch_interval` seconds
+(default 300). Runs a script that:
+1. Resolves the endpoint hostname via `getent`
+2. Compares to the current `wg show` endpoint IP
+3. Calls `networkctl reconfigure <iface>` only when the IP actually changed
+
+No interface restart, no tunnel flap, no needless reconfigure cycles. The
+watcher is silent when the endpoint is unchanged.
+
+Disable both with:
 ```yaml
 systemd_networkd_wireguard_refresh: false
+```
+
+Tune the watch interval:
+```yaml
+systemd_networkd_wireguard_watch_interval: 120
 ```
 
 ## Variables
@@ -42,7 +65,8 @@ systemd_networkd_wireguard_refresh: false
 | `systemd_networkd_enable_resolved` | `true` | Enable and start systemd-resolved |
 | `systemd_networkd_symlink_resolv_conf` | `true` | Symlink `/etc/resolv.conf` to resolved stub |
 | `systemd_networkd_cleanup` | `false` | Remove unexpected files in `/etc/systemd/network/` |
-| `systemd_networkd_wireguard_refresh` | `true` | Deploy WG endpoint DNS refresh services |
+| `systemd_networkd_wireguard_refresh` | `true` | Deploy WG endpoint DNS refresh + watcher |
+| `systemd_networkd_wireguard_watch_interval` | `300` | Seconds between endpoint DNS checks |
 
 ## License
 

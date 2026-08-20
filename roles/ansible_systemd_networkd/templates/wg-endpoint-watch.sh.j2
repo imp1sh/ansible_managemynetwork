@@ -1,0 +1,37 @@
+#!/bin/bash
+# WireGuard endpoint DNS watcher
+# Resolves the endpoint hostname, compares to the current wg endpoint,
+# and reconfigures the interface via networkctl when the IP changed.
+# Called by wg-endpoint-watch@.service on a timer.
+
+set -eu
+
+IFACE="{{ item.iface }}"
+ENDPOINT="{{ item.endpoint }}"
+HOSTNAME="{{ item.endpoint | split(':') | first }}"
+PORT="{{ item.endpoint | split(':') | last }}"
+
+# Resolve current DNS for the endpoint hostname
+NEW_IP=$(getent ahosts "$HOSTNAME" | awk '{print $1}' | head -1)
+
+if [ -z "$NEW_IP" ]; then
+    echo "Failed to resolve $HOSTNAME, skipping"
+    exit 0
+fi
+
+# Get current endpoint from wg
+CURRENT_EP=$(wg show "$IFACE" endpoints 2>/dev/null | awk '{print $2}')
+CURRENT_IP=$(echo "$CURRENT_EP" | sed 's/\[//;s/\]//;s/:.*$//')
+
+if [ -z "$CURRENT_IP" ]; then
+    echo "No current endpoint for $IFACE, reconfiguring"
+    networkctl reconfigure "$IFACE"
+    exit 0
+fi
+
+if [ "$NEW_IP" != "$CURRENT_IP" ]; then
+    echo "Endpoint changed: $CURRENT_IP -> $NEW_IP, reconfiguring $IFACE"
+    networkctl reconfigure "$IFACE"
+else
+    echo "Endpoint unchanged ($CURRENT_IP), no action"
+fi

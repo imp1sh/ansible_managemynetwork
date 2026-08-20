@@ -1,0 +1,7 @@
+[Unit]
+Description=Watch WireGuard {{ item.iface }} endpoint for DNS changes
+After=systemd-networkd.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/wg-endpoint-watch-{{ item.iface }}.sh

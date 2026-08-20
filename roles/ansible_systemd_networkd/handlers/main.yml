@@ -22,3 +22,18 @@
   loop: "{{ _wg_refresh_interfaces | default([]) }}"
   loop_control:
     label: "{{ item.iface }}"
+
+- name: daemon-reload and enable wg watch
+  become: true
+  ansible.builtin.systemd:
+    daemon_reload: true
+
+- name: Enable wg-endpoint-watch timers
+  become: true
+  ansible.builtin.systemd:
+    name: "wg-endpoint-watch-{{ item.iface }}.timer"
+    enabled: true
+    state: started
+  loop: "{{ _wg_refresh_interfaces | default([]) }}"
+  loop_control:
+    label: "{{ item.iface }}"

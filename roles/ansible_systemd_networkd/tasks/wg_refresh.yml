@@ -1,11 +1,13 @@
 ---
-# Detects WireGuard interfaces that use a hostname in their Endpoint and deploys
-# a oneshot systemd service that waits for DNS to become available after boot,
-# then reconfigures the interface so networkd re-resolves the endpoint.
+# Detects WireGuard interfaces that use a hostname in their Endpoint and deploys:
+# 1. A oneshot boot service that waits for DNS, then reconfigures the interface
+# 2. A periodic watcher script + timer that detects endpoint IP changes and
+#    reconfigures the interface without restart (no tunnel flap)
 #
-# This fixes the race condition where a WireGuard interface comes up before the
-# physical interface has DNS, causing networkd to permanently cache a failed
-# DNS lookup for the WG endpoint.
+# This fixes two problems:
+# - Race condition at boot: WG interface comes up before DNS is available
+# - Dynamic endpoint: server IP changes, DNS updates, but networkd keeps
+#   sending to the old cached IP forever
 
 - name: "MMN systemd-networkd - Extract WireGuard interfaces with hostname endpoints"
   ansible.builtin.set_fact:
@@ -32,7 +34,7 @@
     - systemd_networkd_wireguard_refresh | bool
     - systemd_networkd_netdev | length > 0
 
-- name: "MMN systemd-networkd - Deploy WireGuard endpoint refresh service"
+- name: "MMN systemd-networkd - Deploy WireGuard endpoint refresh boot service"
   ansible.builtin.template:
     src: wg-endpoint-refresh.service.j2
     dest: "/etc/systemd/system/wg-endpoint-refresh-{{ item.iface }}.service"
@@ -47,10 +49,46 @@
     - systemd_networkd_wireguard_refresh | bool
     - _wg_refresh_interfaces | default([]) | length > 0
 
-- name: "MMN systemd-networkd - Remove stale WireGuard endpoint refresh services"
-  ansible.builtin.file:
-    path: "/etc/systemd/system/wg-endpoint-refresh-{{ item }}.service"
-    state: absent
-  loop: "{{ _wg_refresh_stale | default([]) }}"
-  notify: daemon-reload
-  when: _wg_refresh_stale | default([]) | length > 0
+- name: "MMN systemd-networkd - Deploy WireGuard endpoint watch script"
+  ansible.builtin.template:
+    src: wg-endpoint-watch.sh.j2
+    dest: "/usr/local/sbin/wg-endpoint-watch-{{ item.iface }}.sh"
+    owner: root
+    group: root
+    mode: "0755"
+  loop: "{{ _wg_refresh_interfaces | default([]) }}"
+  loop_control:
+    label: "{{ item.iface }}"
+  when:
+    - systemd_networkd_wireguard_refresh | bool
+    - _wg_refresh_interfaces | default([]) | length > 0
+
+- name: "MMN systemd-networkd - Deploy WireGuard endpoint watch service"
+  ansible.builtin.template:
+    src: wg-endpoint-watch.service.j2
+    dest: "/etc/systemd/system/wg-endpoint-watch-{{ item.iface }}.service"
+    owner: root
+    group: root
+    mode: "0644"
+  loop: "{{ _wg_refresh_interfaces | default([]) }}"
+  loop_control:
+    label: "{{ item.iface }}"
+  notify: daemon-reload and enable wg watch
+  when:
+    - systemd_networkd_wireguard_refresh | bool
+    - _wg_refresh_interfaces | default([]) | length > 0
+
+- name: "MMN systemd-networkd - Deploy WireGuard endpoint watch timer"
+  ansible.builtin.template:
+    src: wg-endpoint-watch.timer.j2
+    dest: "/etc/systemd/system/wg-endpoint-watch-{{ item.iface }}.timer"
+    owner: root
+    group: root
+    mode: "0644"
+  loop: "{{ _wg_refresh_interfaces | default([]) }}"
+  loop_control:
+    label: "{{ item.iface }}"
+  notify: daemon-reload and enable wg watch
+  when:
+    - systemd_networkd_wireguard_refresh | bool
+    - _wg_refresh_interfaces | default([]) | length > 0
