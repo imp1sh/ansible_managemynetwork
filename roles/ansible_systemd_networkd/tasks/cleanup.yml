@@ -1,6 +1,7 @@
 ---
-# This has been adapted from code in OpenStack Ansible's systemd_networkd role.
+# Adapted from OpenStack Ansible's systemd_networkd role (BSD-3-Clause).
 # https://github.com/openstack/ansible-role-systemd_networkd/blob/master/tasks/main.yml
+# Copyright (c) Anthony Ruhier, StackHPC Ltd, OpenStack Foundation.
 
 - name: Find unexpected systemd-networkd configuration files
   become: true
