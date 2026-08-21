@@ -31,7 +31,7 @@
   when: systemd_networkd_symlink_resolv_conf
 
 - name: WireGuard endpoint DNS refresh
-  ansible.builtin.import_tasks: wg_refresh.yml
+  ansible.builtin.include_tasks: wg_refresh.yml
   when:
     - systemd_networkd_wireguard_refresh | bool
     - systemd_networkd_netdev | length > 0
