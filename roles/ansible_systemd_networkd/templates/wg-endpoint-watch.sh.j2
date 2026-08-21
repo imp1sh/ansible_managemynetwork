@@ -20,11 +20,11 @@ if [ -z "$NEW_IP" ]; then
     exit 0
 fi
 
-# Get current endpoint from wg
-CURRENT_EP=$(wg show "$IFACE" endpoints 2>/dev/null | awk '{print $2}')
-CURRENT_IP=$(echo "$CURRENT_EP" | sed 's/\[//;s/\]//;s/:.*$//')
+# Get current endpoint from wg show
+# Output format: <pubkey>\t[<ipv6>]:<port>  OR  <pubkey>\t<ipv4>:<port>
+RAW_EP=$(wg show "$IFACE" endpoints 2>/dev/null | awk '{print $2}')
 
-if [ -z "$CURRENT_IP" ]; then
+if [ -z "$RAW_EP" ]; then
     echo "No current endpoint for $IFACE, setting to $NEW_IP:$PORT"
     PEER_KEY=$(wg show "$IFACE" peers 2>/dev/null | head -1)
     if [ -n "$PEER_KEY" ]; then
@@ -35,6 +35,15 @@ if [ -z "$CURRENT_IP" ]; then
         exit 1
     fi
     exit 0
+fi
+
+# Extract IP from endpoint. IPv6 is bracketed [addr]:port, IPv4 is addr:port
+if [[ "$RAW_EP" == \[* ]]; then
+    # IPv6: [2001:db8::1]:51820
+    CURRENT_IP=$(echo "$RAW_EP" | sed 's/^\[//;s/\].*$//')
+else
+    # IPv4: 1.2.3.4:51820
+    CURRENT_IP=$(echo "$RAW_EP" | rev | cut -d: -f2- | rev)
 fi
 
 if [ "$NEW_IP" != "$CURRENT_IP" ]; then
