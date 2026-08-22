@@ -1,2 +1,9 @@
 ---
-# defaults file for ansible_patchday
+# Whether to skip reboot entirely even if one is required
+patchday_skip_reboot: false
+
+# Seconds to wait for the host to come back after reboot
+patchday_reboot_timeout: 600
+
+# Seconds to wait after reboot before verifying the host
+patchday_post_reboot_delay: 30

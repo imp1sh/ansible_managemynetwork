@@ -18,7 +18,7 @@
 - block:
     - name: MMN Patchday - Inform
       ansible.builtin.debug:
-        msg: "Skipping host, as it needs no updates." 
+        msg: "Skipping host, as it needs no updates."
     - name: MMN Patchday - Skip host if no updates are available
       meta: end_play
   when: not patchday_updates_available
@@ -35,18 +35,82 @@
     autoremove: yes
 
 # Handle reboot
-- name: MMN Patchday - Check if a reboot is required
-  stat:
+- name: MMN Patchday - Check if reboot-required flag exists
+  ansible.builtin.stat:
     path: /var/run/reboot-required
-  register: reboot_required
+  register: reboot_required_flag
 
-- name: MMN Patchday - Reboot the server if needed
-  reboot:
+- name: MMN Patchday - Get running kernel version
+  ansible.builtin.command: uname -r
+  changed_when: false
+  register: running_kernel_before
+
+- name: MMN Patchday - Get installed kernel version
+  ansible.builtin.shell: dpkg -l linux-image-* 2>/dev/null | grep '^ii' | awk '{print $2}' | sed 's/linux-image-//' | sort -V | tail -1
+  changed_when: false
+  register: installed_kernel
+  failed_when: false
+
+- name: MMN Patchday - Determine if reboot is required
+  ansible.builtin.set_fact:
+    patchday_reboot_needed: >-
+      {{
+        reboot_required_flag.stat.exists or
+        (installed_kernel.stdout | default('') != '' and
+         running_kernel_before.stdout != installed_kernel.stdout)
+      }}
+
+- name: MMN Patchday - Report reboot status
+  ansible.builtin.debug:
+    msg: >-
+      Reboot {{ 'required' if patchday_reboot_needed else 'not required' }}
+      {% if patchday_reboot_needed and not patchday_skip_reboot | default(false) %}
+      — will reboot now (running: {{ running_kernel_before.stdout }}, installed: {{ installed_kernel.stdout | default('unknown') }})
+      {% elif patchday_reboot_needed and patchday_skip_reboot | default(false) %}
+      — SKIPPED by patchday_skip_reboot
+      {% endif %}
+
+- name: MMN Patchday - Reboot if needed
+  ansible.builtin.reboot:
     msg: "Rebooting the system after updates."
     connect_timeout: 5
-    reboot_timeout: 600
+    reboot_timeout: "{{ patchday_reboot_timeout }}"
     pre_reboot_delay: 0
-    post_reboot_delay: 30
+    post_reboot_delay: "{{ patchday_post_reboot_delay }}"
   when:
-    - reboot_required.stat.exists
+    - patchday_reboot_needed
+    - not patchday_skip_reboot | default(false)
+
+# Post-reboot verification
+- name: MMN Patchday - Verify host is back up
+  block:
+    - name: MMN Patchday - Wait for system to settle
+      ansible.builtin.wait_for_connection:
+        delay: 5
+        timeout: 120
+
+    - name: MMN Patchday - Check uptime after reboot
+      ansible.builtin.command: uptime
+      changed_when: false
+      register: uptime_after_reboot
+
+    - name: MMN Patchday - Verify new kernel is running
+      ansible.builtin.command: uname -r
+      changed_when: false
+      register: running_kernel_after
+
+    - name: MMN Patchday - Report post-reboot status
+      ansible.builtin.debug:
+        msg: >-
+          Host is back up. Kernel: {{ running_kernel_after.stdout }},
+          uptime: {{ uptime_after_reboot.stdout.strip() }}
+
+    - name: MMN Patchday - Warn if kernel unchanged after reboot
+      ansible.builtin.debug:
+        msg: "WARNING: Kernel still {{ running_kernel_after.stdout }} after reboot — expected {{ installed_kernel.stdout }}"
+      when:
+        - installed_kernel.stdout | default('') != ''
+        - running_kernel_after.stdout != installed_kernel.stdout
+  when:
+    - patchday_reboot_needed
     - not patchday_skip_reboot | default(false)
