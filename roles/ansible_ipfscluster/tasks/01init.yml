@@ -31,8 +31,23 @@
           podman run --rm
           -v /tmp/ipfscluster-init-{{ ipfscluster_instance.name }}:/data/ipfs-cluster
           {{ ipfscluster_image }}
-          ipfs-cluster-service init
+          ipfs-cluster-service init --force
       changed_when: true
+      failed_when: false
+
+    - name: "MMN ipfscluster - Verify identity.json was generated"
+      ansible.builtin.stat:
+        path: "/tmp/ipfscluster-init-{{ ipfscluster_instance.name }}/identity.json"
+      register: _ipfscluster_init_identity_stat
+
+    - name: "MMN ipfscluster - Fail if identity.json was not generated"
+      ansible.builtin.assert:
+        that:
+          - _ipfscluster_init_identity_stat.stat.exists
+        fail_msg: >-
+          ipfs-cluster-service init did not produce identity.json in
+          /tmp/ipfscluster-init-{{ ipfscluster_instance.name }}.
+        success_msg: "identity.json generated successfully."
 
     - name: "MMN ipfscluster - Copy identity.json to data dir"
       ansible.builtin.copy:

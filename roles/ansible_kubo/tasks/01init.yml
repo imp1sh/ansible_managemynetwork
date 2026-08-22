@@ -27,3 +27,18 @@
       ipfs init --profile={{ kubo_profile }}
   when: not _kubo_config_stat.stat.exists
   changed_when: true
+  failed_when: false
+
+- name: "MMN kubo - Verify config was generated for {{ kubo_instance.name }}"
+  ansible.builtin.stat:
+    path: "{{ kubo_instance.data_dir }}/config"
+  register: _kubo_config_stat_after
+
+- name: "MMN kubo - Fail if config was not generated for {{ kubo_instance.name }}"
+  ansible.builtin.assert:
+    that:
+      - _kubo_config_stat_after.stat.exists
+    fail_msg: >-
+      ipfs init did not produce config in {{ kubo_instance.data_dir }}.
+    success_msg: "IPFS repo initialised successfully."
+  when: not _kubo_config_stat.stat.exists
