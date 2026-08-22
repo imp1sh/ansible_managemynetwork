@@ -1,0 +1,69 @@
+---
+# Whether to auto-discover all SMART-capable drives
+smartd_devicescan: true
+
+# Per-device overrides (when DEVICESCAN is disabled)
+# Example:
+# smartd_devices:
+#   /dev/sda:
+#     type: sat
+#   /dev/nvme0:
+#     type: nvme
+smartd_devices: {}
+
+# Drive type auto-detection (-d auto)
+smartd_default_type: auto
+
+# Don't poll disks in standby (-n standby,15,q)
+smartd_default_nocheck: standby,15,q
+
+# Offline test type (-T normal)
+smartd_default_check_type: normal
+
+# Attribute autosave (-S on)
+smartd_default_attribute_autosave: true
+
+# Health check (-H)
+smartd_default_check_health: true
+
+# Error reporting (-l ...)
+smartd_default_report_error_types:
+  - error
+  - xerror
+  - selftest
+  - offlinests
+
+# Non-SMART settings (-e ...)
+smartd_default_non_smart_settings:
+  - lookahead,on
+
+# Self-test schedule (-s ...)
+# Long test Saturday 01:00, short test daily 02:00
+smartd_default_test_schedule: "(L/../../6/01|S/../.././02)"
+
+# Mail recipients (-m ...)
+smartd_default_mail_recipients: []
+
+# Mail frequency (-M ...)
+smartd_default_mail_frequency: diminishing
+
+# External mail script (-M exec ...)
+# When set, smartd calls this script instead of /usr/bin/mail
+smartd_default_mail_script: ""
+
+# Report ATA failures (-f)
+smartd_default_report_ata_failure: true
+
+# Report prefail attributes (-p)
+smartd_default_report_ata_prefail: true
+
+# Report usage attributes (-u)
+smartd_default_report_ata_usage: false
+
+# Temperature monitoring (-W diff,info,crit)
+smartd_default_temp_diff: 10
+smartd_default_temp_info: 45
+smartd_default_temp_crit: 50
+
+# SCT error recovery control (-l scterc,0,0)
+smartd_default_scterc: true

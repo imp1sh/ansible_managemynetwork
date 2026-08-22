@@ -1,0 +1,56 @@
+# {{ ansible_managed }}
+# Managed by Ansible role imp1sh.ansible_managemynetwork.ansible_smartd
+
+{% macro directives(config) -%}
+{%- set ns = namespace(d = []) -%}
+{%- if (config.type | default(smartd_default_type)) != 'auto' -%}
+{%- set ns.d = ns.d + ['-d ' ~ (config.type | default(smartd_default_type))] -%}
+{%- endif -%}
+{%- if 'standby' in (config.nocheck | default(smartd_default_nocheck)) -%}
+{%- set ns.d = ns.d + ['-n ' ~ (config.nocheck | default(smartd_default_nocheck))] -%}
+{%- endif -%}
+{%- if (config.check_type | default(smartd_default_check_type)) != 'normal' -%}
+{%- set ns.d = ns.d + ['-T ' ~ (config.check_type | default(smartd_default_check_type))] -%}
+{%- endif -%}
+{%- set ns.d = ns.d + ['-S ' ~ ('on' if (config.attribute_autosave | default(smartd_default_attribute_autosave)) else 'off')] -%}
+{%- if config.check_health | default(smartd_default_check_health) -%}
+{%- set ns.d = ns.d + ['-H'] -%}
+{%- endif -%}
+{%- for et in (config.report_error_types | default(smartd_default_report_error_types)) -%}
+{%- set ns.d = ns.d + ['-l ' ~ et] -%}
+{%- endfor -%}
+{%- if smartd_default_scterc -%}
+{%- set ns.d = ns.d + ['-l scterc,0,0'] -%}
+{%- endif -%}
+{%- for opt in (config.non_smart_settings | default(smartd_default_non_smart_settings)) -%}
+{%- set ns.d = ns.d + ['-e ' ~ opt] -%}
+{%- endfor -%}
+{%- if config.test_schedule | default(smartd_default_test_schedule) -%}
+{%- set ns.d = ns.d + ['-s ' ~ (config.test_schedule | default(smartd_default_test_schedule))] -%}
+{%- endif -%}
+{%- if (config.mail_recipients | default(smartd_default_mail_recipients)) | length > 0 -%}
+{%- set ns.d = ns.d + ['-m ' ~ (config.mail_recipients | default(smartd_default_mail_recipients) | join(",")), '-M ' ~ (config.mail_frequency | default(smartd_default_mail_frequency))] -%}
+{%- endif -%}
+{%- if config.mail_script | default(smartd_default_mail_script) -%}
+{%- set ns.d = ns.d + ['-M exec ' ~ (config.mail_script | default(smartd_default_mail_script))] -%}
+{%- endif -%}
+{%- if config.report_ata_failure | default(smartd_default_report_ata_failure) -%}
+{%- set ns.d = ns.d + ['-f'] -%}
+{%- endif -%}
+{%- if config.report_ata_prefail | default(smartd_default_report_ata_prefail) -%}
+{%- set ns.d = ns.d + ['-p'] -%}
+{%- endif -%}
+{%- if config.report_ata_usage | default(smartd_default_report_ata_usage) -%}
+{%- set ns.d = ns.d + ['-u'] -%}
+{%- endif -%}
+{%- set ns.d = ns.d + ['-W ' ~ (config.temp_diff | default(smartd_default_temp_diff)) ~ ',' ~ (config.temp_info | default(smartd_default_temp_info)) ~ ',' ~ (config.temp_crit | default(smartd_default_temp_crit))] -%}
+{{- ns.d | join(' ') -}}
+{%- endmacro -%}
+
+{% if smartd_devicescan %}
+DEVICESCAN {{ directives({}) }}
+{% endif %}
+
+{% for device, config in smartd_devices.items() %}
+{{ device }} {{ directives(config) }}
+{% endfor %}

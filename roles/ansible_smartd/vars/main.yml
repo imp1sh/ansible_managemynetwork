@@ -1,0 +1,21 @@
+---
+smartd_config_paths:
+  Debian: /etc/smartmontools/smartd.conf
+  Fedora: /etc/smartmontools/smartd.conf
+  default: /etc/smartmontools/smartd.conf
+
+smartd_service_names:
+  default: smartd
+
+smartd_file_groups:
+  default: root
+
+smartd_packages:
+  Debian:
+    - smartmontools
+    - bsd-mailx
+  Fedora:
+    - smartmontools
+    - mailx
+  default:
+    - smartmontools

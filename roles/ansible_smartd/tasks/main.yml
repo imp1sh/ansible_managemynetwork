@@ -1,0 +1,33 @@
+---
+- name: "MMN smartd - Set config path and service name"
+  ansible.builtin.set_fact:
+    smartd_config_path: "{{ smartd_config_paths[ansible_distribution] | default(smartd_config_paths.default) }}"
+    smartd_service_name: "{{ smartd_service_names[ansible_distribution] | default(smartd_service_names.default) }}"
+    smartd_file_group: "{{ smartd_file_groups[ansible_distribution] | default(smartd_file_groups.default) }}"
+    smartd_packages_list: "{{ smartd_packages[ansible_distribution] | default(smartd_packages.default) }}"
+
+- name: "MMN smartd - Install packages"
+  ansible.builtin.package:
+    name: "{{ smartd_packages_list }}"
+    state: present
+
+- name: "MMN smartd - Enable SMART on all drives"
+  ansible.builtin.shell: "smartctl -s on /dev/{{ item }}"
+  loop: "{{ ansible_facts.devices.keys() | select('match', '^(sd|nvme)') | list }}"
+  changed_when: false
+  failed_when: false
+
+- name: "MMN smartd - Deploy smartd.conf"
+  ansible.builtin.template:
+    src: smartd.conf.j2
+    dest: "{{ smartd_config_path }}"
+    owner: root
+    group: "{{ smartd_file_group }}"
+    mode: "0644"
+  notify: Restart smartd
+
+- name: "MMN smartd - Enable and start service"
+  ansible.builtin.service:
+    name: "{{ smartd_service_name }}"
+    state: started
+    enabled: true
