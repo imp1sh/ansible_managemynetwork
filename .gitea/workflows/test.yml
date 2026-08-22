@@ -1,0 +1,10 @@
+---
+name: test
+on: [push]
+jobs:
+  hello:
+    runs-on: ubuntu-latest
+    container:
+      image: alpine:latest
+    steps:
+      - run: echo "hello from $(hostname)"
