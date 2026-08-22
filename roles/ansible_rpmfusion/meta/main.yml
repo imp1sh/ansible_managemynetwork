@@ -1,0 +1,19 @@
+---
+galaxy_info:
+  role_name: ansible_rpmfusion
+  author: Jochen Demmod
+  description: Enables RPM Fusion repositories on Fedora and installs multimedia codecs (H.264, H.265, AAC), hardware-accelerated drivers, and DVD playback.
+  company: libcom.de
+  issue_tracker_url: https://github.com/imp1sh/ansible_managemynetwork/issues
+  license: BSD-3-Clause
+  min_ansible_version: "2.11"
+  platforms:
+    - name: Fedora
+      versions:
+        - "40"
+        - "41"
+        - "42"
+        - "43"
+        - "44"
+  galaxy_tags: [fedora, rpmfusion, multimedia, codec, h264, ffmpeg, dvd, vaapi]
+dependencies: []

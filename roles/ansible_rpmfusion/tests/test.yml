@@ -1,0 +1,8 @@
+---
+- hosts: fedora_desktops
+  remote_user: root
+  roles:
+    - ansible_rpmfusion
+  vars:
+    rpmfusion_hw_driver: "intel-new"
+    rpmfusion_install_dvd: true

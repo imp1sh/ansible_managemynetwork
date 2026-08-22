@@ -1,0 +1,10 @@
+---
+# Switch from Fedora's ffmpeg-free to RPM Fusion's full ffmpeg.
+# This replaces the stripped-down ffmpeg with the full build supporting
+# H.264, H.265, AAC, and other patented codecs.
+
+- name: "MMN rpmfusion - Swap ffmpeg-free to full ffmpeg"
+  ansible.builtin.dnf:
+    name: ffmpeg
+    state: present
+    allowerasing: true

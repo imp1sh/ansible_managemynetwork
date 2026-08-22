@@ -1,0 +1,59 @@
+---
+# ansible_rpmfusion — enables RPM Fusion repositories on Fedora and
+# optionally switches to full ffmpeg, installs multimedia codecs (H.264,
+# H.265, AAC, etc.), hardware-accelerated drivers, and DVD playback.
+#
+# Based on the official RPM Fusion configuration guide:
+# https://rpmfusion.org/Configuration
+#
+# This role is Fedora-only. It will skip gracefully on non-Fedora hosts.
+
+# ---------------------------------------------------------------------------
+# Repository tiers to enable. Each controls a dnf repo:
+#   free        — RPM Fusion Free (OSS software, redistributable)
+#   nonfree     — RPM Fusion Nonfree (proprietary firmware/drivers)
+#   free-tainted— Tainted Free (libdvdcss etc., FLOSS but legally restricted)
+#   nonfree-tainted — Tainted Nonfree (firmware with unclear redistribution status)
+# ---------------------------------------------------------------------------
+rpmfusion_enable_free: true
+rpmfusion_enable_nonfree: true
+rpmfusion_enable_free_tainted: false
+rpmfusion_enable_nonfree_tainted: false
+
+# ---------------------------------------------------------------------------
+# Switch from Fedora's ffmpeg-free to RPM Fusion's full ffmpeg.
+# Needed for H.264/H.265/AAC decoding and encoding.
+# ---------------------------------------------------------------------------
+rpmfusion_swap_ffmpeg: true
+
+# ---------------------------------------------------------------------------
+# Install the @multimedia group — gstreamer plugins and complementary codecs.
+# Equivalent to: dnf install @multimedia --setopt="install_weak_deps=False"
+# --exclude=PackageKit-gstreamer-plugin
+# ---------------------------------------------------------------------------
+rpmfusion_install_multimedia: true
+
+# ---------------------------------------------------------------------------
+# Hardware acceleration driver. Choose ONE based on GPU vendor:
+#   intel-new   — intel-media-driver (recent Intel, Broadwell+)
+#   intel-old   — libva-intel-driver (older Intel)
+#   amd         — mesa-va-drivers-freeworld (AMD, Fedora 37+)
+#   nvidia      — libva-nvidia-driver (NVIDIA proprietary, bridges NVDEC/VAAPI)
+#   ""          — skip (no HW accel or hybrid/OPTIMUS setups handled elsewhere)
+# ---------------------------------------------------------------------------
+rpmfusion_hw_driver: ""
+
+# Whether to also install the i686 variant of the HW driver (for Steam/Wine).
+rpmfusion_hw_driver_i686: false
+
+# ---------------------------------------------------------------------------
+# DVD playback — installs libdvdcss. Requires free-tainted repo.
+# Will auto-enable rpmfusion_enable_free_tainted if set to true.
+# ---------------------------------------------------------------------------
+rpmfusion_install_dvd: false
+
+# ---------------------------------------------------------------------------
+# Various non-free firmwares from the nonfree-tainted repo.
+# Will auto-enable rpmfusion_enable_nonfree_tainted if set to true.
+# ---------------------------------------------------------------------------
+rpmfusion_install_firmware: false

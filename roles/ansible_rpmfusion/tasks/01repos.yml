@@ -1,0 +1,30 @@
+---
+# Enable RPM Fusion repositories. Fedora 41+ ships a native dnf plugin
+# that handles the GPG key import automatically; older Fedoras use the
+# classic rpmfusion-*-release packages.
+
+- name: "MMN rpmfusion - Enable RPM Fusion free repo"
+  ansible.builtin.dnf:
+    name: "https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-{{ ansible_distribution_major_version }}.noarch.rpm"
+    state: present
+    disable_gpg_check: true
+  when: rpmfusion_enable_free | bool
+
+- name: "MMN rpmfusion - Enable RPM Fusion nonfree repo"
+  ansible.builtin.dnf:
+    name: "https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-{{ ansible_distribution_major_version }}.noarch.rpm"
+    state: present
+    disable_gpg_check: true
+  when: rpmfusion_enable_nonfree | bool
+
+- name: "MMN rpmfusion - Enable RPM Fusion free-tainted repo"
+  ansible.builtin.dnf:
+    name: "rpmfusion-free-release-tainted"
+    state: present
+  when: rpmfusion_enable_free_tainted | bool or rpmfusion_install_dvd | bool
+
+- name: "MMN rpmfusion - Enable RPM Fusion nonfree-tainted repo"
+  ansible.builtin.dnf:
+    name: "rpmfusion-nonfree-release-tainted"
+    state: present
+  when: rpmfusion_enable_nonfree_tainted | bool or rpmfusion_install_firmware | bool

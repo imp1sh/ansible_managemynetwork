@@ -1,0 +1,41 @@
+---
+- name: "MMN rpmfusion - Skip on non-Fedora hosts"
+  ansible.builtin.debug:
+    msg: >-
+      ansible_rpmfusion only supports Fedora. Skipping on
+      {{ ansible_distribution }}.
+  when: ansible_distribution != "Fedora"
+
+- name: "MMN rpmfusion - Configure RPM Fusion on Fedora"
+  ansible.builtin.include_tasks: 01repos.yml
+  when: ansible_distribution == "Fedora"
+
+- name: "MMN rpmfusion - Swap to full ffmpeg"
+  ansible.builtin.include_tasks: 02ffmpeg.yml
+  when:
+    - ansible_distribution == "Fedora"
+    - rpmfusion_swap_ffmpeg | bool
+
+- name: "MMN rpmfusion - Install multimedia codecs"
+  ansible.builtin.include_tasks: 03multimedia.yml
+  when:
+    - ansible_distribution == "Fedora"
+    - rpmfusion_install_multimedia | bool
+
+- name: "MMN rpmfusion - Install hardware accelerated driver"
+  ansible.builtin.include_tasks: 04hwaccel.yml
+  when:
+    - ansible_distribution == "Fedora"
+    - rpmfusion_hw_driver | length > 0
+
+- name: "MMN rpmfusion - Install DVD playback support"
+  ansible.builtin.include_tasks: 05dvd.yml
+  when:
+    - ansible_distribution == "Fedora"
+    - rpmfusion_install_dvd | bool
+
+- name: "MMN rpmfusion - Install various non-free firmwares"
+  ansible.builtin.include_tasks: 06firmware.yml
+  when:
+    - ansible_distribution == "Fedora"
+    - rpmfusion_install_firmware | bool

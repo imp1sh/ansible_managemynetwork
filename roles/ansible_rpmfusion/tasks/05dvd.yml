@@ -1,0 +1,8 @@
+---
+# Install libdvdcss for DVD playback. Requires the free-tainted repo
+# (auto-enabled by 01repos.yml when rpmfusion_install_dvd is true).
+
+- name: "MMN rpmfusion - Install libdvdcss for DVD playback"
+  ansible.builtin.dnf:
+    name: libdvdcss
+    state: present

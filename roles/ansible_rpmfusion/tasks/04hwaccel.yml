@@ -1,0 +1,45 @@
+---
+# Install hardware-accelerated video decode driver based on GPU vendor.
+# Only one driver should be installed per system.
+
+- name: "MMN rpmfusion - Install HW accel driver (intel-new)"
+  ansible.builtin.dnf:
+    name: intel-media-driver
+    state: present
+  when: rpmfusion_hw_driver == "intel-new"
+
+- name: "MMN rpmfusion - Install HW accel driver (intel-old)"
+  ansible.builtin.dnf:
+    name: libva-intel-driver
+    state: present
+  when: rpmfusion_hw_driver == "intel-old"
+
+- name: "MMN rpmfusion - Install HW accel driver (amd)"
+  ansible.builtin.dnf:
+    name: mesa-va-drivers-freeworld
+    state: present
+  when: rpmfusion_hw_driver == "amd"
+
+- name: "MMN rpmfusion - Install HW accel driver (amd i686)"
+  ansible.builtin.dnf:
+    name: mesa-va-drivers-freeworld.i686
+    state: present
+  when:
+    - rpmfusion_hw_driver == "amd"
+    - rpmfusion_hw_driver_i686 | bool
+
+- name: "MMN rpmfusion - Install HW accel driver (nvidia)"
+  ansible.builtin.dnf:
+    name: libva-nvidia-driver
+    state: present
+  when: rpmfusion_hw_driver == "nvidia"
+
+- name: "MMN rpmfusion - Install HW accel driver (nvidia i686+x86_64)"
+  ansible.builtin.dnf:
+    name:
+      - libva-nvidia-driver.i686
+      - libva-nvidia-driver.x86_64
+    state: present
+  when:
+    - rpmfusion_hw_driver == "nvidia"
+    - rpmfusion_hw_driver_i686 | bool

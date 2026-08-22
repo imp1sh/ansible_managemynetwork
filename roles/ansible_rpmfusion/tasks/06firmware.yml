@@ -1,0 +1,10 @@
+---
+# Install various non-free firmwares from the nonfree-tainted repo.
+# Requires the nonfree-tainted repo (auto-enabled by 01repos.yml when
+# rpmfusion_install_firmware is true).
+
+- name: "MMN rpmfusion - Install non-free firmwares"
+  ansible.builtin.dnf:
+    name: "*-firmware"
+    state: present
+    enablerepo: rpmfusion-nonfree-tainted

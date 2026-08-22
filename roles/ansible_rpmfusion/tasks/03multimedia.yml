@@ -1,0 +1,13 @@
+---
+# Install the @multimedia group — gstreamer plugins and complementary codecs
+# for H.264, H.265, AAC, MP3, etc. Equivalent to:
+#   dnf install @multimedia --setopt="install_weak_deps=False" \
+#     --exclude=PackageKit-gstreamer-plugin
+
+- name: "MMN rpmfusion - Install @multimedia group"
+  ansible.builtin.dnf:
+    name: "@multimedia"
+    state: present
+    install_weak_deps: false
+    exclude:
+      - PackageKit-gstreamer-plugin
