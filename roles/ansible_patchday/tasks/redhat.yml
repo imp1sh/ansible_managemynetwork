@@ -1,0 +1,121 @@
+---
+# RedHat/Fedora specific tasks
+
+# Check if updates are needed
+- name: MMN Patchday - Check for available updates
+  ansible.builtin.command: dnf check-update
+  register: check_for_updates
+  changed_when: false
+  failed_when: check_for_updates.rc not in [0, 100]
+
+- name: MMN Patchday - Set var
+  ansible.builtin.set_fact:
+    patchday_updates_available: "{{ check_for_updates.rc == 100 }}"
+
+# Host needs no updates
+- block:
+    - name: MMN Patchday - Inform
+      ansible.builtin.debug:
+        msg: "Skipping host, as it needs no updates."
+    - name: MMN Patchday - Skip host if no updates are available
+      meta: end_play
+  when: not patchday_updates_available
+
+# Apply updates
+- name: MMN Patchday - Apply updates
+  ansible.builtin.dnf:
+    name: "*"
+    state: latest
+    allowerasing: true
+  when: patchday_updates_available
+
+# Tidy up
+- name: MMN Patchday - Autoremove
+  ansible.builtin.dnf:
+    autoremove: yes
+
+# Handle reboot
+- name: MMN Patchday - Check if reboot-required flag exists
+  ansible.builtin.stat:
+    path: /var/run/reboot-required
+  register: reboot_required_flag
+
+- name: MMN Patchday - Get running kernel version
+  ansible.builtin.command: uname -r
+  changed_when: false
+  register: running_kernel_before
+
+- name: MMN Patchday - Get installed kernel version
+  ansible.builtin.shell: rpm -qa kernel-core --last | head -1 | awk '{print $1}'
+  changed_when: false
+  register: installed_kernel_pkg
+  failed_when: false
+
+- name: MMN Patchday - Extract installed kernel version
+  ansible.builtin.set_fact:
+    installed_kernel_ver: "{{ installed_kernel_pkg.stdout | replace('kernel-core-', '') }}"
+  when: installed_kernel_pkg.stdout | default('') != ''
+
+- name: MMN Patchday - Determine if reboot is required
+  ansible.builtin.set_fact:
+    patchday_reboot_needed: >-
+      {{
+        reboot_required_flag.stat.exists or
+        (installed_kernel_ver | default('') != '' and
+         running_kernel_before.stdout != installed_kernel_ver)
+      }}
+
+- name: MMN Patchday - Report reboot status
+  ansible.builtin.debug:
+    msg: >-
+      Reboot {{ 'required' if patchday_reboot_needed else 'not required' }}
+      {% if patchday_reboot_needed and not patchday_skip_reboot | default(false) %}
+      — will reboot now (running: {{ running_kernel_before.stdout }}, installed: {{ installed_kernel_ver | default('unknown') }})
+      {% elif patchday_reboot_needed and patchday_skip_reboot | default(false) %}
+      — SKIPPED by patchday_skip_reboot
+      {% endif %}
+
+- name: MMN Patchday - Reboot if needed
+  ansible.builtin.reboot:
+    msg: "Rebooting the system after updates."
+    connect_timeout: 5
+    reboot_timeout: "{{ patchday_reboot_timeout }}"
+    pre_reboot_delay: 0
+    post_reboot_delay: "{{ patchday_post_reboot_delay }}"
+  when:
+    - patchday_reboot_needed
+    - not patchday_skip_reboot | default(false)
+
+# Post-reboot verification
+- name: MMN Patchday - Verify host is back up
+  block:
+    - name: MMN Patchday - Wait for system to settle
+      ansible.builtin.wait_for_connection:
+        delay: 5
+        timeout: 120
+
+    - name: MMN Patchday - Check uptime after reboot
+      ansible.builtin.command: uptime
+      changed_when: false
+      register: uptime_after_reboot
+
+    - name: MMN Patchday - Verify new kernel is running
+      ansible.builtin.command: uname -r
+      changed_when: false
+      register: running_kernel_after
+
+    - name: MMN Patchday - Report post-reboot status
+      ansible.builtin.debug:
+        msg: >-
+          Host is back up. Kernel: {{ running_kernel_after.stdout }},
+          uptime: {{ uptime_after_reboot.stdout.strip() }}
+
+    - name: MMN Patchday - Warn if kernel unchanged after reboot
+      ansible.builtin.debug:
+        msg: "WARNING: Kernel still {{ running_kernel_after.stdout }} after reboot — expected {{ installed_kernel_ver }}"
+      when:
+        - installed_kernel_ver | default('') != ''
+        - running_kernel_after.stdout != installed_kernel_ver
+  when:
+    - patchday_reboot_needed
+    - not patchday_skip_reboot | default(false)
