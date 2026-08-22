@@ -9,6 +9,7 @@
   failed_when:
     - chronyd_timesyncd_disable.failed
     - "'not found' not in chronyd_timesyncd_disable.msg | default('')"
+    - "'Could not find' not in chronyd_timesyncd_disable.msg | default('')"
 
 - name: "MMN chrony - Enable chrony service"
   ansible.builtin.service:

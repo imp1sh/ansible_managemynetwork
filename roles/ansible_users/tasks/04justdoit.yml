@@ -1,4 +1,15 @@
 ---
+- name: "MMN users - Compute supplementary groups for {{ user.key }}"
+  ansible.builtin.set_fact:
+    _user_supplementary_groups: >-
+      {{
+        ((user.value.groups | default([]))
+        + (user.value.groups_byansiblegroup | default({}) | dict2items
+            | selectattr('key', 'in', group_names) | map(attribute='value') | flatten)
+        + (user.value.groups_byhostname | default({})).get(inventory_hostname, []))
+        | unique
+      }}
+
 - name: "MMN users - Handling user {{ user.key }}"
   no_log: true
   ansible.builtin.user:
@@ -10,7 +21,7 @@
     force: "{{ user.value.force | default('false', true) }}"
     generate_ssh_key: "{{ user.value.generate_ssh_key | default('false', true) }}"
     group: "{{ user.value.group | default(omit, true) }}"
-    groups: "{{ user.value.groups_byhostname[inventory_hostname] | default(omit) if user.value.groups_byhostname is defined else omit }}"
+    groups: "{{ _user_supplementary_groups | join(',') if _user_supplementary_groups | length > 0 else omit }}"
     home: "{{ user.value.home | default(omit, true) }}"
     local: "{{ user.value.local | default(omit, true) }}"
     login_class: "{{ user.value.login_class | default(omit) }}"
