@@ -1,0 +1,21 @@
+---
+- hosts: ipfs
+  remote_user: root
+  roles:
+    - ansible_kubo
+  vars:
+    kubo_instances:
+      - name: ipfs0
+        data_dir: /tmp/kubo-test/0/data
+        dns_short: ipfs0
+        dns_full: ipfs0.dns.podman
+        gateway_domain: ipfs0.test.local
+        api_cors_origins:
+          - "https://ipfs0-api.test.local"
+      - name: ipfs1
+        data_dir: /tmp/kubo-test/1/data
+        dns_short: ipfs1
+        dns_full: ipfs1.dns.podman
+        gateway_domain: ipfs1.test.local
+        api_cors_origins:
+          - "https://ipfs1-api.test.local"

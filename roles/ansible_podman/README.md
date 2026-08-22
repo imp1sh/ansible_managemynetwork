@@ -11,7 +11,7 @@ Supporting the following roles from the [containers.podman collection](https://g
 - podman_containers
 - podman_secrets
 - podman network
-- Run only on specific containers by setting `podman_limited_containers` to a **list** of container instance names (e.g. `["borgmatic0"]`). By default the role iterates over all defined containers for the host.
+- Run only on specific containers by setting `podman_limited_containers` to a **list** of container instance names (e.g. `["borgmatic0"]`). By default the role iterates over all defined containers for the host. This also filters which plugins run — only plugins whose registered container names intersect the limited list are executed.
 - Optional Quadlet backend (recommended on Podman >= 4.4 / 5.x). See [Quadlet](#quadlet) below.
 
 # Role Workflow
@@ -311,6 +311,8 @@ Supported plugin:
 | traefik | [imp1sh.ansible_managemynetwork.ansible_traefik](https://github.com/imp1sh/ansible_managemynetwork/tree/main/roles/ansible_traefik) | Renders `traefik.yml` static config, dynamic file-provider configs and `acme.json` |
 | grafana | [imp1sh.ansible_managemynetwork.ansible_grafana](https://github.com/imp1sh/ansible_managemynetwork/tree/main/roles/ansible_grafana) | Renders `grafana.ini` and datasource/dashboard provisioning files |
 | opensearch | [imp1sh.ansible_managemynetwork.ansible_opensearch](https://github.com/imp1sh/ansible_managemynetwork/tree/main/roles/ansible_opensearch) | Renders `opensearch.yml` for the opensearch container |
+| ipfscluster | [imp1sh.ansible_managemynetwork.ansible_ipfscluster](https://github.com/imp1sh/ansible_managemynetwork/tree/main/roles/ansible_ipfscluster) | Bootstraps IPFS Cluster peers — generates identities, auto-discovers peer IDs, renders `service.json` |
+| kubo | [imp1sh.ansible_managemynetwork.ansible_kubo](https://github.com/imp1sh/ansible_managemynetwork/tree/main/roles/ansible_kubo) | Bootstraps Kubo (IPFS) nodes — initialises repo, auto-discovers peer IDs for Peering, renders `config` |
 | dnsdist | planned | |
 | cacert | planned | |
 
@@ -604,5 +606,126 @@ grafana_datasources:
 ```
 
 See the `ansible_grafana` README for the full variable reference.
+
+### ipfscluster
+
+IPFS Cluster peer plugin. The `ansible_podman` role spins up the container;
+the [`ansible_ipfscluster`](https://github.com/imp1sh/ansible_managemynetwork/tree/main/roles/ansible_ipfscluster)
+role generates cryptographic identities, auto-discovers peer IDs for the
+trusted-peers list, and renders `service.json` *before* the container starts.
+Enable the plugin for the cluster peer containers:
+
+```yaml
+podman_container_plugin_ipfscluster:
+  - "ipfscluster0"
+  - "ipfscluster1"
+  - "ipfscluster2"
+```
+
+Then define the containers and the ipfscluster vars:
+
+```yaml
+podman_containers:
+  - name: ipfscluster0
+    state: started
+    network: podmannet
+    image: docker.io/ipfs/ipfs-cluster:v1.1.6
+    env:
+      CLUSTER_PEERNAME: cluster0
+      CLUSTER_SECRET: !vault |
+          $ANSIBLE_VAULT;1.1;AES256
+          ...
+    volume:
+      - "/filer0/ipfs/cluster0/:/data/ipfs-cluster"
+  - name: ipfscluster1
+    state: started
+    network: podmannet
+    image: docker.io/ipfs/ipfs-cluster:v1.1.6
+    env:
+      CLUSTER_PEERNAME: cluster1
+      CLUSTER_SECRET: !vault |
+          $ANSIBLE_VAULT;1.1;AES256
+          ...
+      CLUSTER_BOOTSTRAP: /dns6/ipfscluster0.dns.podman/tcp/9096/p2p/12D3KooW...
+    volume:
+      - "/filer0/ipfs/cluster1/:/data/ipfs-cluster"
+
+ipfscluster_secret: !vault |
+    $ANSIBLE_VAULT;1.1;AES256
+    ...
+
+ipfscluster_instances:
+  - name: ipfscluster0
+    data_dir: /filer0/ipfs/cluster0
+    peername: cluster0
+    ipfs_node: ipfs0.dns.podman
+  - name: ipfscluster1
+    data_dir: /filer0/ipfs/cluster1
+    peername: cluster1
+    ipfs_node: ipfs1.dns.podman
+```
+
+The role runs as a **pre-creation plugin** — `service.json` and
+`identity.json` are in place before the container starts for the first time.
+On subsequent runs, if `service.json` content changes, the role restarts the
+affected container(s). See the `ansible_ipfscluster` README for the full
+variable reference.
+
+### kubo
+
+Kubo (IPFS) node plugin. The `ansible_podman` role spins up the container;
+the [`ansible_kubo`](https://github.com/imp1sh/ansible_managemynetwork/tree/main/roles/ansible_kubo)
+role initialises the IPFS repo, auto-discovers peer IDs for Peering, and
+renders the full `config` *before* the container starts. Pairs naturally with
+the `ipfscluster` plugin — Kubo provides the IPFS daemon, IPFS Cluster
+coordinates pinning across multiple Kubo nodes. Enable the plugin:
+
+```yaml
+podman_container_plugin_kubo:
+  - "ipfs0"
+  - "ipfs1"
+  - "ipfs2"
+```
+
+Then define the containers and the kubo vars:
+
+```yaml
+podman_containers:
+  - name: ipfs0
+    state: started
+    network: podmannet
+    image: docker.io/ipfs/kubo:v0.43.0
+    volume:
+      - "/filer0/ipfs/0/data/:/data/ipfs/"
+      - "/filer0/ipfs/0/ipfs/:/ipfs"
+      - "/filer0/ipfs/0/ipns/:/ipns"
+    env:
+      IPFS_PROFILE: "server"
+      IPFS_TELEMETRY: "off"
+
+kubo_instances:
+  - name: ipfs0
+    data_dir: /filer0/ipfs/0/data
+    dns_short: ipfs0
+    dns_full: ipfs0.dns.podman
+    gateway_domain: ipfs0.lpv4.net
+    api_cors_origins:
+      - "https://ipfs0-api.lpv4.net"
+      - "https://ipfs0.lpv4.net"
+  - name: ipfs1
+    data_dir: /filer0/ipfs/1/data
+    dns_short: ipfs1
+    dns_full: ipfs1.dns.podman
+    gateway_domain: ipfs1.lpv4.net
+    api_cors_origins:
+      - "https://ipfs1-api.lpv4.net"
+      - "https://ipfs1.lpv4.net"
+```
+
+The role runs as a **pre-creation plugin** — the IPFS repo and `config` are in
+place before the container starts. Each node automatically peers with all
+other nodes defined in `kubo_instances` (self excluded). Combined with
+`kubo_peering_strict: true` and `kubo_routing_type: none`, this creates a
+private mesh. See the `ansible_kubo` README for the full variable reference.
 
 

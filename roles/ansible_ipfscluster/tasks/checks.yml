@@ -1,0 +1,44 @@
+---
+- name: "MMN ipfscluster - Validate instances type"
+  ansible.builtin.assert:
+    that:
+      - ipfscluster_instances | type_debug == 'list'
+    fail_msg: "ipfscluster_instances must be a list of dicts (one per cluster peer)."
+    success_msg: "ipfscluster_instances is a list."
+
+- name: "MMN ipfscluster - Validate each instance has required keys"
+  ansible.builtin.assert:
+    that:
+      - "'name' in ipfscluster_check_item"
+      - ipfscluster_check_item.name | string | length > 0
+      - "'data_dir' in ipfscluster_check_item"
+      - ipfscluster_check_item.data_dir | string | length > 0
+      - "'ipfs_node' in ipfscluster_check_item"
+      - ipfscluster_check_item.ipfs_node | string | length > 0
+    fail_msg: >-
+      Each ipfscluster_instances entry must define non-empty strings:
+      'name' (container name), 'data_dir' (host path for service.json +
+      identity.json), 'ipfs_node' (DNS name of the kubo container).
+    success_msg: "Instance '{{ ipfscluster_check_item.name }}' is valid."
+  loop: "{{ ipfscluster_instances }}"
+  loop_control:
+    loop_var: ipfscluster_check_item
+
+- name: "MMN ipfscluster - Validate cluster secret is set"
+  ansible.builtin.assert:
+    that:
+      - ipfscluster_secret is defined
+      - ipfscluster_secret | string | length > 0
+    fail_msg: >-
+      ipfscluster_secret is required — set it (vault-encrypted) in host_vars.
+      It must be a 32-byte hex-encoded string (64 chars).
+    success_msg: "ipfscluster_secret is set."
+
+- name: "MMN ipfscluster - Validate cluster secret format"
+  ansible.builtin.assert:
+    that:
+      - ipfscluster_secret | regex_search('^[0-9a-fA-F]{64}$') is not none
+    fail_msg: >-
+      ipfscluster_secret must be 64 hex characters (32 bytes). Got
+      {{ ipfscluster_secret | length }} chars.
+    success_msg: "ipfscluster_secret format is valid."

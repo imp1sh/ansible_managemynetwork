@@ -1,0 +1,16 @@
+---
+- hosts: ipfscluster
+  remote_user: root
+  roles:
+    - ansible_ipfscluster
+  vars:
+    ipfscluster_secret: "0000000000000000000000000000000000000000000000000000000000000000"
+    ipfscluster_instances:
+      - name: ipfscluster0
+        data_dir: /tmp/ipfs-test/cluster0
+        peername: cluster0
+        ipfs_node: ipfs0.dns.podman
+      - name: ipfscluster1
+        data_dir: /tmp/ipfs-test/cluster1
+        peername: cluster1
+        ipfs_node: ipfs1.dns.podman

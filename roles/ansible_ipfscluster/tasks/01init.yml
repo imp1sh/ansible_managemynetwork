@@ -1,0 +1,49 @@
+---
+# Phase 1 — per instance: ensure data directory exists and identity.json is
+# generated. Uses a throwaway container running `ipfs-cluster-service init`
+# in a temp directory so we don't clobber a templated service.json.
+
+- name: "MMN ipfscluster - Ensure data directory for {{ ipfscluster_instance.name }}"
+  ansible.builtin.file:
+    path: "{{ ipfscluster_instance.data_dir }}"
+    state: directory
+    owner: "{{ ipfscluster_owner }}"
+    group: "{{ ipfscluster_group }}"
+    mode: "0755"
+
+- name: "MMN ipfscluster - Check if identity.json exists for {{ ipfscluster_instance.name }}"
+  ansible.builtin.stat:
+    path: "{{ ipfscluster_instance.data_dir }}/identity.json"
+  register: _ipfscluster_identity_stat
+
+- name: "MMN ipfscluster - Generate identity for {{ ipfscluster_instance.name }}"
+  when: not _ipfscluster_identity_stat.stat.exists
+  block:
+    - name: "MMN ipfscluster - Create temp dir for init"
+      ansible.builtin.file:
+        path: "/tmp/ipfscluster-init-{{ ipfscluster_instance.name }}"
+        state: directory
+        mode: "0755"
+
+    - name: "MMN ipfscluster - Run init in throwaway container"
+      ansible.builtin.command:
+        cmd: >-
+          podman run --rm
+          -v /tmp/ipfscluster-init-{{ ipfscluster_instance.name }}:/data/ipfs-cluster
+          {{ ipfscluster_image }}
+          ipfs-cluster-service init
+      changed_when: true
+
+    - name: "MMN ipfscluster - Copy identity.json to data dir"
+      ansible.builtin.copy:
+        src: "/tmp/ipfscluster-init-{{ ipfscluster_instance.name }}/identity.json"
+        dest: "{{ ipfscluster_instance.data_dir }}/identity.json"
+        remote_src: true
+        owner: "{{ ipfscluster_owner }}"
+        group: "{{ ipfscluster_group }}"
+        mode: "0600"
+
+    - name: "MMN ipfscluster - Clean up temp dir"
+      ansible.builtin.file:
+        path: "/tmp/ipfscluster-init-{{ ipfscluster_instance.name }}"
+        state: absent

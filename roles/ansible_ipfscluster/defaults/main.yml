@@ -1,0 +1,319 @@
+---
+# ansible_ipfscluster — container-only role.
+#
+# Bootstraps IPFS Cluster peers from scratch: generates cryptographic
+# identities, auto-discovers peer IDs for the trusted-peers list, and renders
+# service.json with all configurable sections. Designed to run as a pre-creation
+# plugin of the ansible_podman role — config files are in place before the
+# container starts for the first time.
+
+# ---------------------------------------------------------------------------
+# Container image (used for the throwaway init container that generates
+# identity.json). Must match the image in the podman container definition.
+# ---------------------------------------------------------------------------
+ipfscluster_image: "docker.io/ipfs/ipfs-cluster:v1.1.6"
+
+# ---------------------------------------------------------------------------
+# Instances — one dict per cluster peer. REQUIRED.
+#
+#   ipfscluster_instances:
+#     - name: ipfscluster0          # container + systemd service name
+#       data_dir: /filer0/ipfs/cluster0  # host path for service.json + identity.json
+#       peername: cluster0           # human-readable peer name (defaults to name)
+#       ipfs_node: ipfs0.dns.podman  # DNS name of the kubo container
+# ---------------------------------------------------------------------------
+ipfscluster_instances: []
+
+# ---------------------------------------------------------------------------
+# Shared cluster config (identical across all peers)
+# ---------------------------------------------------------------------------
+
+# 32-byte hex-encoded cluster secret (64 chars). REQUIRED.
+# Vault-encrypt this in host_vars.
+ipfscluster_secret: ""
+
+# CRDT cluster name. Peers with the same name + secret form a cluster.
+ipfscluster_cluster_name: "ipfs-cluster"
+
+# Trusted peer IDs. If empty (default), the role auto-discovers them from the
+# generated identity.json files of all instances. Set explicitly to restrict
+# trust to a subset.
+ipfscluster_trusted_peers: []
+
+# Replication factor (-1 = replicate to all peers).
+ipfscluster_replication_factor_min: -1
+ipfscluster_replication_factor_max: -1
+
+# ---------------------------------------------------------------------------
+# Networking — ports and address types
+# ---------------------------------------------------------------------------
+
+# Kubo (IPFS daemon) API port.
+ipfscluster_ipfs_api_port: 5001
+
+# Multiaddress type for reaching the kubo container via DNS.
+# Alternatives: dns4, dns6, dns (lets resolver pick).
+ipfscluster_ipfs_node_addr_type: "dns6"
+
+# Service ports (defaults match ipfs-cluster upstream).
+ipfscluster_restapi_port: 9094
+ipfscluster_proxy_port: 9095
+ipfscluster_swarm_port: 9096
+ipfscluster_pinning_port: 9097
+ipfscluster_metrics_port: 8888
+
+# ---------------------------------------------------------------------------
+# File ownership — must match the container process user.
+# The official ipfs-cluster image runs as root by default.
+# ---------------------------------------------------------------------------
+ipfscluster_owner: "root"
+ipfscluster_group: "root"
+
+# ---------------------------------------------------------------------------
+# Systemd — service name prefix. Empty for Quadlet (service name == container
+# name). Set to "container-" for legacy podman_generate_systemd units.
+# ---------------------------------------------------------------------------
+ipfscluster_systemd_prefix: ""
+
+# ---------------------------------------------------------------------------
+# Advanced — override any key in the rendered service.json without touching
+# the full config dict below. Merged recursively on top of everything else.
+#
+#   ipfscluster_service_config_extra:
+#     cluster:
+#       pin_recover_interval: "30m0s"
+#     observations:
+#       tracing:
+#         enable_tracing: true
+# ---------------------------------------------------------------------------
+ipfscluster_service_config_extra: {}
+
+# ---------------------------------------------------------------------------
+# Base service.json config dict. Contains ALL sections with upstream defaults.
+# Override individual keys via ipfscluster_service_config_extra or by
+# overriding this var entirely in host_vars.
+# ---------------------------------------------------------------------------
+ipfscluster_service_config:
+  cluster:
+    announce_multiaddress: []
+    connection_manager:
+      grace_period: "2m0s"
+      high_water: 400
+      low_water: 100
+    dial_peer_timeout: "3s"
+    disable_repinning: true
+    enable_relay_hop: true
+    leave_on_shutdown: false
+    listen_multiaddress:
+      - "/ip4/0.0.0.0/tcp/9096"
+      - "/ip4/0.0.0.0/udp/9096/quic"
+      - "/ip6/::/tcp/9096"
+      - "/ip6/::/udp/9096/quic"
+    mdns_interval: "10s"
+    monitor_ping_interval: "2s"
+    no_announce_multiaddress: []
+    peer_addresses: []
+    peer_watch_interval: "5s"
+    pin_only_on_trusted_peers: true
+    pin_only_on_untrusted_peers: false
+    pin_recover_interval: "12m0s"
+    pubsub:
+      d_factor: 4
+      flood_publish: false
+      heartbeat_interval: "10s"
+      history_gossip: 2
+      history_length: 6
+      seen_messages_ttl: "30m0s"
+    replication_factor_max: -1
+    replication_factor_min: -1
+    resource_manager:
+      enabled: true
+      file_descriptors_limit: 0
+      memory_limit_bytes: 0
+    state_sync_interval: "5m0s"
+  consensus:
+    crdt:
+      batching:
+        max_batch_age: "0s"
+        max_batch_size: 0
+      cluster_name: "ipfs-cluster"
+      repair_interval: "1h0m0s"
+      trusted_peers: []
+  api:
+    ipfsproxy:
+      idle_timeout: "1m0s"
+      listen_multiaddress:
+        - "/ip4/0.0.0.0/tcp/9095"
+        - "/ip6/::/tcp/9095"
+      log_file: ""
+      max_header_bytes: 4096
+      node_multiaddress: ""
+      read_header_timeout: "5s"
+      read_timeout: "0s"
+      write_timeout: "0s"
+    pinsvcapi:
+      basic_auth_credentials: null
+      cors_allow_credentials: true
+      cors_allowed_headers: []
+      cors_allowed_methods:
+        - "GET"
+      cors_allowed_origins:
+        - "*"
+      cors_exposed_headers:
+        - "Content-Type"
+        - "X-Stream-Output"
+        - "X-Chunked-Output"
+        - "X-Content-Length"
+      cors_max_age: "0s"
+      headers: {}
+      http_listen_multiaddress: "/ip4/0.0.0.0/tcp/9097"
+      http_log_file: ""
+      idle_timeout: "2m0s"
+      max_header_bytes: 4096
+      read_header_timeout: "5s"
+      read_timeout: "0s"
+      write_timeout: "0s"
+    restapi:
+      basic_auth_credentials: null
+      cors_allow_credentials: true
+      cors_allowed_headers: []
+      cors_allowed_methods:
+        - "GET"
+      cors_allowed_origins:
+        - "*"
+      cors_exposed_headers:
+        - "Content-Type"
+        - "X-Stream-Output"
+        - "X-Chunked-Output"
+        - "X-Content-Length"
+      cors_max_age: "0s"
+      headers: {}
+      http_listen_multiaddress:
+        - "/ip4/0.0.0.0/tcp/9094"
+        - "/ip6/::/tcp/9094"
+      http_log_file: ""
+      idle_timeout: "2m0s"
+      max_header_bytes: 4096
+      read_header_timeout: "5s"
+      read_timeout: "0s"
+      write_timeout: "0s"
+  ipfs_connector:
+    ipfshttp:
+      connect_swarms_delay: "30s"
+      informer_trigger_interval: 0
+      ipfs_request_timeout: "5m0s"
+      node_multiaddress: ""
+      pin_timeout: "2m0s"
+      repogc_timeout: "24h0m0s"
+      unpin_timeout: "3h0m0s"
+  pin_tracker:
+    stateless:
+      concurrent_pins: 10
+      priority_pin_max_age: "24h0m0s"
+      priority_pin_max_retries: 5
+  monitor:
+    pubsubmon:
+      check_interval: "15s"
+  allocator:
+    balanced:
+      allocate_by:
+        - "tag:group"
+        - "freespace"
+  informer:
+    disk:
+      metric_ttl: "30s"
+      metric_type: "freespace"
+    pinqueue:
+      metric_ttl: "30s"
+      weight_bucket_size: 100000
+    tags:
+      metric_ttl: "30s"
+      tags:
+        group: "default"
+  observations:
+    metrics:
+      enable_stats: true
+      prometheus_endpoint: "/ip6/::/tcp/8888"
+      reporting_interval: "30s"
+    tracing:
+      enable_tracing: false
+      jaeger_agent_endpoint: "/ip4/0.0.0.0/udp/6831"
+      sampling_prob: 0.3
+      service_name: "cluster-daemon"
+  datastore:
+    pebble:
+      pebble_options:
+        cache_size_bytes: 1073741824
+        bytes_per_sync: 1048576
+        disable_wal: false
+        flush_delay_delete_range: 0
+        flush_delay_range_key: 0
+        flush_split_bytes: 4194304
+        format_major_version: 19
+        l0_compaction_file_threshold: 750
+        l0_compaction_threshold: 4
+        l0_stop_writes_threshold: 12
+        l_base_max_bytes: 134217728
+        levels:
+          - block_restart_interval: 16
+            block_size: 4096
+            block_size_threshold: 90
+            compression: 0
+            filter_policy: 10
+            filter_type: 0
+            index_block_size: 4096
+            target_file_size: 4194304
+          - block_restart_interval: 16
+            block_size: 4096
+            block_size_threshold: 90
+            compression: 0
+            filter_policy: 10
+            filter_type: 0
+            index_block_size: 4096
+            target_file_size: 8388608
+          - block_restart_interval: 16
+            block_size: 4096
+            block_size_threshold: 90
+            compression: 0
+            filter_policy: 10
+            filter_type: 0
+            index_block_size: 4096
+            target_file_size: 16777216
+          - block_restart_interval: 16
+            block_size: 4096
+            block_size_threshold: 90
+            compression: 0
+            filter_policy: 10
+            filter_type: 0
+            index_block_size: 4096
+            target_file_size: 33543232
+          - block_restart_interval: 16
+            block_size: 4096
+            block_size_threshold: 90
+            compression: 0
+            filter_policy: 10
+            filter_type: 0
+            index_block_size: 4096
+            target_file_size: 67108864
+          - block_restart_interval: 16
+            block_size: 4096
+            block_size_threshold: 90
+            compression: 0
+            filter_policy: 10
+            filter_type: 0
+            index_block_size: 4096
+            target_file_size: 134217728
+          - block_restart_interval: 16
+            block_size: 4096
+            block_size_threshold: 90
+            compression: 0
+            filter_policy: 10
+            filter_type: 0
+            index_block_size: 4096
+            target_file_size: 268435456
+        max_concurrent_compactions: 5
+        max_open_files: 1000
+        mem_table_size: 67108864
+        mem_table_stop_writes_threshold: 20
+        read_only: false
+        wal_bytes_per_sync: 0

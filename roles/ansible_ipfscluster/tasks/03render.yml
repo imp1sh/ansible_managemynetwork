@@ -1,0 +1,90 @@
+---
+# Phase 3 — per instance: build the full service.json config dict by deep-merging
+# the base config with per-instance and shared overrides, then render via
+# template. Restarts the container if service.json changed and the service is
+# already running.
+
+- name: "MMN ipfscluster - Build node multiaddress for {{ ipfscluster_instance.name }}"
+  ansible.builtin.set_fact:
+    _ipfscluster_node_multiaddress: >-
+      /{{ ipfscluster_ipfs_node_addr_type }}/{{ ipfscluster_instance.ipfs_node }}/tcp/{{ ipfscluster_ipfs_api_port }}
+
+- name: "MMN ipfscluster - Assemble service.json config for {{ ipfscluster_instance.name }}"
+  ansible.builtin.set_fact:
+    _ipfscluster_config: >-
+      {{
+        ipfscluster_service_config
+        | combine({
+            'cluster': {
+              'peername': ipfscluster_instance.peername | default(ipfscluster_instance.name),
+              'secret': ipfscluster_secret,
+              'replication_factor_min': ipfscluster_replication_factor_min,
+              'replication_factor_max': ipfscluster_replication_factor_max,
+              'listen_multiaddress': [
+                '/ip4/0.0.0.0/tcp/' ~ (ipfscluster_swarm_port | string),
+                '/ip4/0.0.0.0/udp/' ~ (ipfscluster_swarm_port | string) ~ '/quic',
+                '/ip6/::/tcp/' ~ (ipfscluster_swarm_port | string),
+                '/ip6/::/udp/' ~ (ipfscluster_swarm_port | string) ~ '/quic'
+              ]
+            },
+            'consensus': {
+              'crdt': {
+                'cluster_name': ipfscluster_cluster_name,
+                'trusted_peers': _ipfscluster_effective_trusted_peers
+              }
+            },
+            'api': {
+              'ipfsproxy': {
+                'listen_multiaddress': [
+                  '/ip4/0.0.0.0/tcp/' ~ (ipfscluster_proxy_port | string),
+                  '/ip6/::/tcp/' ~ (ipfscluster_proxy_port | string)
+                ],
+                'node_multiaddress': _ipfscluster_node_multiaddress
+              },
+              'pinsvcapi': {
+                'http_listen_multiaddress': '/ip4/0.0.0.0/tcp/' ~ (ipfscluster_pinning_port | string)
+              },
+              'restapi': {
+                'http_listen_multiaddress': [
+                  '/ip4/0.0.0.0/tcp/' ~ (ipfscluster_restapi_port | string),
+                  '/ip6/::/tcp/' ~ (ipfscluster_restapi_port | string)
+                ]
+              }
+            },
+            'ipfs_connector': {
+              'ipfshttp': {
+                'node_multiaddress': _ipfscluster_node_multiaddress
+              }
+            },
+            'observations': {
+              'metrics': {
+                'prometheus_endpoint': '/ip6/::/tcp/' ~ (ipfscluster_metrics_port | string)
+              }
+            }
+          }, recursive=True)
+        | combine(ipfscluster_service_config_extra, recursive=True)
+      }}
+
+- name: "MMN ipfscluster - Render service.json for {{ ipfscluster_instance.name }}"
+  ansible.builtin.template:
+    src: service.json.j2
+    dest: "{{ ipfscluster_instance.data_dir }}/service.json"
+    owner: "{{ ipfscluster_owner }}"
+    group: "{{ ipfscluster_group }}"
+    mode: "0600"
+  register: _ipfscluster_svc_result
+
+- name: "MMN ipfscluster - Check if container service is active"
+  ansible.builtin.command:
+    cmd: "systemctl is-active {{ ipfscluster_systemd_prefix }}{{ ipfscluster_instance.name }}.service"
+  register: _ipfscluster_active
+  changed_when: false
+  failed_when: false
+
+- name: "MMN ipfscluster - Restart container if config changed"
+  ansible.builtin.systemd:
+    name: "{{ ipfscluster_systemd_prefix }}{{ ipfscluster_instance.name }}.service"
+    state: restarted
+  when:
+    - _ipfscluster_svc_result.changed
+    - _ipfscluster_active.rc == 0

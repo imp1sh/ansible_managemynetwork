@@ -1,0 +1,29 @@
+---
+- name: "MMN kubo - Validate instances type"
+  ansible.builtin.assert:
+    that:
+      - kubo_instances | type_debug == 'list'
+    fail_msg: "kubo_instances must be a list of dicts (one per Kubo node)."
+    success_msg: "kubo_instances is a list."
+
+- name: "MMN kubo - Validate each instance has required keys"
+  ansible.builtin.assert:
+    that:
+      - "'name' in kubo_check_item"
+      - kubo_check_item.name | string | length > 0
+      - "'data_dir' in kubo_check_item"
+      - kubo_check_item.data_dir | string | length > 0
+      - "'dns_short' in kubo_check_item"
+      - kubo_check_item.dns_short | string | length > 0
+      - "'dns_full' in kubo_check_item"
+      - kubo_check_item.dns_full | string | length > 0
+      - "'gateway_domain' in kubo_check_item"
+      - kubo_check_item.gateway_domain | string | length > 0
+    fail_msg: >-
+      Each kubo_instances entry must define non-empty strings: 'name'
+      (container name), 'data_dir' (host path to IPFS repo), 'dns_short'
+      (short DNS name), 'dns_full' (full DNS name), 'gateway_domain'.
+    success_msg: "Instance '{{ kubo_check_item.name }}' is valid."
+  loop: "{{ kubo_instances }}"
+  loop_control:
+    loop_var: kubo_check_item

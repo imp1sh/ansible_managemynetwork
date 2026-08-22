@@ -1,0 +1,41 @@
+---
+# Phase 2 — collect PeerIDs from all config files so the Peering.Peers list
+# can be auto-populated. Each node peers with all OTHER nodes (not itself).
+
+- name: "MMN kubo - Read config from each instance"
+  ansible.builtin.slurp:
+    src: "{{ item.data_dir }}/config"
+  loop: "{{ kubo_instances }}"
+  register: _kubo_configs_raw
+
+- name: "MMN kubo - Extract PeerIDs"
+  ansible.builtin.set_fact:
+    _kubo_peer_ids: >-
+      {{
+        _kubo_configs_raw.results
+        | map(attribute='content')
+        | map('b64decode')
+        | map('from_json')
+        | map(attribute='Identity.PeerID')
+        | list
+      }}
+
+- name: "MMN kubo - Build peer-ID-to-dns-full map"
+  ansible.builtin.set_fact:
+    _kubo_peer_map: >-
+      {{
+        dict(
+          _kubo_configs_raw.results
+          | map(attribute='content')
+          | map('b64decode')
+          | map('from_json')
+          | map(attribute='Identity.PeerID')
+          | zip(kubo_instances | map(attribute='dns_full'))
+        )
+      }}
+
+- name: "MMN kubo - Show discovered peer IDs"
+  ansible.builtin.debug:
+    msg: >-
+      Discovered PeerIDs: {{ _kubo_peer_ids }}.
+      Peer→DNS map: {{ _kubo_peer_map }}.

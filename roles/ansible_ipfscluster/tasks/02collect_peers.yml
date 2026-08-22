@@ -1,0 +1,36 @@
+---
+# Phase 2 — collect peer IDs from all identity.json files so the trusted_peers
+# list can be auto-populated. Runs once (not per-instance).
+
+- name: "MMN ipfscluster - Read identity.json from each instance"
+  ansible.builtin.slurp:
+    src: "{{ item.data_dir }}/identity.json"
+  loop: "{{ ipfscluster_instances }}"
+  register: _ipfscluster_identities
+
+- name: "MMN ipfscluster - Extract peer IDs"
+  ansible.builtin.set_fact:
+    _ipfscluster_peer_ids: >-
+      {{
+        _ipfscluster_identities.results
+        | map(attribute='content')
+        | map('b64decode')
+        | map('from_json')
+        | map(attribute='id')
+        | list
+      }}
+
+- name: "MMN ipfscluster - Determine effective trusted peers"
+  ansible.builtin.set_fact:
+    _ipfscluster_effective_trusted_peers: >-
+      {{
+        ipfscluster_trusted_peers
+        if ipfscluster_trusted_peers | length > 0
+        else _ipfscluster_peer_ids
+      }}
+
+- name: "MMN ipfscluster - Show discovered peer IDs"
+  ansible.builtin.debug:
+    msg: >-
+      Discovered peer IDs: {{ _ipfscluster_peer_ids }}.
+      Effective trusted_peers: {{ _ipfscluster_effective_trusted_peers }}.

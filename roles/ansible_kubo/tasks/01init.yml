@@ -1,0 +1,29 @@
+---
+# Phase 1 — per instance: ensure data directory exists and initialise the
+# IPFS repo (generates identity + default config) if config is missing.
+# Uses a throwaway container running `ipfs init` with the real data dir
+# mounted so the full repo structure is created in place.
+
+- name: "MMN kubo - Ensure data directory for {{ kubo_instance.name }}"
+  ansible.builtin.file:
+    path: "{{ kubo_instance.data_dir }}"
+    state: directory
+    owner: "{{ kubo_owner }}"
+    group: "{{ kubo_group }}"
+    mode: "0755"
+
+- name: "MMN kubo - Check if config exists for {{ kubo_instance.name }}"
+  ansible.builtin.stat:
+    path: "{{ kubo_instance.data_dir }}/config"
+  register: _kubo_config_stat
+
+- name: "MMN kubo - Initialise IPFS repo for {{ kubo_instance.name }}"
+  ansible.builtin.command:
+    cmd: >-
+      podman run --rm
+      -v {{ kubo_instance.data_dir }}:/data/ipfs
+      -e IPFS_PATH=/data/ipfs
+      {{ kubo_image }}
+      ipfs init --profile={{ kubo_profile }}
+  when: not _kubo_config_stat.stat.exists
+  changed_when: true

@@ -1,0 +1,29 @@
+---
+- name: "MMN ipfscluster - Validate inputs"
+  ansible.builtin.include_tasks: checks.yml
+  when: ipfscluster_instances | length > 0
+
+- name: "MMN ipfscluster - Phase 1: Initialise identities"
+  ansible.builtin.include_tasks: 01init.yml
+  loop: "{{ ipfscluster_instances }}"
+  loop_control:
+    loop_var: ipfscluster_instance
+  when: ipfscluster_instances | length > 0
+
+- name: "MMN ipfscluster - Phase 2: Collect peer IDs"
+  ansible.builtin.include_tasks: 02collect_peers.yml
+  when: ipfscluster_instances | length > 0
+
+- name: "MMN ipfscluster - Phase 3: Render service.json"
+  ansible.builtin.include_tasks: 03render.yml
+  loop: "{{ ipfscluster_instances }}"
+  loop_control:
+    loop_var: ipfscluster_instance
+  when: ipfscluster_instances | length > 0
+
+- name: "MMN ipfscluster - Skip status feedback"
+  ansible.builtin.debug:
+    msg: >-
+      The role ansible_ipfscluster did not run on host {{ inventory_hostname }}
+      because ipfscluster_instances is not set or empty.
+  when: ipfscluster_instances | length == 0

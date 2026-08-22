@@ -1,11 +1,15 @@
 ---
-# Use the full container list (preserved before limiting) for plugin
-# intersection checks so config generation always runs regardless of
-# podman_limited_containers. Falls back to podman_containers when no
-# limiting was applied.
-- name: "MMN Podman - Resolve full container list for plugin checks"
+# Resolve the container list used for plugin intersection checks. When
+# podman_limited_containers is set, only plugins associated with those
+# containers run. Otherwise the full list is used.
+- name: "MMN Podman - Resolve container list for plugin checks"
   ansible.builtin.set_fact:
-    _podman_containers_for_plugins: "{{ podman_containers_all | default(podman_containers) }}"
+    _podman_containers_for_plugins: >-
+      {{
+        (podman_containers_all | default(podman_containers))
+        if podman_limited_containers is not defined
+        else (podman_containers_all | default(podman_containers) | rejectattr('state', 'equalto', 'absent') | list | selectattr('name', 'in', podman_limited_containers) | list)
+      }}
 
 # PSQL
 - name: "MMN Podman - Plugin psql"
@@ -85,3 +89,21 @@
     - podman_container_plugin_vmalert is defined
     - podman_containers is defined
     - _podman_containers_for_plugins | rejectattr('state', 'equalto', 'absent') | list | map(attribute='name') | intersect(podman_container_plugin_vmalert) | length > 0
+
+# IPFSCLUSTER
+- name: "MMN Podman - Plugin ipfscluster"
+  ansible.builtin.include_tasks:
+    file: plugin_ipfscluster.yml
+  when:
+    - podman_container_plugin_ipfscluster is defined
+    - podman_containers is defined
+    - _podman_containers_for_plugins | rejectattr('state', 'equalto', 'absent') | list | map(attribute='name') | intersect(podman_container_plugin_ipfscluster) | length > 0
+
+# KUBO
+- name: "MMN Podman - Plugin kubo"
+  ansible.builtin.include_tasks:
+    file: plugin_kubo.yml
+  when:
+    - podman_container_plugin_kubo is defined
+    - podman_containers is defined
+    - _podman_containers_for_plugins | rejectattr('state', 'equalto', 'absent') | list | map(attribute='name') | intersect(podman_container_plugin_kubo) | length > 0
