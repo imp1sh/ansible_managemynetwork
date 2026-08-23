@@ -15,4 +15,4 @@
     state: restarted
   when:
     - not openwrt_dhcp_runimagebuilder | default(false) | bool
-    - "'odhcpd' in ansible_facts['services']"
+    - "'odhcpd' in (ansible_facts['services'] | default({}))"
