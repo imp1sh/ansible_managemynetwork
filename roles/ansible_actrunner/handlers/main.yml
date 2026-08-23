@@ -1,0 +1,6 @@
+---
+- name: Restart actrunner container
+  ansible.builtin.systemd:
+    name: "{{ ('container-' ~ actrunner_containername) if not (podman_use_quadlet | default(false) | bool) else actrunner_containername }}"
+    state: restarted
+  when: actrunner_containername is not none

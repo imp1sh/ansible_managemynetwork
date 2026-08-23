@@ -1,0 +1,61 @@
+---
+# ansible_actrunner — container-only role.
+#
+# Renders the act_runner config.yaml onto a host-side bind-mount path
+# consumed by a podman container. The container itself is declared by the
+# caller via the ansible_podman role; this role only owns the configuration
+# file. It performs no package installation and no service management beyond
+# notifying a handler to restart the container when the config changes.
+
+# --- Paths (host bind-mount roots) ---
+# Where config.yaml is rendered. Bind-mount into the container (typically
+# /data inside the act_runner container).
+actrunner_path_data: "/mnt/cntr/unsynced/actrunner/0/data"
+
+# --- Filename ---
+actrunner_file_config: "config.yaml"
+
+# --- Ownership / modes ---
+# The official gitea/act_runner image. Override per deployment if yours runs
+# as a different user.
+actrunner_owner: "1000"
+actrunner_group: "1000"
+actrunner_mode_config: "0644"
+
+# --- Log settings ---
+actrunner_log_level: "info"
+actrunner_log_stderr: false
+
+# --- Runner settings ---
+actrunner_capacity: 1
+actrunner_insecure: false
+actrunner_fetch_timeout: "5s"
+actrunner_fetch_interval: "2s"
+# Labels map workflow runs-on values to job container images.
+# Each entry is a raw label string in act_runner's expected format:
+#   "<label>:docker://<image>"
+actrunner_labels:
+  - "ubuntu-latest:docker://node:20-bookworm"
+  - "ubuntu-22.04:docker://node:20-bookworm"
+
+# --- Cache settings ---
+actrunner_cache_enabled: false
+
+# --- Container settings (job containers spawned by the runner) ---
+actrunner_container_network: "podmannet"
+actrunner_container_privileged: false
+# Extra options passed to the runtime when creating job containers.
+# NOTE: podman-specific flags like --userns do NOT work through the
+# docker-compat API act_runner uses; leave empty unless you know the
+# flag is accepted by the Docker API.
+actrunner_container_options: ""
+actrunner_container_workdir_parent: ""
+actrunner_container_valid_volumes: []
+
+# --- Host settings ---
+actrunner_host_workdir_parent: ""
+
+# --- Reload mechanism ---
+# Name of the podman container running act_runner. When set, config changes
+# notify a handler that restarts the container.
+actrunner_containername: null

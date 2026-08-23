@@ -107,3 +107,12 @@
     - podman_container_plugin_kubo is defined
     - podman_containers is defined
     - _podman_containers_for_plugins | rejectattr('state', 'equalto', 'absent') | list | map(attribute='name') | intersect(podman_container_plugin_kubo) | length > 0
+
+# ACTRUNNER
+- name: "MMN Podman - Plugin actrunner"
+  ansible.builtin.include_tasks:
+    file: plugin_actrunner.yml
+  when:
+    - podman_container_plugin_actrunner is defined
+    - podman_containers is defined
+    - _podman_containers_for_plugins | rejectattr('state', 'equalto', 'absent') | list | map(attribute='name') | intersect(podman_container_plugin_actrunner) | length > 0

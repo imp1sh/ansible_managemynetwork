@@ -1,0 +1,33 @@
+---
+# Managed by imp1sh.ansible_managemynetwork.ansible_actrunner — do not edit by hand.
+log:
+  level: {{ actrunner_log_level }}
+  stderr: {{ actrunner_log_stderr | lower }}
+runner:
+  capacity: {{ actrunner_capacity }}
+  insecure: {{ actrunner_insecure | lower }}
+  fetch_timeout: {{ actrunner_fetch_timeout }}
+  fetch_interval: {{ actrunner_fetch_interval }}
+{% if actrunner_labels | length > 0 %}
+  labels:
+{% for label in actrunner_labels %}
+    - "{{ label }}"
+{% endfor %}
+{% endif %}
+cache:
+  enabled: {{ actrunner_cache_enabled | lower }}
+container:
+  network: "{{ actrunner_container_network }}"
+  privileged: {{ actrunner_container_privileged | lower }}
+  options: "{{ actrunner_container_options }}"
+  workdir_parent: "{{ actrunner_container_workdir_parent }}"
+{% if actrunner_container_valid_volumes | length > 0 %}
+  valid_volumes:
+{% for vol in actrunner_container_valid_volumes %}
+    - "{{ vol }}"
+{% endfor %}
+{% else %}
+  valid_volumes: []
+{% endif %}
+host:
+  workdir_parent: "{{ actrunner_host_workdir_parent }}"

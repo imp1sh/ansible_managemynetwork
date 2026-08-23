@@ -1,0 +1,16 @@
+---
+- name: "MMN actrunner - Ensure data directory exists"
+  ansible.builtin.file:
+    path: "{{ actrunner_path_data }}"
+    state: directory
+    owner: "{{ actrunner_owner }}"
+    group: "{{ actrunner_group }}"
+
+- name: "MMN actrunner - Render config.yaml"
+  ansible.builtin.template:
+    src: config.yaml.j2
+    dest: "{{ actrunner_path_data }}/{{ actrunner_file_config }}"
+    owner: "{{ actrunner_owner }}"
+    group: "{{ actrunner_group }}"
+    mode: "{{ actrunner_mode_config }}"
+  notify: Restart actrunner container
