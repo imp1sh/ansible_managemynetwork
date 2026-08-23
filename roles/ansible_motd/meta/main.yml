@@ -1,27 +1,38 @@
 ---
 galaxy_info:
   role_name: motd
-  author: imp1sh
+  author: Jochen Demmer
   description: Sets the message of the day for login screen.
+  company: libcom.de
+  issue_tracker_url: https://github.com/imp1sh/ansible_managemynetwork/issues
   license: BSD-3-Clause
-  min_ansible_version: 2.0
+  min_ansible_version: "2.11"
   platforms:
+    - name: Debian
+      versions:
+        - "bookworm"
+        - "bullseye"
+        - "trixie"
     - name: Alpine
+      versions:
+        - all
+    - name: ArchLinux
       versions:
         - all
     - name: FreeBSD
       versions:
         - all
+    - name: Fedora
+      versions:
+        - "40"
+        - "41"
+        - "42"
+        - "43"
+        - "44"
     - name: EL
       versions:
-        - 5
-        - 6
-        - 7
-        - 8
-    - name: Debian
-      versions:
-        - all
-
+        - "9"
+        - "10"
   galaxy_tags:
     - motd
     - login
