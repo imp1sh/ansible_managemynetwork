@@ -3,13 +3,13 @@
 - name: set hostname with ansible builtin
   ansible.builtin.hostname:
     name: "{{ system_hostname | default(inventory_hostname) }}"
-  when: ansible_os_family != "FreeBSD"
+  when: ansible_facts['os_family'] | default('') != "FreeBSD"
 - name: FreeBSD set hostname for the current session
   ansible.builtin.command: "hostname {{ system_hostname | default(inventory_hostname) }}"
-  when: ansible_os_family == "FreeBSD"
+  when: ansible_facts['os_family'] | default('') == "FreeBSD"
 - name: FreeBSD replace localhost.my.domain from /etc/hosts with inventory hostname
   ansible.builtin.replace:
     path: /etc/hosts
     regexp: 'localhost.my.domain'
     replace: "{{ system_hostname | default(inventory_hostname) }}"
-  when: ansible_os_family == "FreeBSD"
+  when: ansible_facts['os_family'] | default('') == "FreeBSD"

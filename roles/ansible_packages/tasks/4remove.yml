@@ -9,7 +9,7 @@
     state: absent
   when:
     - packages_remove | default([]) | length > 0
-    - ansible_distribution != 'OpenWrt'
+    - ansible_facts['distribution'] | default('') != 'OpenWrt'
 
 - name: "MMN Packages - Uninstalling packages OpenWrt"
   community.general.apk:
@@ -18,4 +18,4 @@
     update_cache: true
   when:
     - packages_remove | default([]) | length > 0
-    - ansible_distribution == 'OpenWrt'
+    - ansible_facts['distribution'] | default('') == 'OpenWrt'

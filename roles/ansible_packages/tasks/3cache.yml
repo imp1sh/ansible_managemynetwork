@@ -4,27 +4,27 @@
   community.general.apk:
     update_cache: true
   changed_when: false
-  when: ansible_distribution == "Alpine" or ansible_distribution == "OpenWrt"
+  when: ansible_facts['distribution'] | default('') in ["Alpine", "OpenWrt"]
 
 - name: "MMN Packages - Updating cache Debian based OS"
   ansible.builtin.apt:
     update_cache: true
   changed_when: false
-  when: ansible_os_family == "Debian"
+  when: ansible_facts['os_family'] | default('') == "Debian"
 
 - name: "MMN Packages - Updating cache Arch based OS"
   community.general.pacman:
     update_cache: true
   changed_when: false
-  when: ansible_os_family == "ArchLinux"
+  when: ansible_facts['os_family'] | default('') == "ArchLinux"
 
 - name: "MMN Packages - Updating cache RedHat based OS"
   ansible.builtin.dnf:
     update_cache: true
   changed_when: false
   when:
-    - ansible_os_family == "RedHat"
-    - ( ansible_distribution_version | float | round(0, 'floor') | int ) > 7
+    - ansible_facts['os_family'] | default('') == "RedHat"
+    - ( ansible_facts['distribution_version'] | default('0') | float | round(0, 'floor') | int ) > 7
 
 - name: "MMN Packages - Updating cache RedHat based OS (yum legacy)"
   ansible.builtin.yum:
@@ -32,5 +32,5 @@
     use_backend: "yum"
   changed_when: false
   when:
-    - ansible_os_family == "RedHat"
-    - ( ansible_distribution_version | float | round(0, 'floor') | int ) < 8
+    - ansible_facts['os_family'] | default('') == "RedHat"
+    - ( ansible_facts['distribution_version'] | default('0') | float | round(0, 'floor') | int ) < 8
