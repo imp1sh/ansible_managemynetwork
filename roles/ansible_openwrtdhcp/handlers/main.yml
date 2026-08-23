@@ -5,8 +5,14 @@
     name: dnsmasq
     state: restarted
   when: not openwrt_dhcp_runimagebuilder | default(false) | bool
+# Conditionally restart odhcpd only if the service exists.
+# Hosts using dnsmasq-full (instead of base dnsmasq + odhcpd) have odhcpd
+# removed, so restarting it would fail. The service existence check prevents
+# that. Do NOT remove this conditionality.
 - name: restart odhcpd
   ansible.builtin.service:
     name: odhcpd
     state: restarted
-  when: not openwrt_dhcp_runimagebuilder | default(false) | bool
+  when:
+    - not openwrt_dhcp_runimagebuilder | default(false) | bool
+    - "'odhcpd' in ansible_facts['services']"
