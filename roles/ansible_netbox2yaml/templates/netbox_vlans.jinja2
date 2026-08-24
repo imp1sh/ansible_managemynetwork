@@ -42,14 +42,14 @@ nb_vlans:
 {% if v.description %}
     description: {{ v.description | quote }}
 {% endif %}
-    subnets:
 {% if (v.subnets | default([]) | length) > 0 %}
+    subnets:
 {% for sn in v.subnets %}
       - prefix: {{ sn.prefix | quote }}
         id: {{ sn.id }}
 {% endfor %}
 {% else %}
-    []
+    subnets: []
 {% endif %}
 {% endfor %}
 {% endif %}
