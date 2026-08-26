@@ -47,6 +47,15 @@
         - not _port_part.startswith('[::1]')
         - _host_port | length > 0
 
+- name: "MMN Podman - Enable podman auto-update timer"
+  ansible.builtin.systemd:
+    name: podman-auto-update.timer
+    state: started
+    enabled: true
+  when:
+    - ansible_distribution != "OpenWrt"
+    - podman_auto_update_enabled | default(false) | bool
+
 - name: "MMN Podman - systemd tasks"
   ansible.builtin.include_tasks:
     file: 3systemd.yml

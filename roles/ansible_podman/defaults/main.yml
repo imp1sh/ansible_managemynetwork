@@ -12,3 +12,7 @@ podman_deploypath_containersnetworks: "{{ podman_deployroot }}etc/containers/net
 podman_deploypath_containersstorage: "{{ podman_deployroot }}etc/containers/storage.conf"
 podman_deploypath_hotplug_iface: "{{ podman_deployroot }}etc/hotplug.d/iface"
 podman_deploypath_initscript: "{{ podman_deployroot }}etc/init.d"
+# Enable the shipped podman-auto-update.timer so Podman itself reconciles
+# containers carrying the io.containers.autoupdate=label against the registry
+# (digest comparison) on the timer's schedule. Off by default; opt in per host.
+podman_auto_update_enabled: false
