@@ -1,0 +1,26 @@
+---
+- name: "MMN swaylock - Include OS vars"
+  ansible.builtin.include_vars: "{{ ansible_distribution }}.yml"
+
+- name: "MMN swaylock - Set package name for calling packages role"
+  ansible.builtin.set_fact:
+    packages_installrole: "{{ swaylock_packagename }}"
+
+- name: "MMN swaylock - Install required packages"
+  ansible.builtin.include_role:
+    name: imp1sh.ansible_managemynetwork.ansible_packages
+
+- name: "MMN swaylock - Determine target users"
+  ansible.builtin.set_fact:
+    swaylock_target_users: >-
+      {{
+        [swaylock_users] if (swaylock_users is string)
+        else (swaylock_users if (swaylock_users is iterable and swaylock_users is not string)
+        else [ansible_user | default('root')])
+      }}
+
+- name: "MMN swaylock - Deploy configuration for each user"
+  ansible.builtin.include_tasks: deploy_user_config.yml
+  loop: "{{ swaylock_target_users }}"
+  loop_control:
+    loop_var: target_user

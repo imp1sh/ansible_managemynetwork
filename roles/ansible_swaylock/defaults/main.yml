@@ -1,0 +1,72 @@
+---
+# ansible_swaylock — manages swaylock screen locker configuration per-user.
+# Deploys ~/.config/swaylock/config for each target user.
+# Complements ansible_sway (which installs the binary and invokes swaylock
+# via swayidle). This role owns the *appearance and behaviour* of the lock
+# screen; ansible_sway owns the trigger.
+#
+# Per-user overrides: set swaylock_configs as a dict keyed by username.
+# Each entry is merged (shallow) over swaylock_config, so you only need
+# to specify the keys that differ per user.
+#
+# All option names match `swaylock --help` / man page exactly.
+# Boolean flags are bare keywords in the config file (e.g. `show-failed-attempts`);
+# value options use long-option=value (e.g. `ring-color=#ff00ff`).
+
+# ---------------------------------------------------------------------------
+# Target user(s). String or list. Null → uses ansible_user.
+# ---------------------------------------------------------------------------
+swaylock_users: null
+
+# ---------------------------------------------------------------------------
+# Base config — applies to ALL users unless overridden in swaylock_configs.
+# Override individual keys in group_vars/host_vars without rewriting the
+# whole dict by using the combine filter.
+# ---------------------------------------------------------------------------
+swaylock_config:
+  # Background image (keep in sync with ansible_sway's sway_image_lock)
+  image: "~/.config/sway/wallpaper/Retro-Programmer.jpeg"
+  # Scaling: stretch, fill, fit, center, tile, solid_color
+  scaling: "fill"
+  # Colours (hex #rrggbb)
+  color_inside: "#1c1c1c"
+  color_ring: "#ffaa00"
+  color_key_hint: "#ffb74d"
+  color_bs_hover: "#ffaa00"
+  color_text: "#ffffff"
+  color_line: "#1c1c1c"
+  color_separator: "#1c1c1c"
+  # Indicator geometry
+  indicator_radius: 50
+  indicator_thickness: 10
+  # Boolean flags (emit as bare keyword when true)
+  ignore_empty: true
+  indicator_idle_visible: false
+  no_unlock_indicator: false
+
+# ---------------------------------------------------------------------------
+# Per-user overrides — keyed by username, shallow-merged over swaylock_config.
+# Users not listed here get the base swaylock_config verbatim.
+#
+# Additional options not in the base dict can be added here; the template
+# guards each with `is defined` so they only render when present:
+#   show_keyboard_layout, show_failed_attempts, hide_keyboard_layout,
+#   disable_caps_lock_text, indicator_caps_lock, line_uses_inside,
+#   line_uses_ring, color (solid background), font, font_size,
+#   indicator_x_position, indicator_y_position,
+#   color_layout_bg, color_layout_border, color_layout_text,
+#   inside_ver_color, inside_wrong_color, inside_clear_color,
+#   ring_ver_color, ring_wrong_color, ring_clear_color,
+#   text_ver_color, text_wrong_color, text_clear_color,
+#   line_ver_color, line_wrong_color, line_clear_color
+# ---------------------------------------------------------------------------
+swaylock_configs: {}
+# Example:
+# swaylock_configs:
+#   jochen:
+#     show_keyboard_layout: true
+#     show_failed_attempts: true
+#     color_ring: "#e94560"
+#   alice:
+#     image: "~/.local/share/wallpapers/blue.jpg"
+#     color_ring: "#00aaff"

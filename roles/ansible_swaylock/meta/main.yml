@@ -1,0 +1,22 @@
+---
+galaxy_info:
+  role_name: ansible_swaylock
+  author: Jochen Demmod
+  description: Manages swaylock screen locker configuration per-user on Fedora and Debian. Complements ansible_sway.
+  company: libcom.de
+  issue_tracker_url: https://github.com/imp1sh/ansible_managemynetwork/issues
+  license: BSD-3-Clause
+  min_ansible_version: "2.11"
+  platforms:
+    - name: Fedora
+      versions:
+        - "40"
+        - "41"
+        - "42"
+        - "43"
+        - "44"
+    - name: Debian
+      versions:
+        - bookworm
+  galaxy_tags: [swaylock, sway, lock, screenlocker, wayland, fedora, debian, desktop]
+dependencies: []

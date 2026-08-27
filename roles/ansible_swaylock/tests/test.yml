@@ -1,0 +1,9 @@
+---
+- hosts: fedora_desktops
+  remote_user: ansible
+  become: true
+  roles:
+    - ansible_swaylock
+  vars:
+    swaylock_users:
+      - jochen

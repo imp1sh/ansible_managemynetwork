@@ -1,0 +1,36 @@
+---
+- name: "MMN swaylock - Get home directory for {{ target_user }}"
+  ansible.builtin.shell: "getent passwd {{ target_user }} | cut -d: -f6"
+  register: swaylock_user_home_result
+  changed_when: false
+  failed_when: false
+
+- name: "MMN swaylock - Fail if user {{ target_user }} does not exist"
+  ansible.builtin.fail:
+    msg: "User {{ target_user }} does not exist on the system"
+  when: swaylock_user_home_result.rc != 0
+
+- name: "MMN swaylock - Set user home directory"
+  ansible.builtin.set_fact:
+    target_user_home: "{{ swaylock_user_home_result.stdout }}"
+  when: swaylock_user_home_result.rc == 0
+
+- name: "MMN swaylock - Merge per-user overrides for {{ target_user }}"
+  ansible.builtin.set_fact:
+    swaylock_effective_config: "{{ swaylock_config | combine(swaylock_configs[target_user] | default({})) }}"
+
+- name: "MMN swaylock - Ensure config directory exists for {{ target_user }}"
+  ansible.builtin.file:
+    path: "{{ target_user_home }}/.config/swaylock"
+    state: directory
+    owner: "{{ target_user }}"
+    group: "{{ target_user }}"
+    mode: '0755'
+
+- name: "MMN swaylock - Deploy config for {{ target_user }}"
+  ansible.builtin.template:
+    src: config.j2
+    dest: "{{ target_user_home }}/.config/swaylock/config"
+    owner: "{{ target_user }}"
+    group: "{{ target_user }}"
+    mode: '0644'
