@@ -1,0 +1,13 @@
+---
+- hosts: syncthing_hosts
+  remote_user: ansible
+  become: true
+  roles:
+    - ansible_syncthing
+  vars:
+    syncthing_users:
+      - username: jochen
+    syncthing_folders:
+      - id: "shared-documents"
+        label: "Shared Documents"
+        path: "/home/jochen/Documents"

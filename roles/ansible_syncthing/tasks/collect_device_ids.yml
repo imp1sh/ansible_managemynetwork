@@ -1,0 +1,21 @@
+---
+# Collect device IDs from all hosts in the current play.
+# Each host queries its own REST API and stores its device ID as a fact
+# keyed by username so multiple users don't clobber each other.
+
+- name: "MMN syncthing - Get device ID from {{ inventory_hostname }} for {{ syncthing_user.username }}"
+  ansible.builtin.uri:
+    url: "{{ syncthing_api_url }}/rest/system/status"
+    method: GET
+    headers:
+      X-API-Key: "{{ syncthing_effective_api_key }}"
+    return_content: true
+    validate_certs: false
+  become_user: "{{ syncthing_user.username }}"
+  register: syncthing_device_id_response
+  changed_when: false
+
+- name: "MMN syncthing - Store device ID for {{ inventory_hostname }} / {{ syncthing_user.username }}"
+  ansible.builtin.set_fact:
+    syncthing_device_ids: "{{ syncthing_device_ids | default({}) | combine({syncthing_user.username: syncthing_device_id_response.json.myID}) }}"
+    cacheable: true

@@ -1,0 +1,22 @@
+---
+galaxy_info:
+  role_name: ansible_syncthing
+  author: Jochen Demmod
+  description: Installs and configures Syncthing file synchronisation per-user via REST API. Handles device pairing and folder sharing across hosts. Supports Fedora and Debian.
+  company: libcom.de
+  issue_tracker_url: https://github.com/imp1sh/ansible_managemynetwork/issues
+  license: BSD-3-Clause
+  min_ansible_version: "2.11"
+  platforms:
+    - name: Fedora
+      versions:
+        - "40"
+        - "41"
+        - "42"
+        - "43"
+        - "44"
+    - name: Debian
+      versions:
+        - bookworm
+  galaxy_tags: [syncthing, sync, filesync, desktop, fedora, debian, wayland, rest, api]
+dependencies: []

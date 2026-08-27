@@ -1,0 +1,302 @@
+---
+# Teardown: remove syncthing configuration and optionally all components.
+# Synced data on disk is NEVER deleted — only syncthing's config, database,
+# and (in "full" mode) the package itself.
+#
+# Levels:
+#   config — remove folders + devices via REST API, stop+disable service
+#   full   — everything in config PLUS remove config dir, uninstall package,
+#            disable lingering
+
+# --- Bootstrap is needed to reach the REST API for deletion ---
+- name: "MMN syncthing - Get home directory for {{ syncthing_user.username }}"
+  ansible.builtin.shell: "getent passwd {{ syncthing_user.username }} | cut -d: -f6"
+  register: syncthing_user_home_result
+  changed_when: false
+  failed_when: false
+
+- name: "MMN syncthing - Fail if user {{ syncthing_user.username }} does not exist"
+  ansible.builtin.fail:
+    msg: "User {{ syncthing_user.username }} does not exist on the system"
+  when: syncthing_user_home_result.rc != 0
+
+- name: "MMN syncthing - Set user home directory"
+  ansible.builtin.set_fact:
+    syncthing_user_home: "{{ syncthing_user_home_result.stdout }}"
+    syncthing_confdir: "{{ syncthing_user_home_result.stdout }}/.local/state/syncthing"
+  when: syncthing_user_home_result.rc == 0
+
+# --- Resolve per-user overrides (fall back to global defaults) ---
+- name: "MMN syncthing - Resolve per-user settings for teardown of {{ syncthing_user.username }}"
+  ansible.builtin.set_fact:
+    syncthing_eff_gui_address: "{{ syncthing_user.gui_address | default(syncthing_gui_address) }}"
+    syncthing_eff_gui_tls: "{{ syncthing_user.gui_tls | default(syncthing_gui_tls) }}"
+    syncthing_eff_linger: "{{ syncthing_user.linger | default(syncthing_linger) }}"
+  when: syncthing_user_home_result.rc == 0
+
+# --- Read API key from config (if config exists) ---
+- name: "MMN syncthing - Check if config exists for {{ syncthing_user.username }}"
+  ansible.builtin.stat:
+    path: "{{ syncthing_confdir }}/config.xml"
+  register: syncthing_teardown_config_stat
+
+- name: "MMN syncthing - Read API key for teardown"
+  ansible.builtin.shell: "grep -oP '<apikey>\\K[^<]+' {{ syncthing_confdir }}/config.xml"
+  register: syncthing_teardown_apikey
+  changed_when: false
+  when: syncthing_teardown_config_stat.stat.exists
+
+- name: "MMN syncthing - Set API key for teardown"
+  ansible.builtin.set_fact:
+    syncthing_effective_api_key: "{{ syncthing_teardown_apikey.stdout }}"
+  when: syncthing_teardown_config_stat.stat.exists
+
+- name: "MMN syncthing - Set API URL for teardown"
+  ansible.builtin.set_fact:
+    syncthing_api_url: "{{ 'https' if syncthing_eff_gui_tls | bool else 'http' }}://{{ syncthing_eff_gui_address }}"
+  when: syncthing_teardown_config_stat.stat.exists
+
+# --- Ensure service is running so we can reach the REST API ---
+- name: "MMN syncthing - Start service for API access during teardown"
+  ansible.builtin.systemd:
+    name: "syncthing@{{ syncthing_user.username }}"
+    state: started
+  when: syncthing_teardown_config_stat.stat.exists
+
+- name: "MMN syncthing - Wait for API during teardown"
+  ansible.builtin.uri:
+    url: "{{ syncthing_api_url }}/rest/system/status"
+    method: GET
+    headers:
+      X-API-Key: "{{ syncthing_effective_api_key }}"
+    return_content: true
+    validate_certs: false
+  become_user: "{{ syncthing_user.username }}"
+  register: syncthing_teardown_status
+  until: syncthing_teardown_status.status == 200
+  retries: 10
+  delay: 2
+  when: syncthing_teardown_config_stat.stat.exists
+
+# --- Get all configured folders ---
+- name: "MMN syncthing - Get all folders for teardown"
+  ansible.builtin.uri:
+    url: "{{ syncthing_api_url }}/rest/config/folders"
+    method: GET
+    headers:
+      X-API-Key: "{{ syncthing_effective_api_key }}"
+    return_content: true
+    validate_certs: false
+  become_user: "{{ syncthing_user.username }}"
+  register: syncthing_teardown_folders
+  changed_when: false
+  when: syncthing_teardown_config_stat.stat.exists
+
+# --- Delete folders ---
+# Use per-user folders_absent if defined, otherwise fall back to global.
+# If neither is specified, remove ALL folders.
+- name: "MMN syncthing - Set effective folders_absent for {{ syncthing_user.username }}"
+  ansible.builtin.set_fact:
+    syncthing_effective_folders_absent: "{{ syncthing_user.folders_absent | default(syncthing_folders_absent) }}"
+  when: syncthing_teardown_config_stat.stat.exists
+
+- name: "MMN syncthing - Delete specified folders for {{ syncthing_user.username }}"
+  ansible.builtin.uri:
+    url: "{{ syncthing_api_url }}/rest/config/folders/{{ folder_id }}"
+    method: DELETE
+    headers:
+      X-API-Key: "{{ syncthing_effective_api_key }}"
+    validate_certs: false
+    status_code: [200, 204]
+  become_user: "{{ syncthing_user.username }}"
+  loop: "{{ syncthing_effective_folders_absent | default([]) }}"
+  loop_control:
+    loop_var: folder_id
+  when:
+    - syncthing_teardown_config_stat.stat.exists
+    - syncthing_effective_folders_absent | default([]) | length > 0
+  changed_when: true
+  failed_when: false
+
+- name: "MMN syncthing - Delete all folders for {{ syncthing_user.username }}"
+  ansible.builtin.uri:
+    url: "{{ syncthing_api_url }}/rest/config/folders/{{ folder.id }}"
+    method: DELETE
+    headers:
+      X-API-Key: "{{ syncthing_effective_api_key }}"
+    validate_certs: false
+    status_code: [200, 204]
+  become_user: "{{ syncthing_user.username }}"
+  loop: "{{ syncthing_teardown_folders.json | default([]) }}"
+  loop_control:
+    loop_var: folder
+  when:
+    - syncthing_teardown_config_stat.stat.exists
+    - syncthing_effective_folders_absent | default([]) | length == 0
+  changed_when: true
+  failed_when: false
+
+# --- Get all configured devices (excluding self) ---
+- name: "MMN syncthing - Get all devices for teardown"
+  ansible.builtin.uri:
+    url: "{{ syncthing_api_url }}/rest/config/devices"
+    method: GET
+    headers:
+      X-API-Key: "{{ syncthing_effective_api_key }}"
+    return_content: true
+    validate_certs: false
+  become_user: "{{ syncthing_user.username }}"
+  register: syncthing_teardown_devices
+  changed_when: false
+  when: syncthing_teardown_config_stat.stat.exists
+
+# --- Delete remote devices (skip the local device) ---
+- name: "MMN syncthing - Delete remote devices for {{ syncthing_user.username }}"
+  ansible.builtin.uri:
+    url: "{{ syncthing_api_url }}/rest/config/devices/{{ device.deviceID }}"
+    method: DELETE
+    headers:
+      X-API-Key: "{{ syncthing_effective_api_key }}"
+    validate_certs: false
+    status_code: [200, 204]
+  become_user: "{{ syncthing_user.username }}"
+  loop: "{{ syncthing_teardown_devices.json | default([]) }}"
+  loop_control:
+    loop_var: device
+  when:
+    - syncthing_teardown_config_stat.stat.exists
+    - device.deviceID != syncthing_teardown_status.json.myID
+  changed_when: true
+  failed_when: false
+
+# --- Stop and disable the systemd service ---
+- name: "MMN syncthing - Stop and disable syncthing@{{ syncthing_user.username }}"
+  ansible.builtin.systemd:
+    name: "syncthing@{{ syncthing_user.username }}"
+    state: stopped
+    enabled: false
+  when: syncthing_teardown_config_stat.stat.exists
+
+# --- "full" teardown: remove config dir, uninstall package, disable linger ---
+- name: "MMN syncthing - Disable lingering for {{ syncthing_user.username }}"
+  ansible.builtin.command: "loginctl disable-linger {{ syncthing_user.username }}"
+  when:
+    - (syncthing_user.teardown | default(syncthing_teardown | default(""))) == "full"
+    - syncthing_eff_linger | bool
+  changed_when: false
+  failed_when: false
+
+- name: "MMN syncthing - Remove syncthing config directory for {{ syncthing_user.username }}"
+  ansible.builtin.file:
+    path: "{{ syncthing_confdir }}"
+    state: absent
+  when: (syncthing_user.teardown | default(syncthing_teardown | default(""))) == "full"
+
+- name: "MMN syncthing - Uninstall syncthing package"
+  ansible.builtin.set_fact:
+    packages_installrole: "{{ syncthing_packagename }}"
+  when: (syncthing_user.teardown | default(syncthing_teardown | default(""))) == "full"
+
+- name: "MMN syncthing - Remove syncthing package"
+  ansible.builtin.package:
+    name: "{{ syncthing_packagename }}"
+    state: absent
+  when: (syncthing_user.teardown | default(syncthing_teardown | default(""))) == "full"
+
+# --- Close firewall ports ---
+- name: "MMN syncthing - Resolve per-user settings for firewall teardown of {{ syncthing_user.username }}"
+  ansible.builtin.set_fact:
+    syncthing_eff_gui_address: "{{ syncthing_user.gui_address | default(syncthing_gui_address) }}"
+    syncthing_eff_sync_port: "{{ syncthing_user.sync_port | default(syncthing_sync_port) }}"
+    syncthing_eff_discovery_port: "{{ syncthing_user.discovery_port | default(syncthing_discovery_port) }}"
+  when: syncthing_firewall | bool
+
+- name: "MMN syncthing - Extract GUI port from address for teardown"
+  ansible.builtin.set_fact:
+    syncthing_gui_port: "{{ syncthing_eff_gui_address | regex_search(':(\\d+)$', '\\1') | first }}"
+  when: syncthing_firewall | bool
+
+# --- Detect firewall backend ---
+- name: "MMN syncthing - Check if firewalld is active (teardown)"
+  ansible.builtin.command: "systemctl is-active firewalld"
+  register: syncthing_teardown_firewalld_check
+  changed_when: false
+  failed_when: false
+  when: syncthing_firewall | bool
+
+- name: "MMN syncthing - Check if ufw is installed (teardown)"
+  ansible.builtin.command: "which ufw"
+  register: syncthing_teardown_ufw_check
+  changed_when: false
+  failed_when: false
+  when: syncthing_firewall | bool
+
+- name: "MMN syncthing - Set firewall backend (teardown)"
+  ansible.builtin.set_fact:
+    syncthing_firewall_backend: >-
+      {{
+        'firewalld' if syncthing_teardown_firewalld_check.stdout | trim == 'active'
+        else ('ufw' if syncthing_teardown_ufw_check.rc == 0
+        else 'none')
+      }}
+  when: syncthing_firewall | bool
+
+- name: "MMN syncthing - Close sync port (TCP {{ syncthing_eff_sync_port }}) in firewalld"
+  ansible.posix.firewalld:
+    port: "{{ syncthing_eff_sync_port }}/tcp"
+    permanent: true
+    state: disabled
+    zone: "{{ syncthing_firewall_zone | default(omit) }}"
+  notify: Reload firewalld
+  when:
+    - syncthing_firewall | bool
+    - syncthing_firewall_backend == "firewalld"
+
+- name: "MMN syncthing - Close discovery port (UDP {{ syncthing_eff_discovery_port }}) in firewalld"
+  ansible.posix.firewalld:
+    port: "{{ syncthing_eff_discovery_port }}/udp"
+    permanent: true
+    state: disabled
+    zone: "{{ syncthing_firewall_zone | default(omit) }}"
+  notify: Reload firewalld
+  when:
+    - syncthing_firewall | bool
+    - syncthing_firewall_backend == "firewalld"
+
+- name: "MMN syncthing - Close GUI port (TCP {{ syncthing_gui_port }}) in firewalld"
+  ansible.posix.firewalld:
+    port: "{{ syncthing_gui_port }}/tcp"
+    permanent: true
+    state: disabled
+    zone: "{{ syncthing_firewall_zone | default(omit) }}"
+  notify: Reload firewalld
+  when:
+    - syncthing_firewall | bool
+    - syncthing_firewall_backend == "firewalld"
+
+- name: "MMN syncthing - Close sync port (TCP {{ syncthing_eff_sync_port }}) in ufw"
+  community.general.ufw:
+    rule: deny
+    port: "{{ syncthing_eff_sync_port }}"
+    proto: tcp
+  when:
+    - syncthing_firewall | bool
+    - syncthing_firewall_backend == "ufw"
+
+- name: "MMN syncthing - Close discovery port (UDP {{ syncthing_eff_discovery_port }}) in ufw"
+  community.general.ufw:
+    rule: deny
+    port: "{{ syncthing_eff_discovery_port }}"
+    proto: udp
+  when:
+    - syncthing_firewall | bool
+    - syncthing_firewall_backend == "ufw"
+
+- name: "MMN syncthing - Close GUI port (TCP {{ syncthing_gui_port }}) in ufw"
+  community.general.ufw:
+    rule: deny
+    port: "{{ syncthing_gui_port }}"
+    proto: tcp
+  when:
+    - syncthing_firewall | bool
+    - syncthing_firewall_backend == "ufw"

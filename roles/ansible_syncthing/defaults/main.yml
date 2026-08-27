@@ -1,0 +1,222 @@
+---
+# ansible_syncthing — installs and configures Syncthing file synchronisation
+# per-user via the REST API. Handles device pairing and folder sharing across
+# hosts in a single Ansible play.
+#
+# Architecture:
+#   1. Install syncthing package (Fedora: official repos, Debian: apt repo)
+#   2. Bootstrap per-user: `syncthing generate` creates cert.pem + config.xml
+#   3. Set a deterministic API key so Ansible can talk to the REST API
+#   4. Start the systemd user service (`syncthing@<user>`)
+#   5. Collect each host's device ID via REST API (GET /rest/system/status)
+#   6. Exchange device IDs between all hosts in the play (via hostvars)
+#   7. Add remote devices via REST API (POST /rest/config/devices)
+#   8. Add shared folders via REST API (POST /rest/config/folders)
+#
+# All REST API calls use the X-API-Key header for authentication.
+# The API key is written into config.xml by the role; no manual GUI interaction
+# is needed.
+
+# ---------------------------------------------------------------------------
+# Target users — list of dicts with mandatory 'username', optional 'home',
+# 'hosts', and 'folders'. If 'home' is omitted, /home/<username> is assumed.
+# If 'folders' is omitted, the global syncthing_folders list is used.
+# If 'folders' is set, only those folders are configured for that user.
+#
+# 'hosts' — list of inventory hostnames that participate in this user's sync
+# cluster. Only hosts listed here will install syncthing for this user, pair
+# with each other, and share folders. Hosts in the ansible play but not in
+# this list are skipped for this user. If omitted, all hosts in the play are
+# included (backward compatible).
+# ---------------------------------------------------------------------------
+syncthing_users: []
+# Example — single user with explicit host list:
+# syncthing_users:
+#   - username: jochen
+#     hosts:
+#       - framework.t.libcom.de
+#       - pc-gast.t.libcom.de
+#     folders:
+#       - id: "jochensync"
+#         path: "/home/jochen/jochensync"
+#
+# Example — multiple users with different sync clusters:
+# syncthing_users:
+#   - username: jochen
+#     hosts:
+#       - framework.t.libcom.de
+#       - pc-gast.t.libcom.de
+#     folders:
+#       - id: "jochensync"
+#         path: "/home/jochen/jochensync"
+#   - username: alice
+#     hosts:
+#       - framework.t.libcom.de
+#       - e14.t.libcom.de
+#     folders:
+#       - id: "alice-sync"
+#         path: "/home/alice/alicesync"
+
+# ---------------------------------------------------------------------------
+# Shared folders — list of dicts. Each folder is shared between ALL hosts
+# in the play that have syncthing configured for the same user.
+#
+# Required keys:
+#   id    — unique folder ID (string, must be identical on all devices)
+#   path  — local filesystem path (may differ per host, see below)
+#
+# Optional keys:
+#   label             — human-readable name (default: same as id)
+#   type              — sendreceive (default), sendonly, receiveonly
+#   rescan_interval   — rescan interval in seconds (default: 3600)
+#   fs_watcher        — enable filesystem watcher (default: true)
+#   fs_watcher_delay  — accumulate changes before scan, in seconds (default: 10)
+#   paused            — pause the folder (default: false)
+#   ignore_perms      — ignore permission bits (default: false)
+#   versioning_type   — trashcan, simple, staggered, external (default: none)
+#   versioning_params — dict of versioning params (depends on type)
+#
+# Per-host path override: set syncthing_folder_overrides in host_vars to
+# remap folder IDs to different paths per host:
+#   syncthing_folder_overrides:
+#     shared-documents: /data/sync/documents
+# ---------------------------------------------------------------------------
+syncthing_folders: []
+# Example:
+# syncthing_folders:
+#   - id: "shared-documents"
+#     label: "Shared Documents"
+#     path: "/home/jochen/Documents"
+#     type: "sendreceive"
+#   - id: "photos"
+#     path: "/home/jochen/Bilder"
+#     type: "sendreceive"
+
+# ---------------------------------------------------------------------------
+# Per-host folder path overrides — keyed by folder ID.
+# ---------------------------------------------------------------------------
+syncthing_folder_overrides: {}
+
+# ---------------------------------------------------------------------------
+# GUI/API listen address. Default 127.0.0.1:8384 (localhost only).
+# Set to [::]:8384 for dual-stack (IPv6 + IPv4, recommended).
+# ---------------------------------------------------------------------------
+syncthing_gui_address: "127.0.0.1:8384"
+
+# ---------------------------------------------------------------------------
+# GUI TLS — serve the web GUI over HTTPS using a CA-signed certificate.
+# When enabled, the role copies the cert/key into the syncthing config dir
+# as https-cert.pem / https-key.pem and patches the GUI config to enforce TLS.
+#
+# Paths default to the ansible_cacert default cert layout (Fedora paths).
+# Override per-distro or per-host if your cacert paths differ.
+# ---------------------------------------------------------------------------
+syncthing_gui_tls: false
+syncthing_gui_cert: "/etc/pki/tls/certs/main_jochenit_{{ inventory_hostname }}_certificate.pem"
+syncthing_gui_key: "/etc/pki/tls/private/main_jochenit_{{ inventory_hostname }}_privatekey.pem"
+
+# ---------------------------------------------------------------------------
+# GUI authentication — protect the web GUI with a username and password.
+# The password is hashed via bcrypt by syncthing's REST API on write.
+# Vault-encrypt the password in your ansible vars.
+# Per-user override: set 'gui_user' and 'gui_password' on the user dict.
+# ---------------------------------------------------------------------------
+syncthing_gui_user: ""
+syncthing_gui_password: ""
+
+# ---------------------------------------------------------------------------
+# API key for REST access. If empty, the role generates a random UUID.
+# Set a fixed value here for deterministic deployments.
+# ---------------------------------------------------------------------------
+syncthing_api_key: ""
+
+# ---------------------------------------------------------------------------
+# Global options — PATCHed into /rest/config/options.
+# Keys match the Syncthing config JSON field names. Empty = no changes.
+# ---------------------------------------------------------------------------
+syncthing_options: {}
+# Example:
+# syncthing_options:
+#   globalAnnounceEnabled: true
+#   localAnnounceEnabled: true
+#   relaysEnabled: true
+#   natEnabled: true
+#   startBrowser: false
+
+# ---------------------------------------------------------------------------
+# Device defaults — applied to every remote device added via REST API.
+# Keys match the JSON payload of POST /rest/config/devices.
+# ---------------------------------------------------------------------------
+syncthing_device_defaults:
+  compression: "metadata"
+  introducer: false
+  paused: false
+  autoAcceptFolders: false
+
+# ---------------------------------------------------------------------------
+# Address mode for remote devices:
+#   dynamic  — use local/global discovery (default, no static address needed)
+#   static   — use tcp://<inventory_hostname>:22000 (requires reachable IPs)
+# ---------------------------------------------------------------------------
+syncthing_device_address_mode: "dynamic"
+
+# ---------------------------------------------------------------------------
+# Whether to enable the systemd user service for lingering (keeps syncthing
+# running even when the user is not logged in). Recommended for servers.
+# ---------------------------------------------------------------------------
+syncthing_linger: true
+
+# ---------------------------------------------------------------------------
+# Whether to skip device/folder configuration (install + bootstrap only).
+# Useful for first run or when you only want to install the package.
+# ---------------------------------------------------------------------------
+syncthing_configure: true
+
+# ---------------------------------------------------------------------------
+# Teardown — removes syncthing configuration and optionally all syncthing
+# components, returning the host to the state before syncthing ran.
+#
+# Levels:
+#   ""           — no teardown (normal operation)
+#   "config"     — remove all folders and remote devices via REST API DELETE,
+#                  stop+disable the systemd service, close firewall ports.
+#                  Synced data on disk is LEFT INTACT.
+#   "full"       — everything in "config" PLUS remove the syncthing config
+#                  directory (~/.local/state/syncthing), uninstall the package,
+#                  and disable lingering. The synced data on disk is still
+#                  left intact.
+#
+# Per-user teardown: set 'teardown' on the user dict to tear down only that
+# user's sync instance while leaving others running. Overrides the global
+# syncthing_teardown for that user.
+#
+# The actual synced folders (e.g. /home/jochen/jochensync/) are NEVER deleted
+# by this role — only syncthing's own configuration, database, and binaries.
+# ---------------------------------------------------------------------------
+syncthing_teardown: ""
+
+# ---------------------------------------------------------------------------
+# Folders to remove explicitly (by ID) during teardown.
+# When empty and syncthing_teardown is "config" or "full", ALL folders
+# configured on the host are removed. Set this to remove only specific
+# folders while keeping others.
+#
+# Per-user override: set 'folders_absent' on the user dict in syncthing_users
+# to remove only specific folders for that user.
+# ---------------------------------------------------------------------------
+syncthing_folders_absent: []
+
+# ---------------------------------------------------------------------------
+# Firewall — open ports for sync traffic and the web GUI.
+# Sync listens on TCP 22000 (protocol). Local discovery uses UDP 21027.
+# The GUI/API port is derived from syncthing_gui_address (default 8384).
+#
+# Set syncthing_firewall: false to skip firewall management entirely.
+# Per-user override: set 'firewall' on the user dict.
+# Per-user port overrides: set 'sync_port' and/or 'discovery_port' on the
+# user dict — each syncthing@<user> instance needs unique ports when multiple
+# users share a host.
+# ---------------------------------------------------------------------------
+syncthing_firewall: true
+syncthing_sync_port: 22000
+syncthing_discovery_port: 21027

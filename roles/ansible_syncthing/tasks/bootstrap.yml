@@ -1,0 +1,218 @@
+---
+# Bootstrap: generate config, set API key, start systemd service.
+# Runs once per user. Idempotent: skips generate if config already exists.
+
+- name: "MMN syncthing - Get home directory for {{ syncthing_user.username }}"
+  ansible.builtin.shell: "getent passwd {{ syncthing_user.username }} | cut -d: -f6"
+  register: syncthing_user_home_result
+  changed_when: false
+  failed_when: false
+
+- name: "MMN syncthing - Fail if user {{ syncthing_user.username }} does not exist"
+  ansible.builtin.fail:
+    msg: "User {{ syncthing_user.username }} does not exist on the system"
+  when: syncthing_user_home_result.rc != 0
+
+- name: "MMN syncthing - Set user home directory"
+  ansible.builtin.set_fact:
+    syncthing_user_home: "{{ syncthing_user_home_result.stdout }}"
+  when: syncthing_user_home_result.rc == 0
+
+- name: "MMN syncthing - Set syncthing config directory"
+  ansible.builtin.set_fact:
+    syncthing_confdir: "{{ syncthing_user_home }}/.local/state/syncthing"
+
+# --- Resolve per-user overrides (fall back to global defaults) ---
+- name: "MMN syncthing - Resolve per-user settings for {{ syncthing_user.username }}"
+  ansible.builtin.set_fact:
+    syncthing_eff_gui_address: "{{ syncthing_user.gui_address | default(syncthing_gui_address) }}"
+    syncthing_eff_gui_tls: "{{ syncthing_user.gui_tls | default(syncthing_gui_tls) }}"
+    syncthing_eff_gui_cert: "{{ syncthing_user.gui_cert | default(syncthing_gui_cert) }}"
+    syncthing_eff_gui_key: "{{ syncthing_user.gui_key | default(syncthing_gui_key) }}"
+    syncthing_eff_api_key: "{{ syncthing_user.api_key | default(syncthing_api_key) }}"
+    syncthing_eff_linger: "{{ syncthing_user.linger | default(syncthing_linger) }}"
+    syncthing_eff_options: "{{ syncthing_user.options | default(syncthing_options) }}"
+    syncthing_eff_gui_user: "{{ syncthing_user.gui_user | default(syncthing_gui_user) }}"
+    syncthing_eff_gui_password: "{{ syncthing_user.gui_password | default(syncthing_gui_password) }}"
+
+- name: "MMN syncthing - Check if config already exists for {{ syncthing_user.username }}"
+  ansible.builtin.stat:
+    path: "{{ syncthing_confdir }}/config.xml"
+  register: syncthing_config_stat
+
+- name: "MMN syncthing - Generate config for {{ syncthing_user.username }}"
+  ansible.builtin.command: "syncthing generate --home={{ syncthing_confdir }}"
+  become_user: "{{ syncthing_user.username }}"
+  when: not syncthing_config_stat.stat.exists
+  changed_when: true
+
+# --- Copy CA-signed cert for HTTPS GUI if TLS is enabled ---
+# Stat the cert first so we can skip gracefully if the cacert paths
+# don't match this host's naming convention.
+- name: "MMN syncthing - Check if CA cert exists for {{ syncthing_user.username }}"
+  ansible.builtin.stat:
+    path: "{{ syncthing_eff_gui_cert }}"
+  register: syncthing_cacert_cert_stat
+  when: syncthing_eff_gui_tls | bool
+
+- name: "MMN syncthing - Copy CA cert for HTTPS GUI for {{ syncthing_user.username }}"
+  ansible.builtin.copy:
+    src: "{{ syncthing_eff_gui_cert }}"
+    dest: "{{ syncthing_confdir }}/https-cert.pem"
+    owner: "{{ syncthing_user.username }}"
+    group: "{{ syncthing_user.username }}"
+    mode: '0644'
+    remote_src: true
+  when:
+    - syncthing_eff_gui_tls | bool
+    - syncthing_cacert_cert_stat.stat.exists | default(false)
+
+- name: "MMN syncthing - Copy CA key for HTTPS GUI for {{ syncthing_user.username }}"
+  ansible.builtin.copy:
+    src: "{{ syncthing_eff_gui_key }}"
+    dest: "{{ syncthing_confdir }}/https-key.pem"
+    owner: "{{ syncthing_user.username }}"
+    group: "{{ syncthing_user.username }}"
+    mode: '0600'
+    remote_src: true
+  when:
+    - syncthing_eff_gui_tls | bool
+    - syncthing_cacert_cert_stat.stat.exists | default(false)
+
+- name: "MMN syncthing - Warn when CA cert not found for {{ syncthing_user.username }}"
+  ansible.builtin.debug:
+    msg: >-
+      CA cert not found at {{ syncthing_eff_gui_cert }} — TLS will use
+      syncthing's self-signed cert. Set gui_cert/gui_key to the correct
+      path for this host.
+  when:
+    - syncthing_eff_gui_tls | bool
+    - not (syncthing_cacert_cert_stat.stat.exists | default(false))
+
+# --- Start the service ---
+- name: "MMN syncthing - Enable lingering for {{ syncthing_user.username }}"
+  ansible.builtin.command: "loginctl enable-linger {{ syncthing_user.username }}"
+  when: syncthing_eff_linger | bool
+  changed_when: false
+
+- name: "MMN syncthing - Start and enable syncthing@{{ syncthing_user.username }}"
+  ansible.builtin.systemd:
+    name: "syncthing@{{ syncthing_user.username }}"
+    state: started
+    enabled: true
+    daemon_reload: true
+
+# --- Read the auto-generated API key from config.xml ---
+- name: "MMN syncthing - Read API key from config for {{ syncthing_user.username }}"
+  ansible.builtin.shell: "grep -oP '<apikey>\\K[^<]+' {{ syncthing_confdir }}/config.xml"
+  register: syncthing_apikey_read
+  changed_when: false
+
+- name: "MMN syncthing - Set effective API key from config"
+  ansible.builtin.set_fact:
+    syncthing_effective_api_key: "{{ syncthing_apikey_read.stdout }}"
+
+# --- Determine the API URL scheme (http or https) ---
+- name: "MMN syncthing - Set REST API URL"
+  ansible.builtin.set_fact:
+    syncthing_api_url: "{{ 'https' if syncthing_eff_gui_tls | bool else 'http' }}://{{ syncthing_eff_gui_address }}"
+
+# --- Patch GUI config (address, TLS, theme) via REST API ---
+# First boot: syncthing listens on 127.0.0.1:8384 over HTTP regardless of
+# config.xml, so we can reach the API over HTTP initially. After patching
+# TLS + address, a restart is needed; subsequent runs use the new scheme.
+- name: "MMN syncthing - Patch GUI config via REST API (initial HTTP) for {{ syncthing_user.username }}"
+  ansible.builtin.uri:
+    url: "http://127.0.0.1:8384/rest/config/gui"
+    method: PATCH
+    headers:
+      X-API-Key: "{{ syncthing_effective_api_key }}"
+    body:
+      address: "{{ syncthing_eff_gui_address }}"
+      theme: "default"
+      tls: "{{ syncthing_eff_gui_tls | bool }}"
+    body_format: json
+    validate_certs: false
+  become_user: "{{ syncthing_user.username }}"
+  register: syncthing_gui_patch_initial
+  changed_when: true
+  failed_when: false
+
+# If the initial HTTP patch failed (already on HTTPS), retry with HTTPS
+- name: "MMN syncthing - Patch GUI config via REST API (HTTPS fallback) for {{ syncthing_user.username }}"
+  ansible.builtin.uri:
+    url: "https://127.0.0.1:8384/rest/config/gui"
+    method: PATCH
+    headers:
+      X-API-Key: "{{ syncthing_effective_api_key }}"
+    body:
+      address: "{{ syncthing_eff_gui_address }}"
+      theme: "default"
+      tls: "{{ syncthing_eff_gui_tls | bool }}"
+    body_format: json
+    validate_certs: false
+  become_user: "{{ syncthing_user.username }}"
+  when: syncthing_gui_patch_initial.failed | default(false)
+  changed_when: true
+
+# --- Patch GUI authentication (user + password) if provided ---
+# Syncthing auto-hashes plaintext passwords via bcrypt on the REST API.
+- name: "MMN syncthing - Patch GUI auth for {{ syncthing_user.username }}"
+  ansible.builtin.uri:
+    url: "{{ syncthing_api_url }}/rest/config/gui"
+    method: PATCH
+    headers:
+      X-API-Key: "{{ syncthing_effective_api_key }}"
+    body:
+      user: "{{ syncthing_eff_gui_user }}"
+      password: "{{ syncthing_eff_gui_password }}"
+    body_format: json
+    validate_certs: false
+  become_user: "{{ syncthing_user.username }}"
+  no_log: true
+  when:
+    - syncthing_eff_gui_user | default('', true) | length > 0
+    - syncthing_eff_gui_password | default('', true) | length > 0
+  changed_when: true
+
+# If a fixed API key was provided, patch it and update our fact
+- name: "MMN syncthing - Patch API key if user-provided for {{ syncthing_user.username }}"
+  ansible.builtin.uri:
+    url: "{{ syncthing_api_url }}/rest/config/gui"
+    method: PATCH
+    headers:
+      X-API-Key: "{{ syncthing_effective_api_key }}"
+    body:
+      apiKey: "{{ syncthing_api_key }}"
+    body_format: json
+    validate_certs: false
+  become_user: "{{ syncthing_user.username }}"
+  when: syncthing_eff_api_key | default('', true) | length > 0
+  changed_when: true
+
+- name: "MMN syncthing - Update effective API key if patched"
+  ansible.builtin.set_fact:
+    syncthing_effective_api_key: "{{ syncthing_eff_api_key }}"
+  when: syncthing_eff_api_key | default('', true) | length > 0
+
+# --- Restart syncthing to apply TLS/address changes ---
+- name: "MMN syncthing - Restart syncthing@{{ syncthing_user.username }} for GUI changes"
+  ansible.builtin.systemd:
+    name: "syncthing@{{ syncthing_user.username }}"
+    state: restarted
+  when: syncthing_gui_patch_initial.changed | default(false) or syncthing_eff_gui_tls | bool
+
+# --- Wait for REST API to be ready on the final scheme ---
+- name: "MMN syncthing - Wait for syncthing REST API to be ready for {{ syncthing_user.username }}"
+  ansible.builtin.uri:
+    url: "{{ syncthing_api_url }}/rest/system/status"
+    method: GET
+    headers:
+      X-API-Key: "{{ syncthing_effective_api_key }}"
+    return_content: true
+    validate_certs: false
+  become_user: "{{ syncthing_user.username }}"
+  register: syncthing_status_result
+  until: syncthing_status_result.status == 200
+  retries: 10
+  delay: 2

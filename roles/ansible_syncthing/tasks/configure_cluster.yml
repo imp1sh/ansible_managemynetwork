@@ -1,0 +1,131 @@
+---
+# Add remote devices and shared folders via REST API.
+# Reads device IDs collected from all hosts via hostvars[syncthing_device_ids].
+# Device pairing is limited to hosts listed in syncthing_user.hosts
+# (falls back to all hosts in the play if omitted).
+
+# --- Resolve the current host's device ID for this user ---
+- name: "MMN syncthing - Get local device ID for {{ syncthing_user.username }}"
+  ansible.builtin.uri:
+    url: "{{ syncthing_api_url }}/rest/system/status"
+    method: GET
+    validate_certs: false
+    headers:
+      X-API-Key: "{{ syncthing_effective_api_key }}"
+    return_content: true
+  become_user: "{{ syncthing_user.username }}"
+  register: syncthing_local_status
+  changed_when: false
+
+- name: "MMN syncthing - Set local device ID"
+  ansible.builtin.set_fact:
+    syncthing_local_device_id: "{{ syncthing_local_status.json.myID }}"
+
+# --- Resolve the sync cluster host list for this user ---
+# Intersect syncthing_user.hosts with ansible_play_batch so we only
+# consider hosts that are actually in the current play.
+- name: "MMN syncthing - Set sync cluster hosts for {{ syncthing_user.username }}"
+  ansible.builtin.set_fact:
+    syncthing_cluster_hosts: "{{ (syncthing_user.hosts | default(ansible_play_batch)) | intersect(ansible_play_batch) }}"
+
+# --- Determine which folders to configure for this user ---
+- name: "MMN syncthing - Set effective folder list for {{ syncthing_user.username }}"
+  ansible.builtin.set_fact:
+    syncthing_effective_folders: "{{ syncthing_user.folders | default(syncthing_folders) }}"
+
+# --- Add each remote device (only hosts in this user's cluster) ---
+- name: "MMN syncthing - Add remote devices for {{ syncthing_user.username }}"
+  ansible.builtin.uri:
+    url: "{{ syncthing_api_url }}/rest/config/devices"
+    method: POST
+    validate_certs: false
+    headers:
+      X-API-Key: "{{ syncthing_effective_api_key }}"
+    body:
+      deviceID: "{{ hostvars[remote_host].syncthing_device_ids[syncthing_user.username] }}"
+      name: "{{ remote_host }}"
+      compression: "{{ syncthing_device_defaults.compression }}"
+      introducer: "{{ syncthing_device_defaults.introducer }}"
+      paused: "{{ syncthing_device_defaults.paused }}"
+      autoAcceptFolders: "{{ syncthing_device_defaults.autoAcceptFolders }}"
+      addresses:
+        - "{% if syncthing_device_address_mode == 'static' %}tcp://{{ hostvars[remote_host].ansible_host | default(remote_host) }}:22000{% else %}dynamic{% endif %}"
+    body_format: json
+    status_code: [200, 201]
+  become_user: "{{ syncthing_user.username }}"
+  loop: "{{ syncthing_cluster_hosts | reject('equalto', inventory_hostname) | list }}"
+  loop_control:
+    loop_var: remote_host
+  when: hostvars[remote_host].syncthing_device_ids is defined and syncthing_user.username in hostvars[remote_host].syncthing_device_ids
+  register: syncthing_device_add_results
+  changed_when: true
+  failed_when: false
+
+# --- Apply global options if defined ---
+- name: "MMN syncthing - Patch global options for {{ syncthing_user.username }}"
+  ansible.builtin.uri:
+    url: "{{ syncthing_api_url }}/rest/config/options"
+    method: PATCH
+    validate_certs: false
+    headers:
+      X-API-Key: "{{ syncthing_effective_api_key }}"
+    body: "{{ syncthing_eff_options | default(syncthing_options) }}"
+    body_format: json
+  become_user: "{{ syncthing_user.username }}"
+  when: syncthing_options | length > 0
+  changed_when: true
+
+# --- Build device list for folder sharing (local + remote, cluster hosts only) ---
+- name: "MMN syncthing - Build device list for folders (JSON) for {{ syncthing_user.username }}"
+  ansible.builtin.set_fact:
+    syncthing_folder_devices: |
+      [
+        {
+          "deviceID": "{{ syncthing_local_device_id }}",
+          "introducedBy": "",
+          "encryptionPassword": ""
+        }
+      {%- for remote_host in syncthing_cluster_hosts | reject('equalto', inventory_hostname) | list %}
+      {%- if hostvars[remote_host].syncthing_device_ids is defined and syncthing_user.username in hostvars[remote_host].syncthing_device_ids %}
+      ,
+        {
+          "deviceID": "{{ hostvars[remote_host].syncthing_device_ids[syncthing_user.username] }}",
+          "introducedBy": "",
+          "encryptionPassword": ""
+        }
+      {%- endif %}
+      {%- endfor %}
+      ]
+
+- name: "MMN syncthing - Parse device list JSON"
+  ansible.builtin.set_fact:
+    syncthing_folder_devices_parsed: "{{ syncthing_folder_devices | from_json }}"
+
+# --- Add shared folders for this user ---
+- name: "MMN syncthing - Add shared folders for {{ syncthing_user.username }}"
+  ansible.builtin.uri:
+    url: "{{ syncthing_api_url }}/rest/config/folders"
+    method: POST
+    validate_certs: false
+    headers:
+      X-API-Key: "{{ syncthing_effective_api_key }}"
+    body:
+      id: "{{ folder.id }}"
+      label: "{{ folder.label | default(folder.id) }}"
+      path: "{{ syncthing_folder_overrides.get(folder.id, folder.path) }}"
+      type: "{{ folder.type | default('sendreceive') }}"
+      rescanIntervalS: "{{ folder.rescan_interval | default(3600) }}"
+      fsWatcherEnabled: "{{ folder.fs_watcher | default(true) }}"
+      fsWatcherDelayS: "{{ folder.fs_watcher_delay | default(10) }}"
+      paused: "{{ folder.paused | default(false) }}"
+      ignorePerms: "{{ folder.ignore_perms | default(false) }}"
+      devices: "{{ syncthing_folder_devices_parsed }}"
+    body_format: json
+    status_code: [200, 201]
+  become_user: "{{ syncthing_user.username }}"
+  loop: "{{ syncthing_effective_folders }}"
+  loop_control:
+    loop_var: folder
+  register: syncthing_folder_add_results
+  changed_when: true
+  failed_when: false

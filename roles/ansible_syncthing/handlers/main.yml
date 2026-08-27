@@ -1,0 +1,5 @@
+---
+- name: Reload firewalld
+  ansible.builtin.command: firewall-cmd --reload
+  changed_when: false
+  when: ansible_os_family == "RedHat"

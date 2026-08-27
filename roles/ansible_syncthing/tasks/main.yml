@@ -1,0 +1,82 @@
+---
+- name: "MMN syncthing - Include OS vars"
+  ansible.builtin.include_vars: "{{ ansible_distribution }}.yml"
+
+# --- Determine per-user whether this host participates ---
+# syncthing_user.hosts controls which hosts are in each user's sync cluster.
+# If omitted, all hosts in the play participate (backward compatible).
+
+# --- Teardown mode: remove config/components per user ---
+- name: "MMN syncthing - Teardown for users requesting it"
+  ansible.builtin.include_tasks: teardown.yml
+  loop: "{{ syncthing_users }}"
+  loop_control:
+    loop_var: syncthing_user
+  no_log: true
+  when: >
+    (syncthing_user.teardown | default(syncthing_teardown | default(''))) | length > 0
+    and inventory_hostname in (syncthing_user.hosts | default(ansible_play_batch))
+
+- name: "MMN syncthing - Skip remaining tasks if global teardown for all"
+  ansible.builtin.meta: end_play
+  when: syncthing_teardown | default('') | length > 0
+
+# --- Normal operation: install, bootstrap, configure ---
+- name: "MMN syncthing - Set package list for calling packages role"
+  ansible.builtin.set_fact:
+    packages_installrole: "{{ syncthing_packagename }}"
+
+- name: "MMN syncthing - Install required packages"
+  ansible.builtin.include_role:
+    name: imp1sh.ansible_managemynetwork.ansible_packages
+  when: >
+    syncthing_users
+    | selectattr('hosts', 'defined')
+    | map(attribute='hosts')
+    | flatten
+    | intersect([inventory_hostname])
+    | length > 0
+    or syncthing_users | rejectattr('hosts', 'defined') | list | length > 0
+
+- name: "MMN syncthing - Bootstrap and configure for each user"
+  ansible.builtin.include_tasks: bootstrap.yml
+  loop: "{{ syncthing_users }}"
+  loop_control:
+    loop_var: syncthing_user
+  no_log: true
+  when: >
+    (syncthing_user.teardown | default(syncthing_teardown | default(''))) | length == 0
+    and inventory_hostname in (syncthing_user.hosts | default(ansible_play_batch))
+
+- name: "MMN syncthing - Open firewall ports for each user"
+  ansible.builtin.include_tasks: firewall.yml
+  loop: "{{ syncthing_users }}"
+  loop_control:
+    loop_var: syncthing_user
+  no_log: true
+  when: >
+    (syncthing_firewall | bool)
+    and (syncthing_user.teardown | default(syncthing_teardown | default(''))) | length == 0
+    and inventory_hostname in (syncthing_user.hosts | default(ansible_play_batch))
+
+- name: "MMN syncthing - Collect device IDs from all hosts"
+  ansible.builtin.include_tasks: collect_device_ids.yml
+  loop: "{{ syncthing_users }}"
+  loop_control:
+    loop_var: syncthing_user
+  no_log: true
+  when: >
+    (syncthing_configure | bool)
+    and (syncthing_user.teardown | default(syncthing_teardown | default(''))) | length == 0
+    and inventory_hostname in (syncthing_user.hosts | default(ansible_play_batch))
+
+- name: "MMN syncthing - Add remote devices and shared folders"
+  ansible.builtin.include_tasks: configure_cluster.yml
+  loop: "{{ syncthing_users }}"
+  loop_control:
+    loop_var: syncthing_user
+  no_log: true
+  when: >
+    (syncthing_configure | bool)
+    and (syncthing_user.teardown | default(syncthing_teardown | default(''))) | length == 0
+    and inventory_hostname in (syncthing_user.hosts | default(ansible_play_batch))

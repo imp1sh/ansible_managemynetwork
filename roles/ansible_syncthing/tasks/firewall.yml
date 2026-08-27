@@ -1,0 +1,102 @@
+---
+# Open firewall ports for syncthing sync and GUI traffic.
+# Auto-detects the firewall backend: firewalld, ufw, or none.
+# Each per-user instance gets its own ports derived from the per-user
+# gui_address and sync_port settings.
+
+# --- Resolve per-user settings (fresh per iteration, not stale from bootstrap) ---
+- name: "MMN syncthing - Resolve per-user settings for firewall of {{ syncthing_user.username }}"
+  ansible.builtin.set_fact:
+    syncthing_eff_gui_address: "{{ syncthing_user.gui_address | default(syncthing_gui_address) }}"
+    syncthing_eff_sync_port: "{{ syncthing_user.sync_port | default(syncthing_sync_port) }}"
+    syncthing_eff_discovery_port: "{{ syncthing_user.discovery_port | default(syncthing_discovery_port) }}"
+
+# --- Derive the GUI port from the per-user GUI address ---
+- name: "MMN syncthing - Extract GUI port from address for {{ syncthing_user.username }}"
+  ansible.builtin.set_fact:
+    syncthing_gui_port: "{{ syncthing_eff_gui_address | regex_search(':(\\d+)$', '\\1') | first }}"
+
+# --- Detect firewall backend ---
+- name: "MMN syncthing - Check if firewalld is active"
+  ansible.builtin.command: "systemctl is-active firewalld"
+  register: syncthing_firewalld_check
+  changed_when: false
+  failed_when: false
+
+- name: "MMN syncthing - Check if ufw is installed"
+  ansible.builtin.command: "which ufw"
+  register: syncthing_ufw_check
+  changed_when: false
+  failed_when: false
+
+- name: "MMN syncthing - Set firewall backend"
+  ansible.builtin.set_fact:
+    syncthing_firewall_backend: >-
+      {{
+        'firewalld' if syncthing_firewalld_check.stdout | trim == 'active'
+        else ('ufw' if syncthing_ufw_check.rc == 0
+        else 'none')
+      }}
+
+# --- Firewalld ---
+- name: "MMN syncthing - Open sync port (TCP {{ syncthing_eff_sync_port }}) in firewalld for {{ syncthing_user.username }}"
+  ansible.posix.firewalld:
+    port: "{{ syncthing_eff_sync_port }}/tcp"
+    permanent: true
+    state: enabled
+    zone: "{{ syncthing_firewall_zone | default(omit) }}"
+  notify: Reload firewalld
+  when: syncthing_firewall_backend == "firewalld"
+
+- name: "MMN syncthing - Open discovery port (UDP {{ syncthing_eff_discovery_port }}) in firewalld for {{ syncthing_user.username }}"
+  ansible.posix.firewalld:
+    port: "{{ syncthing_eff_discovery_port }}/udp"
+    permanent: true
+    state: enabled
+    zone: "{{ syncthing_firewall_zone | default(omit) }}"
+  notify: Reload firewalld
+  when: syncthing_firewall_backend == "firewalld"
+
+- name: "MMN syncthing - Open GUI port (TCP {{ syncthing_gui_port }}) in firewalld for {{ syncthing_user.username }}"
+  ansible.posix.firewalld:
+    port: "{{ syncthing_gui_port }}/tcp"
+    permanent: true
+    state: enabled
+    zone: "{{ syncthing_firewall_zone | default(omit) }}"
+  notify: Reload firewalld
+  when:
+    - syncthing_firewall_backend == "firewalld"
+    - not syncthing_eff_gui_address.startswith("127.0.0.1")
+
+# --- UFW ---
+- name: "MMN syncthing - Open sync port (TCP {{ syncthing_eff_sync_port }}) in ufw for {{ syncthing_user.username }}"
+  community.general.ufw:
+    rule: allow
+    port: "{{ syncthing_eff_sync_port }}"
+    proto: tcp
+  when: syncthing_firewall_backend == "ufw"
+
+- name: "MMN syncthing - Open discovery port (UDP {{ syncthing_eff_discovery_port }}) in ufw for {{ syncthing_user.username }}"
+  community.general.ufw:
+    rule: allow
+    port: "{{ syncthing_eff_discovery_port }}"
+    proto: udp
+  when: syncthing_firewall_backend == "ufw"
+
+- name: "MMN syncthing - Open GUI port (TCP {{ syncthing_gui_port }}) in ufw for {{ syncthing_user.username }}"
+  community.general.ufw:
+    rule: allow
+    port: "{{ syncthing_gui_port }}"
+    proto: tcp
+  when:
+    - syncthing_firewall_backend == "ufw"
+    - not syncthing_eff_gui_address.startswith("127.0.0.1")
+
+# --- No firewall detected ---
+- name: "MMN syncthing - Warn when no firewall backend detected"
+  ansible.builtin.debug:
+    msg: >-
+      No firewalld or ufw detected on this host. Ports {{ syncthing_eff_sync_port }}/tcp,
+      {{ syncthing_eff_discovery_port }}/udp, and {{ syncthing_gui_port }}/tcp
+      must be opened manually if a firewall is present.
+  when: syncthing_firewall_backend == "none"
