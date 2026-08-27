@@ -1,0 +1,19 @@
+---
+# Reject malformed entries early with a clear, actionable message instead of
+# letting the downstream modules fail with cryptic errors.
+
+- name: "MMN dnfrepos - Sanity-check each repo definition"
+  ansible.builtin.assert:
+    that:
+      - item.value.url is defined or
+        item.value.baseurl is defined or
+        item.value.metalink is defined or
+        item.value.mirrorlist is defined
+    fail_msg: >-
+      Repo '{{ item.key }}' defines neither 'url' (Mode A: fetch a remote
+      .repo file) nor 'baseurl'/'metalink'/'mirrorlist' (Mode B: inline
+      declaration). Add at least one.
+    success_msg: "Repo '{{ item.key }}': OK"
+  loop: "{{ dnf_repos | dict2items }}"
+  loop_control:
+    label: "{{ item.key }}"

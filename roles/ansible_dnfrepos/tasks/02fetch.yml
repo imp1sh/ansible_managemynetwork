@@ -1,0 +1,42 @@
+---
+# Mode A: fetch a remote .repo file verbatim into the repos directory.
+# `get_url` is idempotent and pins the filename to <key>.repo, unlike
+# `dnf config-manager --add-repo` which invents a name and stacks duplicates.
+
+- name: "MMN dnfrepos - Download remote .repo file"
+  ansible.builtin.get_url:
+    url: "{{ item.value.url }}"
+    dest: "{{ dnf_repos_repo_dir }}/{{ item.value.filename | default(item.key) }}.repo"
+    owner: "{{ dnf_repos_owner }}"
+    group: "{{ dnf_repos_group }}"
+    mode: "{{ dnf_repos_mode }}"
+  loop: "{{ dnf_repos | dict2items }}"
+  loop_control:
+    label: "{{ item.key }}"
+  when:
+    - item.value.url is defined
+    - item.value.state | default('present') == 'present'
+
+- name: "MMN dnfrepos - Remove remote .repo file"
+  ansible.builtin.file:
+    path: "{{ dnf_repos_repo_dir }}/{{ item.value.filename | default(item.key) }}.repo"
+    state: absent
+  loop: "{{ dnf_repos | dict2items }}"
+  loop_control:
+    label: "{{ item.key }}"
+  when:
+    - item.value.url is defined
+    - item.value.state | default('present') == 'absent'
+
+- name: "MMN dnfrepos - Import GPG key for fetched repos"
+  ansible.builtin.rpm_key:
+    key: "{{ item.value.gpgkey }}"
+    state: present
+  loop: "{{ dnf_repos | dict2items }}"
+  loop_control:
+    label: "{{ item.key }}"
+  when:
+    - dnf_repos_import_gpg_keys | bool
+    - item.value.url is defined
+    - item.value.gpgkey is defined
+    - item.value.state | default('present') == 'present'

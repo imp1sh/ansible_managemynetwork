@@ -1,0 +1,7 @@
+---
+# `dnf makecache` works on dnf4 and dnf5. Marked not-changed so the play stays
+# idempotent-friendly; this only fires when dnf_repos_refresh_cache is enabled.
+
+- name: "MMN dnfrepos - Refresh dnf metadata cache"
+  ansible.builtin.command: dnf makecache
+  changed_when: false

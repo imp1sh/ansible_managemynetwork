@@ -1,0 +1,15 @@
+---
+- hosts: fedora_desktops
+  remote_user: root
+  roles:
+    - ansible_dnfrepos
+  vars:
+    dnf_repos:
+      librewolf:
+        url: "https://repo.librewolf.net/librewolf.repo"
+      example-inline:
+        name: "example-inline"
+        description: "Example inline repo (placeholder, disabled)"
+        baseurl: "https://download.example/pub/example/$releasever/$basearch/"
+        gpgcheck: false
+        enabled: false

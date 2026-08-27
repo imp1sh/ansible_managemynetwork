@@ -1,0 +1,32 @@
+---
+- name: "MMN dnfrepos - Skip on non-RedHat-family hosts"
+  ansible.builtin.debug:
+    msg: >-
+      ansible_dnfrepos only supports Red Hat-family distributions (Fedora,
+      RHEL, CentOS Stream, Rocky, AlmaLinux). Skipping on
+      {{ ansible_os_family | default('unknown') }}.
+  when: ansible_os_family != "RedHat"
+
+- name: "MMN dnfrepos - Validate repo definitions"
+  ansible.builtin.include_tasks: 01validate.yml
+  when:
+    - ansible_os_family == "RedHat"
+    - dnf_repos | default({}) | length > 0
+
+- name: "MMN dnfrepos - Fetch remote .repo files (Mode A)"
+  ansible.builtin.include_tasks: 02fetch.yml
+  when:
+    - ansible_os_family == "RedHat"
+    - dnf_repos | default({}) | length > 0
+
+- name: "MMN dnfrepos - Declare inline repositories (Mode B)"
+  ansible.builtin.include_tasks: 03configure.yml
+  when:
+    - ansible_os_family == "RedHat"
+    - dnf_repos | default({}) | length > 0
+
+- name: "MMN dnfrepos - Refresh dnf metadata"
+  ansible.builtin.include_tasks: 04refresh.yml
+  when:
+    - ansible_os_family == "RedHat"
+    - dnf_repos_refresh_cache | bool

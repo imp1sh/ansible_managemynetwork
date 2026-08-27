@@ -1,0 +1,65 @@
+---
+# ansible_dnfrepos — flexibly add and remove third-party DNF repositories on
+# Red Hat-family hosts (Fedora, RHEL, CentOS Stream, Rocky, AlmaLinux, …).
+#
+# Design rationale
+# ----------------
+# Adding a repo from a remote .repo file is classically done with
+#   dnf5: `dnf config-manager addrepo --from-repofile=<URL>`
+#   dnf4: `dnf config-manager --add-repo <URL>`
+# Those two incompatible invocations are NON-IDEMPOTENT: reruns pile up
+# duplicate files (librewolf.repo, librewolf.repo.1, librewolf.repo.2 …)
+# and the resulting filename is dictated by the server-side path.
+#
+# This role therefore does NOT shell out to `dnf config-manager`. Instead it
+# places the .repo file straight into /etc/yum.repos.d/<name>.repo via
+# `get_url` (idempotent, controllable filename) or declares the repo inline
+# via `ansible.builtin.yum_repository`. Both mechanisms are interpreted by
+# dnf4 AND dnf5 alike, so the dnf-generation split disappears entirely.
+#
+# Which repos get added on which hosts is driven exclusively by the
+# `dnf_repos` dictionary — set it in group_vars/host_vars to steer per-group
+# or per-host.
+
+# ---------------------------------------------------------------------------
+# Repositories to manage. Dict keyed by a stable name that doubles as the
+# .repo filename stem (<name>.repo). Each entry is EITHER:
+#
+#   Mode A — fetch a remote .repo file as-is:
+#     librewolf:
+#       url: "https://repo.librewolf.net/librewolf.repo"
+#       gpgkey: "https://repo.librewolf.net/.../repomd.xml.key"  # optional
+#       state: present                                           # optional
+#
+#   Mode B — declare the repo inline (full control, mirrors yum_repository):
+#     google-chrome:
+#       name: "google-chrome"                                    # repo id ([..]); defaults to the key
+#       description: "Google Chrome stable"                     # human-readable Name=
+#       baseurl: "https://dl.google.com/linux/chrome/rpm/stable/$basearch"
+#       gpgkey: "https://dl.google.com/linux/linux_signing_key.pub"
+#       gpgcheck: true
+#       enabled: true
+#       priority: 10                                             # optional
+#       exclude: "kernel*"                                       # optional
+#       state: present                                          # optional
+#
+# Mixing `url` with `baseurl`/`metalink`/`mirrorlist` in one entry is an
+# error — `url` takes precedence and the entry is treated as Mode A.
+# ---------------------------------------------------------------------------
+dnf_repos: {}
+
+# Import GPG keys declared via `gpgkey` into the rpm database (rpm_key)?
+# Disable if you prefer dnf to import keys lazily on first transaction.
+dnf_repos_import_gpg_keys: true
+
+# Run `dnf makecache` after changes so metadata is ready immediately.
+# Off by default to keep plays fast; package-install roles refresh anyway.
+dnf_repos_refresh_cache: false
+
+# Where to place .repo files.
+dnf_repos_repo_dir: "/etc/yum.repos.d"
+
+# Ownership/permissions for placed .repo files.
+dnf_repos_owner: "root"
+dnf_repos_group: "root"
+dnf_repos_mode: "0644"
