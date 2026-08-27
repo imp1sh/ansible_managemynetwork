@@ -275,7 +275,46 @@ Playbook (target a broad group — the `hosts` key on each user dict decides par
     - imp1sh.ansible_managemynetwork.ansible_syncthing
 ```
 
-All hosts in the play automatically discover each other's device IDs and pair. Folders are shared between all hosts that have the same user configured. Adding a new host is just adding it to the `hosts:` line.
+All hosts in the play automatically discover each other's device IDs and pair. Folders are shared between all hosts that have the same user configured.
+
+### Initial setup
+
+Target a broad group (e.g. `os_desktop_fedora`) — the `hosts` key on each user dict decides which hosts actually participate:
+
+```yaml
+- hosts: os_desktop_fedora
+  become: true
+  roles:
+    - imp1sh.ansible_managemynetwork.ansible_syncthing
+```
+
+All hosts listed in `syncthing_user.hosts` must be present in the play. The role exchanges device IDs between hosts via `hostvars` during the play — if a host is missing from the play, it cannot be paired.
+
+### Expanding a sync cluster to a new host
+
+To add a new host to an existing sync cluster, **run the playbook against all hosts in the cluster** (existing + new). This is required because:
+
+1. The new host needs to learn the existing hosts' device IDs (via `hostvars`)
+2. The existing hosts need to learn the new host's device ID
+3. All hosts need to update their folder configs to include the new device
+
+Steps:
+1. Add the new host to the `hosts` list on the user dict in `group_vars`
+2. Run the full playbook (not `--limit`)
+
+Existing hosts are idempotent — their device IDs and folder configs don't change. Only the new device is added to each host's config. Most tasks on existing hosts skip (already configured).
+
+```bash
+# Correct — all cluster hosts run together
+ansible-playbook -i inventory.yml playbooks/syncthing.yml
+
+# Wrong — new host can't pair with hosts not in the play
+ansible-playbook -i inventory.yml playbooks/syncthing.yml -l newhost.t.libcom.de
+```
+
+### Limiting playbook scope
+
+While the playbook targets a broad group, only hosts listed in `syncthing_user.hosts` actually install syncthing. Hosts in the play but not in any user's `hosts` list are skipped entirely (no install, no bootstrap, no pairing). This lets you safely run the playbook against `os_desktop_fedora` even if only 2 of 10 hosts participate in the sync.
 
 ## Host selection
 
@@ -300,9 +339,10 @@ syncthing_users:
 2. The role queries `GET /rest/system/status` → `myID` on each host
 3. Device IDs are stored in a `syncthing_device_ids` dict fact keyed by username
 4. Each host reads the other hosts' device IDs from `hostvars` and adds them via `POST /rest/config/devices`
-5. Each host shares folders with the full device list (local + remote) via `POST /rest/config/folders`
+5. Each host queries `GET /rest/config/devices` for all configured devices and builds the folder device list from that
+6. Each host shares folders with the full device list via `PUT /rest/config/folders/<id>`
 
-No manual device-ID copy/paste. Adding a new host to the play group automatically extends the cluster.
+No manual device-ID copy/paste. Adding a new host to the `hosts` list and re-running the playbook automatically extends the cluster.
 
 ## REST API endpoints used
 
@@ -311,8 +351,9 @@ No manual device-ID copy/paste. Adding a new host to the play group automaticall
 | `/rest/config/gui` | `PATCH` | Set GUI address, TLS, API key, auth |
 | `/rest/system/status` | `GET` | Retrieve local device ID (`myID`) |
 | `/rest/config/devices` | `GET` / `POST` | List / add remote devices |
-| `/rest/config/devices/<id>` | `DELETE` | Remove a remote device (teardown) |
-| `/rest/config/folders` | `GET` / `POST` | List / add shared folders |
+| `/rest/config/devices/<id>` | `DELETE` / `PATCH` | Remove a device / rename local device (teardown/bootstrap) |
+| `/rest/config/folders` | `GET` | List shared folders |
+| `/rest/config/folders/<id>` | `PUT` | Add or update a shared folder with device list |
 | `/rest/config/folders/<id>` | `DELETE` | Remove a folder config (teardown) |
 | `/rest/config/options` | `PATCH` | Apply global options |
 

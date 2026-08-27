@@ -75,37 +75,61 @@
   when: syncthing_options | length > 0
   changed_when: true
 
-# --- Build device list for folder sharing (local + remote, cluster hosts only) ---
-- name: "MMN syncthing - Build device list for folders (JSON) for {{ syncthing_user.username }}"
+# --- Build device list for folder sharing ---
+# Query the local syncthing for all configured devices and include them
+# all in the folder. This ensures the folder is shared with every device
+# that has been added, regardless of hostvars propagation timing.
+- name: "MMN syncthing - Get all configured devices for {{ syncthing_user.username }}"
+  ansible.builtin.uri:
+    url: "{{ syncthing_api_url }}/rest/config/devices"
+    method: GET
+    validate_certs: false
+    headers:
+      X-API-Key: "{{ syncthing_effective_api_key }}"
+    return_content: true
+  become_user: "{{ syncthing_user.username }}"
+  register: syncthing_all_devices
+  changed_when: false
+
+- name: "MMN syncthing - Build folder device list from configured devices"
+  ansible.builtin.set_fact:
+    syncthing_folder_devices_parsed: >-
+      {{
+        syncthing_all_devices.json
+        | map(attribute='deviceID')
+        | map('community.general.json_query', "{'deviceID': @, 'introducedBy': '', 'encryptionPassword': ''}")
+        | list
+      }}
+  when: false
+
+- name: "MMN syncthing - Build folder device list (JSON)"
   ansible.builtin.set_fact:
     syncthing_folder_devices: |
       [
+      {%- for device in syncthing_all_devices.json %}
         {
-          "deviceID": "{{ syncthing_local_device_id }}",
+          "deviceID": "{{ device.deviceID }}",
           "introducedBy": "",
           "encryptionPassword": ""
-        }
-      {%- for remote_host in syncthing_cluster_hosts | reject('equalto', inventory_hostname) | list %}
-      {%- if hostvars[remote_host].syncthing_device_ids is defined and syncthing_user.username in hostvars[remote_host].syncthing_device_ids %}
-      ,
-        {
-          "deviceID": "{{ hostvars[remote_host].syncthing_device_ids[syncthing_user.username] }}",
-          "introducedBy": "",
-          "encryptionPassword": ""
-        }
-      {%- endif %}
+        }{% if not loop.last %},{% endif %}
       {%- endfor %}
       ]
 
-- name: "MMN syncthing - Parse device list JSON"
+- name: "MMN syncthing - Parse folder device list JSON"
   ansible.builtin.set_fact:
     syncthing_folder_devices_parsed: "{{ syncthing_folder_devices | from_json }}"
 
-# --- Add shared folders for this user ---
-- name: "MMN syncthing - Add shared folders for {{ syncthing_user.username }}"
+- name: "MMN syncthing - Debug device count for {{ syncthing_user.username }}"
+  ansible.builtin.debug:
+    msg: "Folder device list has {{ syncthing_folder_devices_parsed | length }} devices for {{ inventory_hostname }}"
+
+# --- Add/update shared folders for this user ---
+# Use PUT to /rest/config/folders/<id> which replaces the folder by ID.
+# This ensures the full device list is applied even if the folder already exists.
+- name: "MMN syncthing - Add or update shared folders for {{ syncthing_user.username }}"
   ansible.builtin.uri:
-    url: "{{ syncthing_api_url }}/rest/config/folders"
-    method: POST
+    url: "{{ syncthing_api_url }}/rest/config/folders/{{ folder.id }}"
+    method: PUT
     validate_certs: false
     headers:
       X-API-Key: "{{ syncthing_effective_api_key }}"

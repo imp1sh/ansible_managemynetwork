@@ -7,7 +7,7 @@
     dest: "/etc/apt/preferences.d/{{ item.value.filename | default(item.key) }}.pref"
     content: |
       Package: {{ (item.value.pin.package if item.value.pin is mapping else '*') }}
-      Pin: {{ item.value.pin.origin | default('release o=*,l=' ~ item.value.filename | default(item.key)) }}
+      Pin: {{ item.value.pin.pin | default('origin ' ~ item.value.key_origin | default(item.value.filename | default(item.key))) }}
       Pin-Priority: {{ item.value.pin.priority if item.value.pin is mapping else item.value.pin }}
     owner: root
     group: root
