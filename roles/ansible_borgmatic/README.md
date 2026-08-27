@@ -234,6 +234,31 @@ podman_containers:
       TZ: "Europe/Berlin"
 ```
 
+### Restore directory
+
+In container mode the role ensures a restore directory on the host so the
+container can write extracted archives somewhere. Define it via:
+
+```yaml
+borgmatic_restore_dir: "/mnt/cntr/borgmatic_restore"
+```
+
+The role creates this directory (mode `0755`, owned by `root`) before the
+container starts. You **must** also bind-mount it into the container's
+`volume` list, e.g.:
+
+```yaml
+podman_containers:
+  - name: borgmatic0
+    # ...
+    volume:
+      # ... source, config, ssh mounts ...
+      - "/mnt/cntr/borgmatic_restore:/mnt/restore/:rw"
+```
+
+Leaving `borgmatic_restore_dir` empty (the default) skips creation — useful
+if you don't need restore capability or manage the directory yourself.
+
 When running borgmatic in a container you need to run the `ansible_podman` role and enable the borgmatic plugin. The `ansible_podman` role then will also run the `ansible_borgmatic` role and take care of everything. This is how you enable the plugin for the container borgmatic0. I keep naming the container for backup the same on every host so I can define this on a group var scope in ansible
 
 ```
@@ -556,6 +581,7 @@ borgmatic_loki:
 | `borgmatic_confdir` | - | Config directory (container mode) |
 | `borgmatic_sshdir` | - | SSH directory (container mode) |
 | `borgmatic_cronfile` | - | Cron file path (container mode) |
+| `borgmatic_restore_dir` | `""` | Host directory ensured for container-mode restores; bind-mount it at `/mnt/restore` in the container |
 
 ### Scheduling Variables
 
@@ -594,6 +620,11 @@ There are multiple approaches to restore backups:
 1. **Dedicated restore container**: Create another container only for restoring that has a restore target RW mounted
 2. **Modify existing container**: Mount `/mnt/source` as RW instead of readonly and use borgmatic commands within the container
 3. **Add bind mount**: Add a bind mount volume to the existing container and restore into that directory
+
+Option 3 is the simplest: set `borgmatic_restore_dir` (e.g. in
+`group_vars/apps_borgmatic_container.yml`) and add a matching `:rw` bind mount
+to the container's `volume` list. The role creates the host directory
+automatically before the container starts — no manual `mkdir` needed.
 
 For hints on defining a dedicated restore container, see the `ansible_podman` documentation. **Important**: Don't forget to stop the restore container when finished, otherwise cron jobs might conflict with the actual backup container.
 

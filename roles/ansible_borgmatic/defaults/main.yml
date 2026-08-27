@@ -15,3 +15,9 @@ borgmatic_timer_minuterange_start: 1
 borgmatic_venv_wrapper: "/usr/local/sbin/borgmatic_venv"
 borgmatic_venvdir: "/opt/venv/borgmatic"
 borgmatic_via_pip: true
+
+# Host directory bind-mounted into the container at /mnt/restore for
+# borgmatic restore operations. Created on the host when defined and
+# non-empty. Set in group_vars/apps_borgmatic_container.yml for
+# container-mode hosts. Leave empty to skip.
+borgmatic_restore_dir: ""

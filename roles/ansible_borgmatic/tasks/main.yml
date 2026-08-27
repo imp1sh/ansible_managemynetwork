@@ -55,6 +55,17 @@
     - name: "MMN borgmatic - Container include vars"
       include_vars: "Container.yml"
 
+    - name: "MMN borgmatic - Ensure restore directory exists on host"
+      ansible.builtin.file:
+        path: "{{ borgmatic_restore_dir }}"
+        state: directory
+        mode: '0755'
+        owner: root
+        group: root
+      when:
+        - borgmatic_restore_dir is defined
+        - borgmatic_restore_dir | length > 0
+
     - name: "MMN borgmatic - Iterate over target repositories"
       ansible.builtin.include_tasks: "5ssh_container_repositories.yml"
       loop: "{{ borgmatic_repositories | dict2items }}"
