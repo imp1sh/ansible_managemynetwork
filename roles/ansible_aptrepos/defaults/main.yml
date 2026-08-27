@@ -1,0 +1,75 @@
+---
+# ansible_aptrepos — manages APT repositories and sources on Debian-family
+# hosts (Debian, Ubuntu, Raspberry Pi OS, …).
+#
+# Two scopes:
+#   1. Third-party repos  — apt_repos dict (GPG key + deb line in sources.list.d/)
+#   2. Base apt sources    — apt_sources dict (controls /etc/apt/sources.list)
+#
+# Both are driven by dictionaries — set them in group_vars/host_vars to
+# steer per-group or per-host.
+
+# ---------------------------------------------------------------------------
+# Third-party repositories — dict keyed by a stable name that doubles as the
+# sources filename stem (<name>.list). Each entry:
+#
+#   syncthing:
+#     repo: "deb [signed-by=/usr/share/keyrings/syncthing-archive-keyring.gpg] https://apt.syncthing.net/ syncthing stable"
+#     key_url: "https://syncthing.net/release-key.gpg"
+#     key_path: "/usr/share/keyrings/syncthing-archive-keyring.gpg"
+#     state: present                          # optional (default: present)
+#     filename: syncthing                     # optional (default: the key)
+#
+# Fields:
+#   repo      — REQUIRED. The full apt sources line (deb [opts] url dist comps)
+#   key_url   — OPTIONAL. URL to download the GPG key from.
+#   key_path  — OPTIONAL. Where to install the dearmored keyring.
+#               Required when key_url is set (determines signed-by= target).
+#   state     — OPTIONAL. present or absent (default: present).
+#   filename  — OPTIONAL. Sources filename stem (default: the dict key).
+#
+# When key_url is omitted, no GPG key is managed — the repo line is added
+# as-is (useful for repos whose key is already in the system trust store).
+# ---------------------------------------------------------------------------
+apt_repos: {}
+
+# ---------------------------------------------------------------------------
+# Extra third-party repos — merged INTO apt_repos at runtime.
+# Use this in host_vars to add repos without clobbering the group-level
+# apt_repos dict (Ansible replaces dicts, doesn't deep-merge).
+# ---------------------------------------------------------------------------
+apt_repos_extra: {}
+
+# ---------------------------------------------------------------------------
+# Base apt sources — controls the content of /etc/apt/sources.list.
+# When defined (non-empty), the role WRITES the file from this dict,
+# replacing any existing content. When empty (default), the role leaves
+# /etc/apt/sources.list untouched.
+#
+# Format: list of apt source lines (strings), exactly as they would appear
+# in sources.list. Comments start with #.
+# ---------------------------------------------------------------------------
+apt_sources: []
+# Example for Debian Trixie:
+# apt_sources:
+#   - "# Debian Trixie main"
+#   - "deb http://debian.netcologne.de/debian/ trixie main non-free-firmware"
+#   - "deb http://debian.netcologne.de/debian/ trixie-updates main non-free-firmware"
+#   - "deb http://security.debian.org/debian-security trixie-security main non-free-firmware"
+#   - "deb http://deb.debian.org/debian trixie-backports main contrib non-free"
+
+# ---------------------------------------------------------------------------
+# Run `apt-get update` after changes so metadata is ready immediately.
+# Off by default to keep plays fast; package-install roles refresh anyway.
+# ---------------------------------------------------------------------------
+apt_repos_update_cache: false
+
+# Ownership/permissions for GPG keyrings.
+apt_repos_keyring_owner: "root"
+apt_repos_keyring_group: "root"
+apt_repos_keyring_mode: "0644"
+
+# Ownership/permissions for sources.list.
+apt_sources_owner: "root"
+apt_sources_group: "root"
+apt_sources_mode: "0644"

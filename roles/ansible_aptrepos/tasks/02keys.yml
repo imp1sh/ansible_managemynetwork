@@ -1,0 +1,67 @@
+---
+# Download GPG keys and dearmor them into the keyring path.
+# Uses get_url to fetch the ASCII-armored key, then gpg --dearmor to convert
+# to binary format. Idempotent: skips if the keyring already exists and the
+# source key hasn't changed.
+
+- name: "MMN aptrepos - Download GPG keys"
+  ansible.builtin.get_url:
+    url: "{{ item.value.key_url }}"
+    dest: "{{ item.value.key_path }}.asc"
+    owner: "{{ apt_repos_keyring_owner }}"
+    group: "{{ apt_repos_keyring_group }}"
+    mode: "0644"
+    force: true
+  loop: "{{ apt_repos | dict2items }}"
+  loop_control:
+    label: "{{ item.key }}"
+  when:
+    - item.value.key_url is defined
+    - item.value.state | default('present') == 'present'
+  register: apt_repos_key_downloads
+
+- name: "MMN aptrepos - Dearmor GPG keys"
+  ansible.builtin.command:
+    cmd: "gpg --dearmor -o {{ item.item.value.key_path }} {{ item.item.value.key_path }}.asc"
+  loop: "{{ apt_repos_key_downloads.results | default([]) }}"
+  loop_control:
+    label: "{{ item.item.key }}"
+  when:
+    - item is changed
+    - item.item.value.state | default('present') == 'present'
+  changed_when: true
+
+- name: "MMN aptrepos - Set keyring permissions"
+  ansible.builtin.file:
+    path: "{{ item.item.value.key_path }}"
+    owner: "{{ apt_repos_keyring_owner }}"
+    group: "{{ apt_repos_keyring_group }}"
+    mode: "{{ apt_repos_keyring_mode }}"
+  loop: "{{ apt_repos_key_downloads.results | default([]) }}"
+  loop_control:
+    label: "{{ item.item.key }}"
+  when:
+    - item is changed
+    - item.item.value.state | default('present') == 'present'
+
+- name: "MMN aptrepos - Remove GPG key for absent repos"
+  ansible.builtin.file:
+    path: "{{ item.value.key_path }}"
+    state: absent
+  loop: "{{ apt_repos | dict2items }}"
+  loop_control:
+    label: "{{ item.key }}"
+  when:
+    - item.value.key_url is defined
+    - item.value.state | default('present') == 'absent'
+
+- name: "MMN aptrepos - Remove downloaded armored key for absent repos"
+  ansible.builtin.file:
+    path: "{{ item.value.key_path }}.asc"
+    state: absent
+  loop: "{{ apt_repos | dict2items }}"
+  loop_control:
+    label: "{{ item.key }}"
+  when:
+    - item.value.key_url is defined
+    - item.value.state | default('present') == 'absent'

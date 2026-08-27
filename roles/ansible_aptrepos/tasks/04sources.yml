@@ -1,0 +1,13 @@
+---
+# Manage /etc/apt/sources.list content from the apt_sources list.
+# When apt_sources is non-empty, the file is written from the list,
+# replacing any existing content. When empty, the file is left untouched.
+
+- name: "MMN aptrepos - Write /etc/apt/sources.list"
+  ansible.builtin.copy:
+    dest: /etc/apt/sources.list
+    content: "{{ apt_sources | join('\n') }}\n"
+    owner: "{{ apt_sources_owner }}"
+    group: "{{ apt_sources_group }}"
+    mode: "{{ apt_sources_mode }}"
+    backup: true

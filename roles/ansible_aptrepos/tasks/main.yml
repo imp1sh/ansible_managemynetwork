@@ -1,0 +1,47 @@
+---
+- name: "MMN aptrepos - Skip on non-Debian-family hosts"
+  ansible.builtin.debug:
+    msg: >-
+      ansible_aptrepos only supports Debian-family distributions (Debian,
+      Ubuntu, Raspberry Pi OS). Skipping on
+      {{ ansible_os_family | default('unknown') }}.
+  when: ansible_os_family != "Debian"
+
+# --- Merge apt_repos_extra into apt_repos ---
+# host_vars can extend the group-level apt_repos without clobbering it.
+- name: "MMN aptrepos - Merge extra repos"
+  ansible.builtin.set_fact:
+    apt_repos: "{{ apt_repos | combine(apt_repos_extra | default({})) }}"
+  when:
+    - ansible_os_family == "Debian"
+    - apt_repos_extra | default({}) | length > 0
+
+- name: "MMN aptrepos - Validate repo definitions"
+  ansible.builtin.include_tasks: 01validate.yml
+  when:
+    - ansible_os_family == "Debian"
+    - apt_repos | default({}) | length > 0
+
+- name: "MMN aptrepos - Download and install GPG keys"
+  ansible.builtin.include_tasks: 02keys.yml
+  when:
+    - ansible_os_family == "Debian"
+    - apt_repos | default({}) | length > 0
+
+- name: "MMN aptrepos - Manage APT repositories"
+  ansible.builtin.include_tasks: 03repos.yml
+  when:
+    - ansible_os_family == "Debian"
+    - apt_repos | default({}) | length > 0
+
+- name: "MMN aptrepos - Manage base apt sources"
+  ansible.builtin.include_tasks: 04sources.yml
+  when:
+    - ansible_os_family == "Debian"
+    - apt_sources | default([]) | length > 0
+
+- name: "MMN aptrepos - Refresh apt cache"
+  ansible.builtin.include_tasks: 05refresh.yml
+  when:
+    - ansible_os_family == "Debian"
+    - apt_repos_update_cache | bool

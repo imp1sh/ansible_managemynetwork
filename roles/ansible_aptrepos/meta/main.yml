@@ -1,0 +1,19 @@
+---
+galaxy_info:
+  role_name: ansible_aptrepos
+  author: Jochen Demmod
+  description: Manages APT repositories and base sources on Debian-family hosts. Handles third-party repos with GPG keys and controls /etc/apt/sources.list content.
+  company: libcom.de
+  issue_tracker_url: https://github.com/imp1sh/ansible_managemynetwork/issues
+  license: BSD-3-Clause
+  min_ansible_version: "2.11"
+  platforms:
+    - name: Debian
+      versions:
+        - bookworm
+        - trixie
+    - name: Ubuntu
+      versions:
+        - noble
+  galaxy_tags: [debian, ubuntu, apt, repository, repo, gpg, sources, aptrepos]
+dependencies: []

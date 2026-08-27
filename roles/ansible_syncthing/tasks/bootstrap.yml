@@ -209,6 +209,37 @@
     syncthing_effective_api_key: "{{ syncthing_eff_api_key }}"
   when: syncthing_eff_api_key | default('', true) | length > 0
 
+# --- Set the local device name to inventory_hostname ---
+# Syncthing derives the local device name from the OS hostname on first
+# start. If the hostname changes later, syncthing keeps the old name
+# until restarted. This PATCH ensures the name always matches
+# inventory_hostname regardless of what the OS hostname was at boot time.
+- name: "MMN syncthing - Get local device ID for {{ syncthing_user.username }}"
+  ansible.builtin.uri:
+    url: "{{ syncthing_api_url }}/rest/system/status"
+    method: GET
+    headers:
+      X-API-Key: "{{ syncthing_effective_api_key }}"
+    return_content: true
+    validate_certs: false
+  become_user: "{{ syncthing_user.username }}"
+  register: syncthing_bootstrap_local_status
+  changed_when: false
+
+- name: "MMN syncthing - Patch local device name to {{ inventory_hostname }}"
+  ansible.builtin.uri:
+    url: "{{ syncthing_api_url }}/rest/config/devices/{{ syncthing_bootstrap_local_status.json.myID }}"
+    method: PATCH
+    headers:
+      X-API-Key: "{{ syncthing_effective_api_key }}"
+    body:
+      name: "{{ inventory_hostname }}"
+    body_format: json
+    validate_certs: false
+  become_user: "{{ syncthing_user.username }}"
+  changed_when: true
+  failed_when: false
+
 # --- Restart syncthing to apply TLS/address changes ---
 - name: "MMN syncthing - Restart syncthing@{{ syncthing_user.username }} for GUI changes"
   ansible.builtin.systemd:

@@ -1,0 +1,14 @@
+---
+- hosts: debian_hosts
+  remote_user: ansible
+  become: true
+  roles:
+    - ansible_aptrepos
+  vars:
+    apt_repos:
+      example:
+        repo: "deb [signed-by=/usr/share/keyrings/example-archive-keyring.gpg] https://apt.example.net/ stable main"
+        key_url: "https://apt.example.net/key.gpg"
+        key_path: "/usr/share/keyrings/example-archive-keyring.gpg"
+    apt_sources:
+      - "deb http://deb.debian.org/debian trixie main non-free-firmware"

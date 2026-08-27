@@ -1,0 +1,8 @@
+---
+# `apt-get update` after repo changes. Marked not-changed so the play stays
+# idempotent-friendly; this only fires when apt_repos_update_cache is enabled.
+
+- name: "MMN aptrepos - Refresh apt cache"
+  ansible.builtin.apt:
+    update_cache: true
+  changed_when: false

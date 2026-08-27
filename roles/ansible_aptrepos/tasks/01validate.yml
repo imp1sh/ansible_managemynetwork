@@ -1,0 +1,30 @@
+---
+# Reject malformed entries early with a clear, actionable message instead of
+# letting the downstream modules fail with cryptic errors.
+
+- name: "MMN aptrepos - Sanity-check each repo definition"
+  ansible.builtin.assert:
+    that:
+      - item.value.repo is defined
+    fail_msg: >-
+      Repo '{{ item.key }}' is missing the required 'repo' field
+      (the full apt sources line, e.g.
+      "deb [signed-by=/usr/share/keyrings/key.gpg] https://... dist comps").
+    success_msg: "Repo '{{ item.key }}': OK"
+  loop: "{{ apt_repos | dict2items }}"
+  loop_control:
+    label: "{{ item.key }}"
+
+- name: "MMN aptrepos - Check key_path is set when key_url is provided"
+  ansible.builtin.assert:
+    that:
+      - item.value.key_path is defined
+    fail_msg: >-
+      Repo '{{ item.key }}' has key_url but no key_path. The dearmored
+      keyring must be installed somewhere (e.g.
+      /usr/share/keyrings/{{ item.key }}-archive-keyring.gpg).
+    success_msg: "Repo '{{ item.key }}': key_path OK"
+  loop: "{{ apt_repos | dict2items }}"
+  loop_control:
+    label: "{{ item.key }}"
+  when: item.value.key_url is defined

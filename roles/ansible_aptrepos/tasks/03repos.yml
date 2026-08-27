@@ -1,0 +1,25 @@
+---
+# Manage APT repository lines via ansible.builtin.apt_repository.
+# The repo line includes the signed-by= keyring path when a key is managed.
+
+- name: "MMN aptrepos - Add APT repositories"
+  ansible.builtin.apt_repository:
+    repo: "{{ item.value.repo }}"
+    filename: "{{ item.value.filename | default(item.key) }}"
+    state: "{{ item.value.state | default('present') }}"
+    update_cache: false
+  loop: "{{ apt_repos | dict2items }}"
+  loop_control:
+    label: "{{ item.key }}"
+  when: item.value.state | default('present') == 'present'
+
+- name: "MMN aptrepos - Remove APT repositories"
+  ansible.builtin.apt_repository:
+    repo: "{{ item.value.repo }}"
+    filename: "{{ item.value.filename | default(item.key) }}"
+    state: absent
+    update_cache: false
+  loop: "{{ apt_repos | dict2items }}"
+  loop_control:
+    label: "{{ item.key }}"
+  when: item.value.state | default('present') == 'absent'
