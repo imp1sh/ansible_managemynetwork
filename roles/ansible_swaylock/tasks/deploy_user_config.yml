@@ -15,6 +15,17 @@
     target_user_home: "{{ swaylock_user_home_result.stdout }}"
   when: swaylock_user_home_result.rc == 0
 
+- name: "MMN swaylock - Check for legacy config at ~/.swaylock/config"
+  ansible.builtin.stat:
+    path: "{{ target_user_home }}/.swaylock/config"
+  register: swaylock_legacy_config_stat
+
+- name: "MMN swaylock - Rename legacy config to .backup for {{ target_user }}"
+  ansible.builtin.command:
+    cmd: mv "{{ target_user_home }}/.swaylock/config" "{{ target_user_home }}/.swaylock/config.backup"
+  when: swaylock_legacy_config_stat.stat.exists | default(false)
+  changed_when: true
+
 - name: "MMN swaylock - Merge per-user overrides for {{ target_user }}"
   ansible.builtin.set_fact:
     swaylock_effective_config: "{{ swaylock_config | combine(swaylock_configs[target_user] | default({})) }}"
