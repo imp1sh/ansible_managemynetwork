@@ -4,6 +4,12 @@
 # to binary format. Idempotent: skips if the keyring already exists and the
 # source key hasn't changed.
 
+- name: "MMN aptrepos - Ensure gnupg is installed"
+  ansible.builtin.apt:
+    name: gnupg
+    state: present
+  when: apt_repos | dict2items | selectattr('value.key_url', 'defined') | list | length > 0
+
 - name: "MMN aptrepos - Download GPG keys"
   ansible.builtin.get_url:
     url: "{{ item.value.key_url }}"
