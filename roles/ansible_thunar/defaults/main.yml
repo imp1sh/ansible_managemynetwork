@@ -5,9 +5,11 @@
 #   2. ~/.config/Thunar/accels.scm                             (keyboard accelerators)
 #   3. ~/.config/Thunar/uca.xml                                (custom actions)
 #
-# Settings are driven entirely by the thunar_settings dict and the
-# thunar_custom_actions list — set them in group_vars/host_vars to
-# steer per-group or per-host.
+# Per-user overrides: set thunar_configs and/or thunar_custom_action_configs
+# as dicts keyed by username. thunar_configs entries are shallow-merged over
+# thunar_settings (individual Xfconf properties replaced). 
+# thunar_custom_action_configs entries REPLACE the base thunar_custom_actions
+# list entirely (different users likely want different action sets).
 
 # ---------------------------------------------------------------------------
 # Target user(s). String or list. Null → uses ansible_user.
@@ -18,8 +20,6 @@ thunar_users: null
 # Xfconf properties — rendered into thunar.xml.
 # Each key maps to an Xfconf property name; value is a dict with
 # 'type' (string|int|bool) and 'value'.
-# Override individual keys in group_vars/host_vars without rewriting
-# the whole dict by using Ansible's hash_behaviour or combine filter.
 # ---------------------------------------------------------------------------
 thunar_settings:
   last-view:
@@ -90,10 +90,30 @@ thunar_settings:
     value: true
 
 # ---------------------------------------------------------------------------
+# Per-user settings overrides — keyed by username, shallow-merged over
+# thunar_settings. Individual Xfconf properties are replaced, not deep-merged.
+# ---------------------------------------------------------------------------
+thunar_configs: {}
+# Example:
+# thunar_configs:
+#   jochen:
+#     misc-single-click:
+#       type: bool
+#       value: false
+#   alice:
+#     misc-single-click:
+#       type: bool
+#       value: true
+#     default-view:
+#       type: string
+#       value: "ThunarIconView"
+
+# ---------------------------------------------------------------------------
 # Custom actions — rendered into uca.xml.
-# Each entry is a dict with: icon, name, submenu, unique-id, command,
-# description, range, patterns, startup-notify, directories/(folders-only),
-# text-files, image-files, other-files, audio-files, video-files.
+# Each entry is a dict with: icon, name, submenu, unique_id, command,
+# description, range, patterns, startup_notify, and boolean appearance
+# flags (directories, text_files, image_files, other_files, audio_files,
+# video_files).
 # ---------------------------------------------------------------------------
 thunar_custom_actions:
   - icon: "utilities-terminal"
@@ -106,6 +126,41 @@ thunar_custom_actions:
     patterns: "*"
     startup_notify: true
     directories: true
+
+# ---------------------------------------------------------------------------
+# Per-user custom actions overrides — keyed by username.
+# REPLACES the base thunar_custom_actions list entirely for that user.
+# Users not listed here get the base thunar_custom_actions verbatim.
+# ---------------------------------------------------------------------------
+thunar_custom_action_configs: {}
+# Example:
+# thunar_custom_action_configs:
+#   jochen:
+#     - icon: "utilities-terminal"
+#       name: "Terminal hier öffnen"
+#       unique_id: "1744900021289548-1"
+#       command: "exo-open --working-directory %f --launch TerminalEmulator"
+#       description: "Öffnet ein Terminal im aktuellen Verzeichnis"
+#       patterns: "*"
+#       startup_notify: true
+#       directories: true
+#     - icon: "document-open"
+#       name: "Mit Editor öffnen"
+#       unique_id: "1744900021289548-2"
+#       command: "xed %f"
+#       description: "Datei mit xed öffnen"
+#       patterns: "*.txt"
+#       startup_notify: true
+#       text_files: true
+#   alice:
+#     - icon: "utilities-terminal"
+#       name: "Open Terminal Here"
+#       unique_id: "1744900021289548-3"
+#       command: "exo-open --working-directory %f --launch TerminalEmulator"
+#       description: "Open a terminal in the current directory"
+#       patterns: "*"
+#       startup_notify: true
+#       directories: true
 
 # ---------------------------------------------------------------------------
 # Keyboard accelerators — deployed as a static file.

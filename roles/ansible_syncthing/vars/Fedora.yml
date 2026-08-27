@@ -1,2 +1,4 @@
 ---
 syncthing_packagename: "syncthing"
+syncthing_default_gui_cert: "/etc/pki/tls/certs/main_jochenit_{{ inventory_hostname }}_certificate.pem"
+syncthing_default_gui_key: "/etc/pki/tls/private/main_jochenit_{{ inventory_hostname }}_privatekey.pem"

@@ -80,6 +80,46 @@ thunar_custom_actions:
     directories: true
 ```
 
+## Per-user configs
+
+Different users can get different Thunar settings and/or custom actions. Two override dicts, both keyed by username:
+
+### thunar_configs (settings overrides)
+
+Shallow-merged over `thunar_settings` — individual Xfconf properties are replaced, the rest inherited.
+
+```yaml
+thunar_configs:
+  jochen:
+    misc-single-click:
+      type: bool
+      value: false
+  alice:
+    misc-single-click:
+      type: bool
+      value: true
+    default-view:
+      type: string
+      value: "ThunarIconView"
+```
+
+### thunar_custom_action_configs (custom actions overrides)
+
+**Replaces** the base `thunar_custom_actions` list entirely for that user. Users not listed here get the base list verbatim.
+
+```yaml
+thunar_custom_action_configs:
+  alice:
+    - icon: "utilities-terminal"
+      name: "Open Terminal Here"
+      unique_id: "1744900021289548-2"
+      command: "exo-open --working-directory %f --launch TerminalEmulator"
+      description: "Open a terminal in the current directory"
+      patterns: "*"
+      startup_notify: true
+      directories: true
+```
+
 ## Usage
 
 In `group_vars/os_desktop_fedora.yml`:

@@ -108,12 +108,13 @@ syncthing_gui_address: "127.0.0.1:8384"
 # When enabled, the role copies the cert/key into the syncthing config dir
 # as https-cert.pem / https-key.pem and patches the GUI config to enforce TLS.
 #
-# Paths default to the ansible_cacert default cert layout (Fedora paths).
-# Override per-distro or per-host if your cacert paths differ.
+# Paths default to the ansible_cacert default cert layout, resolved per-OS
+# in vars/Fedora.yml and vars/Debian.yml. Override per-host if your cert
+# naming differs.
 # ---------------------------------------------------------------------------
 syncthing_gui_tls: false
-syncthing_gui_cert: "/etc/pki/tls/certs/main_jochenit_{{ inventory_hostname }}_certificate.pem"
-syncthing_gui_key: "/etc/pki/tls/private/main_jochenit_{{ inventory_hostname }}_privatekey.pem"
+syncthing_gui_cert: "{{ syncthing_default_gui_cert | default('/etc/pki/tls/certs/main_jochenit_' ~ inventory_hostname ~ '_certificate.pem') }}"
+syncthing_gui_key: "{{ syncthing_default_gui_key | default('/etc/pki/tls/private/main_jochenit_' ~ inventory_hostname ~ '_privatekey.pem') }}"
 
 # ---------------------------------------------------------------------------
 # GUI authentication — protect the web GUI with a username and password.

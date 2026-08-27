@@ -1,0 +1,15 @@
+---
+- hosts: fedora_desktops
+  remote_user: ansible
+  become: true
+  roles:
+    - ansible_gtk3
+  vars:
+    gtk3_users:
+      - jochen
+    gtk3_settings:
+      gtk-theme-name: "Adwaita"
+      gtk-application-prefer-dark-theme: "1"
+    gtk3_bookmarks:
+      - uri: "file:///home/jochen/Downloads"
+        label: "Downloads"

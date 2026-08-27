@@ -66,6 +66,8 @@
   when:
     - syncthing_eff_gui_tls | bool
     - syncthing_cacert_cert_stat.stat.exists | default(false)
+  register: syncthing_cert_copy
+  notify: Restart syncthing for {{ syncthing_user.username }}
 
 - name: "MMN syncthing - Copy CA key for HTTPS GUI for {{ syncthing_user.username }}"
   ansible.builtin.copy:
@@ -78,6 +80,8 @@
   when:
     - syncthing_eff_gui_tls | bool
     - syncthing_cacert_cert_stat.stat.exists | default(false)
+  register: syncthing_key_copy
+  notify: Restart syncthing for {{ syncthing_user.username }}
 
 - name: "MMN syncthing - Warn when CA cert not found for {{ syncthing_user.username }}"
   ansible.builtin.debug:
@@ -88,6 +92,16 @@
   when:
     - syncthing_eff_gui_tls | bool
     - not (syncthing_cacert_cert_stat.stat.exists | default(false))
+
+# --- Restart syncthing if cert or key was updated ---
+- name: "MMN syncthing - Restart on cert/key change for {{ syncthing_user.username }}"
+  ansible.builtin.systemd:
+    name: "syncthing@{{ syncthing_user.username }}"
+    state: restarted
+  when:
+    - syncthing_eff_gui_tls | bool
+    - syncthing_cacert_cert_stat.stat.exists | default(false)
+    - (syncthing_cert_copy.changed | default(false)) or (syncthing_key_copy.changed | default(false))
 
 # --- Start the service ---
 - name: "MMN syncthing - Enable lingering for {{ syncthing_user.username }}"

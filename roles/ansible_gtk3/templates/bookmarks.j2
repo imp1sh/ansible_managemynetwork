@@ -1,0 +1,7 @@
+{% for bookmark in gtk3_effective_bookmarks -%}
+{% if bookmark is mapping -%}
+{{ bookmark.uri }}{% if bookmark.label is defined %} {{ bookmark.label }}{% endif %}{{ "\n" }}
+{%- else -%}
+{{ bookmark }}{{ "\n" }}
+{%- endif -%}
+{%- endfor -%}

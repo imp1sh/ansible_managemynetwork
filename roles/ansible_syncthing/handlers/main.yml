@@ -3,3 +3,8 @@
   ansible.builtin.command: firewall-cmd --reload
   changed_when: false
   when: ansible_os_family == "RedHat"
+
+- name: Restart syncthing for {{ syncthing_user.username }}
+  ansible.builtin.systemd:
+    name: "syncthing@{{ syncthing_user.username }}"
+    state: restarted

@@ -70,6 +70,13 @@
     and (syncthing_user.teardown | default(syncthing_teardown | default(''))) | length == 0
     and inventory_hostname in (syncthing_user.hosts | default(ansible_play_batch))
 
+# --- Barrier: wait briefly so all hosts finish collecting device IDs
+# before any host starts configuring. Without this, a host may build its
+# folder device list before other hosts have published their IDs.
+- name: "MMN syncthing - Brief pause to sync device-ID collection across hosts"
+  ansible.builtin.pause:
+    seconds: 5
+
 - name: "MMN syncthing - Add remote devices and shared folders"
   ansible.builtin.include_tasks: configure_cluster.yml
   loop: "{{ syncthing_users }}"

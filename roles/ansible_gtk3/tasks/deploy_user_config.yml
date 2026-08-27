@@ -1,0 +1,55 @@
+---
+- name: "MMN gtk3 - Get home directory for {{ target_user }}"
+  ansible.builtin.shell: "getent passwd {{ target_user }} | cut -d: -f6"
+  register: gtk3_user_home_result
+  changed_when: false
+  failed_when: false
+
+- name: "MMN gtk3 - Fail if user {{ target_user }} does not exist"
+  ansible.builtin.fail:
+    msg: "User {{ target_user }} does not exist on the system"
+  when: gtk3_user_home_result.rc != 0
+
+- name: "MMN gtk3 - Set user home directory"
+  ansible.builtin.set_fact:
+    target_user_home: "{{ gtk3_user_home_result.stdout }}"
+  when: gtk3_user_home_result.rc == 0
+
+- name: "MMN gtk3 - Merge per-user settings overrides for {{ target_user }}"
+  ansible.builtin.set_fact:
+    gtk3_effective_settings: "{{ gtk3_settings | combine((gtk3_configs[target_user] | default({})).get('settings', {}) if gtk3_configs is defined else {}) }}"
+
+- name: "MMN gtk3 - Select per-user bookmarks for {{ target_user }}"
+  ansible.builtin.set_fact:
+    gtk3_effective_bookmarks: >-
+      {{
+        (gtk3_configs[target_user].bookmarks)
+        if (gtk3_configs is defined and target_user in gtk3_configs and gtk3_configs[target_user].get('bookmarks') is defined)
+        else gtk3_bookmarks
+      }}
+
+- name: "MMN gtk3 - Ensure config directory exists for {{ target_user }}"
+  ansible.builtin.file:
+    path: "{{ target_user_home }}/.config/gtk-3.0"
+    state: directory
+    owner: "{{ target_user }}"
+    group: "{{ target_user }}"
+    mode: '0755'
+
+- name: "MMN gtk3 - Deploy settings.ini for {{ target_user }}"
+  ansible.builtin.template:
+    src: settings.ini.j2
+    dest: "{{ target_user_home }}/.config/gtk-3.0/settings.ini"
+    owner: "{{ target_user }}"
+    group: "{{ target_user }}"
+    mode: '0644'
+  when: gtk3_effective_settings | length > 0
+
+- name: "MMN gtk3 - Deploy bookmarks for {{ target_user }}"
+  ansible.builtin.template:
+    src: bookmarks.j2
+    dest: "{{ target_user_home }}/.config/gtk-3.0/bookmarks"
+    owner: "{{ target_user }}"
+    group: "{{ target_user }}"
+    mode: '0644'
+  when: gtk3_effective_bookmarks | length > 0

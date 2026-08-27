@@ -1,0 +1,16 @@
+---
+- name: "MMN gtk3 - Determine target users"
+  ansible.builtin.set_fact:
+    gtk3_target_users: >-
+      {{
+        [gtk3_users] if (gtk3_users is string)
+        else (gtk3_users if (gtk3_users is iterable and gtk3_users is not string)
+        else [])
+      }}
+
+- name: "MMN gtk3 - Deploy configuration for each user"
+  ansible.builtin.include_tasks: deploy_user_config.yml
+  loop: "{{ gtk3_target_users }}"
+  loop_control:
+    loop_var: target_user
+  when: gtk3_target_users | length > 0

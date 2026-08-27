@@ -15,6 +15,14 @@
     target_user_home: "{{ thunar_user_home_result.stdout }}"
   when: thunar_user_home_result.rc == 0
 
+- name: "MMN thunar - Merge per-user settings overrides for {{ target_user }}"
+  ansible.builtin.set_fact:
+    thunar_effective_settings: "{{ thunar_settings | combine(thunar_configs[target_user] | default({})) }}"
+
+- name: "MMN thunar - Select per-user custom actions for {{ target_user }}"
+  ansible.builtin.set_fact:
+    thunar_effective_custom_actions: "{{ thunar_custom_action_configs[target_user] if (thunar_custom_action_configs is defined and target_user in thunar_custom_action_configs) else thunar_custom_actions }}"
+
 # --- Xfconf settings (thunar.xml) ---
 - name: "MMN thunar - Ensure xfconf directory exists for {{ target_user }}"
   ansible.builtin.file:
