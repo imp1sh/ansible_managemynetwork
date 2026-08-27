@@ -1,0 +1,31 @@
+---
+# Manage APT preferences (pinning) for repos that specify a pin.
+# Writes /etc/apt/preferences.d/<filename>.pref
+
+- name: "MMN aptrepos - Write apt preferences pin"
+  ansible.builtin.copy:
+    dest: "/etc/apt/preferences.d/{{ item.value.filename | default(item.key) }}.pref"
+    content: |
+      Package: {{ (item.value.pin.package if item.value.pin is mapping else '*') }}
+      Pin: {{ item.value.pin.origin | default('release o=*,l=' ~ item.value.filename | default(item.key)) }}
+      Pin-Priority: {{ item.value.pin.priority if item.value.pin is mapping else item.value.pin }}
+    owner: root
+    group: root
+    mode: "0644"
+  loop: "{{ apt_repos | dict2items }}"
+  loop_control:
+    label: "{{ item.key }}"
+  when:
+    - item.value.pin is defined
+    - item.value.state | default('present') == 'present'
+
+- name: "MMN aptrepos - Remove apt preferences pin for absent repos"
+  ansible.builtin.file:
+    path: "/etc/apt/preferences.d/{{ item.value.filename | default(item.key) }}.pref"
+    state: absent
+  loop: "{{ apt_repos | dict2items }}"
+  loop_control:
+    label: "{{ item.key }}"
+  when:
+    - item.value.pin is defined
+    - item.value.state | default('present') == 'absent'

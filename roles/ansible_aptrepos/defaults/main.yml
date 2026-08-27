@@ -27,6 +27,16 @@
 #               Required when key_url is set (determines signed-by= target).
 #   state     — OPTIONAL. present or absent (default: present).
 #   filename  — OPTIONAL. Sources filename stem (default: the dict key).
+#   pin       — OPTIONAL. Apt preferences pin priority (integer) or a dict
+#               with 'priority' (required) and optional 'package' (default: '*'),
+#               'origin', 'suite', 'component' fields for finer control.
+#               When set, writes /etc/apt/preferences.d/<filename>.pref
+#               so packages from this repo win over others at the same level.
+#               Example: pin: 700  (prioritize all packages from this repo)
+#               Example:
+#                 pin:
+#                   priority: 700
+#                   package: "syncthing*"
 #
 # When key_url is omitted, no GPG key is managed — the repo line is added
 # as-is (useful for repos whose key is already in the system trust store).

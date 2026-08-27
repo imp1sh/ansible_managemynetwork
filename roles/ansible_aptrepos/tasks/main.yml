@@ -34,6 +34,12 @@
     - ansible_os_family == "Debian"
     - apt_repos | default({}) | length > 0
 
+- name: "MMN aptrepos - Manage APT preferences (pinning)"
+  ansible.builtin.include_tasks: 03pins.yml
+  when:
+    - ansible_os_family == "Debian"
+    - apt_repos | default({}) | length > 0
+
 - name: "MMN aptrepos - Manage base apt sources"
   ansible.builtin.include_tasks: 04sources.yml
   when:
