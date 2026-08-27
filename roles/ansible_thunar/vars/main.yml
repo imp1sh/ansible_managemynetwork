@@ -1,0 +1,4 @@
+---
+# Empty fallback for OSes without a specific vars file.
+thunar_packagename:
+  - "thunar"

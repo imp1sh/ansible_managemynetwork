@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<actions>
+{% for action in thunar_custom_actions %}
+<action>
+	<icon>{{ action.icon }}</icon>
+	<name>{{ action.name }}</name>
+	<submenu>{{ action.submenu | default('') }}</submenu>
+	<unique-id>{{ action.unique_id }}</unique-id>
+	<command>{{ action.command }}</command>
+	<description>{{ action.description | default('') }}</description>
+	<range>{{ action.range | default('') }}</range>
+	<patterns>{{ action.patterns | default('*') }}</patterns>
+	<startup-notify/>{% if action.directories | default(false) %}
+	<directories/>{% endif %}{% if action.text_files | default(false) %}
+	<text-files/>{% endif %}{% if action.image_files | default(false) %}
+	<image-files/>{% endif %}{% if action.other_files | default(false) %}
+	<other-files/>{% endif %}{% if action.audio_files | default(false) %}
+	<audio-files/>{% endif %}{% if action.video_files | default(false) %}
+	<video-files/>{% endif %}
+</action>
+{% endfor %}
+</actions>

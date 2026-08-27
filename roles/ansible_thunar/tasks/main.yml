@@ -1,0 +1,26 @@
+---
+- name: "MMN thunar - Include OS vars"
+  ansible.builtin.include_vars: "{{ ansible_distribution }}.yml"
+
+- name: "MMN thunar - Set package list for calling packages role"
+  ansible.builtin.set_fact:
+    packages_installrole: "{{ thunar_packagename }}"
+
+- name: "MMN thunar - Install required packages"
+  ansible.builtin.include_role:
+    name: imp1sh.ansible_managemynetwork.ansible_packages
+
+- name: "MMN thunar - Determine target users"
+  ansible.builtin.set_fact:
+    thunar_target_users: >-
+      {{
+        [thunar_users] if (thunar_users is string)
+        else (thunar_users if (thunar_users is iterable and thunar_users is not string)
+        else [ansible_user | default('root')])
+      }}
+
+- name: "MMN thunar - Deploy configuration for each user"
+  ansible.builtin.include_tasks: deploy_user_config.yml
+  loop: "{{ thunar_target_users }}"
+  loop_control:
+    loop_var: target_user

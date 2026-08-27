@@ -1,0 +1,9 @@
+---
+- hosts: fedora_desktops
+  remote_user: ansible
+  become: true
+  roles:
+    - ansible_thunar
+  vars:
+    thunar_users:
+      - jochen

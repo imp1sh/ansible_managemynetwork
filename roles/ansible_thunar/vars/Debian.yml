@@ -1,0 +1,6 @@
+---
+thunar_packagename:
+  - "thunar"
+  - "thunar-volman-plugin"
+  - "thunar-archive-plugin"
+  - "thunar-media-tags-plugin"

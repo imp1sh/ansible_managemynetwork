@@ -1,0 +1,59 @@
+---
+- name: "MMN thunar - Get home directory for {{ target_user }}"
+  ansible.builtin.shell: "getent passwd {{ target_user }} | cut -d: -f6"
+  register: thunar_user_home_result
+  changed_when: false
+  failed_when: false
+
+- name: "MMN thunar - Fail if user {{ target_user }} does not exist"
+  ansible.builtin.fail:
+    msg: "User {{ target_user }} does not exist on the system"
+  when: thunar_user_home_result.rc != 0
+
+- name: "MMN thunar - Set user home directory"
+  ansible.builtin.set_fact:
+    target_user_home: "{{ thunar_user_home_result.stdout }}"
+  when: thunar_user_home_result.rc == 0
+
+# --- Xfconf settings (thunar.xml) ---
+- name: "MMN thunar - Ensure xfconf directory exists for {{ target_user }}"
+  ansible.builtin.file:
+    path: "{{ target_user_home }}/.config/xfce4/xfconf/xfce-perchannel-xml"
+    state: directory
+    owner: "{{ target_user }}"
+    group: "{{ target_user }}"
+    mode: '0755'
+
+- name: "MMN thunar - Deploy thunar.xml for {{ target_user }}"
+  ansible.builtin.template:
+    src: thunar.xml.j2
+    dest: "{{ target_user_home }}/.config/xfce4/xfconf/xfce-perchannel-xml/thunar.xml"
+    owner: "{{ target_user }}"
+    group: "{{ target_user }}"
+    mode: '0644'
+
+# --- Keyboard accelerators (accels.scm) ---
+- name: "MMN thunar - Ensure Thunar config directory exists for {{ target_user }}"
+  ansible.builtin.file:
+    path: "{{ target_user_home }}/.config/Thunar"
+    state: directory
+    owner: "{{ target_user }}"
+    group: "{{ target_user }}"
+    mode: '0755'
+
+- name: "MMN thunar - Deploy accels.scm for {{ target_user }}"
+  ansible.builtin.copy:
+    src: "{{ thunar_accels_src }}"
+    dest: "{{ target_user_home }}/.config/Thunar/accels.scm"
+    owner: "{{ target_user }}"
+    group: "{{ target_user }}"
+    mode: '0644'
+
+# --- Custom actions (uca.xml) ---
+- name: "MMN thunar - Deploy uca.xml for {{ target_user }}"
+  ansible.builtin.template:
+    src: uca.xml.j2
+    dest: "{{ target_user_home }}/.config/Thunar/uca.xml"
+    owner: "{{ target_user }}"
+    group: "{{ target_user }}"
+    mode: '0644'
