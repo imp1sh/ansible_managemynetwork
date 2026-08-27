@@ -1,7 +1,7 @@
 ---
 - name: "MMN cacert - Assemble CA vars"
   ansible.builtin.set_fact:
-    cacert_filename_cacert: "{{ cacert_ca.key }}_ca_{{ cacert_tag_certificate }}.pem"
+    cacert_filename_cacert: "{{ cacert_ca.key }}_ca_{{ cacert_tag_certificate }}.{{ cacert_openssl_suffix_certificate_ca | default('pem') }}"
     cacert_filename_cakey: "{{ cacert_ca.key }}_ca_{{ cacert_tag_privatekey }}.pem"
-    cacert_path_cacert: "{{ cacert_openssl_path_certificate_ca }}/{{ cacert_ca.key }}_ca_{{ cacert_tag_certificate }}.pem"
+    cacert_path_cacert: "{{ cacert_openssl_path_certificate_ca }}/{{ cacert_ca.key }}_ca_{{ cacert_tag_certificate }}.{{ cacert_openssl_suffix_certificate_ca | default('pem') }}"
     cacert_path_cakey: "{{ cacert_openssl_path_key_ca }}/{{ cacert_ca.key }}_ca_{{ cacert_tag_privatekey }}.pem"

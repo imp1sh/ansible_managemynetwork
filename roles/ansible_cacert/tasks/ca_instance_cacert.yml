@@ -1,5 +1,24 @@
 ---
 # CA CERT TASKS
+# Migration: rename legacy .pem CA cert to OS-native suffix if it exists
+- name: "MMN cacert - Check for legacy .pem CA cert"
+  delegate_to: "{{ cacert_ca_manager_host }}"
+  ansible.builtin.stat:
+    path: "{{ cacert_openssl_path_certificate_ca }}/{{ cacert_ca.key }}_ca_{{ cacert_tag_certificate }}.pem"
+  register: stat_certificate_ca_legacy
+  run_once: True
+
+- name: "MMN cacert - Migrate legacy .pem CA cert to OS-native suffix"
+  delegate_to: "{{ cacert_ca_manager_host }}"
+  become: true
+  ansible.builtin.command:
+    cmd: "mv {{ cacert_openssl_path_certificate_ca }}/{{ cacert_ca.key }}_ca_{{ cacert_tag_certificate }}.pem {{ cacert_path_cacert }}"
+  when:
+    - stat_certificate_ca_legacy.stat.exists
+    - cacert_openssl_suffix_certificate_ca | default('pem') != 'pem'
+  run_once: True
+  changed_when: true
+
 - name: "MMN cacert - Check if CA cert exists"
   delegate_to: "{{ cacert_ca_manager_host }}"
   ansible.builtin.stat:
