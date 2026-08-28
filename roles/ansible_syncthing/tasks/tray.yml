@@ -1,0 +1,50 @@
+---
+# Download and install the syncthing-tray binary.
+# The binary is a self-contained ELF — no extra packages needed.
+# Autostart is handled by the sway config (sway_exec_commands), not by a
+# freedesktop .desktop entry (sway doesn't honor xdg-autostart).
+
+# --- Download the tray binary (once per host, not per user) ---
+- name: "MMN syncthing - Check if tray binary is already installed"
+  ansible.builtin.stat:
+    path: "{{ syncthing_tray_install_path }}"
+  register: syncthing_tray_bin_stat
+
+- name: "MMN syncthing - Download tray binary"
+  ansible.builtin.get_url:
+    url: "{{ syncthing_tray_base_url }}/{{ syncthing_tray_version }}/{{ syncthing_tray_binary_name }}"
+    dest: "{{ syncthing_tray_install_path }}"
+    mode: '0755'
+    owner: root
+    group: root
+    timeout: 120
+  when: not syncthing_tray_bin_stat.stat.exists
+
+# --- Write tray settings with correct GUI URL ---
+# The tray reads the GUI address from syncthing's config.xml, which may be
+# [::]:8384 or 127.0.0.1:8384 — neither works as a browser URL. We write a
+# settings file that overrides the GUI URL to use the inventory hostname
+# so clicking "Open Web GUI" opens https://<hostname>:8384 in the browser.
+- name: "MMN syncthing - Get home directory for {{ syncthing_user.username }}"
+  ansible.builtin.shell: "getent passwd {{ syncthing_user.username }} | cut -d: -f6"
+  register: syncthing_tray_home
+  changed_when: false
+
+- name: "MMN syncthing - Ensure tray config directory exists for {{ syncthing_user.username }}"
+  ansible.builtin.file:
+    path: "{{ syncthing_tray_home.stdout }}/.config/syncthing-tray"
+    state: directory
+    owner: "{{ syncthing_user.username }}"
+    group: "{{ syncthing_user.username }}"
+    mode: '0755'
+
+- name: "MMN syncthing - Write tray settings for {{ syncthing_user.username }}"
+  ansible.builtin.copy:
+    dest: "{{ syncthing_tray_home.stdout }}/.config/syncthing-tray/settings.json"
+    content: |
+      {
+        "web_gui_url": "https://{{ inventory_hostname }}:8384"
+      }
+    owner: "{{ syncthing_user.username }}"
+    group: "{{ syncthing_user.username }}"
+    mode: '0644'

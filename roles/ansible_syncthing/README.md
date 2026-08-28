@@ -24,8 +24,8 @@ All REST API calls authenticate via the `X-API-Key` header. The API key is auto-
 | `syncthing_users` | `[]` | List of user dicts (see below) |
 | `syncthing_folders` | `[]` | Global default folder list (used when user omits `folders`) |
 | `syncthing_folder_overrides` | `{}` | Per-host path overrides keyed by folder ID |
-| `syncthing_gui_address` | `127.0.0.1:8384` | GUI/API listen address |
-| `syncthing_gui_tls` | `false` | Serve GUI over HTTPS |
+| `syncthing_gui_address` | `{{ inventory_hostname }}:8384` | GUI/API listen address |
+| `syncthing_gui_tls` | `true` | Serve GUI over HTTPS |
 | `syncthing_gui_cert` | cacert default path | TLS cert PEM path (Fedora cacert layout) |
 | `syncthing_gui_key` | cacert default path | TLS key PEM path (Fedora cacert layout) |
 | `syncthing_gui_user` | `""` | GUI authentication username (empty = no auth) |
@@ -35,6 +35,9 @@ All REST API calls authenticate via the `X-API-Key` header. The API key is auto-
 | `syncthing_firewall` | `true` | Open firewall ports for sync + GUI |
 | `syncthing_sync_port` | `22000` | TCP port for sync protocol |
 | `syncthing_discovery_port` | `21027` | UDP port for local discovery |
+| `syncthing_tray_enable` | `true` | Deploy syncthing-tray binary and enable autostart |
+| `syncthing_tray_version` | `v0.1.0` | Tray binary release version |
+| `syncthing_tray_install_path` | `/usr/local/bin/syncthing-tray` | Where to install the tray binary |
 | `syncthing_linger` | `true` | Enable systemd linger so syncthing runs without login |
 | `syncthing_teardown` | `""` | Teardown mode: `""`, `"config"`, or `"full"` |
 | `syncthing_folders_absent` | `[]` | Folders to remove during teardown (by ID) |
@@ -183,16 +186,22 @@ syncthing_device_address_mode: "dynamic"
 
 ## GUI TLS
 
-Serve the web GUI over HTTPS using a CA-signed certificate. Typically paired with `ansible_cacert` which deploys per-host certs to `/etc/pki/tls/`.
+Serve the web GUI over HTTPS using a CA-signed certificate. Enabled by default since the GUI is network-accessible.
+
+**Auto-detection:** When `syncthing_gui_cert` and `syncthing_gui_key` are empty (default), the role searches for a certificate matching `{{ inventory_hostname }}` in the standard cert directories:
+- Fedora: `/etc/pki/tls/certs`, `/etc/pki/tls/private`
+- Debian: `/etc/ssl/certs`, `/etc/ssl/private`
+
+Patterns searched: `*{{ inventory_hostname }}*certificate*` for certs, `*{{ inventory_hostname }}*privatekey*` for keys. First match wins. If no cert is found, the role warns and falls back to syncthing's self-signed cert.
+
+**Explicit paths:** Set `syncthing_gui_cert` and `syncthing_gui_key` to specify exact paths (skips auto-detection):
 
 ```yaml
-syncthing_gui_tls: true
-# Cert/key paths default to the ansible_cacert Fedora layout:
-# syncthing_gui_cert: "/etc/pki/tls/certs/main_jochenit_{{ inventory_hostname }}_certificate.pem"
-# syncthing_gui_key: "/etc/pki/tls/private/main_jochenit_{{ inventory_hostname }}_privatekey.pem"
+syncthing_gui_cert: "/etc/pki/tls/certs/my-custom-cert.pem"
+syncthing_gui_key: "/etc/pki/tls/private/my-custom-key.pem"
 ```
 
-The role copies the cert/key into `~/.local/state/syncthing/` as `https-cert.pem` / `https-key.pem` and patches the GUI config to enforce TLS. A restart is triggered automatically.
+The role copies the cert/key into `~/.local/state/syncthing/` as `https-cert.pem` / `https-key.pem` and patches the GUI config to enforce TLS. A restart is triggered automatically when the cert or key changes (e.g. renewed by `ansible_cacert`).
 
 ## GUI authentication
 
@@ -243,6 +252,28 @@ syncthing_users:
 ```
 
 Set `syncthing_firewall: false` (or per-user `firewall: false`) to skip firewall management entirely. During teardown, the same ports are closed.
+
+## Tray app
+
+The role can download and install a syncthing-tray binary — a system-tray monitor that shows sync status with animated icons. The binary is self-contained (includes Python + PySide6, no extra packages needed).
+
+**Autostart on sway:** sway does not honor freedesktop `.desktop` autostart entries. Start the tray via `sway_exec_commands` in your group_vars (managed by `ansible_sway`):
+
+```yaml
+sway_exec_commands:
+  - command: "syncthing-tray"
+```
+
+The tray auto-discovers syncthing's `config.xml` and reads the API key and GUI address automatically.
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `syncthing_tray_enable` | `true` | Deploy tray binary |
+| `syncthing_tray_version` | `v0.1.0` | Release version to download |
+| `syncthing_tray_base_url` | git.lpv4.net release URL | Base URL for binary download |
+| `syncthing_tray_install_path` | `/usr/local/bin/syncthing-tray` | Binary install location |
+
+Set `syncthing_tray_enable: false` to skip tray deployment entirely.
 
 ## Usage
 

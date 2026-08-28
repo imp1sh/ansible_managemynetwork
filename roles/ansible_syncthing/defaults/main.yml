@@ -98,23 +98,26 @@ syncthing_folders: []
 syncthing_folder_overrides: {}
 
 # ---------------------------------------------------------------------------
-# GUI/API listen address. Default 127.0.0.1:8384 (localhost only).
-# Set to [::]:8384 for dual-stack (IPv6 + IPv4, recommended).
+# GUI/API listen address. Defaults to the inventory hostname so the web GUI
+# is network-accessible via HTTPS. Override per-host or per-user if needed.
+# Use 127.0.0.1:8384 for localhost-only, [::]:8384 for dual-stack.
 # ---------------------------------------------------------------------------
-syncthing_gui_address: "127.0.0.1:8384"
+syncthing_gui_address: "{{ inventory_hostname }}:8384"
 
 # ---------------------------------------------------------------------------
 # GUI TLS — serve the web GUI over HTTPS using a CA-signed certificate.
-# When enabled, the role copies the cert/key into the syncthing config dir
-# as https-cert.pem / https-key.pem and patches the GUI config to enforce TLS.
+# Enabled by default since the GUI is network-accessible.
+# When enabled, the role searches for a certificate matching the inventory
+# hostname in the standard cert directories (per-OS in vars/Fedora.yml and
+# vars/Debian.yml). If found, copies it into the syncthing config dir as
+# https-cert.pem / https-key.pem. If not found, falls back to syncthing's
+# self-signed cert with a warning.
 #
-# Paths default to the ansible_cacert default cert layout, resolved per-OS
-# in vars/Fedora.yml and vars/Debian.yml. Override per-host if your cert
-# naming differs.
+# Override syncthing_gui_cert / syncthing_gui_key to specify exact paths.
 # ---------------------------------------------------------------------------
-syncthing_gui_tls: false
-syncthing_gui_cert: "{{ syncthing_default_gui_cert | default('/etc/pki/tls/certs/main_jochenit_' ~ inventory_hostname ~ '_certificate.pem') }}"
-syncthing_gui_key: "{{ syncthing_default_gui_key | default('/etc/pki/tls/private/main_jochenit_' ~ inventory_hostname ~ '_privatekey.pem') }}"
+syncthing_gui_tls: true
+syncthing_gui_cert: ""
+syncthing_gui_key: ""
 
 # ---------------------------------------------------------------------------
 # GUI authentication — protect the web GUI with a username and password.
@@ -221,3 +224,18 @@ syncthing_folders_absent: []
 syncthing_firewall: true
 syncthing_sync_port: 22000
 syncthing_discovery_port: 21027
+
+# ---------------------------------------------------------------------------
+# Tray app — downloads and installs a system-tray monitor binary that
+# shows syncthing sync status. Started automatically on user login via
+# a freedesktop .desktop autostart entry.
+#
+# The binary is a self-contained ELF (includes Python + PySide6), so no
+# extra packages are needed. Only deployed for users in syncthing_users
+# who have syncthing configured on this host.
+# ---------------------------------------------------------------------------
+syncthing_tray_enable: true
+syncthing_tray_version: "v0.1.0"
+syncthing_tray_base_url: "https://git.lpv4.net/public.thorion.org/thorion.org_syncthing_tray/releases/download"
+syncthing_tray_binary_name: "syncthing-tray-{{ syncthing_tray_version }}-x86_64-linux"
+syncthing_tray_install_path: "/usr/local/bin/syncthing-tray"

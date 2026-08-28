@@ -59,6 +59,17 @@
     and (syncthing_user.teardown | default(syncthing_teardown | default(''))) | length == 0
     and inventory_hostname in (syncthing_user.hosts | default(ansible_play_batch))
 
+- name: "MMN syncthing - Deploy tray app for each user"
+  ansible.builtin.include_tasks: tray.yml
+  loop: "{{ syncthing_users }}"
+  loop_control:
+    loop_var: syncthing_user
+  no_log: true
+  when: >
+    (syncthing_tray_enable | bool)
+    and (syncthing_user.teardown | default(syncthing_teardown | default(''))) | length == 0
+    and inventory_hostname in (syncthing_user.hosts | default(ansible_play_batch))
+
 - name: "MMN syncthing - Collect device IDs from all hosts"
   ansible.builtin.include_tasks: collect_device_ids.yml
   loop: "{{ syncthing_users }}"

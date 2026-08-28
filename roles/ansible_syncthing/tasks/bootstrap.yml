@@ -46,16 +46,132 @@
   when: not syncthing_config_stat.stat.exists
   changed_when: true
 
-# --- Copy CA-signed cert for HTTPS GUI if TLS is enabled ---
-# Stat the cert first so we can skip gracefully if the cacert paths
-# don't match this host's naming convention.
-- name: "MMN syncthing - Check if CA cert exists for {{ syncthing_user.username }}"
+# --- Auto-detect CA cert for HTTPS GUI if TLS is enabled ---
+# Search for a certificate matching the inventory hostname in the standard
+# cert directories (per-OS). Falls back to syncthing's self-signed cert
+# if none found. Override syncthing_gui_cert/gui_key to specify exact paths.
+- name: "MMN syncthing - Auto-detect CA cert for {{ syncthing_user.username }}"
+  block:
+    - name: "MMN syncthing - Search for cert matching hostname in cert dirs"
+      ansible.builtin.find:
+        paths: "{{ syncthing_cert_dirs | default(['/etc/pki/tls/certs', '/etc/ssl/certs']) }}"
+        patterns: "*{{ inventory_hostname }}*certificate*"
+        file_type: file
+      register: syncthing_cert_search_raw
+
+    - name: "MMN syncthing - Search for key matching hostname in key dirs"
+      ansible.builtin.find:
+        paths: "{{ syncthing_key_dirs | default(['/etc/pki/tls/private', '/etc/ssl/private']) }}"
+        patterns: "*{{ inventory_hostname }}*privatekey*"
+        file_type: file
+      register: syncthing_key_search_raw
+
+    - name: "MMN syncthing - Prefer ECC cert, fall back to RSA"
+      ansible.builtin.set_fact:
+        syncthing_cert_search: >-
+          {{
+            syncthing_cert_search_raw.files
+            | selectattr('path', 'match', '.*(ecc|ecdsa).*')
+            | list
+            | first | default(
+              syncthing_cert_search_raw.files
+              | rejectattr('path', 'match', '.*(ecc|ecdsa).*')
+              | list
+              | first | default({})
+            )
+          }}
+      when: syncthing_cert_search_raw.files | length > 0
+
+    - name: "MMN syncthing - Prefer ECC key, fall back to RSA"
+      ansible.builtin.set_fact:
+        syncthing_key_search: >-
+          {{
+            syncthing_key_search_raw.files
+            | selectattr('path', 'match', '.*(ecc|ecdsa).*')
+            | list
+            | first | default(
+              syncthing_key_search_raw.files
+              | rejectattr('path', 'match', '.*(ecc|ecdsa).*')
+              | list
+              | first | default({})
+            )
+          }}
+      when: syncthing_key_search_raw.files | length > 0
+
+    - name: "MMN syncthing - Set detected cert/key paths"
+      ansible.builtin.set_fact:
+        syncthing_eff_gui_cert: "{{ syncthing_cert_search.path | default('') }}"
+        syncthing_eff_gui_key: "{{ syncthing_key_search.path | default('') }}"
+      when:
+        - syncthing_cert_search is defined
+        - syncthing_key_search is defined
+        - syncthing_cert_search.path | default('') | length > 0
+        - syncthing_key_search.path | default('') | length > 0
+
+    - name: "MMN syncthing - Warn when no cert found for {{ syncthing_user.username }}"
+      ansible.builtin.debug:
+        msg: >-
+          No certificate matching '{{ inventory_hostname }}' found in
+          {{ syncthing_cert_dirs | default(['/etc/pki/tls/certs', '/etc/ssl/certs']) | join(', ') }}.
+          TLS will use syncthing's self-signed cert. Set gui_cert/gui_key
+          to specify exact paths.
+      when: >
+        (syncthing_cert_search_raw.files | length == 0)
+        or (syncthing_key_search_raw.files | length == 0)
+
+    - name: "MMN syncthing - Check if detected cert exists"
+      ansible.builtin.stat:
+        path: "{{ syncthing_eff_gui_cert }}"
+      register: syncthing_cacert_cert_stat
+      when:
+        - syncthing_eff_gui_cert is defined
+        - syncthing_eff_gui_cert | length > 0
+
+    - name: "MMN syncthing - Copy CA cert for HTTPS GUI for {{ syncthing_user.username }}"
+      ansible.builtin.copy:
+        src: "{{ syncthing_eff_gui_cert }}"
+        dest: "{{ syncthing_confdir }}/https-cert.pem"
+        owner: "{{ syncthing_user.username }}"
+        group: "{{ syncthing_user.username }}"
+        mode: '0644'
+        remote_src: true
+      when:
+        - syncthing_cacert_cert_stat.stat.exists | default(false)
+      register: syncthing_cert_copy
+
+    - name: "MMN syncthing - Copy CA key for HTTPS GUI for {{ syncthing_user.username }}"
+      ansible.builtin.copy:
+        src: "{{ syncthing_eff_gui_key }}"
+        dest: "{{ syncthing_confdir }}/https-key.pem"
+        owner: "{{ syncthing_user.username }}"
+        group: "{{ syncthing_user.username }}"
+        mode: '0600'
+        remote_src: true
+      when:
+        - syncthing_cacert_cert_stat.stat.exists | default(false)
+      register: syncthing_key_copy
+
+    - name: "MMN syncthing - Restart on cert/key change for {{ syncthing_user.username }}"
+      ansible.builtin.systemd:
+        name: "syncthing@{{ syncthing_user.username }}"
+        state: restarted
+      when:
+        - syncthing_cacert_cert_stat.stat.exists | default(false)
+        - (syncthing_cert_copy.changed | default(false)) or (syncthing_key_copy.changed | default(false))
+  when:
+    - syncthing_eff_gui_tls | bool
+    - syncthing_eff_gui_cert | default('', true) | length == 0 or syncthing_eff_gui_key | default('', true) | length == 0
+
+# --- Use explicit cert paths when provided ---
+- name: "MMN syncthing - Check if explicit cert exists for {{ syncthing_user.username }}"
   ansible.builtin.stat:
     path: "{{ syncthing_eff_gui_cert }}"
-  register: syncthing_cacert_cert_stat
-  when: syncthing_eff_gui_tls | bool
+  register: syncthing_explicit_cert_stat
+  when:
+    - syncthing_eff_gui_tls | bool
+    - syncthing_eff_gui_cert | default('', true) | length > 0
 
-- name: "MMN syncthing - Copy CA cert for HTTPS GUI for {{ syncthing_user.username }}"
+- name: "MMN syncthing - Copy explicit CA cert for HTTPS GUI for {{ syncthing_user.username }}"
   ansible.builtin.copy:
     src: "{{ syncthing_eff_gui_cert }}"
     dest: "{{ syncthing_confdir }}/https-cert.pem"
@@ -65,11 +181,11 @@
     remote_src: true
   when:
     - syncthing_eff_gui_tls | bool
-    - syncthing_cacert_cert_stat.stat.exists | default(false)
-  register: syncthing_cert_copy
-  notify: Restart syncthing for {{ syncthing_user.username }}
+    - syncthing_eff_gui_cert | default('', true) | length > 0
+    - syncthing_explicit_cert_stat.stat.exists | default(false)
+  register: syncthing_cert_copy_explicit
 
-- name: "MMN syncthing - Copy CA key for HTTPS GUI for {{ syncthing_user.username }}"
+- name: "MMN syncthing - Copy explicit CA key for HTTPS GUI for {{ syncthing_user.username }}"
   ansible.builtin.copy:
     src: "{{ syncthing_eff_gui_key }}"
     dest: "{{ syncthing_confdir }}/https-key.pem"
@@ -79,29 +195,19 @@
     remote_src: true
   when:
     - syncthing_eff_gui_tls | bool
-    - syncthing_cacert_cert_stat.stat.exists | default(false)
-  register: syncthing_key_copy
-  notify: Restart syncthing for {{ syncthing_user.username }}
+    - syncthing_eff_gui_cert | default('', true) | length > 0
+    - syncthing_explicit_cert_stat.stat.exists | default(false)
+  register: syncthing_key_copy_explicit
 
-- name: "MMN syncthing - Warn when CA cert not found for {{ syncthing_user.username }}"
-  ansible.builtin.debug:
-    msg: >-
-      CA cert not found at {{ syncthing_eff_gui_cert }} — TLS will use
-      syncthing's self-signed cert. Set gui_cert/gui_key to the correct
-      path for this host.
-  when:
-    - syncthing_eff_gui_tls | bool
-    - not (syncthing_cacert_cert_stat.stat.exists | default(false))
-
-# --- Restart syncthing if cert or key was updated ---
-- name: "MMN syncthing - Restart on cert/key change for {{ syncthing_user.username }}"
+- name: "MMN syncthing - Restart on explicit cert/key change for {{ syncthing_user.username }}"
   ansible.builtin.systemd:
     name: "syncthing@{{ syncthing_user.username }}"
     state: restarted
   when:
     - syncthing_eff_gui_tls | bool
-    - syncthing_cacert_cert_stat.stat.exists | default(false)
-    - (syncthing_cert_copy.changed | default(false)) or (syncthing_key_copy.changed | default(false))
+    - syncthing_eff_gui_cert | default('', true) | length > 0
+    - syncthing_explicit_cert_stat.stat.exists | default(false)
+    - (syncthing_cert_copy_explicit.changed | default(false)) or (syncthing_key_copy_explicit.changed | default(false))
 
 # --- Start the service ---
 - name: "MMN syncthing - Enable lingering for {{ syncthing_user.username }}"

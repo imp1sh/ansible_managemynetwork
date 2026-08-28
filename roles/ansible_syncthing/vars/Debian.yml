@@ -1,4 +1,6 @@
 ---
 syncthing_packagename: "syncthing"
-syncthing_default_gui_cert: "/etc/ssl/certs/main_jochenit_{{ inventory_hostname }}_certificate.pem"
-syncthing_default_gui_key: "/etc/ssl/private/main_jochenit_{{ inventory_hostname }}_privatekey.pem"
+syncthing_cert_dirs:
+  - "/etc/ssl/certs"
+syncthing_key_dirs:
+  - "/etc/ssl/private"
