@@ -70,6 +70,15 @@
       — SKIPPED by patchday_skip_reboot
       {% endif %}
 
+# --- Notification and grace period before reboot ---
+- name: "MMN Patchday - Notify and wait before reboot"
+  ansible.builtin.include_tasks: reboot_notify.yml
+  when:
+    - patchday_reboot_needed
+    - not patchday_skip_reboot | default(false)
+    - patchday_reboot_notify | bool
+    - patchday_reboot_grace_period | int > 0
+
 - name: MMN Patchday - Reboot if needed
   ansible.builtin.reboot:
     msg: "Rebooting the system after updates."

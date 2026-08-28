@@ -7,3 +7,14 @@ patchday_reboot_timeout: 600
 
 # Seconds to wait after reboot before verifying the host
 patchday_post_reboot_delay: 30
+
+# Grace period in seconds before rebooting (default 180 = 3 minutes).
+# Gives users time to save work. Wall messages are broadcast at intervals
+# and a sway notification is sent via notify-send.
+# Set to 0 for immediate reboot with no grace period.
+patchday_reboot_grace_period: 180
+
+# Send notifications to logged-in users during the grace period.
+# Console: wall messages to all TTYs.
+# Graphical: notify-send to all Wayland/X11 sessions (requires libnotify).
+patchday_reboot_notify: true

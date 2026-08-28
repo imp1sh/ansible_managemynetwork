@@ -1,0 +1,54 @@
+---
+# Notify logged-in users and wait a grace period before rebooting.
+# Sends wall messages to all TTYs and notify-send to graphical sessions.
+# Uses shutdown -r +N for native wall broadcasting, then cancels and lets
+# the ansible.builtin.reboot module handle the actual reboot.
+
+- name: "MMN Patchday - Schedule shutdown with grace period"
+  ansible.builtin.command: >
+    shutdown -r +{{ (patchday_reboot_grace_period // 60) | int }}
+    "System reboot after patchday updates. Save your work NOW."
+  when:
+    - patchday_reboot_notify | bool
+    - patchday_reboot_grace_period | int >= 60
+
+- name: "MMN Patchday - Immediate shutdown warning (sub-minute grace)"
+  ansible.builtin.command: >
+    shutdown -r +1
+    "System reboot after patchday updates. Save your work NOW."
+  when:
+    - patchday_reboot_notify | bool
+    - patchday_reboot_grace_period | int > 0
+    - patchday_reboot_grace_period | int < 60
+
+- name: "MMN Patchday - Send sway notification to all graphical users"
+  ansible.builtin.shell: |
+    for sock in /run/user/*/wayland-*; do
+      uid=$(basename $(dirname "$sock") | sed 's/.*-//')
+      username=$(getent passwd "$uid" | cut -d: -f1)
+      rundir="/run/user/$uid"
+      if [ -n "$username" ]; then
+        DISPLAY=:0 WAYLAND_DISPLAY=$(basename "$sock") XDG_RUNTIME_DIR="$rundir" \
+          su - "$username" -c "notify-send -u critical -t 0 'SYSTEM REBOOT' 'Rebooting in {{ patchday_reboot_grace_period }} seconds after patchday updates. Save your work NOW.'" 2>/dev/null &
+      fi
+    done
+  changed_when: true
+  failed_when: false
+  when:
+    - patchday_reboot_notify | bool
+    - patchday_reboot_grace_period | int > 0
+
+- name: "MMN Patchday - Wait grace period"
+  ansible.builtin.pause:
+    seconds: "{{ patchday_reboot_grace_period | int }}"
+  when:
+    - patchday_reboot_notify | bool
+    - patchday_reboot_grace_period | int > 0
+
+- name: "MMN Patchday - Cancel scheduled shutdown (reboot module handles it)"
+  ansible.builtin.command: shutdown -c
+  changed_when: false
+  failed_when: false
+  when:
+    - patchday_reboot_notify | bool
+    - patchday_reboot_grace_period | int > 0
