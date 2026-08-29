@@ -1,0 +1,36 @@
+#SPDX-License-Identifier: MIT-0
+---
+- name: "MMN screen - Include OS vars"
+  ansible.builtin.include_vars: "{{ lookup('ansible.builtin.first_found', params) }}"
+  vars:
+    params:
+      files:
+        - "{{ ansible_distribution }}.yml"
+        - "{{ ansible_os_family }}.yml"
+        - "default.yml"
+      paths:
+        - "vars"
+
+- name: "MMN screen - Set package name for calling packages role"
+  ansible.builtin.set_fact:
+    packages_installrole: "{{ screen_packagename }}"
+
+- name: "MMN screen - Install required packages"
+  ansible.builtin.include_role:
+    name: imp1sh.ansible_managemynetwork.ansible_packages
+
+- name: "MMN screen - Determine target users"
+  ansible.builtin.set_fact:
+    screen_target_users: "{{ [screen_users] if (screen_users is string) else (screen_users if (screen_users is iterable and screen_users is not string) else [ansible_user | default('root')]) }}"
+  when: screen_userconfig | default(true)
+
+- name: "MMN screen - Deploy configuration for each user"
+  ansible.builtin.include_tasks: deploy_user_config.yml
+  loop: "{{ screen_target_users | default([ansible_user | default('root')]) }}"
+  loop_control:
+    loop_var: target_user
+  when: screen_userconfig | default(true)
+
+- name: "MMN screen - Deploy system-wide configuration"
+  ansible.builtin.include_tasks: deploy_system_config.yml
+  when: not (screen_userconfig | default(true))

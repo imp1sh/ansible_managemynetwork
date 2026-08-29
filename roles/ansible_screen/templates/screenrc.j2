@@ -1,0 +1,20 @@
+{%- macro emit(k, v) -%}
+{%- set s = v | string -%}
+{%- if s | lower == 'true' %}{{ k }} on{% elif s | lower == 'false' %}{{ k }} off{% else %}{{ k }} {{ v }}{% endif -%}
+{%- endmacro -%}
+{%- set ns = namespace(chunks=[], lines=[]) -%}
+{%- if screen_effective.settings | default({}) -%}
+{%- set ns.lines = [] -%}
+{%- for entry in screen_effective.settings | dict2items | sort(attribute='key') -%}
+{%- set ns.lines = ns.lines + [emit(entry.key, entry.value)] -%}
+{%- endfor -%}
+{%- set ns.chunks = ns.chunks + ["# --- settings ---\n" + (ns.lines | join("\n"))] -%}
+{%- endif -%}
+{%- for blk, hdr in [("terminal_settings", "terminal settings"), ("keybindings", "keybindings"), ("startup_windows", "startup windows"), ("extra", "extra")] -%}
+{%- if screen_effective[blk] | default("", true) | trim -%}
+{%- set ns.chunks = ns.chunks + ["# --- " + hdr + " ---\n" + (screen_effective[blk] | trim)] -%}
+{%- endif -%}
+{%- endfor -%}
+# ~/.screenrc — managed by Ansible (imp1sh.ansible_managemynetwork.ansible_screen)
+# Changes will be overwritten.
+{{ ns.chunks | join("\n\n") }}

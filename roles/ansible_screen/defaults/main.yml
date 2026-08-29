@@ -1,0 +1,43 @@
+#SPDX-License-Identifier: MIT-0
+---
+# Deployment mode
+# true  -> deploy a per-user ~/.screenrc for every user in screen_users
+# false -> deploy a single system-wide screenrc (screen_system_dest)
+screen_userconfig: true
+
+# Who gets a per-user ~/.screenrc.
+# - null/undefined: the user Ansible connects as (ansible_user / remote_user)
+# - a string: that single user
+# - a list: every user in the list
+screen_users: null
+
+# Per-user configuration, keyed by username. Each entry is merged over
+# screen_defaults (recursive merge). Parallels thunar_configs / swaylock_configs.
+#
+# Shape of a user entry (every key optional):
+#   settings:        dict of scalar screen settings, e.g. { vbell: "on", defscrollback: 10000 }
+#                     -> rendered as "<key> <value>" lines. Unset keys inherit /etc/screenrc.
+#                     Booleans may be passed as true/false (-> on/off) or as "on"/"off".
+#  terminal_settings: literal block string of termcap/terminfo/termcapinfo lines.
+#  keybindings:      literal block string of bind/unbindkey/register lines.
+#  startup_windows:  literal block string of `screen -t ...` lines.
+#  extra:            literal block string of arbitrary extra screenrc lines (e.g. hardstatus).
+screen_configs: {}
+
+# Overrides for system-wide mode (screen_userconfig: false). Same shape as a
+# screen_configs entry; merged over screen_defaults.
+screen_system_config: {}
+
+# Destination for system-wide mode.
+screen_system_dest: "/etc/screenrc"
+
+# --- Base applied to EVERY user / system file --------------------------------
+# All keys empty/null by default => the role emits nothing and screen falls
+# through to the distro's /etc/screenrc and its compiled defaults. Override
+# per user via screen_configs, or globally by editing screen_defaults.
+screen_defaults:
+  settings: {}
+  terminal_settings: ""
+  keybindings: ""
+  startup_windows: ""
+  extra: ""

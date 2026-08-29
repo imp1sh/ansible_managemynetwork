@@ -1,0 +1,29 @@
+#SPDX-License-Identifier: MIT-0
+---
+- name: "MMN screen - Get home directory for {{ target_user }}"
+  ansible.builtin.shell: "getent passwd {{ target_user }} | cut -d: -f6"
+  register: user_home_result
+  changed_when: false
+  failed_when: false
+
+- name: "MMN screen - Fail if user {{ target_user }} does not exist"
+  ansible.builtin.fail:
+    msg: "User {{ target_user }} does not exist on the system"
+  when: user_home_result.rc != 0
+
+- name: "MMN screen - Set user home directory"
+  ansible.builtin.set_fact:
+    target_user_home: "{{ user_home_result.stdout }}"
+  when: user_home_result.rc == 0
+
+- name: "MMN screen - Merge per-user settings for {{ target_user }}"
+  ansible.builtin.set_fact:
+    screen_effective: "{{ screen_defaults | combine((screen_configs | default({})).get(target_user, {}), recursive=True) }}"
+
+- name: "MMN screen - Deploy .screenrc for {{ target_user }}"
+  ansible.builtin.template:
+    src: "{{ screen_filetemplate }}"
+    dest: "{{ target_user_home }}/{{ screen_fileconfig }}"
+    owner: "{{ target_user }}"
+    group: "{{ target_user }}"
+    mode: '0644'

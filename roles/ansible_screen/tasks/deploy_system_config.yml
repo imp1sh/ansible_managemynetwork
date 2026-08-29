@@ -1,0 +1,13 @@
+#SPDX-License-Identifier: MIT-0
+---
+- name: "MMN screen - Merge system-wide settings"
+  ansible.builtin.set_fact:
+    screen_effective: "{{ screen_defaults | combine(screen_system_config | default({}), recursive=True) }}"
+
+- name: "MMN screen - Deploy system-wide screenrc"
+  ansible.builtin.template:
+    src: "{{ screen_filetemplate }}"
+    dest: "{{ screen_system_dest }}"
+    owner: root
+    group: root
+    mode: '0644'

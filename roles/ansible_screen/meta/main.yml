@@ -1,0 +1,24 @@
+#SPDX-License-Identifier: MIT-0
+---
+galaxy_info:
+  author: imp1sh
+  description: Ansible role that installs GNU screen and deploys a per-user or system-wide screenrc
+  company: libcom.de
+  issue_tracker_url: https://github.com/imp1sh/ansible_managemynetwork/issues
+  license: BSD-3-Clause
+  min_ansible_version: "2.9"
+  platforms:
+    - name: Debian
+    - name: Ubuntu
+    - name: Fedora
+    - name: EL
+    - name: ArchLinux
+    - name: Alpine
+    - name: FreeBSD
+  galaxy_tags:
+    - screen
+    - terminal
+    - multiplexer
+    - linux
+dependencies:
+  - role: imp1sh.ansible_managemynetwork.ansible_packages

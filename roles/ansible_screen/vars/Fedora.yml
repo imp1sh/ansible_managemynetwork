@@ -1,0 +1,5 @@
+#SPDX-License-Identifier: MIT-0
+---
+screen_packagename: "screen"
+screen_filetemplate: "screenrc.j2"
+screen_fileconfig: ".screenrc"
