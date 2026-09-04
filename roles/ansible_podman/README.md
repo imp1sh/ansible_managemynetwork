@@ -14,6 +14,38 @@ Supporting the following roles from the [containers.podman collection](https://g
 - Run only on specific containers by setting `podman_limited_containers` to a **list** of container instance names (e.g. `["borgmatic0"]`). By default the role iterates over all defined containers for the host. This also filters which plugins run — only plugins whose registered container names intersect the limited list are executed.
 - Optional Quadlet backend (recommended on Podman >= 4.4 / 5.x). See [Quadlet](#quadlet) below.
 
+## Passing `podman_limited_containers` on the command line
+
+When using `--extra-vars` (`-e`) to limit containers at runtime, the **syntax
+matters critically**. The `key=value` form always produces a **string**, never a
+list — and if the value contains spaces (e.g. after commas), Ansible truncates
+it at the first space, silently dropping containers.
+
+**Wrong** — value is the string `["ipfs0",` (truncated at the space, loses the
+second entry):
+
+```bash
+ansible-playbook playbooks/podman.yml -e 'podman_limited_containers=["ipfs0", "ipfscluster0"]'
+```
+
+**Wrong** — no space, but still a **string** (`'["ipfs0","ipfscluster0"]'`).
+Substring matching in `selectattr('name', 'in', …)` may accidentally work for
+some names but is fragile and not guaranteed:
+
+```bash
+ansible-playbook playbooks/podman.yml -e 'podman_limited_containers=["ipfs0","ipfscluster0"]'
+```
+
+**Correct** — JSON dict syntax, parsed as a genuine YAML **list**:
+
+```bash
+ansible-playbook playbooks/podman.yml -e '{"podman_limited_containers":["ipfs0","ipfscluster0"]}'
+```
+
+Always use the JSON-object form (`-e '{"key":value}'`) when passing lists or
+dicts via `-e`. Alternatively, put the variable in a YAML file and use
+`-e @file.yml`.
+
 # Role Workflow
 
 - Handling all the common podman stuff like:
