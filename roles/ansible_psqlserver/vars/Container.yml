@@ -17,3 +17,19 @@ psqlserver_configname: "postgresql.conf"
 psqlserver_configtemplate: "postgresql.conf.jinja2"
 psqlserver_group: "postgres"
 psqlserver_owner: "postgres"
+# UID/GID of the postgres user inside the container image. The official
+# postgres Alpine images use uid 70; the Debian/glibc images (including the
+# PG 18+ trixie/bookworm images) use uid 999. Files the role writes onto the
+# host (postgresql.conf, pg_hba.conf, parent dirs) must be owned by this uid
+# so the in-container postgres user can read them — otherwise Debian's
+# pg_ctlcluster/psql wrapper fails with "Invalid data directory for cluster".
+# May be overridden per instance via `container_uid`/`container_gid`.
+psqlserver_container_uid: "70"
+psqlserver_container_gid: "70"
+# Opt-in helpers for constructing host-side paths under the PostgreSQL 18+
+# Docker image layout (Debian pg_ctlcluster-style). Override these in
+# host_vars to match your container's major version and cluster name, then
+# reference them in configpath / hba[].dest / hbafile. Unused by the role
+# itself; existing pre-PG18 inventories are unaffected.
+psqlserver_version: "18"
+psqlserver_clustername: "docker"

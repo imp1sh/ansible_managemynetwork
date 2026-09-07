@@ -118,5 +118,77 @@ psqlserver_instances:
           EOSQL
 ```
 
+## PostgreSQL 18+ container layout
+
+Starting with the upstream `postgres:*-trixie` / `*-bookworm` images based on
+PostgreSQL 18, the Docker entrypoint switched to the Debian
+`pg_ctlcluster`-style on-disk layout ([docker-library/postgres#1259]). The
+practical consequences for this role are:
+
+- Database data lives in a **major-version-specific subdirectory**,
+  `/var/lib/postgresql/<major>/<cluster>/` inside the container (cluster name
+  defaults to `docker`), instead of the flat `/var/lib/postgresql/data/`.
+- Configuration files (`postgresql.conf`, `pg_hba.conf`, `pg_ident.conf`) are
+  read from `/etc/postgresql/<major>/<cluster>/` inside the container, **not**
+  from the data directory.
+
+[docker-library/postgres#1259]: https://github.com/docker-library/postgres/pull/1259
+
+### What the role does for you
+
+The role is version-agnostic as of this update:
+
+- Reloads are issued via `SELECT pg_reload_conf()` over the role's temporary
+  socat port-forward (`127.0.0.1:55432`), authenticating with the instance's
+  `password_admin`. No hardcoded `pg_ctl` binary path or data-directory path is
+  used, and no in-container `psql` invocation is required (the PG 18 Debian
+  image's `pg_ctlcluster` layout breaks default-socket discovery for exec'd
+  `psql`). This works on PostgreSQL 13 through 18+ and on both Alpine and
+  Debian-based images.
+- The `postgresql_pg_hba` task defaults `create: true`, so pointing `hba[].dest`
+  at a fresh config-mount location will create the file instead of failing.
+- Parent directories of each `hba[].dest` are ensured automatically.
+
+### What you must change in host_vars for PG 18+
+
+Because volume mounts are owned by the `ansible_podman` container definition
+(not this role), migrating a host to PG 18+ requires adjusting the container's
+`volume` list and the corresponding `psqlserver_instances` paths:
+
+1. **Mount the data parent** so the version subdir can live underneath it:
+   ```yaml
+   volume:
+     - "/mnt/cntr/unsynced/psql/0/:/var/lib/postgresql"
+   ```
+   (was `…/0/data/:/var/lib/postgresql/data/` pre-18)
+2. **Mount a config directory** over the location the entrypoint reads:
+   ```yaml
+   volume:
+     - "/mnt/cntr/unsynced/psql/0/conf/:/etc/postgresql/{{ psqlserver_version }}/{{ psqlserver_clustername }}/"
+   ```
+3. **Repoint role paths** so the role writes where the server reads:
+   ```yaml
+   psqlserver_instances:
+     psql0:
+       configpath: "/mnt/cntr/unsynced/psql/0/conf/{{ psqlserver_version }}/{{ psqlserver_clustername }}"
+       hbafile: "/etc/postgresql/{{ psqlserver_version }}/{{ psqlserver_clustername }}/pg_hba.conf"
+       datadir: "/var/lib/postgresql/{{ psqlserver_version }}/{{ psqlserver_clustername }}"
+       hba:
+         - dest: "/mnt/cntr/unsynced/psql/0/conf/{{ psqlserver_version }}/{{ psqlserver_clustername }}/pg_hba.conf"
+           ...
+   ```
+
+The opt-in variables `psqlserver_version` (default `"18"`) and
+`psqlserver_clustername` (default `"docker"`) are available in container mode
+to help construct these paths consistently. They are not referenced by the role
+internally, so pre-PG18 inventories that do not use them keep working unchanged.
+
+### Migrating an existing PG ≤17 cluster to PG 18
+
+A major-version bump requires a real upgrade (`pg_upgrade` or dump/restore),
+not just an image tag change. The role intentionally performs no data
+migration; orchestrate `pg_upgrade --link` or a logical dump/restore outside the
+role, then point the inventory at the new layout described above.
+
 # TODO
 - Install required psycopg2 on target host

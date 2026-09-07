@@ -13,12 +13,9 @@
     name: "{{ ('container-' ~ psqlserver_instance.key) if not (podman_use_quadlet | default(false) | bool) else psqlserver_instance.key }}"
     state: restarted
 - name: reload postgres container
-  containers.podman.podman_container_exec:
-    name: "{{ psqlserver_instance.key }}"
-    argv:
-      - "/usr/lib/postgresql/17/bin/pg_ctl"
-      - "reload"
-      - "-D"
-      - "/var/lib/postgresql/data"
-      #command: ["/usr/lib/postgresql/17/bin/pg_ctl", "reload", "-D", "/var/lib/postgresql/data"]
-    user: postgres
+  community.postgresql.postgresql_query:
+    login_port: 55432
+    login_host: localhost
+    login_user: postgres
+    login_password: "{{ psqlserver_instance.value.password_admin }}"
+    query: SELECT pg_reload_conf();

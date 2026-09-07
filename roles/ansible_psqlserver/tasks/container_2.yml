@@ -31,8 +31,8 @@
     src: "{{ psqlserver_configtemplate }}"
     dest: "{{ psqlserver_instance.value.configpath | default(psqlserver_configpath) }}/{{ psqlserver_instance.value.configname | default(psqlserver_configname) }}"
     mode: 0600
-    owner: "70"
-    group: "70"
+    owner: "{{ psqlserver_instance.value.container_uid | default(psqlserver_container_uid) }}"
+    group: "{{ psqlserver_instance.value.container_gid | default(psqlserver_container_gid) }}"
   notify: restart postgres container
 
 - name: "MMN psqlserver - make sure pg_hba directory exists"
@@ -40,34 +40,43 @@
     state: directory
     path: "{{ psqlserver_instance.value.hbafile_outside_container | basename }}"
     mode: '0755'
-    owner: "70"
-    group: "70"
+    owner: "{{ psqlserver_instance.value.container_uid | default(psqlserver_container_uid) }}"
+    group: "{{ psqlserver_instance.value.container_gid | default(psqlserver_container_gid) }}"
   when: psqlserver_instance.value.hbafile_outside_container is defined
+
+- name: "MMN psqlserver - Ensure pg_hba parent directories exist"
+  ansible.builtin.file:
+    state: directory
+    path: "{{ item['dest'] | dirname }}"
+    mode: '0755'
+    owner: "{{ psqlserver_instance.value.container_uid | default(psqlserver_container_uid) }}"
+    group: "{{ psqlserver_instance.value.container_gid | default(psqlserver_container_gid) }}"
+  loop: "{{ psqlserver_instance.value.hba }}"
+  when:
+    - psqlserver_instance.value.hba is defined
 
 - name: "MMN psqlserver - Setup pg_hba"
   community.postgresql.postgresql_pg_hba:
     dest: "{{ item['dest']}}"
     contype: "{{ item['contype'] }}"
-    create: "{{ item['create'] | default('false') }}"
+    create: "{{ item['create'] | default('true') }}"
     users: "{{ item['users'] }}"
     source: "{{ item['source'] | default(omit) }}"
     databases: "{{ item['databases'] }}"
     method: "{{ item['method'] }}"
     state: "{{ item['state'] }}"
-    owner: "999"
-    group: "999"
+    owner: "{{ psqlserver_instance.value.container_uid | default(psqlserver_container_uid) }}"
+    group: "{{ psqlserver_instance.value.container_gid | default(psqlserver_container_gid) }}"
   loop: "{{ psqlserver_instance.value.hba }}"
   when: psqlserver_instance.value.hba is defined
 
 - name: "MMN psqlserver - Reload postgres container now"
-  containers.podman.podman_container_exec:
-    name: "{{ psqlserver_instance.key }}"
-    argv:
-      - "/usr/local/bin/pg_ctl"
-      - "reload"
-      - "-D"
-      - "/var/lib/postgresql/data"
-    user: postgres
+  community.postgresql.postgresql_query:
+    login_port: 55432
+    login_host: localhost
+    login_user: postgres
+    login_password: "{{ psqlserver_instance.value.password_admin }}"
+    query: SELECT pg_reload_conf();
 
 - name: "MMN psqlserver - Setup databases"
   community.postgresql.postgresql_db:
