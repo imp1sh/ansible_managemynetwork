@@ -1,6 +1,7 @@
 ---
 # Phase 2 — collect peer IDs from all identity.json files so the trusted_peers
-# list can be auto-populated. Runs once (not per-instance).
+# list can be auto-populated. Also merges caller-declared remote peers (on
+# other hosts) into the trusted_peers list. Runs once (not per-instance).
 
 - name: "MMN ipfscluster - Read identity.json from each instance"
   ansible.builtin.slurp:
@@ -8,9 +9,9 @@
   loop: "{{ ipfscluster_instances }}"
   register: _ipfscluster_identities
 
-- name: "MMN ipfscluster - Extract peer IDs"
+- name: "MMN ipfscluster - Extract local peer IDs"
   ansible.builtin.set_fact:
-    _ipfscluster_peer_ids: >-
+    _ipfscluster_local_peer_ids: >-
       {{
         _ipfscluster_identities.results
         | map(attribute='content')
@@ -20,17 +21,28 @@
         | list
       }}
 
+- name: "MMN ipfscluster - Extract remote peer IDs"
+  ansible.builtin.set_fact:
+    _ipfscluster_remote_peer_ids: >-
+      {{ ipfscluster_remote_peers | default([]) | map(attribute='id') | list }}
+
+- name: "MMN ipfscluster - Combine local and remote peer IDs"
+  ansible.builtin.set_fact:
+    _ipfscluster_all_peer_ids: >-
+      {{ _ipfscluster_local_peer_ids + _ipfscluster_remote_peer_ids }}
+
 - name: "MMN ipfscluster - Determine effective trusted peers"
   ansible.builtin.set_fact:
     _ipfscluster_effective_trusted_peers: >-
       {{
         ipfscluster_trusted_peers
         if ipfscluster_trusted_peers | length > 0
-        else _ipfscluster_peer_ids
+        else _ipfscluster_all_peer_ids
       }}
 
 - name: "MMN ipfscluster - Show discovered peer IDs"
   ansible.builtin.debug:
     msg: >-
-      Discovered peer IDs: {{ _ipfscluster_peer_ids }}.
+      Local peer IDs: {{ _ipfscluster_local_peer_ids }}.
+      Remote peer IDs: {{ _ipfscluster_remote_peer_ids }}.
       Effective trusted_peers: {{ _ipfscluster_effective_trusted_peers }}.

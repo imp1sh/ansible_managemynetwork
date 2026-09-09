@@ -27,3 +27,20 @@
   loop: "{{ kubo_instances }}"
   loop_control:
     loop_var: kubo_check_item
+
+- name: "MMN kubo - Validate remote peers"
+  ansible.builtin.assert:
+    that:
+      - "'ID' in kubo_remote_check_item"
+      - kubo_remote_check_item.ID | string | length > 0
+      - "'Addrs' in kubo_remote_check_item"
+      - kubo_remote_check_item.Addrs | type_debug == 'list'
+      - kubo_remote_check_item.Addrs | length > 0
+    fail_msg: >-
+      Each kubo_remote_peers entry must define 'ID' (non-empty PeerID
+      string) and 'Addrs' (non-empty list of multiaddress strings).
+    success_msg: "Remote peer '{{ kubo_remote_check_item.ID }}' is valid."
+  loop: "{{ kubo_remote_peers }}"
+  loop_control:
+    loop_var: kubo_remote_check_item
+  when: kubo_remote_peers | length > 0

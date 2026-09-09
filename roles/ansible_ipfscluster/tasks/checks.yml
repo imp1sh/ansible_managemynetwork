@@ -24,6 +24,22 @@
   loop_control:
     loop_var: ipfscluster_check_item
 
+- name: "MMN ipfscluster - Validate remote peers"
+  ansible.builtin.assert:
+    that:
+      - "'id' in ipfscluster_remote_check_item"
+      - ipfscluster_remote_check_item.id | string | length > 0
+      - "'address' in ipfscluster_remote_check_item"
+      - ipfscluster_remote_check_item.address | string | length > 0
+    fail_msg: >-
+      Each ipfscluster_remote_peers entry must define 'id' (non-empty
+      PeerID string) and 'address' (non-empty multiaddress string).
+    success_msg: "Remote peer '{{ ipfscluster_remote_check_item.id }}' is valid."
+  loop: "{{ ipfscluster_remote_peers }}"
+  loop_control:
+    loop_var: ipfscluster_remote_check_item
+  when: ipfscluster_remote_peers | length > 0
+
 - name: "MMN ipfscluster - Validate cluster secret is set"
   ansible.builtin.assert:
     that:

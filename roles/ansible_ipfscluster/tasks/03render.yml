@@ -9,6 +9,11 @@
     _ipfscluster_node_multiaddress: >-
       /{{ ipfscluster_ipfs_node_addr_type }}/{{ ipfscluster_instance.ipfs_node }}/tcp/{{ ipfscluster_ipfs_api_port }}
 
+- name: "MMN ipfscluster - Build remote peer addresses for {{ ipfscluster_instance.name }}"
+  ansible.builtin.set_fact:
+    _ipfscluster_remote_peer_addrs: >-
+      {{ ipfscluster_remote_peers | default([]) | map(attribute='address') | list }}
+
 - name: "MMN ipfscluster - Assemble service.json config for {{ ipfscluster_instance.name }}"
   ansible.builtin.set_fact:
     _ipfscluster_config: >-
@@ -25,7 +30,8 @@
                 '/ip4/0.0.0.0/udp/' ~ (ipfscluster_swarm_port | string) ~ '/quic',
                 '/ip6/::/tcp/' ~ (ipfscluster_swarm_port | string),
                 '/ip6/::/udp/' ~ (ipfscluster_swarm_port | string) ~ '/quic'
-              ]
+              ],
+              'peer_addresses': _ipfscluster_remote_peer_addrs
             },
             'consensus': {
               'crdt': {

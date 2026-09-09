@@ -40,6 +40,25 @@ ipfscluster_cluster_name: "ipfs-cluster"
 # trust to a subset.
 ipfscluster_trusted_peers: []
 
+# Remote peers — cluster peers running on OTHER hosts whose identity.json
+# files cannot be read by the role. Each entry is a dict with:
+#   id      — the peer's cluster PeerID (from its identity.json)
+#   address — multiaddress for dialing this peer cross-host
+#
+# The role merges remote peer IDs into trusted_peers (alongside locally-
+# discovered peers) and populates cluster.peer_addresses so peers can dial
+# each other across hosts.
+#
+# When ipfscluster_trusted_peers is set explicitly (non-empty), it takes
+# FULL precedence over BOTH local auto-discovery AND remote peers — you
+# must include ALL desired trusted peer IDs in it.
+#
+# Example:
+#   ipfscluster_remote_peers:
+#     - id: "12D3KooW..."
+#       address: "/dns6/cntr0.t.libcom.de/tcp/9096/p2p/12D3KooW..."
+ipfscluster_remote_peers: []
+
 # Replication factor (-1 = replicate to all peers).
 ipfscluster_replication_factor_min: -1
 ipfscluster_replication_factor_max: -1

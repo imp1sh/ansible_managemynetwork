@@ -33,6 +33,11 @@
             }) -%}
         {%- endif -%}
       {%- endfor -%}
+      {%- for rp in kubo_remote_peers | default([]) -%}
+        {%- if rp.ID != _kubo_identity.PeerID -%}
+          {%- set _ = peers.append(rp) -%}
+        {%- endif -%}
+      {%- endfor -%}
       {{ peers }}
 
 - name: "MMN kubo - Build Swarm addresses for {{ kubo_instance.name }}"

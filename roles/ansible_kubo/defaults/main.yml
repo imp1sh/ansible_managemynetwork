@@ -111,6 +111,25 @@ kubo_gc_period: "1h"
 kubo_bootstrap: []
 
 # ---------------------------------------------------------------------------
+# Remote peers — kubo nodes running on OTHER hosts whose PeerIDs cannot be
+# auto-discovered (the role can only read config files on the local host).
+# Each entry is a dict mirroring the IPFS Peering.Peers object format:
+#
+#   kubo_remote_peers:
+#     - ID: "12D3KooW..."
+#       Addrs:
+#         - "/dns6/cntr0.t.libcom.de/tcp/4001/p2p/12D3KooW..."
+#         - "/dns6/cntr0.t.libcom.de/udp/4001/quic-v1/p2p/12D3KooW..."
+#
+# Addresses MUST use cross-host-resolvable names (host FQDNs, IPs) — NOT
+# *.dns.podman, which is per-host. Include the /p2p/<ID> suffix to match
+# the format of locally-discovered peers. The role merges these into
+# Peering.Peers alongside locally-discovered peers; self-exclusion applies
+# (a remote peer whose ID matches the local node is skipped).
+# ---------------------------------------------------------------------------
+kubo_remote_peers: []
+
+# ---------------------------------------------------------------------------
 # File ownership — must match the container process user.
 # The official kubo image runs as uid=1000(ipfs) gid=100(users).
 # Specify as numeric UID/GID to avoid name-resolution mismatches between

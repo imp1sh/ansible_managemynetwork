@@ -54,6 +54,7 @@ Pairs naturally with [`ansible_ipfscluster`](../ansible_ipfscluster/README.md) �
 | `kubo_peering_strict` | `true` | Enforce strict peering — refuse random swarm connections. |
 | `kubo_routing_type` | `none` | DHT routing type. `none` = private cluster (relay on Peering). `auto` = public DHT. |
 | `kubo_bootstrap` | `[]` | Bootstrap node multiaddresses. Empty for private clusters. |
+| `kubo_remote_peers` | `[]` | Peers on **other hosts** — list of `{ID, Addrs}` dicts. Merged into `Peering.Peers` alongside locally-discovered peers. See [Cross-host peering](#cross-host-peering). |
 
 ### Discovery & NAT
 
@@ -126,3 +127,68 @@ podman_container_plugin_kubo:
 ## How Peering works
 
 Each node automatically peers with all other nodes defined in `kubo_instances`. The role discovers PeerIDs from the initialised configs and builds `Peering.Peers` with both TCP and QUIC addresses. Self is excluded. Combined with `kubo_peering_strict: true` and `kubo_routing_type: none`, this creates a private mesh where nodes only talk to each other.
+
+### Security of the private mesh
+
+The private mesh is enforced at the libp2p identity layer, not at the network/firewall layer:
+
+- **`Peering.StrictPeers: true`** — kubo refuses to maintain connections from peers not listed in `Peering.Peers`. An attacker who reaches the swarm port (4001) is disconnected immediately at the identity handshake — no data exchange occurs.
+- **`Routing.Type: none`** — no DHT participation, so the node advertises nothing to the public IPFS network and is invisible to it.
+- **`Bootstrap: []`** — no bootstrap nodes, so the node never contacts public IPFS infrastructure.
+
+This means the swarm port (4001) can be safely **published on a public IP** without exposing the node to unauthorised access. Only peers whose PeerID is in `Peering.Peers` can persist a connection. All other ports (API 5001, Gateway 8080) must remain firewalled — they provide unauthenticated access to node control and content.
+
+## Cross-host peering
+
+Local auto-discovery only finds peers whose `config` files are on the **same host**. When kubo nodes run on different hosts, declare the foreign peers via `kubo_remote_peers`:
+
+```yaml
+# On host A (has ipfs0, ipfs1):
+kubo_instances:
+  - name: ipfs0
+    ...
+
+kubo_remote_peers:
+  - ID: "12D3KooW..."           # PeerID of ipfs2 on host B (from its config)
+    Addrs:
+      - "/dns6/host-b.example.com/tcp/4001/p2p/12D3KooW..."
+      - "/dns6/host-b.example.com/udp/4001/quic-v1/p2p/12D3KooW..."
+
+# On host B (has ipfs2):
+kubo_instances:
+  - name: ipfs2
+    ...
+
+kubo_remote_peers:
+  - ID: "12D3KooW..."           # PeerID of ipfs0 on host A
+    Addrs:
+      - "/dns6/host-a.example.com/tcp/4001/p2p/12D3KooW..."
+      - "/dns6/host-a.example.com/udp/4001/quic-v1/p2p/12D3KooW..."
+  - ID: "12D3KooW..."           # PeerID of ipfs1 on host A
+    Addrs:
+      - "/dns6/host-a.example.com/tcp/4002/p2p/12D3KooW..."
+      - "/dns6/host-a.example.com/udp/4002/quic-v1/p2p/12D3KooW..."
+```
+
+Remote peers are appended to the locally-discovered peers in `Peering.Peers`. Self-exclusion applies — a remote peer whose `ID` matches the local node's PeerID is silently skipped (safe to mirror the full list on every host).
+
+Addresses must use **host FQDNs or IPs** with the swarm port **published** on the remote host — not `*.dns.podman`, which is per-host and won't resolve cross-host. Each kubo node on a host that shares the same `podmannet` bridge uses the same internal swarm port (4001), so when multiple nodes sit behind one host, each needs a distinct **published** host port (e.g. 4001, 4002, 4003).
+
+### Two-phase deploy (unavoidable)
+
+PeerIDs are cryptographic identities generated at `ipfs init` time — they cannot be predicted. To add a node on a new host:
+
+1. **Init phase** — run the role on the new host only. It generates the repo and `config`. Read the new PeerID from `config` (`Identity.PeerID`).
+2. **Wire phase** — add the new PeerID + cross-host multiaddress to `kubo_remote_peers` on existing hosts, and add existing hosts' peers to the new host's `kubo_remote_peers`. Re-run the role on all hosts. Configs re-render with the full peer list; handlers restart containers.
+
+### Publishing ports
+
+| Port | Purpose | Publish publicly? | Protected by |
+|------|---------|-------------------|--------------|
+| 4001/tcp+udp | Swarm (libp2p) | **Yes** — safe with StrictPeers | Peer identity whitelist |
+| 5001 | API | **No** — full node control | — |
+| 8080 | Gateway | **No** — serves content | — |
+
+On a **LAN host**, publishing 4001 is optional — peers can reach each other via host IPs. On a **public-IP host**, publish 4001 so remote peers can dial in. Keep 5001 and 8080 firewalled or restricted to trusted IPs.
+
+Multiple kubo nodes on the same host each need a distinct published host port (e.g. 4001, 4002, 4003) since they share the host's IP.
