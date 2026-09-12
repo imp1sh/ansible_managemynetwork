@@ -1,0 +1,123 @@
+# Managed by ansible_dnsdist role — do not edit manually
+# YAML format for dnsdist >= 2.0
+{% if dnsdist_acls | default([]) | length > 0 %}
+acl:
+{% for acl in dnsdist_acls %}
+  - {{ acl }}
+{% endfor %}
+{% endif %}
+binds:
+{% for local in dnsdist_locals | default([]) %}
+  - listen_address: "{{ local }}"
+    protocol: Do53
+{% endfor %}
+
+backends:
+{% for server in dnsdist_servers | default([]) %}
+{% if server is mapping %}
+  - address: "{{ server.address }}"
+    protocol: Do53
+{% if server.name is defined %}
+    name: "{{ server.name }}"
+{% endif %}
+{% if server.pools is defined %}
+    pools:
+{% for pool in server.pools %}
+      - "{{ pool }}"
+{% endfor %}
+{% endif %}
+{% if server.order is defined %}
+    order: {{ server.order }}
+{% endif %}
+{% if server.weight is defined %}
+    weight: {{ server.weight }}
+{% endif %}
+{% else %}
+  - address: "{{ server }}"
+    protocol: Do53
+{% endif %}
+{% endfor %}
+
+packet_caches:
+  - name: default
+    size: {{ dnsdist_cachesize | default(10000) }}
+    max_ttl: {{ dnsdist_cache_max_ttl | default(86400) }}
+    min_ttl: {{ dnsdist_cache_min_ttl | default(0) }}
+    temporary_failure_ttl: {{ dnsdist_cache_temp_fail_ttl | default(60) }}
+    stale_ttl: {{ dnsdist_cache_stale_ttl | default(60) }}
+
+{% if dnsdist_webserver | default(false) %}
+webserver:
+  listen_addresses:
+    - "{{ dnsdist_webserver_address }}"
+{% if dnsdist_webserver_password | default('') | length > 0 %}
+  password: "{{ dnsdist_webserver_password }}"
+{% endif %}
+{% if dnsdist_webserver_apikey | default('') | length > 0 %}
+  api_key: "{{ dnsdist_webserver_apikey }}"
+{% endif %}
+{% if dnsdist_webserver_acl | default('') | length > 0 %}
+  acl:
+{% for acl in dnsdist_webserver_acl | split(',') | map('trim') | list %}
+    - {{ acl }}
+{% endfor %}
+{% endif %}
+  stats_require_authentication: false
+{% endif %}
+
+{% if dnsdist_carbonserver | default('') | length > 0 %}
+carbon:
+  - address: "{{ dnsdist_carbonserver }}"
+{% endif %}
+
+{% if dnsdist_controlsocket | default('') | length > 0 %}
+console:
+  listen_address: "{{ dnsdist_controlsocket }}"
+{% if dnsdist_setkey | default('') | length > 0 %}
+  key: "{{ dnsdist_setkey }}"
+{% endif %}
+{% endif %}
+
+{% if dnsdist_query_rules | default([]) | length > 0 %}
+query_rules:
+{% for rule in dnsdist_query_rules %}
+  - selector:
+{% if rule.selector.qname_suffix is defined %}
+      type: QNameSuffix
+      suffixes:
+{% for suffix in rule.selector.qname_suffix %}
+        - "{{ suffix }}"
+{% endfor %}
+{% endif %}
+{% if rule.selector.netmask_group is defined %}
+      type: NetmaskGroup
+      netmasks:
+{% for nm in rule.selector.netmask_group %}
+        - "{{ nm }}"
+{% endfor %}
+{% endif %}
+{% if rule.selector.qtype is defined %}
+      type: QType
+      qtype: "{{ rule.selector.qtype }}"
+{% endif %}
+    action:
+{% if rule.action.pool is defined %}
+      type: Pool
+      pool_name: "{{ rule.action.pool }}"
+{% endif %}
+{% if rule.action.drop is defined %}
+      type: Drop
+{% endif %}
+{% if rule.action.refused is defined %}
+      type: RCode
+      rcode: Refused
+{% endif %}
+{% if rule.action.truncate is defined %}
+      type: TC
+{% endif %}
+{% endfor %}
+{% endif %}
+
+{% if dnsdist_config_yaml | default('') | length > 0 %}
+{{ dnsdist_config_yaml }}
+{% endif %}

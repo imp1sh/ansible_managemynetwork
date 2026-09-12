@@ -1,0 +1,96 @@
+# Managed by ansible_pdnsrecursor role — do not edit manually
+# YAML format for PowerDNS Recursor >= 5.0
+incoming:
+  listen:
+{% for addr in pdnsrec_bindip | default('0.0.0.0, ::') | split(',') | map('trim') | list %}
+{% if ':' in addr %}
+    - '{{ addr }}'
+{% else %}
+    - {{ addr }}
+{% endif %}
+{% endfor %}
+  port: {{ pdnsrec_listenport | default(53) }}
+{% if pdnsrec_allowfrom is defined %}
+  allow_from:
+{% for subnet in pdnsrec_allowfrom | split(',') | map('trim') | list %}
+{% if ':' in subnet %}
+    - '{{ subnet }}'
+{% else %}
+    - {{ subnet }}
+{% endif %}
+{% endfor %}
+{% endif %}
+{% if pdnsrec_nonlocalbind is defined %}
+  non_local_bind: {{ pdnsrec_nonlocalbind | bool }}
+{% endif %}
+
+recursor:
+  daemon: {{ pdnsrec_daemon | default(true) | bool }}
+  setuid: {{ pdnsrec_setuid | default('recursor') }}
+  setgid: {{ pdnsrec_setgid | default('recursor') }}
+{% if pdnsrec_hintfile is defined %}
+  hint_file: {{ pdnsrec_hintfile }}
+{% endif %}
+{% if pdnsrec_forwardzones is defined %}
+  forward_zones:
+{% if pdnsrec_forwardzones is string %}
+{% for fz_raw in pdnsrec_forwardzones | split(',') | map('trim') | list %}
+{% set fz_parts = fz_raw | split('=') | map('trim') | list %}
+{% if fz_parts | length >= 2 %}
+    - zone: {{ fz_parts[0] }}
+      forwarders:
+{% for fwd in fz_parts[1] | split(';') | map('trim') | list %}
+{% if ':' in fwd %}
+        - '{{ fwd }}'
+{% else %}
+        - {{ fwd }}
+{% endif %}
+{% endfor %}
+{% endif %}
+{% endfor %}
+{% else %}
+{% for fz in pdnsrec_forwardzones %}
+    - zone: {{ fz.zone }}
+      forwarders:
+{% for fwd in fz.forwarders %}
+{% if ':' in fwd %}
+        - '{{ fwd }}'
+{% else %}
+        - {{ fwd }}
+{% endif %}
+{% endfor %}
+{% endfor %}
+{% endif %}
+{% endif %}
+
+webservice:
+  webserver: {{ pdnsrec_webenable | default(false) | bool }}
+{% if pdnsrec_webenable | default(false) | bool %}
+  address: {{ pdnsrec_webip | default('127.0.0.1') }}
+  port: {{ pdnsrec_webport | default(8082) }}
+{% if pdnsrec_weballowfrom is defined %}
+  allow_from:
+{% for subnet in pdnsrec_weballowfrom | split(',') | map('trim') | list %}
+{% if ':' in subnet %}
+    - '{{ subnet }}'
+{% else %}
+    - {{ subnet }}
+{% endif %}
+{% endfor %}
+{% endif %}
+{% if pdnsrec_webpass is defined %}
+  password: {{ pdnsrec_webpass }}
+{% endif %}
+{% if pdnsrec_apikey is defined %}
+  api_key: {{ pdnsrec_apikey }}
+{% endif %}
+{% endif %}
+
+logging:
+  loglevel: {{ pdnsrec_loglevel | default(6) }}
+{% if pdnsrec_quiet is defined %}
+  quiet: {{ pdnsrec_quiet | bool }}
+{% endif %}
+{% if pdnsrec_disablesyslog is defined %}
+  disable_syslog: {{ pdnsrec_disablesyslog | bool }}
+{% endif %}

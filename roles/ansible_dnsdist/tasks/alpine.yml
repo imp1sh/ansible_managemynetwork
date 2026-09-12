@@ -1,21 +1,3 @@
-# Group definitions
-- name: Install dnsdist packages
-  package:
-    name: "dnsdist, dnsdist-common, dnsdist-doc"
-    state: present
-- name: Provide openrc file
-  template:
-    src: openrc.j2
-    dest: /etc/init.d/dnsdist
-    mode: 0740
-  notify: restart dnsdist
-- name: Provide dnsdist config file
-  template:
-    src: dnsdist.conf.j2
-    dest: /etc/dnsdist.conf
-  notify: restart dnsdist
-- name: Enable dnsdist service
-  service:
-    name: dnsdist
-    state: started
-    enabled: true
+---
+# Alpine-specific tasks are now handled in main.yml
+# This file kept for backward compatibility

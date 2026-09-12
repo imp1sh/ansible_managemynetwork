@@ -1,0 +1,7 @@
+---
+- name: "MMN Podman - prepare calling dnsdist role"
+  ansible.builtin.set_fact:
+    dnsdist_dist_is_container: true
+- name: "MMN Podman - Calling dnsdist role"
+  ansible.builtin.include_role:
+    name: imp1sh.ansible_managemynetwork.ansible_dnsdist

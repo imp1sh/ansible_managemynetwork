@@ -1,2 +1,54 @@
 ---
-# defaults file for ansible_dnsdist
+# dnsdist role defaults
+
+# Listen addresses — first entry uses setLocal(), rest use addLocal()
+dnsdist_locals:
+  - "127.0.0.1:5300"
+
+# ACLs — clients allowed to send queries
+dnsdist_acls: []
+
+# Backend servers — list of dicts with address, name, pools, etc.
+# Simple string entries are also accepted for backward compat.
+dnsdist_servers: []
+
+# Packet cache
+dnsdist_cachesize: 10000
+dnsdist_cache_max_ttl: 86400
+dnsdist_cache_min_ttl: 0
+dnsdist_cache_temp_fail_ttl: 60
+dnsdist_cache_stale_ttl: 60
+
+# Console
+dnsdist_controlsocket: ""
+dnsdist_setkey: ""
+
+# Webserver
+dnsdist_webserver: false
+dnsdist_webserver_address: ""
+dnsdist_webserver_password: ""
+dnsdist_webserver_apikey: ""
+dnsdist_webserver_acl: ""
+
+# Carbon metrics
+dnsdist_carbonserver: ""
+
+# Extra config appended to the generated config
+dnsdist_config: ""
+
+# Service
+dnsdist_service_state: started
+dnsdist_service_enabled: true
+
+# Package name (OS-specific override via vars/)
+dnsdist_package_name: "dnsdist"
+
+# Config file path (OS-specific override via vars/)
+dnsdist_config_path: "/etc/dnsdist.conf"
+
+# User/group for config ownership
+dnsdist_user: "_dnsdist"
+dnsdist_group: "_dnsdist"
+
+# Disable handlers (for testing)
+dnsdist_disable_handlers: false

@@ -183,6 +183,7 @@ Supported `podman_containers` keys mapped to the `.container` file: `name`,
 `env`, `cap_add`, `cap_drop`, `user`, `group`, `timezone`, `readonly_rootfs`,
 `dns`, `label`/`labels`, `secret`/`secrets`, `hostname`, `command`, `pull`,
 `tmpfs`, `selinux_type`, `selinux_disable`.
+Note: the Quadlet `IP6=` key is used for IPv6 (not `IPv6=`).
 Optional tuning keys: `stop_timeout` (default 10), `start_timeout` (default
 180), `kill_signal` (e.g. `SIGINT` for PostgreSQL smart shutdown).
 
@@ -339,13 +340,17 @@ Supported plugin:
 | psql | [imp1sh.ansible_managemynetwork.ansible_psqlserver](https://github.com/imp1sh/ansible_managemynetwork/tree/main/roles/ansible_psqlserver) | |
 | borgmatic | [imp1sh.ansible_managemynetwork.ansible_borgmatic](https://github.com/imp1sh/ansible_managemynetwork/tree/main/roles/ansible_borgmatic) | |
 | pdnsauth | [imp1sh.ansible_managemynetwork.ansible_pdnsauth](https://github.com/imp1sh/ansible_managemynetwork/tree/main/roles/ansible_pdnsauth) | |
+| pdnsrecursor | [imp1sh.ansible_managemynetwork.ansible_pdnsrecursor](https://github.com/imp1sh/ansible_managemynetwork/tree/main/roles/ansible_pdnsrecursor) | Renders `recursor.yml` (YAML format for recursor >= 5.0) for the pdns-recursor container |
+| dnsdist | [imp1sh.ansible_managemynetwork.ansible_dnsdist](https://github.com/imp1sh/ansible_managemynetwork/tree/main/roles/ansible_dnsdist) | Renders `dnsdist.yml` (YAML format for dnsdist >= 2.0) for the dnsdist container |
 | prometheus | [imp1sh.ansible_managemynetwork.ansible_prometheus](https://github.com/imp1sh/ansible_managemynetwork/tree/main/roles/ansible_prometheus) | Renders `prometheus.yml` + rule files for the prometheus container |
 | traefik | [imp1sh.ansible_managemynetwork.ansible_traefik](https://github.com/imp1sh/ansible_managemynetwork/tree/main/roles/ansible_traefik) | Renders `traefik.yml` static config, dynamic file-provider configs and `acme.json` |
 | grafana | [imp1sh.ansible_managemynetwork.ansible_grafana](https://github.com/imp1sh/ansible_managemynetwork/tree/main/roles/ansible_grafana) | Renders `grafana.ini` and datasource/dashboard provisioning files |
 | opensearch | [imp1sh.ansible_managemynetwork.ansible_opensearch](https://github.com/imp1sh/ansible_managemynetwork/tree/main/roles/ansible_opensearch) | Renders `opensearch.yml` for the opensearch container |
+| alertmanager | [imp1sh.ansible_managemynetwork.ansible_alertmanager](https://github.com/imp1sh/ansible_managemynetwork/tree/main/roles/ansible_alertmanager) | Renders Alertmanager config for the alertmanager container |
+| vmalert | [imp1sh.ansible_managemynetwork.ansible_vmalert](https://github.com/imp1sh/ansible_managemynetwork/tree/main/roles/ansible_vmalert) | Renders vmAlert rule files for the vmalert container |
 | ipfscluster | [imp1sh.ansible_managemynetwork.ansible_ipfscluster](https://github.com/imp1sh/ansible_managemynetwork/tree/main/roles/ansible_ipfscluster) | Bootstraps IPFS Cluster peers — generates identities, auto-discovers peer IDs, renders `service.json` |
 | kubo | [imp1sh.ansible_managemynetwork.ansible_kubo](https://github.com/imp1sh/ansible_managemynetwork/tree/main/roles/ansible_kubo) | Bootstraps Kubo (IPFS) nodes — initialises repo, auto-discovers peer IDs for Peering, renders `config` |
-| dnsdist | planned | |
+| actrunner | [imp1sh.ansible_managemynetwork.ansible_actrunner](https://github.com/imp1sh/ansible_managemynetwork/tree/main/roles/ansible_actrunner) | Bootstraps Gitea ActRunner instances — registers runners, renders config |
 | cacert | planned | |
 
 ### borgmatic
@@ -759,5 +764,150 @@ place before the container starts. Each node automatically peers with all
 other nodes defined in `kubo_instances` (self excluded). Combined with
 `kubo_peering_strict: true` and `kubo_routing_type: none`, this creates a
 private mesh. See the `ansible_kubo` README for the full variable reference.
+
+### pdnsrecursor
+
+PowerDNS Recursor plugin. The `ansible_podman` role spins up the container;
+the [`ansible_pdnsrecursor`](https://github.com/imp1sh/ansible_managemynetwork/tree/main/roles/ansible_pdnsrecursor)
+role renders `recursor.yml` (YAML format for recursor >= 5.0) into the host
+bind-mount directory *before* the container starts. Enable the plugin:
+
+```yaml
+podman_container_plugin_pdnsrecursor:
+  - "pdnsrecursor0"
+pdnsrec_path_config: "/mnt/cntr/unsynced/pdnsrecursor/0"
+pdnsrec_containername: "pdnsrecursor0"
+```
+
+Then define the container and the recursor vars:
+
+```yaml
+podman_containers:
+  - name: pdnsrecursor0
+    state: started
+    network: podmannet
+    image: docker.io/powerdns/pdns-recursor-54:5.4.6
+    cap_add:
+      - NET_BIND_SERVICE
+    volume:
+      - "/mnt/cntr/unsynced/pdnsrecursor/0/recursor.yml:/etc/powerdns/recursor.yml:Z,ro"
+      - "/mnt/cntr/unsynced/pdnsrecursor/0/data/:/var/lib/pdns-recursor:Z"
+
+pdnsrec_bindip: "0.0.0.0, ::"
+pdnsrec_listenport: 53
+pdnsrec_allowfrom: "127.0.0.0/8, 10.10.0.0/16, ::1/128, fd01:4dd0:28d4::/48, fe80::/10"
+pdnsrec_webenable: true
+pdnsrec_webip: "0.0.0.0"
+pdnsrec_webport: 8082
+pdnsrec_weballowfrom: "127.0.0.0/8, 10.10.0.0/16"
+```
+
+The role supports both bare-metal (Alpine, Lua config) and container mode
+(YAML config). In container mode (`pdns_containermode: true`, set
+automatically by the plugin), it deploys `recursor.yml` with proper YAML
+structure: `incoming.listen`, `incoming.allow_from`, `recursor.forward_zones`,
+`webservice.*`, `logging.*`. See the `ansible_pdnsrecursor` role defaults
+for all available variables.
+
+### dnsdist
+
+dnsdist loadbalancer plugin. The `ansible_podman` role spins up the container;
+the [`ansible_dnsdist`](https://github.com/imp1sh/ansible_managemynetwork/tree/main/roles/ansible_dnsdist)
+role renders `dnsdist.yml` (YAML format for dnsdist >= 2.0) into the host
+bind-mount directory *before* the container starts. Enable the plugin:
+
+```yaml
+podman_container_plugin_dnsdist:
+  - "dnsdist0"
+dnsdist_path_config: "/mnt/cntr/unsynced/dnsdist/0"
+dnsdist_containername: "dnsdist0"
+```
+
+Then define the container and the dnsdist vars:
+
+```yaml
+podman_containers:
+  - name: dnsdist0
+    state: started
+    network: podmannet
+    image: docker.io/powerdns/dnsdist-21:2.1.2
+    cap_add:
+      - NET_BIND_SERVICE
+    command:
+      - "-C"
+      - "/etc/dnsdist/dnsdist.yml"
+    ports:
+      - "10.10.112.158:53:53/tcp"
+      - "10.10.112.158:53:53/udp"
+    volume:
+      - "/mnt/cntr/unsynced/dnsdist/0/dnsdist.yml:/etc/dnsdist/dnsdist.yml:Z,ro"
+
+dnsdist_locals:
+  - "0.0.0.0:53"
+  - "[::]:53"
+dnsdist_acls:
+  - "10.10.0.0/16"
+  - "127.0.0.0/8"
+dnsdist_servers:
+  - address: "10.89.0.200"
+    name: "local-recursor"
+  - address: "10.10.112.1"
+    name: "fwofden0"
+    pools:
+      - "t-libcom-de"
+dnsdist_query_rules:
+  - selector:
+      qname_suffix: ["t.libcom.de."]
+    action:
+      pool: "t-libcom-de"
+dnsdist_webserver: true
+dnsdist_webserver_address: "0.0.0.0:8083"
+dnsdist_webserver_acl: "127.0.0.0/8, 10.10.0.0/16"
+```
+
+The role supports both bare-metal (Debian/Alpine, Lua config) and container
+mode (YAML config for dnsdist >= 2.0). In container mode
+(`dnsdist_dist_is_container: true`, set automatically by the plugin), it
+deploys `dnsdist.yml` with proper YAML structure: `binds`, `backends`,
+`packet_caches`, `webserver`, `query_rules` with typed selectors and actions.
+The `command` field is required to pass `-C /etc/dnsdist/dnsdist.yml` since
+the container image defaults to the Lua config file. See the `ansible_dnsdist`
+role defaults for all available variables.
+
+### alertmanager
+
+Alertmanager plugin. The `ansible_podman` role spins up the container;
+the [`ansible_alertmanager`](https://github.com/imp1sh/ansible_managemynetwork/tree/main/roles/ansible_alertmanager)
+role renders the Alertmanager configuration. Enable the plugin:
+
+```yaml
+podman_container_plugin_alertmanager:
+  - "alertmanager0"
+alertmanager_containername: "alertmanager0"
+```
+
+### vmalert
+
+VictoriaMetrics vmAlert plugin. The `ansible_podman` role spins up the
+container; the
+[`ansible_vmalert`](https://github.com/imp1sh/ansible_managemynetwork/tree/main/roles/ansible_vmalert)
+role renders vmAlert rule files. Enable the plugin:
+
+```yaml
+podman_container_plugin_vmalert:
+  - "vmalert0"
+vmalert_containername: "vmalert0"
+```
+
+### actrunner
+
+Gitea ActRunner plugin. The `ansible_podman` role spins up the container;
+the [`ansible_actrunner`](https://github.com/imp1sh/ansible_managemynetwork/tree/main/roles/ansible_actrunner)
+role registers runners and renders config. Enable the plugin:
+
+```yaml
+podman_container_plugin_actrunner:
+  - "actrunner0"
+```
 
 

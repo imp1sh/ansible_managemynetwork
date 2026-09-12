@@ -26,7 +26,7 @@ Network={{ _net }}
 IP={{ podman_container.ip }}
 {% endif %}
 {% if podman_container.ip6 is defined %}
-IPv6={{ podman_container.ip6 }}
+IP6={{ podman_container.ip6 }}
 {% endif %}
 {% set _quadlet_vols = [] %}
 {% if podman_container.volume is defined %}

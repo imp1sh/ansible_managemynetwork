@@ -1,0 +1,6 @@
+---
+# Debian-family OS specifics
+dnsdist_package_name: "dnsdist"
+dnsdist_config_path: "/etc/dnsdist/dnsdist.conf"
+dnsdist_user: "_dnsdist"
+dnsdist_group: "_dnsdist"

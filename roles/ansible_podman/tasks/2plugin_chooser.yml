@@ -36,6 +36,22 @@
     - podman_container_plugin_pdnsauth is defined
     - _podman_containers_for_plugins | rejectattr('state', 'equalto', 'absent') | list | map(attribute='name') | intersect(podman_container_plugin_pdnsauth) | length > 0
 
+# PDNSRECURSOR
+- name: "MMN Podman - Plugin pdnsrecursor"
+  ansible.builtin.include_tasks:
+    file: plugin_pdnsrecursor.yml
+  when:
+    - podman_container_plugin_pdnsrecursor is defined
+    - _podman_containers_for_plugins | rejectattr('state', 'equalto', 'absent') | list | map(attribute='name') | intersect(podman_container_plugin_pdnsrecursor) | length > 0
+
+# DNSDIST
+- name: "MMN Podman - Plugin dnsdist"
+  ansible.builtin.include_tasks:
+    file: plugin_dnsdist.yml
+  when:
+    - podman_container_plugin_dnsdist is defined
+    - _podman_containers_for_plugins | rejectattr('state', 'equalto', 'absent') | list | map(attribute='name') | intersect(podman_container_plugin_dnsdist) | length > 0
+
 # PROMETHEUS
 - name: "MMN Podman - Plugin prometheus"
   ansible.builtin.include_tasks:

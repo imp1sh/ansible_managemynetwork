@@ -1,3 +1,22 @@
 ---
 - import_tasks: alpine.yml
   when: ansible_facts['os_family'] == 'Alpine'
+
+- name: "MMN pdnsrecursor - Container tasks"
+  when:
+    - pdns_containermode | default(false) | bool
+    - ansible_facts['os_family'] != 'Alpine'
+  block:
+    - name: "MMN pdnsrecursor - include Container vars"
+      ansible.builtin.include_vars: "Container.yml"
+    - name: "MMN pdnsrecursor - Ensure config directory exists"
+      ansible.builtin.file:
+        path: "{{ pdnsrec_path_config }}"
+        state: directory
+        mode: '0755'
+    - name: "MMN pdnsrecursor - Deploy recursor config file"
+      ansible.builtin.template:
+        src: recursor.yml.j2
+        dest: "{{ pdnsrec_path_config }}/{{ pdnsrec_filename_config }}"
+        mode: '0644'
+      notify: restart pdnsrecursor container

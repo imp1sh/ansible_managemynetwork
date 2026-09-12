@@ -4,3 +4,8 @@
   service:
     name: pdns-recursor
     state: restarted
+
+- name: restart pdnsrecursor container
+  ansible.builtin.command:
+    cmd: "podman restart {{ pdnsrec_containername | default('pdnsrecursor0') }}"
+  changed_when: true

@@ -93,7 +93,7 @@ api-key={{pdnsrec_apikey}}
 #################################
 # daemon	Operate as a daemon
 #
-daemon=yes
+daemon={{ pdnsrec_daemon | default('yes', true) }}
 
 #################################
 # delegation-only	Which domains we only accept delegations from

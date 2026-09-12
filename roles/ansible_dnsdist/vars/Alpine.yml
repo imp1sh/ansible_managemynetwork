@@ -1,0 +1,6 @@
+---
+# Alpine OS specifics
+dnsdist_package_name: "dnsdist,dnsdist-common,dnsdist-doc"
+dnsdist_config_path: "/etc/dnsdist.conf"
+dnsdist_user: "dnsdist"
+dnsdist_group: "dnsdist"

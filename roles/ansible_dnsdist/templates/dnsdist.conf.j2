@@ -1,20 +1,43 @@
-{% for aclitem in dnsdist_allowedclients %}
-addACL('{{ aclitem }}')
-{% endfor %}
-setLocal('{{ dnsdist_bindip | default('127.0.0.1:53') }}')
-{% for additionallisten in dnsdist_bindadditional %}
-addLocal('{{ additionallisten }}')
-{% endfor %}
-{% for downstreamitem in dnsdist_downstreams %}
-newServer({address="{{ downstreamitem }}"})
-{% endfor %}
-{% if dnsdist_consolekey is defined %}
-setKey('{{ dnsdist_consolekey }}')
+# Managed by ansible_dnsdist role — do not edit manually
+{% for local in dnsdist_locals | default([]) %}
+{% if loop.first %}
+setLocal("{{ local }}")
+{% else %}
+addLocal("{{ local }}")
 {% endif %}
-{% if dnsdist_consolebind is defined %}
-controlSocket('{{ dnsdist_consolebind }}')
-{% endif %}
-pc = newPacketCache({{ dnsdist_cachesize |default(10000, true) }}, {maxTTL=86400, minTTL=0, temporaryFailureTTL=60, staleTTL=60, dontAge=false})
-{% for webgui in dnsdistwebserver %}
-webserver("{{ webgui['ip'] }}", "{{ webgui['guipw'] }}", "{{ webgui['apikey'] }}", {}, "{{ webgui['allowfrom']|join(', ') }}")
 {% endfor %}
+
+{% for acl in dnsdist_acls | default([]) %}
+addACL("{{ acl }}")
+{% endfor %}
+
+{% for server in dnsdist_servers | default([]) %}
+{% if server is mapping %}
+newServer({address="{{ server.address }}"{% if server.name is defined %}, name="{{ server.name }}"{% endif %}{% if server.pools is defined %}, pools={"{{ server.pools | join('","') }}"}{% endif %}{% if server.order is defined %}, order={{ server.order }}{% endif %}{% if server.weight is defined %}, weight={{ server.weight }}{% endif %}{% if server.qps is defined %}, qps={{ server.qps }}{% endif %}{% if server.use_client_subnet is defined and server.use_client_subnet %}, useClientSubnet=true{% endif %}})
+{% else %}
+newServer("{{ server }}")
+{% endif %}
+{% endfor %}
+
+pc = newPacketCache({{ dnsdist_cachesize | default(10000) }}, {maxTTL={{ dnsdist_cache_max_ttl | default(86400) }}, minTTL={{ dnsdist_cache_min_ttl | default(0) }}, temporaryFailureTTL={{ dnsdist_cache_temp_fail_ttl | default(60) }}, staleTTL={{ dnsdist_cache_stale_ttl | default(60) }}, dontAge=false})
+getPool(""):setCache(pc)
+
+{% if dnsdist_controlsocket | default('') | length > 0 %}
+controlSocket("{{ dnsdist_controlsocket }}")
+{% endif %}
+{% if dnsdist_setkey | default('') | length > 0 %}
+setKey("{{ dnsdist_setkey }}")
+{% endif %}
+
+{% if dnsdist_webserver | default(false) %}
+webserver("{{ dnsdist_webserver_address }}")
+{% if dnsdist_webserver_password | default('') | length > 0 %}
+setWebserverConfig({password="{{ dnsdist_webserver_password }}"{% if dnsdist_webserver_apikey | default('') | length > 0 %}, apiKey="{{ dnsdist_webserver_apikey }}"{% endif %}{% if dnsdist_webserver_acl | default('') | length > 0 %}, acl="{{ dnsdist_webserver_acl }}"{% endif %}})
+{% endif %}
+{% endif %}
+
+{% if dnsdist_carbonserver | default('') | length > 0 %}
+carbonServer("{{ dnsdist_carbonserver }}")
+{% endif %}
+
+{{ dnsdist_config | default('') }}

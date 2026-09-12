@@ -1,0 +1,6 @@
+---
+# pdnsrec_path_config has no default — must be set by the user in container mode.
+# This is the host-side directory where the config file is deposited so the
+# container volume mount picks it up.
+pdnsrec_filename_config: "recursor.yml"
+pdnsrec_daemon: "no"

@@ -1,6 +1,10 @@
 ---
-# handlers file for ansible_dnsdist
 - name: restart dnsdist
-  service:
+  ansible.builtin.service:
     name: dnsdist
     state: restarted
+
+- name: restart dnsdist container
+  ansible.builtin.command:
+    cmd: "podman restart {{ dnsdist_containername | default('dnsdist0') }}"
+  changed_when: true

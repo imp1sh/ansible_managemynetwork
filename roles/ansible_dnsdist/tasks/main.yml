@@ -1,3 +1,75 @@
 ---
-- import_tasks: alpine.yml
-  when: ansible_facts['os_family'] == 'Alpine'
+- name: "MMN dnsdist - Include OS-specific variables"
+  ansible.builtin.include_vars: "{{ ansible_os_family }}.yml"
+  when: dnsdist_dist_is_container | default(false) | bool is false
+
+- name: "MMN dnsdist - Non-container tasks"
+  when:
+    - not dnsdist_dist_is_container | default(false) | bool
+  block:
+    - name: "MMN dnsdist - Install package"
+      ansible.builtin.package:
+        name: "{{ dnsdist_package_name }}"
+        state: present
+
+    - name: "MMN dnsdist - Ensure config directory exists"
+      ansible.builtin.file:
+        path: "{{ dnsdist_config_path | dirname }}"
+        state: directory
+        mode: '0755'
+      when: dnsdist_config_path | dirname != '/etc'
+
+    - name: "MMN dnsdist - Deploy config file"
+      ansible.builtin.template:
+        src: dnsdist.conf.j2
+        dest: "{{ dnsdist_config_path }}"
+        owner: "{{ dnsdist_user }}"
+        group: "{{ dnsdist_group }}"
+        mode: '0640'
+      notify: restart dnsdist
+      when: not dnsdist_disable_handlers | bool
+
+    - name: "MMN dnsdist - Deploy config file (no handler)"
+      ansible.builtin.template:
+        src: dnsdist.conf.j2
+        dest: "{{ dnsdist_config_path }}"
+        owner: "{{ dnsdist_user }}"
+        group: "{{ dnsdist_group }}"
+        mode: '0640'
+      when: dnsdist_disable_handlers | bool
+
+    - name: "MMN dnsdist - Configure service"
+      ansible.builtin.service:
+        name: dnsdist
+        state: "{{ dnsdist_service_state }}"
+        enabled: "{{ dnsdist_service_enabled }}"
+
+- name: "MMN dnsdist - Alpine OpenRC service file"
+  ansible.builtin.template:
+    src: openrc.j2
+    dest: /etc/init.d/dnsdist
+    mode: '0740'
+  notify: restart dnsdist
+  when:
+    - ansible_os_family == "Alpine"
+    - not dnsdist_disable_handlers | bool
+
+- name: "MMN dnsdist - Container tasks"
+  when:
+    - dnsdist_dist_is_container | default(false) | bool
+  block:
+    - name: "MMN dnsdist - include Container vars"
+      ansible.builtin.include_vars: "Container.yml"
+
+    - name: "MMN dnsdist - Ensure config directory exists"
+      ansible.builtin.file:
+        path: "{{ dnsdist_path_config }}"
+        state: directory
+        mode: '0755'
+
+    - name: "MMN dnsdist - Deploy config file"
+      ansible.builtin.template:
+        src: dnsdist.yml.j2
+        dest: "{{ dnsdist_path_config }}/{{ dnsdist_filename_config }}"
+        mode: '0644'
+      notify: restart dnsdist container

@@ -1,2 +1,8 @@
 ---
 # defaults file for ansible_pdnsrecursor/
+pdnsrec_daemon: "yes"
+pdnsrec_listenport: 53
+pdnsrec_bindip: "0.0.0.0, ::"
+pdnsrec_allowfrom: "127.0.0.0/8, 10.0.0.0/8, 100.64.0.0/10, 169.254.0.0/16, 192.168.0.0/16, 172.16.0.0/12, ::1/128, fc00::/7, fe80::/10"
+pdnsrec_setuid: "pdns"
+pdnsrec_setgid: "pdns"
