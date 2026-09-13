@@ -51,6 +51,46 @@
         | list
       }}
 
+# --------------------------------------------------------- image update detection
+# The Quadlet unit file is deterministic: if the container definition hasn't
+# changed, the rendered file is byte-identical and the template module reports
+# "changed=false", so no restart is triggered. But the upstream image behind a
+# mutable tag (e.g. "latest") may have changed. For containers that declare a
+# pull policy ("always" or "newer"), proactively pull the image and compare
+# the running container's image ID with the freshly pulled image ID. If they
+# differ, add the container to the restart list so it picks up the new image.
+- name: "MMN Podman (quadlet) - Pull images and detect updates"
+  ansible.builtin.shell: |
+    set -eo pipefail
+    RUNNING=$(podman inspect --format '{{ "{{" }}.Image{{ "}}" }}' {{ podman_container.name }} 2>/dev/null || true)
+    podman pull {{ podman_container.image }}
+    LATEST=$(podman image inspect --format '{{ "{{" }}.Id{{ "}}" }}' {{ podman_container.image }} 2>/dev/null || true)
+    if [ -n "$RUNNING" ] && [ "$RUNNING" != "$LATEST" ]; then
+      echo QUADLET_IMAGE_CHANGED
+    fi
+  args:
+    executable: /bin/bash
+  register: _quadlet_image_check
+  changed_when: false
+  loop: "{{ podman_containers | rejectattr('state', 'equalto', 'absent') | selectattr('pull', 'defined') | list }}"
+  loop_control:
+    loop_var: podman_container
+  no_log: true
+
+- name: "MMN Podman (quadlet) - Merge image-updated containers into restart list"
+  ansible.builtin.set_fact:
+    _quadlet_changed: >-
+      {{
+        _quadlet_changed
+        + (_quadlet_image_check.results | default([])
+            | selectattr('stdout', 'search', 'QUADLET_IMAGE_CHANGED')
+            | map(attribute='podman_container.name')
+            | list)
+      }}
+  when:
+    - _quadlet_image_check is defined
+    - _quadlet_image_check.results is defined
+
 # Single daemon-reload after all unit files are rendered.
 - name: "MMN Podman (quadlet) - Daemon-reload"
   ansible.builtin.systemd:
