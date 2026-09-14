@@ -67,9 +67,79 @@
         state: directory
         mode: '0755'
 
-    - name: "MMN dnsdist - Deploy config file"
+    - name: "MMN dnsdist - Deploy config file (YAML, no adblock)"
       ansible.builtin.template:
         src: dnsdist.yml.j2
-        dest: "{{ dnsdist_path_config }}/{{ dnsdist_filename_config }}"
+        dest: "{{ dnsdist_path_config }}/dnsdist.yml"
         mode: '0644'
       notify: restart dnsdist container
+      when: not dnsdist_adblock_enable | default(false) | bool
+
+    - name: "MMN dnsdist - Deploy config file (Lua, with adblock)"
+      ansible.builtin.template:
+        src: dnsdist.conf.j2
+        dest: "{{ dnsdist_path_config }}/dnsdist.conf"
+        mode: '0644'
+      notify: restart dnsdist container
+      when: dnsdist_adblock_enable | default(false) | bool
+
+    - name: "MMN dnsdist - Remove unused config files"
+      ansible.builtin.file:
+        path: "{{ dnsdist_path_config }}/{{ item }}"
+        state: absent
+      loop:
+        - "dnsdist.yml"
+        - "dnsdist.lua"
+      when: dnsdist_adblock_enable | default(false) | bool
+
+    - name: "MMN dnsdist - Remove unused config file (no adblock)"
+      ansible.builtin.file:
+        path: "{{ dnsdist_path_config }}/dnsdist.conf"
+        state: absent
+      when: not dnsdist_adblock_enable | default(false) | bool
+
+    - name: "MMN dnsdist - Ensure adblock directories exist"
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: '0755'
+      loop:
+        - "{{ dnsdist_path_config }}/adblock"
+        - "{{ dnsdist_path_config }}/adblock/lists"
+      when: dnsdist_adblock_enable | default(false) | bool
+
+    - name: "MMN dnsdist - Clone dagg-ffi repository"
+      ansible.builtin.git:
+        repo: "https://github.com/hautecodure/dnsdist-adblock.git"
+        dest: "{{ dnsdist_path_config }}/adblock/dagg-src"
+        depth: 1
+      when: dnsdist_adblock_enable | default(false) | bool
+
+    - name: "MMN dnsdist - Build libdagg.so"
+      ansible.builtin.shell:
+        cmd: make clean && make
+        chdir: "{{ dnsdist_path_config }}/adblock/dagg-src/dagg-ffi/libdagg"
+        creates: "{{ dnsdist_path_config }}/adblock/dagg-src/dagg-ffi/libdagg/libdagg.so"
+      when: dnsdist_adblock_enable | default(false) | bool
+
+    - name: "MMN dnsdist - Copy libdagg.so to config dir"
+      ansible.builtin.copy:
+        src: "{{ dnsdist_path_config }}/adblock/dagg-src/dagg-ffi/libdagg/libdagg.so"
+        dest: "{{ dnsdist_path_config }}/adblock/libdagg.so"
+        remote_src: true
+        mode: '0755'
+      when: dnsdist_adblock_enable | default(false) | bool
+
+    - name: "MMN dnsdist - Deploy adblock updater script"
+      ansible.builtin.template:
+        src: adblock-update.sh.j2
+        dest: "{{ dnsdist_path_config }}/adblock/adblock-update.sh"
+        mode: '0755'
+      when: dnsdist_adblock_enable | default(false) | bool
+
+    - name: "MMN dnsdist - Deploy adblock cron entrypoint"
+      ansible.builtin.template:
+        src: adblock-cron-entrypoint.sh.j2
+        dest: "{{ dnsdist_path_config }}/adblock/entrypoint.sh"
+        mode: '0755'
+      when: dnsdist_adblock_enable | default(false) | bool

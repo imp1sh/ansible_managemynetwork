@@ -118,6 +118,34 @@ query_rules:
 {% endfor %}
 {% endif %}
 
+{% if dnsdist_adblock_enable | default(false) | bool %}
+{% if dnsdist_query_rules | default([]) | length == 0 %}
+query_rules:
+{% endif %}
+  - selector:
+      type: QNameSuffix
+      suffixes:
+        - "reload.adblock.local."
+    action:
+      type: Lua
+      function_name: DaggReloadBlocklist
+      function_file: "/etc/dnsdist/dnsdist.lua"
+  - selector:
+      type: QNameSuffix
+      suffixes:
+        - "unload.adblock.local."
+    action:
+      type: Lua
+      function_name: DaggUnloadBlocklist
+      function_file: "/etc/dnsdist/dnsdist.lua"
+  - selector:
+      type: All
+    action:
+      type: Lua
+      function_name: DaggIsDomainBlocked
+      function_file: "/etc/dnsdist/dnsdist.lua"
+{% endif %}
+
 {% if dnsdist_config_yaml | default('') | length > 0 %}
 {{ dnsdist_config_yaml }}
 {% endif %}

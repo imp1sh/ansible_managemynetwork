@@ -1,0 +1,13 @@
+---
+- name: "MMN blocky - Ensure config directory exists"
+  ansible.builtin.file:
+    path: "{{ blocky_path_config }}"
+    state: directory
+    mode: '0755'
+
+- name: "MMN blocky - Deploy config file"
+  ansible.builtin.template:
+    src: blocky.yml.j2
+    dest: "{{ blocky_path_config }}/config.yml"
+    mode: '0644'
+  notify: restart blocky container

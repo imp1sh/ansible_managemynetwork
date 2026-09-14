@@ -1,0 +1,46 @@
+---
+# ansible_blocky defaults
+
+# Container image
+blocky_image: "ghcr.io/0xerr0r/blocky:v0.35.0"
+
+# Config paths
+blocky_path_config: "/mnt/cntr/unsynced/blocky/0"
+
+# DNS listen port (inside container, no port publishing)
+blocky_dns_port: 53
+
+# HTTP port for metrics/API
+blocky_http_port: 4000
+
+# Upstream DNS servers (recursive resolvers)
+blocky_upstream:
+  default:
+    - 9.9.9.9
+    - 149.112.112.112
+
+# Conditional forwarding (local zones)
+blocky_conditional:
+  mapping: {}
+
+# Caching
+blocky_caching:
+  minTime: 5m
+  prefetching: true
+  prefetchExpires: 2h
+  cacheTimeNegative: 5m
+
+# Blocking
+blocky_blocking:
+  blockType: nxDomain
+  blackLists: {}
+  whiteLists: {}
+  clientGroupsBlock: {}
+
+# Prometheus metrics
+blocky_prometheus:
+  enable: true
+  path: /metrics
+
+# Extra config (raw YAML appended to config)
+blocky_extra_config: ""

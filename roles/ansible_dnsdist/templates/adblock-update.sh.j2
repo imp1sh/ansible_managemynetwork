@@ -1,0 +1,60 @@
+#!/usr/bin/env sh
+# Managed by ansible_dnsdist role — do not edit manually
+# Downloads and concatenates DNS blocklists, then triggers dnsdist reload
+
+BLOCKLIST_DIR="/etc/dnsdist/adblock/lists"
+BLOCKLIST_FILE="$BLOCKLIST_DIR/blocklist.txt"
+TMP_FILE="$BLOCKLIST_DIR/blocklist.tmp"
+WITHERROR=0
+
+print_result() {
+  if [ "$1" -eq 0 ]; then
+    logger "Success $2"
+  else
+    logger "Error $2"
+    WITHERROR=$((WITHERROR + 1))
+  fi
+}
+
+logger "Starting adblock list update"
+
+mkdir -p "$BLOCKLIST_DIR"
+: > "$TMP_FILE"
+
+download_list() {
+  NAME="$1"
+  URL="$2"
+  TMP_OUT="$BLOCKLIST_DIR/${NAME}"
+  curl -sfL -o "$TMP_OUT" "$URL" && \
+    grep -v '^#' "$TMP_OUT" | grep -v '^$' | \
+    sed 's/^0\.0\.0\.0[[:space:]]*//; s/^127\.0\.0\.1[[:space:]]*//; s/^||//; s/\^$//' | \
+    tr -s '[:space:]' '\n' | \
+    grep -E '^[a-zA-Z0-9]' | \
+    grep -vE '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$' | \
+    grep -vE '^::' | \
+    grep -vE '^(localhost|broadcasthost|local)$' \
+    >> "$TMP_FILE" && \
+    rm -f "$TMP_OUT"
+  print_result "$?" "$NAME"
+}
+
+{% for list in dnsdist_adblock_lists | default([]) %}
+download_list "{{ list.name }}" "{{ list.url }}"
+{% endfor %}
+
+# Normalize: ensure trailing dots, deduplicate, sort
+sed '/\.$/ ! s/$/\./' "$TMP_FILE" | sort -u > "$BLOCKLIST_FILE"
+rm -f "$TMP_FILE"
+logger "Blocklist updated: $(wc -l < "$BLOCKLIST_FILE") entries"
+
+# Trigger dnsdist reload via DNS query to dnsdist container
+nslookup reload.adblock.local dnsdist0.dns.podman > /dev/null 2>&1 || true
+logger "Sent reload trigger to dnsdist"
+
+if [ "$WITHERROR" -eq 0 ]; then
+  logger "Adblock update completed without errors"
+  exit 0
+else
+  logger "Adblock update completed with $WITHERROR errors"
+  exit "$WITHERROR"
+fi

@@ -1,0 +1,61 @@
+# Managed by ansible_blocky role — do not edit manually
+upstream:
+{% for group, servers in blocky_upstream.items() %}
+  {{ group }}:
+{% for server in servers %}
+    - {{ server }}
+{% endfor %}
+{% endfor %}
+
+conditional:
+{% for group, mapping in blocky_conditional.items() %}
+  {{ group }}:
+{% for zone, target in mapping.items() %}
+    {{ zone }}: {{ target }}
+{% endfor %}
+{% endfor %}
+
+caching:
+{% for key, value in blocky_caching.items() %}
+  {{ key }}: {{ value }}
+{% endfor %}
+
+blocking:
+  blockType: {{ blocky_blocking.blockType | default('nxDomain') }}
+{% if blocky_blocking.blackLists | default({}) | length > 0 %}
+  blackLists:
+{% for group, lists in blocky_blocking.blackLists.items() %}
+    {{ group }}:
+{% for url in lists %}
+      - {{ url }}
+{% endfor %}
+{% endfor %}
+{% endif %}
+{% if blocky_blocking.whiteLists | default({}) | length > 0 %}
+  whiteLists:
+{% for group, lists in blocky_blocking.whiteLists.items() %}
+    {{ group }}:
+{% for url in lists %}
+      - {{ url }}
+{% endfor %}
+{% endfor %}
+{% endif %}
+{% if blocky_blocking.clientGroupsBlock | default({}) | length > 0 %}
+  clientGroupsBlock:
+{% for cidr, groups in blocky_blocking.clientGroupsBlock.items() %}
+    {{ cidr }}:
+{% for group in groups %}
+      - {{ group }}
+{% endfor %}
+{% endfor %}
+{% endif %}
+
+prometheus:
+  enable: {{ blocky_prometheus.enable | default(true) | lower }}
+  path: {{ blocky_prometheus.path | default('/metrics') }}
+
+ports:
+  dns: {{ blocky_dns_port }}
+  http: {{ blocky_http_port }}
+
+{{ blocky_extra_config | default('') }}

@@ -1,0 +1,129 @@
+-- Managed by ansible_dnsdist role — do not edit manually
+-- dagg-ffi adblock filter functions for dnsdist
+-- Based on https://github.com/hautecodure/dnsdist-adblock
+-- This file is auto-loaded alongside dnsdist.yml and contains ONLY functions.
+-- The YAML query_rules reference these functions by name via LuaAction.
+
+Dagg = {
+  config = {
+    blocklist = {
+      path = "/etc/dnsdist/adblock/lists/blocklist.txt",
+    },
+  },
+  table = {
+    fuse16 = nil,
+    suffix = nil,
+  },
+  ffi = require "ffi",
+  lib = {},
+}
+
+Dagg.ffi.cdef [[
+  typedef struct binary_fuse16_s {
+    uint64_t Seed;
+    uint32_t SegmentLength;
+    uint32_t SegmentLengthMask;
+    uint32_t SegmentCount;
+    uint32_t SegmentCountLength;
+    uint32_t ArrayLength;
+    uint16_t *Fingerprints;
+  } binary_fuse16_t;
+
+  binary_fuse16_t initialize(uint64_t *set, size_t set_size);
+  void deinit(binary_fuse16_t filter);
+  bool contains(const char* value, binary_fuse16_t filter);
+  uint64_t xxhash(const char* str);
+]]
+
+Dagg.lib = Dagg.ffi.load "/usr/local/lib/libdagg.so"
+
+function DaggLoadDomainsFromFile(file, lineCount)
+  local f = io.open(file, "rb")
+  if f ~= nil then
+    Dagg.table.suffix = newSuffixMatchNode()
+    local hashes = {}
+    local seen = {}
+    for domain in f:lines() do
+      if string.find(domain, "*") then
+        local suffix = domain:gsub("*.", "")
+        Dagg.table.suffix:add(suffix)
+      else
+        local h = tonumber(Dagg.lib.xxhash(domain))
+        if not seen[h] then
+          seen[h] = true
+          table.insert(hashes, h)
+        end
+      end
+    end
+    f:close()
+    local count = #hashes
+    local set = Dagg.ffi.new("uint64_t[?]", count)
+    for i = 1, count do
+      set[i - 1] = hashes[i]
+    end
+    Dagg.table.fuse16 = Dagg.ffi.gc(Dagg.lib.initialize(set, count), Dagg.lib.deinit)
+  end
+end
+
+function DaggLoadBlocklist()
+  local file = Dagg.config.blocklist.path
+  local f = io.open(file, "rb")
+  local lineCount = 0
+  if f ~= nil then
+    for _ in f:lines() do
+      lineCount = lineCount + 1
+    end
+    f:close()
+  else
+    errlog "[Dagg] the blocklist file missing or inaccessible!"
+  end
+  DaggLoadDomainsFromFile(file, lineCount)
+end
+
+function DaggClearTable()
+  Dagg.table.fuse16 = nil
+  Dagg.table.suffix = nil
+end
+
+function DaggIsDomainBlocked(dq)
+  local block = false
+  local qname = dq.qname:toString():lower()
+  if Dagg.table.fuse16 and Dagg.lib["contains"] then
+    local result = Dagg.lib.contains(qname, Dagg.table.fuse16)
+    if result then
+      block = true
+    end
+  end
+  if Dagg.table.suffix then
+    local sresult = Dagg.table.suffix:check(dq.qname)
+    if sresult then
+      block = true
+    end
+  end
+  if block then
+    dq.dh:setQR(true)
+    return DNSAction.Nxdomain, ""
+  end
+  return DNSAction.None, ""
+end
+
+function DaggReloadBlocklist(dq)
+  infolog "[Dagg] re/loading blocklist..."
+  dq.dh:setQR(true)
+  DaggClearTable()
+  collectgarbage "collect"
+  DaggLoadBlocklist()
+  collectgarbage "collect"
+  return DNSAction.Spoof, "127.0.0.127"
+end
+
+function DaggUnloadBlocklist(dq)
+  infolog "[Dagg] unloading blocklist..."
+  dq.dh:setQR(true)
+  DaggClearTable()
+  collectgarbage "collect"
+  return DNSAction.Spoof, "127.0.0.127"
+end
+
+-- Load blocklist at startup
+DaggLoadBlocklist()

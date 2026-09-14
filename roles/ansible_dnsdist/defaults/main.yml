@@ -52,3 +52,17 @@ dnsdist_group: "_dnsdist"
 
 # Disable handlers (for testing)
 dnsdist_disable_handlers: false
+
+# Adblocking (dagg-ffi)
+dnsdist_adblock_enable: false
+dnsdist_adblock_lists:
+  - name: "StevenBlack_Porn"
+    url: "https://raw.githubusercontent.com/StevenBlack/hosts/master/alternates/porn/hosts"
+  - name: "Phishing_blocklistproject"
+    url: "https://blocklistproject.github.io/Lists/phishing.txt"
+  - name: "Spam_StevenBlack"
+    url: "https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts"
+  - name: "Spam_adaway"
+    url: "https://adaway.org/hosts.txt"
+  - name: "Tracking_FadeMind"
+    url: "https://raw.githubusercontent.com/FadeMind/hosts.extras/master/add.2o7Net/hosts"

@@ -13,7 +13,7 @@ addACL("{{ acl }}")
 
 {% for server in dnsdist_servers | default([]) %}
 {% if server is mapping %}
-newServer({address="{{ server.address }}"{% if server.name is defined %}, name="{{ server.name }}"{% endif %}{% if server.pools is defined %}, pools={"{{ server.pools | join('","') }}"}{% endif %}{% if server.order is defined %}, order={{ server.order }}{% endif %}{% if server.weight is defined %}, weight={{ server.weight }}{% endif %}{% if server.qps is defined %}, qps={{ server.qps }}{% endif %}{% if server.use_client_subnet is defined and server.use_client_subnet %}, useClientSubnet=true{% endif %}})
+newServer({address="{{ server.address }}"{% if server.name is defined %}, name="{{ server.name }}"{% endif %}{% if server.pools is defined %}, pool="{{ server.pools[0] }}"{% endif %}{% if server.order is defined %}, order={{ server.order }}{% endif %}{% if server.weight is defined %}, weight={{ server.weight }}{% endif %}{% if server.qps is defined %}, qps={{ server.qps }}{% endif %}{% if server.use_client_subnet is defined and server.use_client_subnet %}, useClientSubnet=true{% endif %}})
 {% else %}
 newServer("{{ server }}")
 {% endif %}
@@ -31,13 +31,159 @@ setKey("{{ dnsdist_setkey }}")
 
 {% if dnsdist_webserver | default(false) %}
 webserver("{{ dnsdist_webserver_address }}")
-{% if dnsdist_webserver_password | default('') | length > 0 %}
-setWebserverConfig({password="{{ dnsdist_webserver_password }}"{% if dnsdist_webserver_apikey | default('') | length > 0 %}, apiKey="{{ dnsdist_webserver_apikey }}"{% endif %}{% if dnsdist_webserver_acl | default('') | length > 0 %}, acl="{{ dnsdist_webserver_acl }}"{% endif %}})
-{% endif %}
+setWebserverConfig({statsRequireAuthentication=false{% if dnsdist_webserver_password | default('') | length > 0 %}, password="{{ dnsdist_webserver_password }}"{% endif %}{% if dnsdist_webserver_apikey | default('') | length > 0 %}, apiKey="{{ dnsdist_webserver_apikey }}"{% endif %}{% if dnsdist_webserver_acl | default('') | length > 0 %}, acl="{{ dnsdist_webserver_acl }}"{% endif %}})
 {% endif %}
 
 {% if dnsdist_carbonserver | default('') | length > 0 %}
 carbonServer("{{ dnsdist_carbonserver }}")
 {% endif %}
 
+{% if dnsdist_query_rules | default([]) | length > 0 %}
+-- Query rules
+{% for rule in dnsdist_query_rules %}
+{% if rule.selector.qname_suffix is defined and rule.action.pool is defined %}
+addAction(QNameSuffixRule({% for suffix in rule.selector.qname_suffix %}"{{ suffix }}"{% if not loop.last %}, {% endif %}{% endfor %}), PoolAction("{{ rule.action.pool }}"))
+{% endif %}
+{% endfor %}
+{% endif %}
+
 {{ dnsdist_config | default('') }}
+
+{% if dnsdist_adblock_enable | default(false) | bool %}
+-- dagg-ffi adblock filter
+-- Based on https://github.com/hautecodure/dnsdist-adblock
+Dagg = {
+  config = {
+    blocklist = {
+      path = "/etc/dnsdist/adblock/lists/blocklist.txt",
+    },
+    reload = {
+      target = "reload.adblock.local.",
+    },
+    unload = {
+      target = "unload.adblock.local.",
+    },
+  },
+  table = {
+    fuse16 = nil,
+    suffix = nil,
+  },
+  ffi = require "ffi",
+  lib = {},
+}
+
+Dagg.ffi.cdef [[
+  typedef struct binary_fuse16_s {
+    uint64_t Seed;
+    uint32_t SegmentLength;
+    uint32_t SegmentLengthMask;
+    uint32_t SegmentCount;
+    uint32_t SegmentCountLength;
+    uint32_t ArrayLength;
+    uint16_t *Fingerprints;
+  } binary_fuse16_t;
+
+  binary_fuse16_t initialize(uint64_t *set, size_t set_size);
+  void deinit(binary_fuse16_t filter);
+  bool contains(const char* value, binary_fuse16_t filter);
+  uint64_t xxhash(const char* str);
+]]
+
+Dagg.lib = Dagg.ffi.load "/usr/local/lib/libdagg.so"
+
+function DaggLoadDomainsFromFile(file, lineCount)
+  local f = io.open(file, "rb")
+  if f ~= nil then
+    Dagg.table.suffix = newSuffixMatchNode()
+    local hashes = {}
+    local seen = {}
+    for domain in f:lines() do
+      if string.find(domain, "*") then
+        local suffix = domain:gsub("*.", "")
+        Dagg.table.suffix:add(suffix)
+      else
+        local h = tonumber(Dagg.lib.xxhash(domain))
+        if not seen[h] then
+          seen[h] = true
+          table.insert(hashes, h)
+        end
+      end
+    end
+    f:close()
+    local count = #hashes
+    local set = Dagg.ffi.new("uint64_t[?]", count)
+    for i = 1, count do
+      set[i - 1] = hashes[i]
+    end
+    Dagg.table.fuse16 = Dagg.ffi.gc(Dagg.lib.initialize(set, count), Dagg.lib.deinit)
+  end
+end
+
+function DaggLoadBlocklist()
+  local file = Dagg.config.blocklist.path
+  local f = io.open(file, "rb")
+  local lineCount = 0
+  if f ~= nil then
+    for _ in f:lines() do
+      lineCount = lineCount + 1
+    end
+    f:close()
+  else
+    errlog "[Dagg] the blocklist file missing or inaccessible!"
+  end
+  DaggLoadDomainsFromFile(file, lineCount)
+end
+
+function DaggClearTable()
+  Dagg.table.fuse16 = nil
+  Dagg.table.suffix = nil
+end
+
+function DaggIsDomainBlocked(dq)
+  local block = false
+  local qname = dq.qname:toString():lower()
+  if Dagg.table.fuse16 and Dagg.lib["contains"] then
+    local result = Dagg.lib.contains(qname, Dagg.table.fuse16)
+    if result then
+      block = true
+      infolog("[Dagg] blocked: " .. qname)
+    end
+  end
+  if Dagg.table.suffix then
+    local sresult = Dagg.table.suffix:check(dq.qname)
+    if sresult then
+      block = true
+      infolog("[Dagg] suffix blocked: " .. qname)
+    end
+  end
+  if block then
+    dq.dh:setQR(true)
+    return DNSAction.Nxdomain, ""
+  end
+  return DNSAction.None, ""
+end
+addAction(AllRule(), LuaAction(DaggIsDomainBlocked))
+
+function DaggReloadBlocklist(dq)
+  infolog "[Dagg] re/loading blocklist..."
+  dq.dh:setQR(true)
+  DaggClearTable()
+  collectgarbage "collect"
+  DaggLoadBlocklist()
+  collectgarbage "collect"
+  return DNSAction.Spoof, "127.0.0.127"
+end
+addAction(Dagg.config.reload.target, LuaAction(DaggReloadBlocklist))
+
+function DaggUnloadBlocklist(dq)
+  infolog "[Dagg] unloading blocklist..."
+  dq.dh:setQR(true)
+  DaggClearTable()
+  collectgarbage "collect"
+  return DNSAction.Spoof, "127.0.0.127"
+end
+addAction(Dagg.config.unload.target, LuaAction(DaggUnloadBlocklist))
+
+-- Load blocklist at startup
+DaggLoadBlocklist()
+{% endif %}

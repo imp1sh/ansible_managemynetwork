@@ -1,0 +1,16 @@
+#!/usr/bin/env sh
+# Entrypoint for the adblock-updater sidecar container
+# Installs curl, runs the update script immediately, then schedules via cron daily at 02:00
+
+SCRIPT="/usr/local/bin/adblock-update.sh"
+
+# Install curl (alpine doesn't ship it)
+apk add --no-cache curl bind-tools > /dev/null 2>&1 || true
+
+# Run once at startup
+logger "adblock-updater: initial run"
+sh "$SCRIPT" || true
+
+# Schedule daily at 02:00
+echo "0 2 * * * sh $SCRIPT" > /etc/crontabs/root
+crond -f -l 2

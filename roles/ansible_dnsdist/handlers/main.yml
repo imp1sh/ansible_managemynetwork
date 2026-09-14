@@ -5,6 +5,7 @@
     state: restarted
 
 - name: restart dnsdist container
-  ansible.builtin.command:
-    cmd: "podman restart {{ dnsdist_containername | default('dnsdist0') }}"
-  changed_when: true
+  ansible.builtin.systemd:
+    name: "{{ dnsdist_containername | default('dnsdist0') }}"
+    state: restarted
+    daemon_reload: true

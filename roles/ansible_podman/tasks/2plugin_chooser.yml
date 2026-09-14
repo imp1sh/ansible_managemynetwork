@@ -52,6 +52,14 @@
     - podman_container_plugin_dnsdist is defined
     - _podman_containers_for_plugins | rejectattr('state', 'equalto', 'absent') | list | map(attribute='name') | intersect(podman_container_plugin_dnsdist) | length > 0
 
+# BLOCKY
+- name: "MMN Podman - Plugin blocky"
+  ansible.builtin.include_tasks:
+    file: plugin_blocky.yml
+  when:
+    - podman_container_plugin_blocky is defined
+    - _podman_containers_for_plugins | rejectattr('state', 'equalto', 'absent') | list | map(attribute='name') | intersect(podman_container_plugin_blocky) | length > 0
+
 # PROMETHEUS
 - name: "MMN Podman - Plugin prometheus"
   ansible.builtin.include_tasks:

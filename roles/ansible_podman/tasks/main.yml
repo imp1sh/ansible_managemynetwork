@@ -38,6 +38,7 @@
       ( podman_container_plugin_pdnsauth is defined ) or
       ( podman_container_plugin_pdnsrecursor is defined ) or
       ( podman_container_plugin_dnsdist is defined ) or
+      ( podman_container_plugin_blocky is defined ) or
       ( podman_container_plugin_prometheus is defined ) or
       ( podman_container_plugin_traefik is defined ) or
       ( podman_container_plugin_grafana is defined ) or
