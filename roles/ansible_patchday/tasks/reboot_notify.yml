@@ -1,25 +1,25 @@
 ---
 # Notify logged-in users and wait a grace period before rebooting.
 # Sends wall messages to all TTYs and notify-send to graphical sessions.
-# Uses shutdown -r +N for native wall broadcasting, then cancels and lets
-# the ansible.builtin.reboot module handle the actual reboot.
+#
+# We deliberately AVOID `shutdown -r +N`: although it broadcasts wall
+# messages natively, it also creates /run/nologin immediately for delays
+# <= 5 min. That blocks the SSH connections Ansible needs to proceed,
+# causing UNREACHABLE failures during the grace window or on reruns.
+# Using `wall` gives the same TTY broadcast without poisoning logins.
 
-- name: "MMN Patchday - Schedule shutdown with grace period"
-  ansible.builtin.command: >
-    shutdown -r +{{ (patchday_reboot_grace_period // 60) | int }}
-    "System reboot after patchday updates. Save your work NOW."
-  when:
-    - patchday_reboot_notify | bool
-    - patchday_reboot_grace_period | int >= 60
+- name: "MMN Patchday - Cancel any lingering scheduled shutdown"
+  ansible.builtin.command: shutdown -c
+  changed_when: false
+  failed_when: false
 
-- name: "MMN Patchday - Immediate shutdown warning (sub-minute grace)"
+- name: "MMN Patchday - Broadcast initial wall warning"
   ansible.builtin.command: >
-    shutdown -r +1
-    "System reboot after patchday updates. Save your work NOW."
+    wall "System reboot after patchday updates in {{ patchday_reboot_grace_period }} seconds. Save your work NOW."
+  changed_when: true
   when:
     - patchday_reboot_notify | bool
     - patchday_reboot_grace_period | int > 0
-    - patchday_reboot_grace_period | int < 60
 
 - name: "MMN Patchday - Send sway notification to all graphical users"
   ansible.builtin.shell: |
@@ -45,10 +45,10 @@
     - patchday_reboot_notify | bool
     - patchday_reboot_grace_period | int > 0
 
-- name: "MMN Patchday - Cancel scheduled shutdown (reboot module handles it)"
-  ansible.builtin.command: shutdown -c
-  changed_when: false
-  failed_when: false
+- name: "MMN Patchday - Broadcast final wall warning"
+  ansible.builtin.command: >
+    wall "System rebooting NOW after patchday updates."
+  changed_when: true
   when:
     - patchday_reboot_notify | bool
     - patchday_reboot_grace_period | int > 0
