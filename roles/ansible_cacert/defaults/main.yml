@@ -39,3 +39,9 @@ cacert_clientcert_type: "RSA"
 cacert_clientcert_not_before: "-1d"
 cacert_clientcert_not_after: "+54w"
 cacert_clientcert_force: false
+
+# PKCS#12 bundle generation for client certs (browser-importable .p12 file
+# containing both cert and key). Enabled by default since client certs are
+# typically imported into browsers which require PKCS#12 format.
+cacert_clientcert_pkcs12: true
+cacert_clientcert_pkcs12_passphrase: ""

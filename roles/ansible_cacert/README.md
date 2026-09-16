@@ -59,6 +59,8 @@ The generated cert/key filenames are unchanged for the default cert (still `<cak
 | cacert_clientcert_not_after | Validity period end for client certificates. | +54w | String | No |
 | cacert_clientcert_not_before | Validity period start for client certificates. | -1d | String | No |
 | cacert_clientcert_passphrase | Optional passphrase for client certificate private keys. | - | String | No |
+| cacert_clientcert_pkcs12 | Generate a PKCS#12 bundle (.p12) alongside cert+key for browser import. | true | Boolean | No |
+| cacert_clientcert_pkcs12_passphrase | Passphrase protecting the PKCS#12 bundle. Empty string = no password. Vault this for production use. | "" | String | No |
 | cacert_clientcert_type | Key type for client certificates (RSA or ECC). | RSA | String | No |
 | cacert_clientcerts | Optional list of client certificate definitions. Each entry should contain: common_name, dest, state, user, group, not_after, not_before. | [] | List | No |
 | cacert_defaultcert_additionalhosts | Optional list of additional hosts where the **default cert** should be copied. Each entry: targethost, targethostpath, targethostuser, targethostgroup, state, alsokey (bool). | - | List | No |
@@ -105,6 +107,7 @@ Variables created by the role during execution. Do not set these manually.
 | cacert_filename_cakey | Generated filename for CA private key. | String |
 | cacert_filename_clientcert | Generated filename for client certificate. | String |
 | cacert_filename_clientkey | Generated filename for client private key. | String |
+| cacert_filename_clientpkcs12 | Generated filename for client PKCS#12 bundle. | String |
 | cacert_filename_defaultcert | Generated filename for the default cert. | String |
 | cacert_filename_defaultkey | Generated filename for the default cert private key. | String |
 | cacert_path_cacert | Full path to CA certificate on CA manager host. | String |
@@ -113,6 +116,7 @@ Variables created by the role during execution. Do not set these manually.
 | cacert_path_cakey_targethost | Full path to CA private key on target host (if copied). | String |
 | cacert_path_clientcert | Full path to client certificate. | String |
 | cacert_path_clientkey | Full path to client private key. | String |
+| cacert_path_clientpkcs12 | Full path to client PKCS#12 bundle. | String |
 | cacert_path_defaultcert | Full path to the default cert. | String |
 | cacert_path_defaultkey | Full path to the default cert private key. | String |
 
