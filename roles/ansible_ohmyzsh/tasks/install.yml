@@ -31,10 +31,16 @@
         name: '{{ user.key }}'
         shell: '{{ oh_my_zsh_zsh_path }}'
       when: user.value.shell == "zsh"
+    - name: Remove oh-my-zsh auto suggestions from bundled plugins dir (legacy location)
+      become: true
+      ansible.builtin.file:
+        path: "~{{ user.key }}/.oh-my-zsh/plugins/zsh-autosuggestions"
+        state: absent
+      when: '"zsh-autosuggestions" in user.value.oh_my_zsh.plugins'
     - name: Install oh-my-zsh auto suggestions
       ansible.builtin.git:
         repo: 'https://github.com/zsh-users/zsh-autosuggestions'
-        dest: "~{{ user.key }}/.oh-my-zsh/plugins/zsh-autosuggestions"
+        dest: "~{{ user.key }}/.oh-my-zsh/custom/plugins/zsh-autosuggestions"
       become: true
       become_user: '{{ user.key }}'
       when: '"zsh-autosuggestions" in user.value.oh_my_zsh.plugins'
