@@ -55,6 +55,18 @@ AddCapability={{ _cap }}
 DropCapability={{ _cap }}
 {% endfor %}
 {% endif %}
+{% if podman_container.devices is defined %}
+{% set _quadlet_devs = podman_container.devices if (podman_container.devices is iterable and podman_container.devices is not string) else [podman_container.devices] %}
+{% for _dev in _quadlet_devs %}
+AddDevice={{ _dev }}
+{% endfor %}
+{% endif %}
+{% if podman_container.group_add is defined %}
+{% set _quadlet_grpadd = podman_container.group_add if (podman_container.group_add is iterable and podman_container.group_add is not string) else [podman_container.group_add] %}
+{% for _grp in _quadlet_grpadd %}
+GroupAdd={{ _grp }}
+{% endfor %}
+{% endif %}
 {% set _quadlet_socket_vol = _quadlet_vols | map('regex_search', '(?:podman|docker)\.sock') | select('truthy') | list | length > 0 %}
 {% if podman_container.selinux_disable | default(false) | bool %}
 SecurityLabelDisable=true
@@ -62,6 +74,9 @@ SecurityLabelDisable=true
 SecurityLabelType={{ podman_container.selinux_type }}
 {% elif (ansible_selinux.mode | default('')) == 'enforcing' and _quadlet_socket_vol %}
 SecurityLabelType=container_runtime_t
+{% endif %}
+{% if podman_container.seccomp_profile is defined %}
+SeccompProfile={{ podman_container.seccomp_profile }}
 {% endif %}
 {% if podman_container.user is defined %}
 User={{ podman_container.user }}
@@ -121,6 +136,9 @@ Pull={{ podman_container.pull }}
 {% for _tmp in _quadlet_tmpfs %}
 Tmpfs={{ _tmp }}
 {% endfor %}
+{% endif %}
+{% if podman_container.shm_size is defined %}
+ShmSize={{ podman_container.shm_size }}
 {% endif %}
 
 [Service]

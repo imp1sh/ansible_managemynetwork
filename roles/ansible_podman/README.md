@@ -180,12 +180,19 @@ flag.
 
 Supported `podman_containers` keys mapped to the `.container` file: `name`,
 `image`, `state`, `network`, `ip`, `ip6`, `volume`/`volumes`, `ports`/`publish`,
-`env`, `cap_add`, `cap_drop`, `user`, `group`, `timezone`, `readonly_rootfs`,
+`env`, `cap_add`, `cap_drop`, `devices`, `group_add`, `shm_size`,
+`seccomp_profile`, `user`, `group`, `timezone`, `readonly_rootfs`,
 `dns`, `label`/`labels`, `secret`/`secrets`, `hostname`, `command`, `pull`,
 `tmpfs`, `selinux_type`, `selinux_disable`.
 Note: the Quadlet `IP6=` key is used for IPv6 (not `IPv6=`).
 Optional tuning keys: `stop_timeout` (default 10), `start_timeout` (default
 180), `kill_signal` (e.g. `SIGINT` for PostgreSQL smart shutdown).
+
+`devices` (list) → `AddDevice=`, `group_add` (list) → `GroupAdd=`,
+`shm_size` (e.g. `8g`) → `ShmSize=`, `seccomp_profile` (e.g. `unconfined`)
+→ `SeccompProfile=`. These are useful for GPU/ROCm/CUDA containers that need
+host device nodes (`/dev/kfd`, `/dev/dri`), supplemental groups (`video`,
+`render`), large `/dev/shm`, and relaxed seccomp.
 
 ## Fedora / SELinux
 
