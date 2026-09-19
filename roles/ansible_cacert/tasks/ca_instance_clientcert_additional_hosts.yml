@@ -1,0 +1,60 @@
+---
+# Cross-host distribution of client PKCS12 bundles, mirroring the
+# cacert_defaultcert_additionalhosts mechanism. Runs on the CA manager host
+# (where the .p12 was generated), slurps the bundle, and copies it to each
+# additional target host/path. Optionally imports it into the target user's
+# NSS database so Chromium/Firefox pick it up automatically.
+#
+# Per-item schema (cacert_clientcerts[*].additionalhosts):
+#   - targethost:        inventory hostname receiving the bundle
+#     targethostpath:    directory to place the .p12 (e.g. /home/marla/.pki)
+#     targethostuser:    owning unix user (also whose nssdb is targeted)
+#     targethostgroup:   owning unix group
+#     state:             present|absent (defaults to present)
+#     nss_import:        true|false (defaults true) — run pk12util into nssdb
+- name: "MMN cacert - Client cert additional hosts block"
+  when:
+    - cacert_clientcert.state | default('present') == 'present'
+    - cacert_clientcert_pkcs12 | default(true) | bool
+  block:
+    - name: "MMN cacert - Slurp existing client PKCS12 bundle"
+      become: "{{ _cacert_become }}"
+      ansible.builtin.slurp:
+        src: "{{ cacert_path_clientpkcs12 }}"
+      register: cacert_clientcert_pkcs12_existing
+      delegate_to: "{{ _cacert_target_host }}"
+
+    - name: "MMN cacert - Distribute client PKCS12 to additional hosts"
+      ansible.builtin.include_tasks: ca_instance_clientcert_additional_hosts_instance.yml
+      loop: "{{ cacert_clientcert.additionalhosts }}"
+      loop_control:
+        loop_var: "cacert_clientcert_additionalhost"
+      when: cacert_clientcert_additionalhost.state | default('present') == 'present'
+
+- name: "MMN cacert - Remove client PKCS12 bundle from additional hosts"
+  delegate_to: "{{ cacert_clientcert_additionalhost.targethost }}"
+  become: True
+  ansible.builtin.file:
+    path: "{{ cacert_clientcert_additionalhost.targethostpath }}/{{ cacert_filename_clientpkcs12 }}"
+    state: absent
+  loop: "{{ cacert_clientcert.additionalhosts | default([]) }}"
+  loop_control:
+    loop_var: "cacert_clientcert_additionalhost"
+  when:
+    - cacert_clientcert.additionalhosts is defined
+    - cacert_clientcert.state | default('present') == 'absent'
+
+- name: "MMN cacert - Remove client cert from NSS database on additional hosts"
+  delegate_to: "{{ cacert_clientcert_additionalhost.targethost }}"
+  become: True
+  ansible.builtin.command:
+    cmd: "certutil -D -d sql:{{ cacert_clientcert_additionalhost.targethostpath }}/nssdb -n {{ cacert_clientcert.common_name }}"
+  loop: "{{ cacert_clientcert.additionalhosts | default([]) }}"
+  loop_control:
+    loop_var: "cacert_clientcert_additionalhost"
+  changed_when: true
+  failed_when: false
+  when:
+    - cacert_clientcert.additionalhosts is defined
+    - cacert_clientcert.state | default('present') == 'absent'
+    - cacert_clientcert_additionalhost.nss_import | default(true) | bool

@@ -1,4 +1,22 @@
 ---
+# Re-derive filename and path vars for the current cacert_clientcert loop
+# iteration. ca_instance_clientkey.yml (called in a preceding separate loop)
+# sets these as facts, but facts persist after that loop ends and retain the
+# LAST iteration's values. Without resetting them here, every iteration of
+# this loop would operate on the wrong client cert's filenames/paths — e.g.
+# distributing the last user's .p12 to every other user's additionalhosts.
+- name: "MMN cacert - Define filename vars"
+  ansible.builtin.set_fact:
+    cacert_filename_clientkey: "{{ cacert_clientcert.common_name }}{{ cacert_filename_clientkey_suffix }}"
+    cacert_filename_clientcert: "{{ cacert_clientcert.common_name }}{{ cacert_filename_clientcert_suffix }}"
+    cacert_filename_clientpkcs12: "{{ cacert_clientcert.common_name }}{{ cacert_filename_clientpkcs12_suffix }}"
+
+- name: "MMN cacert - Define path vars"
+  ansible.builtin.set_fact:
+    cacert_path_clientkey: "{{ cacert_clientcert.dest }}/{{ cacert_filename_clientkey }}"
+    cacert_path_clientcert: "{{ cacert_clientcert.dest }}/{{ cacert_filename_clientcert }}"
+    cacert_path_clientpkcs12: "{{ cacert_clientcert.dest }}/{{ cacert_filename_clientpkcs12 }}"
+
 - name: "MMN cacert - Client Cert shall be present block"
   when:
     - cacert_ca.value.state | default('present') == 'present'
@@ -96,7 +114,7 @@
           -inkey {{ cacert_path_clientkey }}
           -in {{ cacert_path_clientcert }}
           -name {{ cacert_clientcert.common_name | default(inventory_hostname) }}
-          -passout pass:{{ cacert_clientcert_pkcs12_passphrase | default('') }}
+          -passout pass:{{ cacert_clientcert.pkcs12_passphrase | default(cacert_clientcert_pkcs12_passphrase) | default('') }}
       when:
         - cacert_clientcert_pkcs12 | default(true) | bool
         - ( cacert_clientcert_result is changed ) or ( not stat_certificate_client.stat.exists ) or ( not stat_pkcs12_client.stat.exists )
@@ -130,3 +148,11 @@
     state: absent
   when: cacert_clientcert.state | default('present') == 'absent'
   delegate_to: "{{ _cacert_target_host }}"
+
+# Cross-host distribution / removal of the client PKCS12 bundle. The included
+# file branches internally on cacert_clientcert.state, so a single top-level
+# include covers both present (slurp + copy + NSS import) and absent (delete +
+# certutil -D) flows. Only fires when the item defines `additionalhosts`.
+- name: "MMN cacert - Manage client PKCS12 on additional hosts"
+  ansible.builtin.include_tasks: ca_instance_clientcert_additional_hosts.yml
+  when: cacert_clientcert.additionalhosts is defined

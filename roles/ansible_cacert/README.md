@@ -432,3 +432,64 @@ Rules enforced by `checks.yml`:
 - `state` (if set) must be `present` or `absent`.
 
 Set `state: absent` to remove an additional cert and its key; the role cleans up `additionalpaths` copies too.
+
+## Client cert additional hosts
+
+Each entry in `cacert_clientcerts` may optionally define an `additionalhosts` list to distribute the generated PKCS#12 bundle to other hosts and import it into a user's NSS database (so Chromium/Firefox pick it up automatically without manual browser import).
+
+```yaml
+cacert_clientcerts:
+  - common_name: "alice"
+    dest: "/etc/pki/tls/private"
+    state: "present"
+    pkcs12_passphrase: !vault |
+          $ANSIBLE_VAULT;1.1;AES256
+          ...
+    additionalhosts:
+      - targethost: "workstation.example.com"
+        targethostpath: "/home/alice/.pki"
+        targethostuser: "alice"
+        targethostgroup: "alice"
+        state: "present"
+        nss_import: true   # default; set false to only copy the .p12 without NSS import
+```
+
+Schema for each `additionalhosts` entry:
+
+| Field | Purpose | Default |
+| - | - | - |
+| `targethost` | Inventory hostname receiving the bundle (mandatory). | - |
+| `targethostpath` | Directory to place the `.p12` (e.g. `/home/alice/.pki`). | - |
+| `targethostuser` | Owning unix user; also whose NSS database is targeted. | - |
+| `targethostgroup` | Owning unix group. | - |
+| `state` | `present` or `absent`. | `present` |
+| `nss_import` | Run `pk12util -i` into `sql:<targethostpath>/nssdb` so Chrome/Firefox auto-load the client cert. | `true` |
+
+Each client cert item MUST define its own `pkcs12_passphrase` (vault-encrypted). There is no top-level fallback for the per-item passphrase since the move to per-user bundles; an unset passphrase yields an empty import password.
+
+### Fact-gathering requirement for delegated hosts
+
+The NSS-tooling package name is selected via `hostvars[targethost].ansible_os_family` (`nss-tools` on RedHat-family, `libnss3-tools` on Debian-family). That fact only exists once Ansible has gathered facts for the host — either because the host was in the playbook's `hosts:` (or `-l` limit), or because facts were loaded from the cache (`fact_caching` in `ansible.cfg`).
+
+When the playbook is run with `-l` restricting to only the CA manager host (e.g. `-l e14.example.com`), delegated target hosts have no facts and the package task raises:
+
+```
+object of type 'HostVarsVars' has no attribute 'ansible_os_family'
+```
+
+The role handles this transparently: `ca_instance_clientcert_additional_hosts_instance.yml` runs an `ansible.builtin.setup` task (with `gather_subset: min`) on the delegated host when `ansible_os_family` is not yet known. This means you CAN run the playbook limited to a single host and the delegated hosts will still receive their bundles and NSS imports — facts are gathered lazily on demand.
+
+Three equivalent ways to run, all of which now work:
+
+```bash
+# 1. Limit to the CA manager host only — facts for target hosts are gathered on demand
+ansible-playbook cacert.yml -l e14.example.com --ask-vault-pass
+
+# 2. Limit to CA manager + all target hosts — facts already present, setup task is a no-op
+ansible-playbook cacert.yml -l e14.example.com,workstation.example.com --ask-vault-pass
+
+# 3. No limit — targets all apps_cacert hosts
+ansible-playbook cacert.yml --ask-vault-pass
+```
+
+Without the lazy `setup` task, only options 2 and 3 would work. Option 1 is the typical workflow when you only changed a passphrase on the CA manager and want to redistribute bundles without scanning every host.

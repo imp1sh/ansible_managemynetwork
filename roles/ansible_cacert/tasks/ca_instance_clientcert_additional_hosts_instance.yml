@@ -1,0 +1,109 @@
+---
+# Per-additional-host instance: copy the .p12 bundle to the target host/path
+# and import it into the target user's NSS database (Chromium/Firefox).
+# Runs delegated to cacert_clientcert_additionalhost.targethost.
+#
+# Fact-gathering caveat: the package-name selection below reads
+# hostvars[targethost].ansible_os_family, which only exists if facts were
+# gathered for that host during the current run (or pulled from fact cache).
+# When the playbook is executed with `-l` limiting to only the CA manager
+# host, delegated target hosts have no facts and the ternary would raise
+# "HostVarsVars has no attribute 'ansible_os_family'". The setup task below
+# lazily gathers the minimum facts on the delegated host when ansible_os_family
+# is not yet known, so the role works regardless of which hosts `-l` selects.
+# See README "Client cert additional hosts" for the full rationale.
+
+- name: "MMN cacert - Gather facts on delegated host {{ cacert_clientcert_additionalhost.targethost }} if missing"
+  delegate_to: "{{ cacert_clientcert_additionalhost.targethost }}"
+  ansible.builtin.setup:
+    gather_subset: min
+  when: hostvars[cacert_clientcert_additionalhost.targethost].ansible_os_family is not defined
+
+- name: "MMN cacert - Ensure NSS tooling present on {{ cacert_clientcert_additionalhost.targethost }}"
+  delegate_to: "{{ cacert_clientcert_additionalhost.targethost }}"
+  become: True
+  ansible.builtin.package:
+    name: "{{ (hostvars[cacert_clientcert_additionalhost.targethost].ansible_os_family == 'RedHat') | ternary('nss-tools', 'libnss3-tools') }}"
+    state: present
+
+- name: "MMN cacert - Ensure client cert target path exists on {{ cacert_clientcert_additionalhost.targethost }}"
+  delegate_to: "{{ cacert_clientcert_additionalhost.targethost }}"
+  become: True
+  ansible.builtin.file:
+    state: directory
+    path: "{{ cacert_clientcert_additionalhost.targethostpath }}"
+    owner: "{{ cacert_clientcert_additionalhost.targethostuser | default(omit) }}"
+    group: "{{ cacert_clientcert_additionalhost.targethostgroup | default(omit) }}"
+    mode: "0700"
+
+- name: "MMN cacert - Copy client PKCS12 bundle to {{ cacert_clientcert_additionalhost.targethost }}"
+  delegate_to: "{{ cacert_clientcert_additionalhost.targethost }}"
+  become: True
+  ansible.builtin.copy:
+    content: "{{ cacert_clientcert_pkcs12_existing.content | b64decode }}"
+    dest: "{{ cacert_clientcert_additionalhost.targethostpath }}/{{ cacert_filename_clientpkcs12 }}"
+    owner: "{{ cacert_clientcert_additionalhost.targethostuser | default(omit) }}"
+    group: "{{ cacert_clientcert_additionalhost.targethostgroup | default(omit) }}"
+    mode: "0600"
+
+- name: "MMN cacert - Ensure NSS database directory exists on {{ cacert_clientcert_additionalhost.targethost }}"
+  delegate_to: "{{ cacert_clientcert_additionalhost.targethost }}"
+  become: True
+  ansible.builtin.file:
+    state: directory
+    path: "{{ cacert_clientcert_additionalhost.targethostpath }}/nssdb"
+    owner: "{{ cacert_clientcert_additionalhost.targethostuser | default(omit) }}"
+    group: "{{ cacert_clientcert_additionalhost.targethostgroup | default(omit) }}"
+    mode: "0700"
+  when: cacert_clientcert_additionalhost.nss_import | default(true) | bool
+
+- name: "MMN cacert - Stat NSS database on {{ cacert_clientcert_additionalhost.targethost }}"
+  delegate_to: "{{ cacert_clientcert_additionalhost.targethost }}"
+  become: True
+  ansible.builtin.stat:
+    path: "{{ cacert_clientcert_additionalhost.targethostpath }}/nssdb/cert9.db"
+  register: cacert_clientcert_nss_stat
+  when: cacert_clientcert_additionalhost.nss_import | default(true) | bool
+
+- name: "MMN cacert - Initialize NSS database if absent on {{ cacert_clientcert_additionalhost.targethost }}"
+  delegate_to: "{{ cacert_clientcert_additionalhost.targethost }}"
+  become: True
+  become_user: "{{ cacert_clientcert_additionalhost.targethostuser }}"
+  ansible.builtin.command:
+    cmd: "certutil -N -d sql:{{ cacert_clientcert_additionalhost.targethostpath }}/nssdb --empty-password"
+  when:
+    - cacert_clientcert_additionalhost.nss_import | default(true) | bool
+    - not cacert_clientcert_nss_stat.stat.exists
+  changed_when: true
+
+- name: "MMN cacert - Check if client cert already imported into NSS on {{ cacert_clientcert_additionalhost.targethost }}"
+  delegate_to: "{{ cacert_clientcert_additionalhost.targethost }}"
+  become: True
+  become_user: "{{ cacert_clientcert_additionalhost.targethostuser }}"
+  ansible.builtin.command:
+    cmd: "certutil -L -d sql:{{ cacert_clientcert_additionalhost.targethostpath }}/nssdb -n {{ cacert_clientcert.common_name }}"
+  register: cacert_clientcert_nss_check
+  changed_when: false
+  failed_when: false
+  when: cacert_clientcert_additionalhost.nss_import | default(true) | bool
+
+- name: "MMN cacert - Import client PKCS12 into NSS database on {{ cacert_clientcert_additionalhost.targethost }}"
+  delegate_to: "{{ cacert_clientcert_additionalhost.targethost }}"
+  become: True
+  become_user: "{{ cacert_clientcert_additionalhost.targethostuser }}"
+  ansible.builtin.command:
+    argv:
+      - pk12util
+      - -i
+      - "{{ cacert_clientcert_additionalhost.targethostpath }}/{{ cacert_filename_clientpkcs12 }}"
+      - -d
+      - "sql:{{ cacert_clientcert_additionalhost.targethostpath }}/nssdb"
+      - -W
+      - "{{ cacert_clientcert.pkcs12_passphrase | default(cacert_clientcert_pkcs12_passphrase) | default('') }}"
+      - -K
+      - ""
+  when:
+    - cacert_clientcert_additionalhost.nss_import | default(true) | bool
+    - cacert_clientcert_nss_check.rc | default(1) != 0
+  no_log: true
+  changed_when: true
