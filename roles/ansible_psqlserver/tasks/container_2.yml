@@ -1,6 +1,20 @@
 ---
 # This task is only called from within the ansible_podman role.
 # This is being executed after the container with postgresql has actually being spawned
+- name: "MMN psqlserver - Compute per-instance forward port"
+  ansible.builtin.set_fact:
+    _psqlserver_forward_port: >-
+      {{
+        10000 +
+        (((psqlserver_instance.key | hash('sha256'))[:8] | int(0, 16)) % 10000)
+      }}
+
+- name: "MMN psqlserver - Remove any stale port-forward container"
+  containers.podman.podman_container:
+    name: "pfwd-{{ psqlserver_instance.key }}"
+    state: absent
+  ignore_errors: true
+
 - name: "MMN psqlserver - Wait for PostgreSQL to become ready inside container"
   containers.podman.podman_container_exec:
     name: "{{ psqlserver_instance.key }}"
@@ -21,7 +35,7 @@
     rm: true
     network: podmannet
     publish:
-      - "127.0.0.1:55432:5432"
+      - "127.0.0.1:{{ _psqlserver_forward_port }}:5432"
     command:
       - "tcp-listen:5432,fork,reuseaddr"
       - "tcp-connect:{{ psqlserver_instance.key }}:5432"
@@ -72,7 +86,7 @@
 
 - name: "MMN psqlserver - Reload postgres container now"
   community.postgresql.postgresql_query:
-    login_port: 55432
+    login_port: "{{ _psqlserver_forward_port }}"
     login_host: localhost
     login_user: postgres
     login_password: "{{ psqlserver_instance.value.password_admin }}"
@@ -80,7 +94,7 @@
 
 - name: "MMN psqlserver - Setup databases"
   community.postgresql.postgresql_db:
-    login_port: 55432
+    login_port: "{{ _psqlserver_forward_port }}"
     login_host: localhost
     login_user: postgres
     login_password: "{{ psqlserver_instance.value.password_admin }}"
@@ -93,7 +107,7 @@
 
 - name: "MMN psqlserver - Install postgresql roles"
   community.postgresql.postgresql_user:
-    login_port: 55432
+    login_port: "{{ _psqlserver_forward_port }}"
     login_host: localhost
     login_user: postgres
     login_password: "{{ psqlserver_instance.value.password_admin }}"
@@ -106,7 +120,7 @@
 
 - name: "MMN psqlserver - Setup additional privileges"
   postgresql_privs:
-    login_port: 55432
+    login_port: "{{ _psqlserver_forward_port }}"
     login_host: localhost
     login_user: postgres
     login_password: "{{ psqlserver_instance.value.password_admin }}"
