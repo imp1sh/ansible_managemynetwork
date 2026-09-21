@@ -83,13 +83,7 @@
     login_port: 55432
     login_host: localhost
     login_user: postgres
-    login_password: !vault |
-            $ANSIBLE_VAULT;1.1;AES256
-            35636565373238333965313735306138326633356365653137323037383962323638656434343531
-            3639613165386230616332333866386238653531636538380a653437303061663730363130653933
-            62393366323931396237313331623238313431656561356361623037643066383035323233613131
-            3633303137353632350a326335356561373164363664306533393664313238333039636134316139
-            6161
+    login_password: "{{ psqlserver_instance.value.password_admin }}"
     name: "{{ item['dbname'] }}"
     lc_ctype: "{{ item['lc_ctype'] | default(omit) }}"
     lc_collate: "{{ item['lc_collate'] | default(omit) }}"
@@ -102,13 +96,7 @@
     login_port: 55432
     login_host: localhost
     login_user: postgres
-    login_password: !vault |
-            $ANSIBLE_VAULT;1.1;AES256
-            35636565373238333965313735306138326633356365653137323037383962323638656434343531
-            3639613165386230616332333866386238653531636538380a653437303061663730363130653933
-            62393366323931396237313331623238313431656561356361623037643066383035323233613131
-            3633303137353632350a326335356561373164363664306533393664313238333039636134316139
-            6161
+    login_password: "{{ psqlserver_instance.value.password_admin }}"
     name: "{{ item.rolename }}"
     role_attr_flags: "{{ item.role_attr_flags | default(omit) }}"
     password: "{{ item.password }}"
@@ -121,13 +109,7 @@
     login_port: 55432
     login_host: localhost
     login_user: postgres
-    login_password: !vault |
-            $ANSIBLE_VAULT;1.1;AES256
-            35636565373238333965313735306138326633356365653137323037383962323638656434343531
-            3639613165386230616332333866386238653531636538380a653437303061663730363130653933
-            62393366323931396237313331623238313431656561356361623037643066383035323233613131
-            3633303137353632350a326335356561373164363664306533393664313238333039636134316139
-            6161
+    login_password: "{{ psqlserver_instance.value.password_admin }}"
     database: "{{ item.dbname }}"
     state: present
     privs: "{{ item.privs | join(',') }}"
