@@ -1,0 +1,51 @@
+---
+- name: "MMN smokeping - Validate config path"
+  ansible.builtin.assert:
+    that:
+      - smokeping_path_config is defined
+      - smokeping_path_config is not none
+      - smokeping_path_config | string | length > 0
+    fail_msg: "smokeping_path_config is required — set it in host_vars to the host bind-mount directory for the smokeping config (no portable default exists)."
+    success_msg: "smokeping_path_config is set."
+  when: smokeping_path_config is defined
+
+- name: "MMN smokeping - Validate config type"
+  ansible.builtin.assert:
+    that:
+      - smokeping_config | type_debug == 'dict'
+    fail_msg: "smokeping_config must be a dict of section-name -> body (flat dict, hierarchical dict with 'entries', or a raw string)."
+    success_msg: "smokeping_config is a dict."
+  when: smokeping_config is defined
+
+- name: "MMN smokeping - Validate each section body type"
+  ansible.builtin.assert:
+    that:
+      - >-
+        smokeping_section_body is mapping or
+        smokeping_section_body is string or
+        smokeping_section_body is none
+    fail_msg: >-
+      smokeping_config['{{ smokeping_section_key }}'] must be a dict (flat
+      key/values or hierarchical with 'entries'), a raw string, or null —
+      got {{ smokeping_section_body | type_debug }}.
+    success_msg: "smokeping section '{{ smokeping_section_key }}' has a valid body type."
+  loop: "{{ smokeping_config | dict2items }}"
+  loop_control:
+    loop_var: smokeping_section_pair
+  vars:
+    smokeping_section_key: "{{ smokeping_section_pair.key }}"
+    smokeping_section_body: "{{ smokeping_section_pair.value }}"
+  when:
+    - smokeping_config is defined
+    - smokeping_config | length > 0
+
+- name: "MMN smokeping - Validate owner/group"
+  ansible.builtin.assert:
+    that:
+      - smokeping_owner is defined
+      - smokeping_owner | string | length > 0
+      - smokeping_group is defined
+      - smokeping_group | string | length > 0
+    fail_msg: "smokeping_owner and smokeping_group must be non-empty strings (matching the container image UID/GID)."
+    success_msg: "smokeping_owner/smokeping_group are set."
+  when: smokeping_owner is defined or smokeping_group is defined

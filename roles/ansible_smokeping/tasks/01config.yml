@@ -1,0 +1,22 @@
+---
+- name: "MMN smokeping - Ensure config directory exists"
+  ansible.builtin.file:
+    path: "{{ smokeping_path_config }}"
+    state: directory
+    owner: "{{ smokeping_owner }}"
+    group: "{{ smokeping_group }}"
+    mode: "0755"
+
+- name: "MMN smokeping - Render smokeping config"
+  ansible.builtin.template:
+    src: config.j2
+    dest: "{{ smokeping_path_config }}/{{ smokeping_file_config }}"
+    owner: "{{ smokeping_owner }}"
+    group: "{{ smokeping_group }}"
+    mode: "{{ smokeping_mode_config }}"
+  notify: Restart smokeping container
+
+- name: "MMN smokeping - Debug rendered config"
+  ansible.builtin.debug:
+    var: smokeping_config
+  when: mmn_verbose | default(false) | bool

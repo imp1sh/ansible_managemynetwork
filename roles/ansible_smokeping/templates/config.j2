@@ -1,0 +1,100 @@
+{# Managed by imp1sh.ansible_managemynetwork.ansible_smokeping — do not edit by hand. #}
+{%- macro _fmt(value) -%}
+{%- if value is none -%}{%- elif value is boolean -%}{{ value | lower }}{%- elif value is iterable and value is not string and value is not mapping -%}{{ value | join(' ') }}{%- else -%}{{ value }}{%- endif -%}
+{%- endmacro -%}
+{# Quote a table cell if it contains whitespace or a double quote, per the
+   smokeping config grammar. Embedded quotes are backslash-escaped. #}
+{%- macro _cell(value) -%}
+{%- if value is string and (" " in value or "\t" in value or "\"" in value) -%}"{{ value | replace("\"", "\\\"") }}"{%- else -%}{{ value }}{%- endif -%}
+{%- endmacro -%}
+{# Emit a whitespace-aligned table as a string. Computes per-column widths
+   across all rows (and the optional header), left-justifies every cell to
+   its column width (last column unpadded), joins columns with two spaces.
+   Header gets a '# ' prefix. Self-contained: builds a local list and returns
+   join('\n'); does NOT mutate caller state (Ansible templar does not
+   propagate macro side-effects on shared lists). #}
+{%- macro _table(table, header) -%}
+{%- set has_hdr = header is defined and header is iterable and header is not string and header | length > 0 -%}
+{%- set all_rows = ([header] if has_hdr else []) + table -%}
+{%- set ns = namespace(d={}, ncols=0) -%}
+{%- for row in all_rows -%}
+{%- set ns.ncols = [ns.ncols, row | length] | max -%}
+{%- for i in range(row | length) -%}
+{%- set c = _cell(row[i]) | string -%}
+{%- set cur = ns.d.get(i | string, 0) | int -%}
+{%- if (c | length) > cur -%}{%- set ns.d = ns.d | combine({(i | string): (c | length)}) -%}{%- endif -%}
+{%- endfor -%}
+{%- endfor -%}
+{%- set cols = range(ns.ncols) | list -%}
+{%- set out = [] -%}
+{%- for row in all_rows -%}
+{%- set parts = [] -%}
+{%- for i in cols -%}
+{%- if i < (row | length) -%}
+{%- set c = _cell(row[i]) | string -%}
+{%- if i == cols[-1] -%}
+{%- set _ = parts.append(c) -%}
+{%- else -%}
+{%- set w = ns.d.get(i | string, 0) | int -%}
+{%- set pad = w - (c | length) -%}
+{%- if pad > 0 -%}{%- set _ = parts.append(c ~ (' ' * pad)) -%}{%- else -%}{%- set _ = parts.append(c) -%}{%- endif -%}
+{%- endif -%}
+{%- else -%}
+{%- set _ = parts.append('') -%}
+{%- endif -%}
+{%- endfor -%}
+{%- set _ = out.append(('# ' if (has_hdr and loop.first) else '') ~ parts | join('  ')) -%}
+{%- endfor -%}
+{{ out | join('\n') }}
+{%- endmacro -%}
+{# Emit a hierarchical '+ '/'++ '/... entry subtree as a string. Recursive:
+   calls itself for nested entries. Self-contained: builds a local list and
+   returns join('\n'). #}
+{%- macro _entry(entry, depth) -%}
+{%- set out = ['', '+' * depth ~ entry.name] -%}
+{%- for k, v in entry.items() if k not in ['name', 'entries', 'table', 'table_header'] -%}
+{%- if v is not none -%}{%- set _ = out.append(k ~ ' = ' ~ _fmt(v)) -%}{%- endif -%}
+{%- endfor -%}
+{%- if entry.table is defined and entry.table -%}
+{%- set hdr = entry.table_header | default(none) -%}
+{%- set tbl = _table(entry.table, hdr) -%}
+{%- set _ = out.append(tbl) -%}
+{%- endif -%}
+{%- if entry.entries is defined and entry.entries -%}
+{%- for child in entry.entries -%}
+{%- set _ = out.append(_entry(child, depth + 1)) -%}
+{%- endfor -%}
+{%- endif -%}
+{{ out | join('\n') }}
+{%- endmacro -%}
+{# Emit a full '*** Section ***' block as a string. Handles flat, hierarchical
+   (entries), table, and raw-string escape-hatch bodies. #}
+{%- macro _section(section, body) -%}
+{%- set out = [] -%}
+{%- set _ = out.append('*** ' ~ section ~ ' ***') -%}
+{%- if body is mapping -%}
+{%- for k, v in body.items() if k not in ['entries', 'table', 'table_header'] -%}
+{%- if v is not none -%}{%- set _ = out.append(k ~ ' = ' ~ _fmt(v)) -%}{%- endif -%}
+{%- endfor -%}
+{%- if body.table is defined and body.table -%}
+{%- set hdr = body.table_header | default(none) -%}
+{%- set _ = out.append(_table(body.table, hdr)) -%}
+{%- endif -%}
+{%- if body.entries is defined and body.entries -%}
+{%- for entry in body.entries -%}
+{%- set _ = out.append(_entry(entry, 1)) -%}
+{%- endfor -%}
+{%- endif -%}
+{%- elif body is string -%}
+{%- set _ = out.append(body) -%}
+{%- elif body is not none -%}
+{%- set _ = out.append(body | string) -%}
+{%- endif -%}
+{{ out | join('\n') }}
+{%- endmacro -%}
+{% set sections = [] %}
+{%- for section, body in smokeping_config.items() -%}
+{%- set _ = sections.append(_section(section, body)) -%}
+{%- endfor -%}
+# Managed by imp1sh.ansible_managemynetwork.ansible_smokeping — do not edit by hand.
+{% if sections | length > 0 %}{{ sections | join('\n\n') }}{{ '\n' }}{%- endif -%}

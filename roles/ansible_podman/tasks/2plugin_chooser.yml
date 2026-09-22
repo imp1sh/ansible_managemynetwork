@@ -140,3 +140,21 @@
     - podman_container_plugin_actrunner is defined
     - podman_containers is defined
     - _podman_containers_for_plugins | rejectattr('state', 'equalto', 'absent') | list | map(attribute='name') | intersect(podman_container_plugin_actrunner) | length > 0
+
+# ZITADEL
+- name: "MMN Podman - Plugin zitadel"
+  ansible.builtin.include_tasks:
+    file: plugin_zitadel_run1.yml
+  when:
+    - podman_container_plugin_zitadel is defined
+    - podman_containers is defined
+    - _podman_containers_for_plugins | rejectattr('state', 'equalto', 'absent') | list | map(attribute='name') | intersect(podman_container_plugin_zitadel) | length > 0
+
+# SMOKEPING
+- name: "MMN Podman - Plugin smokeping"
+  ansible.builtin.include_tasks:
+    file: plugin_smokeping.yml
+  when:
+    - podman_container_plugin_smokeping is defined
+    - podman_containers is defined
+    - _podman_containers_for_plugins | rejectattr('state', 'equalto', 'absent') | list | map(attribute='name') | intersect(podman_container_plugin_smokeping) | length > 0

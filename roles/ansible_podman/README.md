@@ -358,6 +358,7 @@ Supported plugin:
 | ipfscluster | [imp1sh.ansible_managemynetwork.ansible_ipfscluster](https://github.com/imp1sh/ansible_managemynetwork/tree/main/roles/ansible_ipfscluster) | Bootstraps IPFS Cluster peers — generates identities, auto-discovers peer IDs, renders `service.json` |
 | kubo | [imp1sh.ansible_managemynetwork.ansible_kubo](https://github.com/imp1sh/ansible_managemynetwork/tree/main/roles/ansible_kubo) | Bootstraps Kubo (IPFS) nodes — initialises repo, auto-discovers peer IDs for Peering, renders `config` |
 | actrunner | [imp1sh.ansible_managemynetwork.ansible_actrunner](https://github.com/imp1sh/ansible_managemynetwork/tree/main/roles/ansible_actrunner) | Bootstraps Gitea ActRunner instances — registers runners, renders config |
+| smokeping | [imp1sh.ansible_managemynetwork.ansible_smokeping](https://github.com/imp1sh/ansible_managemynetwork/tree/main/roles/ansible_smokeping) | Renders the Smokeping config (`*** Section ***` grammar, `+`/`++` target tree, tables) for the smokeping container |
 | cacert | planned | |
 
 ### borgmatic
@@ -917,4 +918,63 @@ podman_container_plugin_actrunner:
   - "actrunner0"
 ```
 
+### smokeping
+
+Smokeping latency monitor plugin. The `ansible_podman` role spins up the
+container; the
+[`ansible_smokeping`](https://github.com/imp1sh/ansible_managemynetwork/tree/main/roles/ansible_smokeping)
+role renders the Smokeping config (native `*** Section ***` grammar with the
+`+`/`++` target tree and whitespace-aligned tables) into the host bind-mount
+directory *before* the container starts. Enable the plugin:
+
+```yaml
+podman_container_plugin_smokeping:
+  - "smokeping0"
+smokeping_containername: "smokeping0"
+smokeping_path_config: "/mnt/cntr/unsynced/smokeping/0/etc"
+```
+
+Then define the container and the smokeping vars:
+
+```yaml
+podman_containers:
+  - name: smokeping0
+    state: started
+    network: podmannetGUA
+    image: lscr.io/linuxserver/smokeping:latest
+    volume:
+      - "/mnt/cntr/unsynced/smokeping/0/etc/:/config/"
+      - "/mnt/cntr/unsynced/smokeping/0/data/:/data/"
+    ports:
+      - "8084:80"
+
+smokeping_config:
+  General:
+    owner: "Jochen Demmer"
+    contact: "jochen@libcom.de"
+    imgcache: "/var/cache/smokeping/images"
+    imgurl: "/smokeping/img"
+    datadir: "/data"
+    piddir: "/run/smokeping"
+    cgiurl: "https://smokeping.example.com/smokeping.cgi"
+  Database:
+    step: 300
+    pings: 20
+  Probes:
+    entries:
+      - name: FPing
+        binary: "/usr/bin/fping"
+  Targets:
+    probe: FPing
+    menu: Top
+    title: Network Latency Graphs
+    entries:
+      - name: Router
+        menu: Router
+        title: Home router
+        host: "10.10.0.1"
+```
+
+See the `ansible_smokeping` README for the full variable reference (flat,
+hierarchical and table body shapes).
 

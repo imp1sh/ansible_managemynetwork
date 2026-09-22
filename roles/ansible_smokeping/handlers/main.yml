@@ -1,0 +1,6 @@
+---
+- name: Restart smokeping container
+  ansible.builtin.systemd:
+    name: "{{ ('container-' ~ smokeping_containername) if not (podman_use_quadlet | default(false) | bool) else smokeping_containername }}"
+    state: restarted
+  when: smokeping_containername is not none

@@ -47,7 +47,9 @@
       ( podman_container_plugin_vmalert is defined ) or
       ( podman_container_plugin_ipfscluster is defined ) or
       ( podman_container_plugin_kubo is defined ) or
-      ( podman_container_plugin_actrunner is defined )
+      ( podman_container_plugin_actrunner is defined ) or
+      ( podman_container_plugin_zitadel is defined ) or
+      ( podman_container_plugin_smokeping is defined )
     - podman_containers is defined
     - not podman_runimagebuilder | default(false) | bool
 
@@ -72,6 +74,14 @@
     file: plugin_psql_run2.yml
   when:
     - podman_container_plugin_psql is defined
+    - podman_containers is defined
+    - not podman_runimagebuilder | default(false) | bool
+
+- name: "MMN Podman - Zitadel post-deploy health check"
+  ansible.builtin.include_tasks:
+    file: plugin_zitadel_run2.yml
+  when:
+    - podman_container_plugin_zitadel is defined
     - podman_containers is defined
     - not podman_runimagebuilder | default(false) | bool
 

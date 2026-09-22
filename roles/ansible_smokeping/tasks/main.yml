@@ -1,0 +1,15 @@
+---
+- name: "MMN smokeping - Validate inputs"
+  ansible.builtin.include_tasks: checks.yml
+  when: smokeping_config is defined
+
+- name: "MMN smokeping - Render configuration"
+  ansible.builtin.include_tasks: 01config.yml
+  when: smokeping_config is defined
+
+- name: "MMN smokeping - Skip status feedback"
+  ansible.builtin.debug:
+    msg: >-
+      The role ansible_smokeping did not run on host {{ inventory_hostname }}
+      because the var smokeping_config is not set.
+  when: smokeping_config is not defined

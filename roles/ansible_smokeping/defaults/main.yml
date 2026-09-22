@@ -1,0 +1,150 @@
+---
+# ansible_smokeping — container-only role.
+#
+# Renders the Smokeping configuration (the native `*** Section ***` config
+# file) onto host-side bind-mount paths consumed by a podman container. The
+# container itself is declared by the caller via the ansible_podman role
+# (see the "Plugins" section of the ansible_podman README); this role only
+# owns the configuration file. It performs no package installation and no
+# service management.
+#
+# Smokeping's config format is INI-like with `*** Section ***` markers and a
+# hierarchical `+`/`++`/... target tree (used by the Targets and Probes
+# sections). This role models the config as a structured dict and renders it
+# with a purpose-built Jinja2 template — it is NOT plain YAML dumped via
+# to_nice_yaml (that worked for alertmanager but smokeping's grammar is its
+# own).
+
+# --- Paths (host bind-mount roots) ---
+# Host directory where the smokeping config is rendered. Bind-mount this into
+# the container (commonly to /etc/smokeping, or /config on linuxserver.io
+# images). REQUIRED — no portable default exists since every deployment sites
+# container bind-mount data differently. Set in host_vars/group_vars.
+smokeping_path_config: null
+
+# Filename of the main config inside smokeping_path_config. The stock Debian
+# smokeping layout calls this file `config`; some images name it
+# `smokeping_config`. Match whatever your container image expects.
+smokeping_file_config: "config"
+
+# --- Ownership / modes ---
+# Most smokeping container images run as root (UID 0) or as a `smokeping`
+# user whose uid maps to the host differently per image. The default owner
+# `root` with mode 0644 (world-readable) is safely consumable by any
+# in-container user. Override per image if yours enforces a specific uid/gid.
+smokeping_owner: "root"
+smokeping_group: "root"
+smokeping_mode_config: "0644"
+
+# --- smokeping_config (PRIMARY INPUT) ---
+# Structured representation of the smokeping config file, modelled on the
+# official grammar: https://oss.oetiker.ch/smokeping/doc/smokeping_config.en.html
+#
+# Top-level keys are section names (General, Database, Presentation, Probes,
+# Alerts, Targets, Slaves, Authentication, ...). Three section-body shapes are
+# recognised:
+#
+# 1. FLAT — a dict of scalar/list values rendered as `key = value` lines.
+#    Used by General, Database (sans table), Alerts top-level, etc.:
+#   smokeping_config:
+#     General:
+#       owner: "Jochen Demmark"
+#       contact: "jochen@libcom.de"
+#       imgcache: "/var/cache/smokeping/images"
+#       imgurl: "/smokeping/img"
+#       datadir: "/var/lib/smokeping"
+#       piddir: "/run/smokeping"
+#       cgiurl: "https://smokeping.example.com/smokeping.cgi"
+#     Database:
+#       step: 300
+#       pings: 20
+#
+# 2. HIERARCHICAL — a dict that may carry top-level scalar props PLUS an
+#    `entries` list of named `+`/`++`/... subsections. Each entry is a dict
+#    with a `name` (shown after the `+`), further scalar props, an optional
+#    `table`/`table_header` (see shape 3), and an optional nested `entries`
+#    list. Nesting depth drives the `+`/`++`/... count. This is GENERIC — it
+#    works for any subsection-bearing section: Probes, Targets, Presentation
+#    (+overview/+detail/+charts/+multihost), Alerts (+alert definitions),
+#    Slaves, Authentication:
+#   smokeping_config:
+#     Probes:
+#       entries:
+#         - name: FPing
+#           binary: "/usr/bin/fping"
+#           entries:
+#             - name: FPingLarge
+#               packetsize: 1000
+#               step: 300
+#     Targets:
+#       probe: FPing
+#       menu: Top
+#       title: Network Latency Graphs
+#       entries:
+#         - name: Local
+#           menu: Local
+#           title: Local network
+#           entries:
+#             - name: Router
+#               menu: Router
+#               title: Home router
+#               host: "10.10.0.1"
+#
+# 3. TABLE — a whitespace-aligned, multi-column table attached to a section
+#    body OR an entry via `table` (list of rows; each row a list of cells)
+#    plus optional `table_header` (list of column names rendered as a `# `
+#    comment row). Columns are auto-aligned to the widest cell; cells
+#    containing whitespace or double-quotes are auto-double-quoted (embedded
+#    quotes backslash-escaped). Used by the Database RRA table, the
+#    Presentation +detail resolution table, and ++loss_colors / ++uptime_colors:
+#   smokeping_config:
+#     Database:
+#       step: 300
+#       pings: 20
+#       table_header: ["cons", "xff", "steps", "rows"]
+#       table:
+#         - ["AVERAGE", 0.5, 1, 1008]
+#         - ["AVERAGE", 0.5, 12, 4320]
+#     Presentation:
+#       template: "/etc/smokeping/basepage.html"
+#       entries:
+#         - name: detail
+#           width: 600
+#           height: 200
+#           table:
+#             - ["Last 3 Hours", "3h"]
+#             - ["Last 30 Hours", "30h"]
+#           entries:
+#             - name: loss_colors
+#               table_header: ["Loss", "Color", "Legend"]
+#               table:
+#                 - [1, "00ff00", "<1"]
+#                 - [1000, "ff0000", ">=3"]
+#
+# Value formatting (scalar props):
+#   - null values OMIT the line (lets a caller null out a default).
+#   - booleans render lowercase (true/false).
+#   - lists render space-joined (for multi-value directives like `alerts`).
+#   - everything else renders as its string form, unquoted.
+# Table cell quoting:
+#   - a cell is auto-double-quoted iff it is a string containing whitespace
+#     or a double-quote; embedded quotes are escaped with backslash. Numeric
+#     and whitespace-free cells render bare.
+# Ordering is preserved: dict keys in insertion order, `entries` in list
+# order, `table` rows in list order — so the caller controls the on-disk
+# sequence.
+#
+# ESCAPE HATCH: a section body may alternatively be a plain string, in which
+# case it is written verbatim (split on newlines) under the section header.
+# Use this only for fragments the structured renderer cannot express (e.g.
+# `@include` / `@define` directives, or hand-tuned table layouts).
+smokeping_config: {}
+
+# --- reload mechanism ---
+# Name of the podman container running smokeping. When set, config changes
+# trigger a container restart (smokeping reads its config only at startup).
+# Leave unset to skip automatic reload (e.g. when invoking the role outside of
+# podman). Under Quadlet the service unit is `<name>`; under the legacy
+# `podman generate systemd` path it is `container-<name>` — the handler picks
+# the right form from `podman_use_quadlet` automatically.
+smokeping_containername: null
