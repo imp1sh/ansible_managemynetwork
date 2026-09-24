@@ -1,0 +1,39 @@
+---
+- name: "MMN systemd-networkd - Find ifupdown config files in interfaces.d"
+  ansible.builtin.find:
+    paths: "/etc/network/interfaces.d"
+    patterns: "*"
+  register: interfacesd_files
+
+- name: "MMN systemd-networkd - Remove ifupdown config files from interfaces.d"
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: absent
+  loop: "{{ interfacesd_files.files }}"
+  notify: restart systemd-networkd
+
+- name: "MMN systemd-networkd - Reduce /etc/network/interfaces to loopback only"
+  ansible.builtin.copy:
+    dest: "/etc/network/interfaces"
+    content: |
+      # Managed by Ansible — systemd-networkd is the sole network manager.
+      # Do not edit manually.
+      auto lo
+      iface lo inet loopback
+    owner: root
+    group: root
+    mode: "0644"
+  notify: restart systemd-networkd
+
+- name: "MMN systemd-networkd - Stop and disable networking.service (ifupdown)"
+  ansible.builtin.service:
+    name: "networking"
+    state: stopped
+    enabled: false
+  failed_when: false
+
+- name: "MMN systemd-networkd - Mask cloud-init-network.service if present"
+  ansible.builtin.systemd:
+    name: "cloud-init-network.service"
+    masked: true
+  failed_when: false

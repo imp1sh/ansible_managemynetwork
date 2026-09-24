@@ -1,0 +1,34 @@
+---
+- name: "MMN fail2ban - Load OS-specific variables"
+  ansible.builtin.set_fact:
+    fail2ban_packages_list: "{{ fail2ban_packages[ansible_distribution] | default(fail2ban_packages.default) }}"
+
+- name: "MMN fail2ban - Run variable checks"
+  import_tasks: checks.yml
+
+- name: "MMN fail2ban - Merge default, group and host variables"
+  import_tasks: merge.yml
+
+- name: "MMN fail2ban - Install packages"
+  ansible.builtin.package:
+    name: "{{ fail2ban_packages_list }}"
+    state: present
+
+- name: "MMN fail2ban - Deploy jail.local"
+  ansible.builtin.template:
+    src: jail.local.j2
+    dest: "{{ fail2ban_jail_local }}"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart fail2ban
+
+- name: "MMN fail2ban - Enable and start fail2ban service"
+  ansible.builtin.service:
+    name: "{{ fail2ban_service_name }}"
+    state: started
+    enabled: true
+
+- name: "MMN fail2ban - Deploy Prometheus metrics exporter"
+  import_tasks: exporter.yml
+  when: fail2ban_exporter_enabled | bool

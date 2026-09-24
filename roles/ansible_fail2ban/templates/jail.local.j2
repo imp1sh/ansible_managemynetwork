@@ -1,0 +1,36 @@
+# {{ ansible_managed }}
+# Managed by Ansible role imp1sh.ansible_managemynetwork.ansible_fail2ban
+# Do not edit manually — changes will be overwritten.
+
+[DEFAULT]
+
+# Backend
+backend = {{ fail2ban_backend }}
+
+# Ban action
+banaction = {{ fail2ban_banaction }}
+
+# Graduated bans for repeat offenders
+bantime.increment = {{ fail2ban_bantime_increment | string | lower }}
+bantime.factor = {{ fail2ban_bantime_factor }}
+bantime.maxtime = {{ fail2ban_bantime_maxtime }}
+
+# Database
+dbpurgeage = {{ fail2ban_dbpurgeage }}
+
+# Ignore IPs (never ban these)
+ignoreip = {{ fail2ban_ignoreip | join(" ") }}
+
+# Apply group/host-level global setting overrides
+{% for key, value in fail2ban_settings.items() %}
+{{ key }} = {{ value }}
+{% endfor %}
+
+# ── Jails ────────────────────────────────────────────────────────
+{% for jail_name, jail_params in fail2ban_jails.items() %}
+
+[{{ jail_name }}]
+{% for param, val in jail_params.items() %}
+{{ param }} = {{ val }}
+{% endfor %}
+{% endfor %}

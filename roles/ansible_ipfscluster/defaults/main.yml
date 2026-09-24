@@ -108,6 +108,33 @@ ipfscluster_systemd_prefix: ""
 ipfscluster_service_config_extra: {}
 
 # ---------------------------------------------------------------------------
+# Decommission — controlled removal of a cluster peer.
+#
+# To decommission a peer, set `state: absent` on its entry in
+# ipfscluster_instances. The role will:
+#   1. Read the PeerID from identity.json
+#   2. Evict the peer from the cluster via a surviving peer (CRDT redistributes pins)
+#   3. Wait for pin redistribution to settle
+#   4. Stop and remove the container + systemd unit
+#   5. Optionally remove the data directory
+#
+# Credentials for the eviction command (ipfs-cluster-ctl peer rm). Must match
+# the basic_auth_credentials configured in ipfscluster_service_config_extra.
+# Vault-encrypt these in production.
+# ---------------------------------------------------------------------------
+ipfscluster_decommission_admin_user: "admin"
+ipfscluster_decommission_admin_password: ""
+
+# Seconds to wait after eviction for pin redistribution before killing the
+# container. Default matches pin_recover_interval (12m). Reduce if you have
+# few pins and want faster turnaround.
+ipfscluster_decommission_pin_wait_seconds: 720
+
+# Whether to remove the data directory after decommissioning. Set to false
+# to retain data for forensic analysis or re-import.
+ipfscluster_decommission_remove_data: false
+
+# ---------------------------------------------------------------------------
 # Base service.json config dict. Contains ALL sections with upstream defaults.
 # Override individual keys via ipfscluster_service_config_extra or by
 # overriding this var entirely in host_vars.

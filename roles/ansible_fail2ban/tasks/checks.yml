@@ -1,0 +1,14 @@
+---
+- name: "MMN fail2ban - Validate global settings"
+  ansible.builtin.assert:
+    that:
+      - fail2ban_backend in ["systemd", "polling", "auto"]
+    fail_msg: "fail2ban_backend must be one of: systemd, polling, auto"
+    quiet: true
+
+- name: "MMN fail2ban - Validate banaction"
+  ansible.builtin.assert:
+    that:
+      - fail2ban_banaction in ["nftables-multiport", "nftables-allports", "iptables-multiport", "iptables-ipset-proto6"]
+    fail_msg: "Unsupported banaction '{{ fail2ban_banaction }}'"
+    quiet: true

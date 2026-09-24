@@ -1,14 +1,9 @@
 ---
-# Adapted from OpenStack Ansible's systemd_networkd role (BSD-3-Clause).
-# https://github.com/openstack/ansible-role-systemd_networkd/blob/master/tasks/main.yml
-# Copyright (c) Anthony Ruhier, StackHPC Ltd, OpenStack Foundation.
-
 - name: Find unexpected systemd-networkd configuration files
   become: true
   find:
     paths: "/etc/systemd/network"
-    patterns: "{{ systemd_networkd_cleanup_patterns }}"
-    use_regex: "{{ systemd_networkd_cleanup_patterns_use_regex | bool }}"
+    patterns: "*"
   register: networkd_files
 
 - name: Remove unexpected systemd-networkd configuration files

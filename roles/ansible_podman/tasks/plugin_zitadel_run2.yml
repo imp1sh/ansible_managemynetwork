@@ -1,0 +1,46 @@
+---
+# Post-container tasks for the Zitadel plugin.
+# Runs after all podman containers have been created/started via Quadlet.
+# The login container (zitadel0_login) is declared with state: stopped
+# because it depends on the login-client PAT that the API container writes
+# during its init/setup phase. This task file:
+#   1. Waits for the Zitadel API to become healthy (writes the PAT)
+#   2. Starts the login container once the PAT is available
+#
+# The Zitadel init phase (init → setup → start) can take 30-60 seconds on
+# a fresh database. The retry loop below tolerates this. If the API fails
+# to become healthy, check the container logs with:
+#   podman logs zitadel0
+
+- name: "MMN Podman - Wait for Zitadel API to become ready"
+  containers.podman.podman_container_exec:
+    name: "{{ item }}"
+    command: >
+      /app/zitadel ready
+  register: _zitadel_ready
+  retries: 12
+  delay: 10
+  until: _zitadel_ready.rc == 0
+  changed_when: false
+  failed_when: false
+  loop: "{{ podman_container_plugin_zitadel | select('in', podman_containers | rejectattr('state', 'equalto', 'absent') | list | map(attribute='name') | list) | list }}"
+
+- name: "MMN Podman - Start Zitadel login container after API is ready"
+  ansible.builtin.systemd:
+    name: "zitadel0_login"
+    state: started
+    enabled: true
+    daemon_reload: false
+  when:
+    - "'zitadel0_login' in (podman_containers | rejectattr('state', 'equalto', 'absent') | list | map(attribute='name') | list)"
+    - _zitadel_ready.results | selectattr('rc', 'equalto', 0) | list | length > 0
+
+- name: "MMN Podman - Zitadel deployment summary"
+  ansible.builtin.debug:
+    msg: >-
+      Zitadel API is ready.
+      Admin Console: https://generalauth.lpv4.net/ui/console
+      Initial admin: zitadel-admin@zitadel.localhost
+      Default password: Password1! (change required on first login)
+  when:
+    - _zitadel_ready.results | selectattr('rc', 'equalto', 0) | list | length > 0

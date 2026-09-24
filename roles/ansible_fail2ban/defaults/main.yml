@@ -1,0 +1,65 @@
+---
+# defaults file for ansible_fail2ban
+
+# ── Global settings ──────────────────────────────────────────────
+fail2ban_backend: "systemd"
+fail2ban_banaction: "nftables-multiport"
+fail2ban_dbpurgeage: "1d"
+
+# Graduated bans — fail2ban's built-in mechanism for escalating
+# ban duration on repeat offenders within the same jail.
+# See: https://fail2ban.readthedocs.io/en/latest/fail2ban.5.html
+fail2ban_bantime_increment: true
+fail2ban_bantime_factor: "2"
+fail2ban_bantime_maxtime: "1w"
+
+# ── Default ignoreip (always present) ───────────────────────────
+fail2ban_ignoreipdefault:
+  - "127.0.0.1/8"
+  - "::1"
+
+# ── Default jails ─────────────────────────────────────────────────
+# Each key is a jail name. Values are passed directly to the [jail]
+# section in jail.local. Keys map 1:1 to fail2ban directive names.
+fail2ban_jailsdefault:
+  sshd:
+    enabled: true
+    port: "ssh"
+    filter: "sshd"
+    backend: "{{ fail2ban_backend }}"
+    maxretry: 5
+    findtime: "10m"
+    bantime: "1h"
+
+# ── Group-level overrides (keyed by inventory group name) ────────
+# Define in group_vars, e.g.:
+#   fail2ban_ignoreipgroup:
+#     apps_fail2ban:
+#       - "fd01:4dd0:28d4::/48"
+#   fail2ban_jailsgroup:
+#     apps_fail2ban:
+#       sshd:
+#         maxretry: 4
+fail2ban_ignoreipgroup: {}
+fail2ban_jailsgroup: {}
+fail2ban_settingsgroup: {}
+
+# ── Host-level overrides ──────────────────────────────────────────
+# Define in host_vars, e.g.:
+#   fail2ban_jailshost:
+#     sshd:
+#       bantime: "4h"
+#   fail2ban_ignoreiphost:
+#     - "152.53.112.0/24"
+fail2ban_jailshost: {}
+fail2ban_ignoreiphost: []
+fail2ban_settingshost: {}
+
+# ── Prometheus metrics exporter ──────────────────────────────────
+# Deploys a Python script + systemd timer that writes a .prom file
+# to the node_exporter textfile collector directory.
+# Based on https://github.com/jangrewe/prometheus-fail2ban-exporter
+fail2ban_exporter_enabled: true
+fail2ban_exporter_interval: "30s"
+fail2ban_exporter_textfile_dir: "/var/lib/node_exporter"
+fail2ban_exporter_script_path: "/usr/local/bin/fail2ban-exporter"

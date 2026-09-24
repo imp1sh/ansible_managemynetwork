@@ -1,0 +1,14 @@
+---
+fail2ban_packages:
+  Debian:
+    - fail2ban
+    - python3-systemd
+    - python3-prometheus-client
+  default:
+    - fail2ban
+    - python3-systemd
+    - python3-prometheus-client
+
+fail2ban_config_dir: "/etc/fail2ban"
+fail2ban_jail_local: "/etc/fail2ban/jail.local"
+fail2ban_service_name: "fail2ban"

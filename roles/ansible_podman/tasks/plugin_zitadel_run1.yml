@@ -1,0 +1,10 @@
+---
+# Pre-container tasks for the Zitadel plugin.
+# The 1prepare.yml task already creates parent directories for all volume
+# mounts, so the bootstrap directory is guaranteed to exist. This file
+# exists so the plugin_chooser can include it without failing; it is a
+# deliberate no-op placeholder. Real work happens in plugin_zitadel_run2.yml
+# after the containers have been started.
+- name: "MMN Podman - Zitadel plugin pre-container (no-op)"
+  ansible.builtin.debug:
+    msg: "Zitadel plugin: pre-container phase, containers not yet started."

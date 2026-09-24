@@ -119,7 +119,9 @@
   loop: "{{ podman_containers | rejectattr('state', 'equalto', 'absent') | list }}"
   loop_control:
     loop_var: podman_container
-  when: podman_container.name in _quadlet_changed
+  when:
+    - podman_container.name in _quadlet_changed
+    - (podman_container.state | default('started')) != 'stopped'
 
 # ------------------------------------------------------- stray container cleanup
 # Only check for stray imperative containers when a unit changed. If the

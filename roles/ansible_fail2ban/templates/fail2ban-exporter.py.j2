@@ -1,0 +1,61 @@
+#!/usr/bin/env python3
+# {{ ansible_managed }}
+# Managed by Ansible role imp1sh.ansible_managemynetwork.ansible_fail2ban
+# Based on https://github.com/jangrewe/prometheus-fail2ban-exporter
+import sys, re, subprocess, argparse
+from prometheus_client import CollectorRegistry, Gauge, generate_latest
+
+EXPORT_FILE_NAME = "fail2ban.prom"
+EXPORT_LOCATION = "{{ fail2ban_exporter_textfile_dir }}"
+
+parseKeys = {
+    'Currently failed:': ('fail2ban_failed_current', 'Number of currently failed connections.'),
+    'Total failed:': ('fail2ban_failed_total', 'Total number of failed connections.'),
+    'Currently banned:': ('fail2ban_banned_current', 'Number of currently banned IP addresses.'),
+    'Total banned:': ('fail2ban_banned_total', 'Total number of banned IP addresses.')
+}
+
+parser = argparse.ArgumentParser(description="Export fail2ban-client metrics for Prometheus Node Exporter.")
+parser.add_argument('-j', '--jail', help="Jail name to be exported (all jails if omitted).")
+parser.add_argument('-f', '--file', help="File to write metrics to.")
+args = parser.parse_args()
+
+pattern = re.compile(r'(' + '|'.join(parseKeys.keys()) + r')\s*(\d*)')
+metrics = {}
+
+for k in parseKeys.keys():
+    metrics[k] = {}
+
+if args.jail:
+    jails = [args.jail]
+else:
+    process = subprocess.Popen(['fail2ban-client', 'status'], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    stdout, stderr = process.communicate()
+    if process.returncode != 0:
+        sys.stderr.write(stderr.decode('utf-8'))
+        sys.exit(0)
+    response = stdout.decode('utf-8')
+    match = re.search(r'.+Jail list:\s+(.+)$', response)
+    if not match:
+        sys.exit(0)
+    jails = match.group(1).split(", ")
+
+for jail in jails:
+    process = subprocess.Popen(['fail2ban-client', 'status', jail], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    stdout, stderr = process.communicate()
+    if process.returncode != 0:
+        continue
+    response = stdout.decode('utf-8')
+    match = re.findall(pattern, response)
+    for m in match:
+        metrics[m[0]].update([(jail, float(m[1]))])
+
+registry = CollectorRegistry()
+for (metric, jails) in metrics.items():
+    gauge = Gauge(parseKeys[metric][0], parseKeys[metric][1], ['jail'], registry=registry)
+    for (jail, value) in jails.items():
+        gauge.labels(jail).set(float(value))
+
+with open((args.file or (EXPORT_LOCATION + '/' + EXPORT_FILE_NAME)), "wb") as file:
+    file.write(generate_latest(registry))
+    file.close()

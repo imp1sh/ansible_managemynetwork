@@ -1,0 +1,113 @@
+---
+# Phase 4 — decommission a cluster peer. Triggered when an instance dict
+# has state: absent. Order is critical:
+#   1. Read the PeerID from identity.json (before the container is killed)
+#   2. Evict the peer from the cluster via a surviving peer (CRDT redistributes pins)
+#   3. Wait for pin redistribution to settle
+#   4. Stop and remove the container + systemd unit
+#   5. Optionally remove the data directory
+#
+# The eviction command (step 2) is run against a SURVIVING peer — either
+# another local instance or the first available remote peer. Running it
+# against the departing peer itself would fail because the peer leaves on
+# shutdown, not on self-eviction.
+
+- name: "MMN ipfscluster - Read identity.json for departing peer {{ ipfscluster_instance.name }}"
+  ansible.builtin.slurp:
+    src: "{{ ipfscluster_instance.data_dir }}/identity.json"
+  register: _ipfscluster_departing_identity_raw
+  failed_when: false
+
+- name: "MMN ipfscluster - Abort decommission if identity.json is missing"
+  ansible.builtin.assert:
+    that:
+      - _ipfscluster_departing_identity_raw.failed is not defined or not _ipfscluster_departing_identity_raw.failed
+    fail_msg: >-
+      Cannot decommission {{ ipfscluster_instance.name }}: identity.json not
+      found at {{ ipfscluster_instance.data_dir }}/identity.json. The peer
+      may have already been removed, or the data_dir is wrong.
+    success_msg: "identity.json found for {{ ipfscluster_instance.name }}."
+
+- name: "MMN ipfscluster - Extract departing PeerID"
+  ansible.builtin.set_fact:
+    _ipfscluster_departing_peer_id: >-
+      {{ (_ipfscluster_departing_identity_raw.content | b64decode | from_json).id }}
+
+- name: "MMN ipfscluster - Determine a surviving local peer for eviction"
+  ansible.builtin.set_fact:
+    _ipfscluster_eviction_peer: >-
+      {{
+        (ipfscluster_instances | rejectattr('name', 'equalto', ipfscluster_instance.name)
+                              | rejectattr('state', 'defined')
+                              | list
+        )[0].name
+        if (ipfscluster_instances | rejectattr('name', 'equalto', ipfscluster_instance.name)
+                                  | rejectattr('state', 'defined')
+                                  | list
+           ) | length > 0
+        else none
+      }}
+
+- name: "MMN ipfscluster - Evict peer via local surviving peer"
+  ansible.builtin.command:
+    cmd: >-
+      podman exec {{ _ipfscluster_eviction_peer }}
+      ipfs-cluster-ctl --force-http
+      --basic-auth {{ ipfscluster_decommission_admin_user }}:{{ ipfscluster_decommission_admin_password }}
+      peer rm {{ _ipfscluster_departing_peer_id }}
+  when: _ipfscluster_eviction_peer is not none
+  changed_when: true
+  failed_when: false
+  register: _ipfscluster_eviction_result
+
+- name: "MMN ipfscluster - Evict peer via remote surviving peer"
+  ansible.builtin.command:
+    cmd: >-
+      podman exec {{ ipfscluster_instances[0].name }}
+      ipfs-cluster-ctl --force-http
+      --host {{ ipfscluster_remote_peers[0].address | regex_replace('/p2p/.*$', '') | regex_replace('^/dns6/', '') | regex_replace('/tcp/[0-9]+$', '') }}
+      --basic-auth {{ ipfscluster_decommission_admin_user }}:{{ ipfscluster_decommission_admin_password }}
+      peer rm {{ _ipfscluster_departing_peer_id }}
+  when:
+    - _ipfscluster_eviction_peer is none
+    - ipfscluster_remote_peers | length > 0
+    - ipfscluster_instances | length > 0
+  changed_when: true
+  failed_when: false
+  register: _ipfscluster_eviction_result_remote
+
+- name: "MMN ipfscluster - Warn if no surviving peer available for eviction"
+  ansible.builtin.debug:
+    msg: >-
+      WARNING: No surviving local or remote peer available to evict
+      {{ _ipfscluster_departing_peer_id }}. Skipping eviction — pins
+      assigned to this peer will need manual recovery on remaining nodes.
+  when:
+    - _ipfscluster_eviction_peer is none
+    - ipfscluster_remote_peers | length == 0 or ipfscluster_instances | length == 0
+
+- name: "MMN ipfscluster - Wait for pin redistribution"
+  ansible.builtin.pause:
+    seconds: "{{ ipfscluster_decommission_pin_wait_seconds }}"
+  when:
+    - _ipfscluster_eviction_result is defined or _ipfscluster_eviction_result_remote is defined
+    - not (_ipfscluster_eviction_result is skipped | default(false))
+
+- name: "MMN ipfscluster - Stop and disable systemd service for {{ ipfscluster_instance.name }}"
+  ansible.builtin.systemd:
+    name: "{{ ipfscluster_systemd_prefix }}{{ ipfscluster_instance.name }}.service"
+    state: stopped
+    enabled: false
+  failed_when: false
+
+- name: "MMN ipfscluster - Remove container {{ ipfscluster_instance.name }}"
+  ansible.builtin.command:
+    cmd: "podman rm -f {{ ipfscluster_instance.name }}"
+  changed_when: true
+  failed_when: false
+
+- name: "MMN ipfscluster - Remove data directory for {{ ipfscluster_instance.name }}"
+  ansible.builtin.file:
+    path: "{{ ipfscluster_instance.data_dir }}"
+    state: absent
+  when: ipfscluster_decommission_remove_data | bool

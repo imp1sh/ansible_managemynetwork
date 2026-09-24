@@ -1,0 +1,10 @@
+[Unit]
+Description=Run Fail2ban Prometheus metrics exporter periodically
+
+[Timer]
+OnBootSec=1min
+OnUnitActiveSec={{ fail2ban_exporter_interval }}
+AccuracySec=5s
+
+[Install]
+WantedBy=timers.target

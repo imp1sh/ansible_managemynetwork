@@ -1,0 +1,28 @@
+---
+# Phase 4 — decommission a kubo node. Triggered when an instance dict
+# has state: absent. Kubo has no cluster-level eviction (it's not a
+# cluster peer itself), so the flow is straightforward:
+#   1. Stop and remove the container + systemd unit
+#   2. Optionally remove the data directory
+#
+# If the corresponding ipfs-cluster peer is also being decommissioned,
+# the cluster role handles eviction. This role only cleans up kubo.
+
+- name: "MMN kubo - Stop and disable systemd service for {{ kubo_instance.name }}"
+  ansible.builtin.systemd:
+    name: "{{ kubo_systemd_prefix }}{{ kubo_instance.name }}.service"
+    state: stopped
+    enabled: false
+  failed_when: false
+
+- name: "MMN kubo - Remove container {{ kubo_instance.name }}"
+  ansible.builtin.command:
+    cmd: "podman rm -f {{ kubo_instance.name }}"
+  changed_when: true
+  failed_when: false
+
+- name: "MMN kubo - Remove data directory for {{ kubo_instance.name }}"
+  ansible.builtin.file:
+    path: "{{ kubo_instance.data_dir }}"
+    state: absent
+  when: kubo_decommission_remove_data | bool

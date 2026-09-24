@@ -3,23 +3,40 @@
   ansible.builtin.include_tasks: checks.yml
   when: kubo_instances | length > 0
 
+- name: "MMN kubo - Separate active and decommissioned instances"
+  ansible.builtin.set_fact:
+    _kubo_active_instances: >-
+      {{ kubo_instances | rejectattr('state', 'defined') | list
+         + kubo_instances | selectattr('state', 'defined')
+                           | rejectattr('state', 'equalto', 'absent') | list }}
+    _kubo_absent_instances: >-
+      {{ kubo_instances | selectattr('state', 'defined')
+                          | selectattr('state', 'equalto', 'absent') | list }}
+
 - name: "MMN kubo - Phase 1: Initialise IPFS repos"
   ansible.builtin.include_tasks: 01init.yml
-  loop: "{{ kubo_instances }}"
+  loop: "{{ _kubo_active_instances }}"
   loop_control:
     loop_var: kubo_instance
-  when: kubo_instances | length > 0
+  when: _kubo_active_instances | length > 0
 
 - name: "MMN kubo - Phase 2: Collect peer IDs"
   ansible.builtin.include_tasks: 02collect_peers.yml
-  when: kubo_instances | length > 0
+  when: _kubo_active_instances | length > 0
 
 - name: "MMN kubo - Phase 3: Render config"
   ansible.builtin.include_tasks: 03render.yml
-  loop: "{{ kubo_instances }}"
+  loop: "{{ _kubo_active_instances }}"
   loop_control:
     loop_var: kubo_instance
-  when: kubo_instances | length > 0
+  when: _kubo_active_instances | length > 0
+
+- name: "MMN kubo - Phase 4: Decommission absent instances"
+  ansible.builtin.include_tasks: 04decommission.yml
+  loop: "{{ _kubo_absent_instances }}"
+  loop_control:
+    loop_var: kubo_instance
+  when: _kubo_absent_instances | length > 0
 
 - name: "MMN kubo - Skip status feedback"
   ansible.builtin.debug:

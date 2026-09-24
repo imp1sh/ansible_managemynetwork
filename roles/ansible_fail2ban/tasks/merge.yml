@@ -1,0 +1,47 @@
+---
+# Three-tier merge following the ansible_openwrtfirewall pattern:
+#   default → group (keyed by group name, intersect+combine) → host
+# Dicts: combine with host winning over group winning over default.
+# Lists: concatenate default + group_merged + host.
+
+# ── Settings (scalar globals like bantime, backend, banaction) ───
+- name: "MMN fail2ban - Merge group settings"
+  ansible.builtin.set_fact:
+    fail2ban_settingsmergedgroup: "{{ fail2ban_settingsgroup.keys() | list | intersect(group_names) | map('extract', fail2ban_settingsgroup) | combine }}"
+  when: fail2ban_settingsgroup | length > 0
+
+- name: "MMN fail2ban - Combine settings into fail2ban_settings"
+  ansible.builtin.set_fact:
+    fail2ban_settings: "{{
+      ({})
+      | combine(fail2ban_settingsmergedgroup | default({}))
+      | combine(fail2ban_settingshost | default({}))
+    }}"
+
+# ── Ignore IPs (list: default + group + host) ────────────────────
+- name: "MMN fail2ban - Merge group ignoreip"
+  ansible.builtin.set_fact:
+    fail2ban_ignoreipmergedgroup: "{{ fail2ban_ignoreipgroup.keys() | list | intersect(group_names) | map('extract', fail2ban_ignoreipgroup) | list | flatten }}"
+  when: fail2ban_ignoreipgroup | length > 0
+
+- name: "MMN fail2ban - Combine ignoreip lists"
+  ansible.builtin.set_fact:
+    fail2ban_ignoreip: "{{
+      fail2ban_ignoreipdefault
+      + (fail2ban_ignoreipmergedgroup | default([]))
+      + (fail2ban_ignoreiphost | default([]))
+    }}"
+
+# ── Jails (dict: default | combine(group) | combine(host)) ──────
+- name: "MMN fail2ban - Merge group jails"
+  ansible.builtin.set_fact:
+    fail2ban_jailsmergedgroup: "{{ fail2ban_jailsgroup.keys() | list | intersect(group_names) | map('extract', fail2ban_jailsgroup) | combine }}"
+  when: fail2ban_jailsgroup | length > 0
+
+- name: "MMN fail2ban - Combine jails into fail2ban_jails"
+  ansible.builtin.set_fact:
+    fail2ban_jails: "{{
+      fail2ban_jailsdefault
+      | combine(fail2ban_jailsmergedgroup | default({}), recursive=true)
+      | combine(fail2ban_jailshost | default({}), recursive=true)
+    }}"

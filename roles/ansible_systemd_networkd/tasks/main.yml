@@ -1,6 +1,7 @@
 ---
 - import_tasks: cleanup.yml
-  when: systemd_networkd_cleanup | bool
+
+- import_tasks: disable_ifupdown.yml
 
 - import_tasks: config.yml
 

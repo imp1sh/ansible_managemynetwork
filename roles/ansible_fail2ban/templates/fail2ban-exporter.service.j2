@@ -1,0 +1,9 @@
+[Unit]
+Description=Fail2ban Prometheus metrics exporter
+Requires=fail2ban.service
+After=fail2ban.service
+
+[Service]
+Type=oneshot
+ExecStart={{ fail2ban_exporter_script_path }}
+User=root

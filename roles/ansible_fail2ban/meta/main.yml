@@ -1,0 +1,16 @@
+---
+galaxy_info:
+  role_name: ansible_fail2ban
+  author: Jochen Demmer
+  description: Installs and configures fail2ban with three-tier variable merge (default/group/host) and optional Prometheus metrics exporter via node_exporter textfile collector.
+  company: libcom.de
+  issue_tracker_url: https://github.com/imp1sh/ansible_managemynetwork/issues
+  license: BSD-3-Clause
+  min_ansible_version: "2.11"
+  platforms:
+    - name: Debian
+      versions:
+        - bookworm
+        - trixie
+  galaxy_tags: [fail2ban, security, bruteforce, ssh, nftables, prometheus, monitoring]
+dependencies: []

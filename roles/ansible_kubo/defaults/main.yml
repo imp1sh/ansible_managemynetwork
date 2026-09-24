@@ -150,6 +150,22 @@ kubo_systemd_prefix: ""
 kubo_config_extra: {}
 
 # ---------------------------------------------------------------------------
+# Decommission — controlled removal of a kubo node.
+#
+# To decommission a node, set `state: absent` on its entry in
+# kubo_instances. The role will:
+#   1. Stop and remove the container + systemd unit
+#   2. Optionally remove the data directory
+#
+# Kubo has no cluster-level eviction — if the corresponding ipfs-cluster
+# peer is also being decommissioned, the cluster role handles eviction.
+# ---------------------------------------------------------------------------
+
+# Whether to remove the data directory after decommissioning. Set to false
+# to retain data for forensic analysis or re-import.
+kubo_decommission_remove_data: false
+
+# ---------------------------------------------------------------------------
 # Base config dict. Contains ALL sections with upstream defaults. Per-instance
 # values (Addresses, API CORS, Gateway, Peering, Identity) are injected by the
 # role tasks at render time. Override individual keys via kubo_config_extra or
