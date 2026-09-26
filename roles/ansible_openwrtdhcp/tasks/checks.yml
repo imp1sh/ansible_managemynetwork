@@ -1,0 +1,209 @@
+---
+# Validation checks for ansible_openwrtdhcp
+# Reference: OpenWrt DHCP and DNS configuration /etc/config/dhcp
+# https://openwrt.org/docs/guide-user/base-system/dhcp
+#
+# Format requirements derived from the OpenWrt dnsmasq init script and UCI docs:
+#
+#   mac     Colon-separated hex octets: 'ba:bd:92:33:df:f1'
+#           Space-separated list supported for multiple MACs (laptop on/off dock).
+#           Wildcards allowed per dnsmasq --dhcp-host= syntax.
+#
+#   ip      Valid IPv4 or IPv6 address, or the literal string 'ignore'
+#          (to drop all DHCP requests from the matched host).
+#
+#   hostid  Bare hex string without separators, even char count, max 16 chars (64 bits).
+#           Processed by hex_to_hostid(): strips optional '0x', checks pure hex,
+#           then splits into two 16-bit halves. Colons would break shell arithmetic.
+#           Correct: '8e3d'. Wrong: '::8e3d' or '8e:3d'.
+#
+#   duid    1 or 2 bare hex strings separated by '%': '<duid>' or '<duid>%<iaid>'.
+#           No colons. Prepended with 'id:' and passed to dnsmasq --dhcp-host=.
+#           Correct: '00020000ab11ca5359648a65d196' or
+#                    '00020000ab11ca5359648a65d196%a1a5b3d2'.
+#           Wrong: '00:02:00:00:...' or '::8e3d'.
+#
+#   leasetime  Duration: number + optional unit (s,m,h,d,w,y) or 'infinite'.
+#
+#   broadcast  Boolean (0/1). Forces broadcast DHCP response.
+#
+#   dns        Boolean (0/1). Adds static forward/reverse DNS entries.
+#
+#   enable     Boolean (0/1). Disables the entry with 0.
+
+# ===========================================================================
+# Lease validations (openwrt_dhcp_leases -> config host)
+# ===========================================================================
+
+# --- name: required, non-empty ---
+- name: "MMN dhcp - Validate name in leases"
+  ansible.builtin.assert:
+    that:
+      - lease.name is defined
+      - lease.name | string | length > 0
+      - lease.name | string | length <= 63
+    fail_msg: >-
+      Missing, empty or too long name for lease entry.
+      Every lease must have a non-empty name (max 63 chars per RFC 1035).
+    success_msg: "Lease '{{ lease.name }}' name is valid."
+  loop: "{{ openwrt_dhcp_leases | default([]) }}"
+  loop_control:
+    loop_var: lease
+  when: openwrt_dhcp_leases is defined
+
+# --- mac: colon-separated hex octets ---
+- name: "MMN dhcp - Validate mac format in leases"
+  ansible.builtin.assert:
+    that:
+      - lease.mac | string is regex('^[0-9a-fA-F]{2}(:[0-9a-fA-F]{2}){5}$')
+    fail_msg: >-
+      Invalid mac '{{ lease.mac }}' for lease '{{ lease.name }}'.
+      MAC must be in colon-separated hex format: 'ba:bd:92:33:df:f1'.
+    success_msg: "Lease '{{ lease.name }}' mac is valid."
+  loop: "{{ openwrt_dhcp_leases | selectattr('mac', 'defined') | list }}"
+  loop_control:
+    loop_var: lease
+  when: openwrt_dhcp_leases is defined
+
+# --- ip: valid IPv4/IPv6 address or literal 'ignore' ---
+- name: "MMN dhcp - Validate ip format in leases"
+  ansible.builtin.assert:
+    that:
+      - lease.ip | string == 'ignore' or (lease.ip | string | ansible.utils.ipaddr | default('', true)) | length > 0
+    fail_msg: >-
+      Invalid ip '{{ lease.ip }}' for lease '{{ lease.name }}'.
+      IP must be a valid IPv4 or IPv6 address, or the literal string 'ignore'.
+    success_msg: "Lease '{{ lease.name }}' ip is valid."
+  loop: "{{ openwrt_dhcp_leases | selectattr('ip', 'defined') | list }}"
+  loop_control:
+    loop_var: lease
+  when: openwrt_dhcp_leases is defined
+
+# --- hostid: bare hex, even length, max 16 chars (64 bits) ---
+- name: "MMN dhcp - Validate hostid format in leases"
+  ansible.builtin.assert:
+    that:
+      - lease.hostid | string is regex('^[0-9a-fA-F]+$')
+      - (lease.hostid | string | length) is divisibleby(2)
+      - (lease.hostid | string | length) <= 16
+    fail_msg: >-
+      Invalid hostid '{{ lease.hostid }}' for lease '{{ lease.name }}'.
+      hostid must be a bare hex string without colons or '::' separator,
+      with an even number of characters, max 16 chars (64 bits).
+      Correct: '8e3d'. Wrong: '::8e3d' or '8e:3d'.
+    success_msg: "Lease '{{ lease.name }}' hostid is valid."
+  loop: "{{ openwrt_dhcp_leases | selectattr('hostid', 'defined') | list }}"
+  loop_control:
+    loop_var: lease
+  when: openwrt_dhcp_leases is defined
+
+# --- duid: bare hex, optionally with '%' separator for IAID, even-length segments ---
+- name: "MMN dhcp - Validate duid format in leases"
+  ansible.builtin.assert:
+    that:
+      - lease.duid | string is regex('^[0-9a-fA-F]+(%[0-9a-fA-F]+)?$')
+      - (lease.duid | string | split('%') | first | length) is divisibleby(2)
+      - (lease.duid | string | split('%') | last | length) is divisibleby(2)
+    fail_msg: >-
+      Invalid duid '{{ lease.duid }}' for lease '{{ lease.name }}'.
+      DUID must be 1 or 2 bare hex strings separated by '%' (<duid> or <duid>%<iaid>),
+      without colons or '::', each segment with an even number of characters.
+      Correct: '00020000ab11ca5359648a65d196' or
+               '00020000ab11ca5359648a65d196%a1a5b3d2'.
+      Wrong: '00:02:00:00:...' or '::8e3d'.
+    success_msg: "Lease '{{ lease.name }}' duid is valid."
+  loop: "{{ openwrt_dhcp_leases | selectattr('duid', 'defined') | list }}"
+  loop_control:
+    loop_var: lease
+  when: openwrt_dhcp_leases is defined
+
+# --- leasetime: duration string ---
+- name: "MMN dhcp - Validate leasetime format in leases"
+  ansible.builtin.assert:
+    that:
+      - lease.leasetime | string is regex('^[0-9]+[smhdwy]?$|^infinite$')
+    fail_msg: >-
+      Invalid leasetime '{{ lease.leasetime }}' for lease '{{ lease.name }}'.
+      leasetime must be a number optionally followed by a unit (s,m,h,d,w,y) or 'infinite'.
+      Examples: '12h', '30m', '86400', 'infinite'.
+    success_msg: "Lease '{{ lease.name }}' leasetime is valid."
+  loop: "{{ openwrt_dhcp_leases | selectattr('leasetime', 'defined') | list }}"
+  loop_control:
+    loop_var: lease
+  when: openwrt_dhcp_leases is defined
+
+# --- broadcast: boolean ---
+- name: "MMN dhcp - Validate broadcast in leases"
+  ansible.builtin.assert:
+    that:
+      - lease.broadcast | string in ['0', '1']
+    fail_msg: >-
+      Invalid broadcast '{{ lease.broadcast }}' for lease '{{ lease.name }}'.
+      broadcast must be 0 or 1.
+    success_msg: "Lease '{{ lease.name }}' broadcast is valid."
+  loop: "{{ openwrt_dhcp_leases | selectattr('broadcast', 'defined') | list }}"
+  loop_control:
+    loop_var: lease
+  when: openwrt_dhcp_leases is defined
+
+# --- dns: boolean ---
+- name: "MMN dhcp - Validate dns in leases"
+  ansible.builtin.assert:
+    that:
+      - lease.dns | string in ['0', '1']
+    fail_msg: >-
+      Invalid dns '{{ lease.dns }}' for lease '{{ lease.name }}'.
+      dns must be 0 or 1.
+    success_msg: "Lease '{{ lease.name }}' dns is valid."
+  loop: "{{ openwrt_dhcp_leases | selectattr('dns', 'defined') | list }}"
+  loop_control:
+    loop_var: lease
+  when: openwrt_dhcp_leases is defined
+
+# --- enable: boolean ---
+- name: "MMN dhcp - Validate enable in leases"
+  ansible.builtin.assert:
+    that:
+      - lease.enable | string in ['0', '1']
+    fail_msg: >-
+      Invalid enable '{{ lease.enable }}' for lease '{{ lease.name }}'.
+      enable must be 0 or 1.
+    success_msg: "Lease '{{ lease.name }}' enable is valid."
+  loop: "{{ openwrt_dhcp_leases | selectattr('enable', 'defined') | list }}"
+  loop_control:
+    loop_var: lease
+  when: openwrt_dhcp_leases is defined
+
+# ===========================================================================
+# Hostoverride validations (openwrt_dhcp_hostoverrides -> config domain)
+# ===========================================================================
+
+# --- name: required, non-empty ---
+- name: "MMN dhcp - Validate name in hostoverrides"
+  ansible.builtin.assert:
+    that:
+      - hostoverride.name is defined
+      - hostoverride.name | string | length > 0
+      - hostoverride.name | string | length <= 253
+    fail_msg: >-
+      Missing, empty or too long name for hostoverride entry.
+      Every hostoverride must have a non-empty name (max 253 chars per RFC 1035 FQDN limit).
+    success_msg: "Hostoverride '{{ hostoverride.name }}' name is valid."
+  loop: "{{ openwrt_dhcp_hostoverrides | default([]) }}"
+  loop_control:
+    loop_var: hostoverride
+  when: openwrt_dhcp_hostoverrides is defined
+
+# --- ip: valid IPv4 or IPv6 address ---
+- name: "MMN dhcp - Validate ip format in hostoverrides"
+  ansible.builtin.assert:
+    that:
+      - (hostoverride.ip | string | ansible.utils.ipaddr | default('', true)) | length > 0
+    fail_msg: >-
+      Invalid ip '{{ hostoverride.ip }}' for hostoverride '{{ hostoverride.name }}'.
+      IP must be a valid IPv4 or IPv6 address.
+    success_msg: "Hostoverride '{{ hostoverride.name }}' ip is valid."
+  loop: "{{ openwrt_dhcp_hostoverrides | selectattr('ip', 'defined') | list }}"
+  loop_control:
+    loop_var: hostoverride
+  when: openwrt_dhcp_hostoverrides is defined
