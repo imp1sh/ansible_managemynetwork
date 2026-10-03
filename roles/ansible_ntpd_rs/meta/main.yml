@@ -11,5 +11,5 @@ galaxy_info:
     - name: Debian
       versions:
         - all
-  galaxy_tags: [ntp, ntpd-rs, rust, time]
+  galaxy_tags: [ntp, ntpd-rs, rust, time, ntpd_rs]
 dependencies: []
