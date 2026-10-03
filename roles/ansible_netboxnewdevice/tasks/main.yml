@@ -1,21 +1,44 @@
 ---
 # tasks file for ansible_netboxnewdevice (nnd)
-# Wizard for creating devices in Netbox
+# Wizard for creating or updating devices in Netbox.
+#
+# Two modes:
+#   1. Crawl mode (default) – gathers facts from the target host,
+#      auto-discovers manufacturer/device-type/serial/platform,
+#      checks for an existing device in Netbox, then prompts only
+#      for fields that could not be auto-detected.
+#   2. Pure wizard mode – set mmn_netbox_crawl_enabled: false to
+#      prompt for every field manually (original behaviour).
+
+- name: "MMN NND - Validate NetBox credentials are available"
+  ansible.builtin.assert:
+    that:
+      - mmn_netbox_url is defined
+      - mmn_netbox_url | length > 0
+      - mmn_netbox_token is defined
+      - mmn_netbox_token | length > 0
+    fail_msg: >-
+      Missing mmn_netbox_url or mmn_netbox_token. Define them in
+      group_vars (vault-encrypted) or pass as extra vars.
+    success_msg: "NetBox credentials configured."
 
 - name: "MMN NND - Welcome message"
   ansible.builtin.debug:
     msg:
       - "============================================"
-      - "Netbox Device Creation Wizard"
+      - "Netbox Device Creation/Update Wizard"
       - "============================================"
-      - "This wizard will guide you through creating a new device in Netbox."
-      - "You will be prompted for all mandatory fields:"
-      - "  - Manufacturer"
-      - "  - Device Type"
-      - "  - Device Role"
-      - "  - Site"
-      - "  - Status"
+      - "Mode: {{ 'crawl + interactive' if (mmn_netbox_crawl_enabled | default(true) | bool) else 'pure interactive' }}"
+      - "Target host: {{ inventory_hostname }}"
       - "============================================"
+
+- name: "MMN NND - Crawl facts from target device"
+  ansible.builtin.include_tasks: crawl.yml
+  when: mmn_netbox_crawl_enabled | default(true) | bool
+
+- name: "MMN NND - Check if device already exists in NetBox"
+  ansible.builtin.include_tasks: check_existing.yml
+  when: mmn_netbox_crawl_enabled | default(true) | bool
 
 - name: "MMN NND - Include Manufacturer task"
   ansible.builtin.include_tasks: manufacturer.yml
@@ -34,3 +57,10 @@
 
 - name: "MMN NND - Include Device Creation task"
   ansible.builtin.include_tasks: device.yml
+
+- name: "MMN NND - Create interfaces and assign IP addresses"
+  ansible.builtin.include_tasks: interfaces_ips.yml
+  when:
+    - mmn_netbox_crawl_enabled | default(true) | bool
+    - ansible_interfaces is defined
+    - device_creation_confirm.user_input | default('') | lower == 'yes'

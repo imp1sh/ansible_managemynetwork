@@ -1,36 +1,60 @@
 ---
-- name: "MMN NND - Fetch all device roles from Netbox"
+- name: "MMN NND - Use pre-discovered device role from existing device"
   ansible.builtin.set_fact:
-    nnd_device_roles_list: "{{ query('netbox.netbox.nb_lookup', 'device-roles', api_endpoint=NETBOX_URL, token=NETBOX_TOKEN) }}"
+    selected_device_role: "{{ nnd_preselect_device_role }}"
+  when:
+    - nnd_preselect_device_role is defined
+    - nnd_preselect_device_role is not none
+
+- name: "MMN NND - Display auto-selected device role"
+  ansible.builtin.debug:
+    msg: "Using device role from existing NetBox record: {{ selected_device_role.name }} (ID: {{ selected_device_role.id }})"
+  when:
+    - nnd_preselect_device_role is defined
+    - nnd_preselect_device_role is not none
+
+- name: "MMN NND - Fetch all device roles from NetBox"
+  ansible.builtin.set_fact:
+    nnd_device_roles_list: "{{ query('netbox.netbox.nb_lookup', 'device-roles', api_endpoint=mmn_netbox_url, token=mmn_netbox_token) }}"
+  when:
+    - nnd_preselect_device_role is not defined or nnd_preselect_device_role is none
 
 - name: "MMN NND - Create list of device roles with IDs, slugs, and names"
   ansible.builtin.set_fact:
-    nnd_device_roles_numbered: "{{ nnd_device_roles_numbered | default([]) + [{'id': item.id, 'name': item.name, 'slug': item.slug}] }}"
+    nnd_device_roles_numbered: "{{ nnd_device_roles_numbered | default([]) + [{'id': drole.id, 'name': drole.name, 'slug': drole.slug}] }}"
   loop: "{{ nnd_device_roles_list | map(attribute='value') | list }}"
   loop_control:
-    loop_var: item
+    loop_var: drole
+  when:
+    - nnd_preselect_device_role is not defined or nnd_preselect_device_role is none
 
 - name: "MMN NND - Build table rows for device roles"
   ansible.builtin.set_fact:
     deviceroles_table_rows: "{{ deviceroles_table_rows | default([]) + [row] }}"
   vars:
-    id_str: "{{ item.id | string }}"
+    id_str: "{{ drole.id | string }}"
     id_pad: "{{ ('   ' if id_str | length == 1 else ('  ' if id_str | length == 2 else (' ' if id_str | length == 3 else ''))) }}"
-    slug_str: "{{ item.slug }}"
+    slug_str: "{{ drole.slug }}"
     slug_len: "{{ slug_str | length }}"
     slug_pad: "{{ ('                                        '[:39 - slug_len] if slug_len < 39 else '') }}"
-    row: "{{ id_pad }}{{ id_str }}  | {{ slug_str }}{{ slug_pad }} | {{ item.name }}"
+    row: "{{ id_pad }}{{ id_str }}  | {{ slug_str }}{{ slug_pad }} | {{ drole.name }}"
   loop: "{{ nnd_device_roles_numbered }}"
   loop_control:
-    loop_var: item
+    loop_var: drole
+  when:
+    - nnd_preselect_device_role is not defined or nnd_preselect_device_role is none
 
 - name: "MMN NND - Build complete device roles table message"
   ansible.builtin.set_fact:
     deviceroles_table_msg: "{{ ['Available Device Roles:', '====================================================================================', 'ID     | Slug                                    | Name', '-------+-----------------------------------------+-----------------------------------'] + deviceroles_table_rows + ['===================================================================================='] }}"
+  when:
+    - nnd_preselect_device_role is not defined or nnd_preselect_device_role is none
 
 - name: "MMN NND - Display all available device roles in table format"
   ansible.builtin.debug:
     msg: "{{ deviceroles_table_msg }}"
+  when:
+    - nnd_preselect_device_role is not defined or nnd_preselect_device_role is none
 
 - name: "MMN NND - Prompt for device role ID"
   ansible.builtin.pause:
@@ -38,6 +62,8 @@
       Enter the ID of the device role you want to use:
   register: device_role_id_input
   run_once: true
+  when:
+    - nnd_preselect_device_role is not defined or nnd_preselect_device_role is none
 
 - name: "MMN NND - Validate device role ID input"
   ansible.builtin.assert:
@@ -47,10 +73,14 @@
     fail_msg: "Invalid device role ID. Please enter a valid ID from the list above."
     success_msg: "Device role ID is valid."
   run_once: true
+  when:
+    - nnd_preselect_device_role is not defined or nnd_preselect_device_role is none
 
-- name: "MMN NND - Set selected device role"
+- name: "MMN NND - Set selected device role from manual input"
   ansible.builtin.set_fact:
     selected_device_role: "{{ nnd_device_roles_numbered | selectattr('id', 'equalto', device_role_id_input.user_input | int) | first }}"
+  when:
+    - nnd_preselect_device_role is not defined or nnd_preselect_device_role is none
 
 - name: "MMN NND - Display selected device role"
   ansible.builtin.debug:

@@ -1,9 +1,31 @@
 ---
+- name: "MMN NND - Set device name from preselect or prompt"
+  ansible.builtin.set_fact:
+    device_name_final: "{{ nnd_preselect_device_name }}"
+  when:
+    - nnd_preselect_device_name is defined
+    - nnd_preselect_device_name | length > 0
+
+- name: "MMN NND - Display auto-detected device name"
+  ansible.builtin.debug:
+    msg: "Device name from crawled facts: {{ device_name_final }}"
+  when:
+    - nnd_preselect_device_name is defined
+    - nnd_preselect_device_name | length > 0
+
 - name: "MMN NND - Prompt for device name"
   ansible.builtin.pause:
     prompt: "Enter the device name:"
   register: device_name_input
   run_once: true
+  when:
+    - nnd_preselect_device_name is not defined or nnd_preselect_device_name | length == 0
+
+- name: "MMN NND - Set device name from manual input"
+  ansible.builtin.set_fact:
+    device_name_final: "{{ device_name_input.user_input }}"
+  when:
+    - nnd_preselect_device_name is not defined or nnd_preselect_device_name | length == 0
 
 - name: "MMN NND - Prompt for optional device description"
   ansible.builtin.pause:
@@ -11,29 +33,53 @@
   register: device_description_input
   run_once: true
 
+- name: "MMN NND - Set serial from preselect or prompt"
+  ansible.builtin.set_fact:
+    device_serial_final: "{{ nnd_preselect_serial }}"
+  when:
+    - nnd_preselect_serial is defined
+    - nnd_preselect_serial | length > 0
+
+- name: "MMN NND - Display auto-detected serial"
+  ansible.builtin.debug:
+    msg: "Serial number from crawled facts: {{ device_serial_final }}"
+  when:
+    - nnd_preselect_serial is defined
+    - nnd_preselect_serial | length > 0
+
 - name: "MMN NND - Prompt for optional serial number"
   ansible.builtin.pause:
     prompt: "Enter device serial number (optional, press Enter to skip):"
   register: device_serial_input
   run_once: true
+  when:
+    - nnd_preselect_serial is not defined or nnd_preselect_serial | length == 0
+
+- name: "MMN NND - Set serial from manual input"
+  ansible.builtin.set_fact:
+    device_serial_final: "{{ device_serial_input.user_input }}"
+  when:
+    - nnd_preselect_serial is not defined or nnd_preselect_serial | length == 0
 
 - name: "MMN NND - Display device creation summary"
   ansible.builtin.debug:
     msg: |
-      Device Creation Summary:
-      =======================
-      Name: {{ device_name_input.user_input }}
+      Device Creation/Update Summary:
+      ==============================
+      Action: {{ 'UPDATE existing device' if (nnd_device_exists | default(false)) else 'CREATE new device' }}
+      Name: {{ device_name_final }}
       Manufacturer: {{ selected_manufacturer.name if selected_manufacturer is defined else 'Not selected' }}
       Device Type: {{ selected_devicetype if selected_devicetype is defined else 'Not selected' }}
       Device Role: {{ selected_device_role.name if selected_device_role is defined else 'Not selected' }}
       Site: {{ selected_site.name if selected_site is defined else 'Not selected' }}
       Status: {{ selected_device_status.label if selected_device_status is defined else 'Not selected' }}
-      Description: {{ device_description_input.user_input if device_description_input.user_input | length > 0 else 'None' }}
-      Serial: {{ device_serial_input.user_input if device_serial_input.user_input | length > 0 else 'None' }}
+      Description: {{ device_description_input.user_input if (device_description_input is defined and device_description_input.user_input | length > 0) else 'None' }}
+      Serial: {{ device_serial_final if (device_serial_final is defined and device_serial_final | length > 0) else 'None' }}
+      Platform: {{ nnd_preselect_platform | default('N/A') }}
 
-- name: "MMN NND - Confirm device creation"
+- name: "MMN NND - Confirm device creation/update"
   ansible.builtin.pause:
-    prompt: "Do you want to create this device in Netbox? (yes/no)"
+    prompt: "Do you want to {{ 'update' if (nnd_device_exists | default(false)) else 'create' }} this device in Netbox? (yes/no)"
   register: device_creation_confirm
   run_once: true
 
@@ -60,6 +106,7 @@
       - selected_device_status.value | length > 0
     fail_msg: "Missing or invalid required fields. Please ensure all selections were made correctly. Check that slugs are available for device_type, device_role, and site."
     success_msg: "All required fields are present and valid."
+  when: device_creation_confirm.user_input | lower == 'yes'
 
 - name: "MMN NND - Extract slugs for API"
   ansible.builtin.set_fact:
@@ -75,29 +122,57 @@
       - "Site Slug: {{ site_slug }}"
   when: device_creation_confirm.user_input | lower == 'yes'
 
+- name: "MMN NND - Validate platform slug exists in NetBox"
+  block:
+    - name: "MMN NND - Fetch all platforms from NetBox"
+      ansible.builtin.set_fact:
+        nnd_all_platform_slugs: "{{ query('netbox.netbox.nb_lookup', 'platforms', api_endpoint=mmn_netbox_url, token=mmn_netbox_token) | map(attribute='value.slug') | list }}"
+
+    - name: "MMN NND - Check if crawled platform exists"
+      ansible.builtin.set_fact:
+        nnd_validated_platform: "{{ (nnd_preselect_platform in nnd_all_platform_slugs) | ternary(nnd_preselect_platform, none) }}"
+  rescue:
+    - name: "MMN NND - Could not fetch platforms, omitting platform"
+      ansible.builtin.set_fact:
+        nnd_validated_platform: "{{ none }}"
+  when:
+    - nnd_preselect_platform is defined
+    - nnd_preselect_platform | length > 0
+
+- name: "MMN NND - Warn about platform omission"
+  ansible.builtin.debug:
+    msg: "Platform '{{ nnd_preselect_platform }}' not found in NetBox. Omitting platform from device data."
+  when:
+    - nnd_preselect_platform is defined
+    - nnd_preselect_platform | length > 0
+    - nnd_validated_platform is not defined or nnd_validated_platform is none
+
 - name: "MMN NND - Build device data dictionary"
   ansible.builtin.set_fact:
     device_data: "{{ base_device_data | combine(optional_device_data) }}"
   vars:
     base_device_data:
-      name: "{{ device_name_input.user_input }}"
+      name: "{{ device_name_final }}"
       device_type: "{{ device_type_slug }}"
       device_role: "{{ device_role_slug }}"
       site: "{{ site_slug }}"
       status: "{{ selected_device_status.value }}"
-    optional_device_data: "{{ ({'description': device_description_input.user_input} if (device_description_input.user_input | length > 0) else {}) | combine(({'serial': device_serial_input.user_input} if (device_serial_input.user_input | length > 0) else {})) }}"
+    optional_device_data: "{{ ({'description': device_description_input.user_input} if (device_description_input is defined and device_description_input.user_input | length > 0) else {}) | combine(({'serial': device_serial_final} if (device_serial_final is defined and device_serial_final | length > 0) else {})) | combine(({'platform': nnd_validated_platform} if (nnd_validated_platform is defined and nnd_validated_platform is not none) else {})) }}"
+  when: device_creation_confirm.user_input | lower == 'yes'
 
 - name: "MMN NND - Display device data to be sent"
   ansible.builtin.debug:
     var: device_data
   when: device_creation_confirm.user_input | lower == 'yes'
 
-- name: "MMN NND - Create device in Netbox"
+- name: "MMN NND - Create or update device in Netbox"
   netbox.netbox.netbox_device:
-    netbox_url: "{{ NETBOX_URL }}"
-    netbox_token: "{{ NETBOX_TOKEN }}"
+    netbox_url: "{{ mmn_netbox_url }}"
+    netbox_token: "{{ mmn_netbox_token }}"
     data: "{{ device_data }}"
     state: present
+  delegate_to: localhost
+  become: false
   when: device_creation_confirm.user_input | lower == 'yes'
   register: device_creation_result
   failed_when: false
@@ -107,21 +182,20 @@
     var: device_creation_result
   when: device_creation_confirm.user_input | lower == 'yes'
 
-- name: "MMN NND - Check if device was created successfully"
+- name: "MMN NND - Check if device was created or updated successfully"
   ansible.builtin.set_fact:
-    device_created_successfully: "{{ device_creation_result.data is defined and device_creation_result.data.id is defined }}"
+    device_created_successfully: "{{ device_creation_result.failed | default(true) == false }}"
   when: device_creation_confirm.user_input | lower == 'yes'
 
 - name: "MMN NND - Fail if device creation failed"
   ansible.builtin.fail:
     msg: |
-      Failed to create device in Netbox.
+      Failed to create or update device in Netbox.
       {% if device_creation_result.msg is defined %}Error: {{ device_creation_result.msg }}
-      {% elif device_creation_result.data is not defined %}No data returned from Netbox API.
       {% else %}Unknown error occurred.{% endif %}
-      
+
       Common issues:
-      - The Netbox token (NETBOX_TOKEN) must have write permissions
+      - The Netbox token (mmn_netbox_token) must have write permissions
       - Ensure all required fields are correctly set
       - Check that the device name is unique
       - Verify the device type, role, site, and status IDs are valid
@@ -129,10 +203,33 @@
     - device_creation_confirm.user_input | lower == 'yes'
     - not device_created_successfully | default(false)
 
+- name: "MMN NND - Set created device ID from module result"
+  ansible.builtin.set_fact:
+    nnd_created_device_id: "{{ device_creation_result.device.id }}"
+  when:
+    - device_creation_confirm.user_input | lower == 'yes'
+    - device_creation_result.device is defined
+    - device_creation_result.device.id is defined
+
+- name: "MMN NND - Fallback - Query device from NetBox to get its ID"
+  ansible.builtin.set_fact:
+    nnd_created_device_raw: "{{ query('netbox.netbox.nb_lookup', 'devices', api_filter='name=' ~ device_name_final, api_endpoint=mmn_netbox_url, token=mmn_netbox_token) }}"
+  when:
+    - device_creation_confirm.user_input | lower == 'yes'
+    - nnd_created_device_id is not defined
+
+- name: "MMN NND - Set created device ID from lookup"
+  ansible.builtin.set_fact:
+    nnd_created_device_id: "{{ (nnd_created_device_raw | first).value.id }}"
+  when:
+    - device_creation_confirm.user_input | lower == 'yes'
+    - nnd_created_device_id is not defined
+    - nnd_created_device_raw is defined
+    - nnd_created_device_raw | length > 0
+
 - name: "MMN NND - Display device creation result"
   ansible.builtin.debug:
-    msg: "Device '{{ device_name_input.user_input }}' has been created successfully in Netbox! (ID: {{ device_creation_result.data.id }})"
+    msg: "Device '{{ device_name_final }}' has been {{ 'updated' if (nnd_device_exists | default(false)) else 'created' }} successfully in Netbox! (ID: {{ nnd_created_device_id | default('N/A') }})"
   when:
     - device_creation_confirm.user_input | lower == 'yes'
     - device_created_successfully | default(false)
-

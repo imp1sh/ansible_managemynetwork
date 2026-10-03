@@ -6,11 +6,11 @@
 # Fetching
 - name: "MMN netbox2yaml - Fetching All IPv4 Prefixes"
   ansible.builtin.set_fact:
-    prefixes4: "{{ query('netbox.netbox.nb_lookup', 'prefixes', api_filter='family=4', api_endpoint=NETBOX_URL, token=NETBOX_TOKEN) }}"
+    prefixes4: "{{ query('netbox.netbox.nb_lookup', 'prefixes', api_filter='family=4', api_endpoint=mmn_netbox_url, token=mmn_netbox_token) }}"
 
 - name: "MMN netbox2yaml - Fetching All IPv6 Prefixes"
   ansible.builtin.set_fact:
-    prefixes6: "{{ query('netbox.netbox.nb_lookup', 'prefixes', api_filter='family=6', api_endpoint=NETBOX_URL, token=NETBOX_TOKEN) }}"
+    prefixes6: "{{ query('netbox.netbox.nb_lookup', 'prefixes', api_filter='family=6', api_endpoint=mmn_netbox_url, token=mmn_netbox_token) }}"
 
 # Creating Vars
 # Create nb_prefixes_by_name (renamed from nb_prefixes)

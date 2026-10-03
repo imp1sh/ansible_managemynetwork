@@ -13,8 +13,8 @@ role_netbox2yaml.yml
   roles:
     - imp1sh.ansible_managemynetwork.ansible_netbox2yaml
   vars:
-    NETBOX_URL: "https://netbox.yourdomain.net/"
-    NETBOX_TOKEN: "yoursecurenetboxtoken"
+    mmn_netbox_url: "https://netbox.yourdomain.net/"
+    mmn_netbox_token: "yoursecurenetboxtoken"
     nb_prefixes_destination: "/home/jochen/ansible/group_vars/tags_ansible-netbox-prefixesfetch.yml"
     nb_devices_destination: "/home/jochen/ansible/group_vars/tags_ansible-netbox-devicesfetch.yml"
     nb_fetch_devices: true

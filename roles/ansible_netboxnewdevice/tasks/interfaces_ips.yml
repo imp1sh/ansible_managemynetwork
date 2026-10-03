@@ -1,0 +1,300 @@
+---
+# Interactively select which interfaces and IP addresses from crawled
+# facts to create in NetBox. Runs after the device has been created or
+# confirmed.
+
+- name: "MMN NND - Set device ID for interface creation"
+  ansible.builtin.set_fact:
+    nnd_target_device_id: "{{ nnd_existing_device_id if (nnd_device_exists | default(false)) else nnd_created_device_id }}"
+
+- name: "MMN NND - Set device name for interface creation"
+  ansible.builtin.set_fact:
+    nnd_target_device_name: "{{ device_name_final }}"
+
+- name: "MMN NND - Build interface list excluding loopback"
+  ansible.builtin.set_fact:
+    nnd_physical_interfaces: "{{ ansible_interfaces | reject('match', '^lo') | reject('match', '^lo:') | list }}"
+  when:
+    - ansible_interfaces is defined
+    - mmn_netbox_create_interfaces | default(true) | bool
+
+- name: "MMN NND - Normalize interface facts for each interface"
+  ansible.builtin.set_fact:
+    nnd_normalized_interfaces: "{{ nnd_normalized_interfaces | default([]) + [_normalized] }}"
+  loop: "{{ nnd_physical_interfaces }}"
+  loop_control:
+    loop_var: nnd_iface_item
+    label: "{{ nnd_iface_item }}"
+  when:
+    - nnd_physical_interfaces is defined
+    - nnd_physical_interfaces | length > 0
+    - mmn_netbox_create_interfaces | default(true) | bool
+  vars:
+    nnd_safe_name: "{{ nnd_iface_item | regex_replace('[^a-zA-Z0-9]', '_') }}"
+    nnd_raw_facts: "{{ lookup('vars', 'ansible_' ~ nnd_safe_name, default={}) }}"
+    nnd_iface_type: >-
+      {{
+        'virtual' if (nnd_raw_facts.type | default('')) in ['bridge', 'loopback']
+        else ('1000base-t' if (nnd_raw_facts.type | default('')) == 'ether'
+        else 'other')
+      }}
+    nnd_raw_ipv4: "{{ nnd_raw_facts.ipv4 | default(none) }}"
+    nnd_raw_ipv6: "{{ nnd_raw_facts.ipv6 | default(none) }}"
+    nnd_norm_ipv4: "{{ [nnd_raw_ipv4] if (nnd_raw_ipv4 is mapping) else (nnd_raw_ipv4 if (nnd_raw_ipv4 is iterable and nnd_raw_ipv4 is not string and nnd_raw_ipv4 is not none) else []) }}"
+    nnd_norm_ipv6: "{{ [nnd_raw_ipv6] if (nnd_raw_ipv6 is mapping) else (nnd_raw_ipv6 if (nnd_raw_ipv6 is iterable and nnd_raw_ipv6 is not string and nnd_raw_ipv6 is not none) else []) }}"
+    _normalized:
+      name: "{{ nnd_iface_item }}"
+      type: "{{ nnd_iface_type }}"
+      mac_address: "{{ nnd_raw_facts.macaddress | default(omit) }}"
+      mtu: "{{ nnd_raw_facts.mtu | default(omit) }}"
+      enabled: "{{ nnd_raw_facts.active | default(true) }}"
+      ipv4_list: "{{ nnd_norm_ipv4 }}"
+      ipv6_list: "{{ nnd_norm_ipv6 }}"
+
+- name: "MMN NND - Display available interfaces for selection"
+  ansible.builtin.debug:
+    msg: "{{ nnd_iface_lines }}"
+  vars:
+    nnd_iface_lines: "{{ ['Available interfaces (enter comma-separated indices, e.g. 1,3,5):'] +
+      (nnd_normalized_interfaces | default([]) | map('regex_replace', '^(.*)$', '  \\1') | list) }}"
+  when:
+    - nnd_normalized_interfaces is defined
+    - nnd_normalized_interfaces | length > 0
+
+- name: "MMN NND - Build numbered interface display"
+  ansible.builtin.set_fact:
+    nnd_iface_display: "{{ nnd_iface_display | default([]) + [_line] }}"
+  loop: "{{ nnd_normalized_interfaces }}"
+  loop_control:
+    loop_var: nnd_disp_iface
+    index_var: nnd_idx
+  vars:
+    _line: "[{{ nnd_idx }}] {{ nnd_disp_iface.name }} ({{ nnd_disp_iface.type }}, MAC: {{ nnd_disp_iface.mac_address | default('N/A') }}) - IPv4: {{ nnd_disp_iface.ipv4_list | length }}, IPv6: {{ nnd_disp_iface.ipv6_list | length }}"
+  when:
+    - nnd_normalized_interfaces is defined
+    - nnd_normalized_interfaces | length > 0
+
+- name: "MMN NND - Show numbered interface list"
+  ansible.builtin.debug:
+    msg: "{{ nnd_iface_display }}"
+  when:
+    - nnd_iface_display is defined
+    - nnd_iface_display | length > 0
+
+- name: "MMN NND - Prompt for interface selection"
+  ansible.builtin.pause:
+    prompt: "Enter the indices of interfaces to add to NetBox (comma-separated, e.g. 0,1,3). Press Enter to skip:"
+  register: nnd_iface_selection_input
+  run_once: true
+  when:
+    - nnd_normalized_interfaces is defined
+    - nnd_normalized_interfaces | length > 0
+
+- name: "MMN NND - Parse selected interface indices"
+  ansible.builtin.set_fact:
+    nnd_selected_iface_indices: "{{ nnd_iface_selection_input.user_input | default('') | trim | split(',') | map('trim') | reject('equalto', '') | map('int') | list }}"
+  when:
+    - nnd_normalized_interfaces is defined
+    - nnd_normalized_interfaces | length > 0
+    - nnd_iface_selection_input.user_input | default('') | length > 0
+
+- name: "MMN NND - Filter to selected interfaces"
+  ansible.builtin.set_fact:
+    nnd_selected_interfaces: "{{ nnd_normalized_interfaces | selectattr('name', 'in', (nnd_selected_iface_indices | map('extract', nnd_normalized_interfaces) | map(attribute='name') | list)) | list }}"
+  when:
+    - nnd_selected_iface_indices is defined
+    - nnd_selected_iface_indices | length > 0
+
+- name: "MMN NND - No interfaces selected"
+  ansible.builtin.debug:
+    msg: "No interfaces selected. Skipping interface and IP creation."
+  when:
+    - nnd_selected_iface_indices is not defined or nnd_selected_iface_indices | length == 0
+
+- name: "MMN NND - Select IP addresses for each chosen interface"
+  ansible.builtin.include_tasks: select_ips.yml
+  loop: "{{ nnd_selected_interfaces }}"
+  loop_control:
+    loop_var: nnd_sel_iface
+    label: "{{ nnd_sel_iface.name }}"
+  when:
+    - nnd_selected_interfaces is defined
+    - nnd_selected_interfaces | length > 0
+
+- name: "MMN NND - Create or update selected interfaces in NetBox"
+  netbox.netbox.netbox_device_interface:
+    netbox_url: "{{ mmn_netbox_url }}"
+    netbox_token: "{{ mmn_netbox_token }}"
+    data:
+      device: "{{ nnd_target_device_name }}"
+      name: "{{ nnd_cre_iface.name }}"
+      type: "{{ nnd_cre_iface.type }}"
+      mac_address: "{{ nnd_cre_iface.mac_address | default(omit) }}"
+      mtu: "{{ nnd_cre_iface.mtu | default(omit) }}"
+      enabled: "{{ nnd_cre_iface.enabled }}"
+    state: present
+  delegate_to: localhost
+  become: false
+  loop: "{{ nnd_selected_interfaces }}"
+  loop_control:
+    loop_var: nnd_cre_iface
+    label: "{{ nnd_cre_iface.name }}"
+  when:
+    - nnd_selected_interfaces is defined
+    - nnd_selected_interfaces | length > 0
+    - mmn_netbox_create_interfaces | default(true) | bool
+  register: nnd_interface_results
+
+- name: "MMN NND - Create or update selected IPv4 addresses in NetBox"
+  netbox.netbox.netbox_ip_address:
+    netbox_url: "{{ mmn_netbox_url }}"
+    netbox_token: "{{ mmn_netbox_token }}"
+    data:
+      address: "{{ nnd_v4_addr.address }}/{{ nnd_v4_addr.prefix | default(((nnd_v4_addr.netmask | default('255.255.255.255')) | ansible.utils.ipaddr('prefix'))) }}"
+      assigned_object:
+        name: "{{ nnd_v4_iface_name }}"
+        device: "{{ nnd_target_device_name }}"
+      status: active
+    state: present
+  delegate_to: localhost
+  become: false
+  loop: "{{ nnd_selected_ipv4 | default([]) }}"
+  loop_control:
+    loop_var: nnd_v4_pair
+    label: "{{ nnd_v4_pair.iface }} {{ nnd_v4_pair.addr.address }}"
+  vars:
+    nnd_v4_iface_name: "{{ nnd_v4_pair.iface }}"
+    nnd_v4_addr: "{{ nnd_v4_pair.addr }}"
+  when:
+    - nnd_selected_ipv4 is defined
+    - nnd_selected_ipv4 | length > 0
+    - mmn_netbox_assign_ip_addresses | default(true) | bool
+  register: nnd_ipv4_results
+
+- name: "MMN NND - Create or update selected IPv6 addresses in NetBox"
+  netbox.netbox.netbox_ip_address:
+    netbox_url: "{{ mmn_netbox_url }}"
+    netbox_token: "{{ mmn_netbox_token }}"
+    data:
+      address: "{{ nnd_v6_addr.address }}/{{ nnd_v6_addr.prefix | default(64) }}"
+      assigned_object:
+        name: "{{ nnd_v6_iface_name }}"
+        device: "{{ nnd_target_device_name }}"
+      status: active
+    state: present
+  delegate_to: localhost
+  become: false
+  loop: "{{ nnd_selected_ipv6 | default([]) }}"
+  loop_control:
+    loop_var: nnd_v6_pair
+    label: "{{ nnd_v6_pair.iface }} {{ nnd_v6_pair.addr.address }}"
+  vars:
+    nnd_v6_iface_name: "{{ nnd_v6_pair.iface }}"
+    nnd_v6_addr: "{{ nnd_v6_pair.addr }}"
+  when:
+    - nnd_selected_ipv6 is defined
+    - nnd_selected_ipv6 | length > 0
+    - mmn_netbox_assign_ip_addresses | default(true) | bool
+  register: nnd_ipv6_results
+
+- name: "MMN NND - Summary of interface and IP creation"
+  ansible.builtin.debug:
+    msg:
+      - "============================================"
+      - "Interface and IP assignment summary"
+      - "============================================"
+      - "Interfaces created/updated: {{ nnd_interface_results.results | default([]) | length }}"
+      - "IPv4 addresses assigned: {{ nnd_ipv4_results.results | default([]) | length }}"
+      - "IPv6 addresses assigned: {{ nnd_ipv6_results.results | default([]) | length }}"
+      - "============================================"
+  when:
+    - nnd_selected_interfaces is defined
+    - nnd_selected_interfaces | length > 0
+
+- name: "MMN NND - Build numbered list of created IPv4 addresses for primary IP selection"
+  ansible.builtin.set_fact:
+    nnd_v4_primary_display: "{{ nnd_v4_primary_display | default([]) + [_line] }}"
+  loop: "{{ nnd_selected_ipv4 | default([]) }}"
+  loop_control:
+    loop_var: nnd_v4_prim
+    index_var: nnd_v4_pi
+  vars:
+    _line: "  [{{ nnd_v4_pi }}] {{ nnd_v4_prim.addr.address }}/{{ nnd_v4_prim.addr.prefix | default('?') }} ({{ nnd_v4_prim.iface }})"
+  when:
+    - nnd_selected_ipv4 is defined
+    - nnd_selected_ipv4 | length > 0
+
+- name: "MMN NND - Show IPv4 addresses for primary IP selection"
+  ansible.builtin.debug:
+    msg: "{{ nnd_v4_primary_display }}"
+  when:
+    - nnd_v4_primary_display is defined
+    - nnd_v4_primary_display | length > 0
+
+- name: "MMN NND - Prompt for primary IPv4"
+  ansible.builtin.pause:
+    prompt: "Select the primary IPv4 address index for this device (Enter to skip):"
+  register: nnd_v4_primary_input
+  run_once: true
+  when:
+    - nnd_v4_primary_display is defined
+    - nnd_v4_primary_display | length > 0
+
+- name: "MMN NND - Set primary IPv4 on device in NetBox"
+  netbox.netbox.netbox_device:
+    netbox_url: "{{ mmn_netbox_url }}"
+    netbox_token: "{{ mmn_netbox_token }}"
+    data:
+      name: "{{ nnd_target_device_name }}"
+      primary_ip4: "{{ nnd_selected_ipv4[nnd_v4_primary_input.user_input | int].addr.address }}/{{ nnd_selected_ipv4[nnd_v4_primary_input.user_input | int].addr.prefix | default(((nnd_selected_ipv4[nnd_v4_primary_input.user_input | int].addr.netmask | default('255.255.255.255')) | ansible.utils.ipaddr('prefix'))) }}"
+    state: present
+  delegate_to: localhost
+  become: false
+  when:
+    - nnd_v4_primary_display is defined
+    - nnd_v4_primary_display | length > 0
+    - nnd_v4_primary_input.user_input | default('') | length > 0
+
+- name: "MMN NND - Build numbered list of created IPv6 addresses for primary IP selection"
+  ansible.builtin.set_fact:
+    nnd_v6_primary_display: "{{ nnd_v6_primary_display | default([]) + [_line] }}"
+  loop: "{{ nnd_selected_ipv6 | default([]) }}"
+  loop_control:
+    loop_var: nnd_v6_prim
+    index_var: nnd_v6_pi
+  vars:
+    _line: "  [{{ nnd_v6_pi }}] {{ nnd_v6_prim.addr.address }}/{{ nnd_v6_prim.addr.prefix | default('?') }} ({{ nnd_v6_prim.iface }})"
+  when:
+    - nnd_selected_ipv6 is defined
+    - nnd_selected_ipv6 | length > 0
+
+- name: "MMN NND - Show IPv6 addresses for primary IP selection"
+  ansible.builtin.debug:
+    msg: "{{ nnd_v6_primary_display }}"
+  when:
+    - nnd_v6_primary_display is defined
+    - nnd_v6_primary_display | length > 0
+
+- name: "MMN NND - Prompt for primary IPv6"
+  ansible.builtin.pause:
+    prompt: "Select the primary IPv6 address index for this device (Enter to skip):"
+  register: nnd_v6_primary_input
+  run_once: true
+  when:
+    - nnd_v6_primary_display is defined
+    - nnd_v6_primary_display | length > 0
+
+- name: "MMN NND - Set primary IPv6 on device in NetBox"
+  netbox.netbox.netbox_device:
+    netbox_url: "{{ mmn_netbox_url }}"
+    netbox_token: "{{ mmn_netbox_token }}"
+    data:
+      name: "{{ nnd_target_device_name }}"
+      primary_ip6: "{{ nnd_selected_ipv6[nnd_v6_primary_input.user_input | int].addr.address }}/{{ nnd_selected_ipv6[nnd_v6_primary_input.user_input | int].addr.prefix | default(64) }}"
+    state: present
+  delegate_to: localhost
+  become: false
+  when:
+    - nnd_v6_primary_display is defined
+    - nnd_v6_primary_display | length > 0
+    - nnd_v6_primary_input.user_input | default('') | length > 0

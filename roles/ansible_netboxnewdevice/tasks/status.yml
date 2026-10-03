@@ -10,29 +10,70 @@
       - { value: 'inventory', label: 'Inventory' }
       - { value: 'decommissioning', label: 'Decommissioning' }
 
+- name: "MMN NND - Use pre-discovered status from existing device"
+  ansible.builtin.set_fact:
+    selected_device_status: "{{ nnd_device_statuses | selectattr('value', 'equalto', nnd_preselect_status_value) | first }}"
+  when:
+    - nnd_preselect_status_value is defined
+    - nnd_preselect_status_value is not none
+
+- name: "MMN NND - Display auto-selected status"
+  ansible.builtin.debug:
+    msg: "Using status from existing NetBox record: {{ selected_device_status.label }} ({{ selected_device_status.value }})"
+  when:
+    - nnd_preselect_status_value is defined
+    - nnd_preselect_status_value is not none
+
+- name: "MMN NND - Default to active for newly crawled devices"
+  ansible.builtin.set_fact:
+    selected_device_status: "{{ nnd_device_statuses | selectattr('value', 'equalto', 'active') | first }}"
+  when:
+    - (nnd_preselect_status_value is not defined or nnd_preselect_status_value is none)
+    - nnd_facts_available is defined
+    - nnd_facts_available | bool
+    - not (nnd_device_exists | default(false))
+
+- name: "MMN NND - Display defaulted status"
+  ansible.builtin.debug:
+    msg: "Defaulted status to Active (newly crawled device). Override below if needed."
+  when:
+    - (nnd_preselect_status_value is not defined or nnd_preselect_status_value is none)
+    - nnd_facts_available is defined
+    - nnd_facts_available | bool
+    - not (nnd_device_exists | default(false))
+
 - name: "MMN NND - Build table rows for device statuses"
   ansible.builtin.set_fact:
     statuses_table_rows: "{{ statuses_table_rows | default([]) + [row] }}"
   vars:
-    index_num: "{{ ansible_loop + 1 }}"
+    index_num: "{{ idx + 1 }}"
     index_str: "{{ index_num | string }}"
     index_pad: "{{ ('   ' if index_str | length == 1 else ('  ' if index_str | length == 2 else (' ' if index_str | length == 3 else ''))) }}"
-    value_str: "{{ item.value }}"
+    value_str: "{{ st.value }}"
     value_len: "{{ value_str | length }}"
     value_pad: "{{ ('                                        '[:39 - value_len] if value_len < 39 else '') }}"
-    row: "{{ index_pad }}{{ index_str }}  | {{ value_str }}{{ value_pad }} | {{ item.label }}"
+    row: "{{ index_pad }}{{ index_str }}  | {{ value_str }}{{ value_pad }} | {{ st.label }}"
   loop: "{{ nnd_device_statuses }}"
   loop_control:
-    loop_var: item
-    index_var: ansible_loop
+    loop_var: st
+    index_var: idx
+  when:
+    - nnd_preselect_status_value is not defined or nnd_preselect_status_value is none
+    - not (nnd_facts_available | default(false) and not (nnd_device_exists | default(false)))
 
 - name: "MMN NND - Build complete device statuses table message"
   ansible.builtin.set_fact:
     statuses_table_msg: "{{ ['Available Device Statuses:', '====================================================================================', 'Index  | Value                                   | Label', '-------+-----------------------------------------+-----------------------------------'] + statuses_table_rows + ['===================================================================================='] }}"
+  when:
+    - nnd_preselect_status_value is not defined or nnd_preselect_status_value is none
+    - not (nnd_facts_available | default(false) and not (nnd_device_exists | default(false)))
 
 - name: "MMN NND - Display all available device statuses in table format"
   ansible.builtin.debug:
     msg: "{{ statuses_table_msg }}"
+  when:
+    - nnd_preselect_status_value is not defined or nnd_preselect_status_value is none
+    - not (nnd_facts_available | default(false) and not (nnd_device_exists | default(false)))
 
 - name: "MMN NND - Prompt for device status index"
   ansible.builtin.pause:
@@ -40,6 +81,9 @@
       Enter the index number of the device status you want to use:
   register: status_index_input
   run_once: true
+  when:
+    - nnd_preselect_status_value is not defined or nnd_preselect_status_value is none
+    - not (nnd_facts_available | default(false) and not (nnd_device_exists | default(false)))
 
 - name: "MMN NND - Validate device status index input"
   ansible.builtin.assert:
@@ -49,10 +93,18 @@
     fail_msg: "Invalid device status index. Please enter a valid index number from the list above."
     success_msg: "Device status index is valid."
   run_once: true
+  when:
+    - nnd_preselect_status_value is not defined or nnd_preselect_status_value is none
+    - not (nnd_facts_available | default(false) and not (nnd_device_exists | default(false)))
+    - status_index_input is defined
 
-- name: "MMN NND - Set selected device status"
+- name: "MMN NND - Set selected device status from manual input"
   ansible.builtin.set_fact:
     selected_device_status: "{{ nnd_device_statuses[status_index_input.user_input | int - 1] }}"
+  when:
+    - nnd_preselect_status_value is not defined or nnd_preselect_status_value is none
+    - not (nnd_facts_available | default(false) and not (nnd_device_exists | default(false)))
+    - status_index_input is defined
 
 - name: "MMN NND - Display selected device status"
   ansible.builtin.debug:

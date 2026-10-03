@@ -118,6 +118,23 @@
   when:
     - psqlserver_instance.value.roles is defined
 
+- name: "MMN psqlserver - Grant role privileges on database"
+  community.postgresql.postgresql_privs:
+    login_port: "{{ _psqlserver_forward_port }}"
+    login_host: localhost
+    login_user: postgres
+    login_password: "{{ psqlserver_instance.value.password_admin }}"
+    database: "{{ item.db }}"
+    state: present
+    privs: "{{ item.priv }}"
+    type: database
+    objs: "{{ item.db }}"
+    roles: "{{ item.rolename }}"
+  loop: "{{ psqlserver_instance.value.roles }}"
+  when:
+    - psqlserver_instance.value.roles is defined
+    - item.priv is defined
+
 - name: "MMN psqlserver - Setup additional privileges"
   postgresql_privs:
     login_port: "{{ _psqlserver_forward_port }}"

@@ -1,0 +1,114 @@
+---
+# For each selected interface, display its IPv4 and IPv6 addresses
+# and prompt the user to choose which ones to add to NetBox.
+
+- name: "MMN NND - Display IPv4 addresses for {{ nnd_sel_iface.name }}"
+  ansible.builtin.debug:
+    msg: "{{ ['IPv4 addresses on ' ~ nnd_sel_iface.name ~ ':'] + (nnd_sel_iface.ipv4_list | default([]) | map(attribute='address') | list) }}"
+  when:
+    - nnd_sel_iface.ipv4_list is defined
+    - nnd_sel_iface.ipv4_list | length > 0
+
+- name: "MMN NND - Build numbered IPv4 display for {{ nnd_sel_iface.name }}"
+  ansible.builtin.set_fact:
+    nnd_v4_display: "{{ nnd_v4_display | default([]) + [_line] }}"
+  loop: "{{ nnd_sel_iface.ipv4_list | default([]) }}"
+  loop_control:
+    loop_var: nnd_v4_addr
+    index_var: nnd_v4_idx
+  vars:
+    _line: "  [{{ nnd_v4_idx }}] {{ nnd_v4_addr.address }}/{{ nnd_v4_addr.prefix | default('?') }}"
+  when:
+    - nnd_sel_iface.ipv4_list is defined
+    - nnd_sel_iface.ipv4_list | length > 0
+
+- name: "MMN NND - Show numbered IPv4 list for {{ nnd_sel_iface.name }}"
+  ansible.builtin.debug:
+    msg: "{{ nnd_v4_display }}"
+  when:
+    - nnd_v4_display is defined
+    - nnd_v4_display | length > 0
+
+- name: "MMN NND - Prompt for IPv4 selection on {{ nnd_sel_iface.name }}"
+  ansible.builtin.pause:
+    prompt: "Select IPv4 addresses for {{ nnd_sel_iface.name }} (comma-separated indices, Enter to skip):"
+  register: nnd_v4_sel_input
+  run_once: true
+  when:
+    - nnd_sel_iface.ipv4_list is defined
+    - nnd_sel_iface.ipv4_list | length > 0
+
+- name: "MMN NND - Parse selected IPv4 indices for {{ nnd_sel_iface.name }}"
+  ansible.builtin.set_fact:
+    nnd_v4_sel_indices: "{{ nnd_v4_sel_input.user_input | default('') | trim | split(',') | map('trim') | reject('equalto', '') | map('int') | list }}"
+  when:
+    - nnd_sel_iface.ipv4_list is defined
+    - nnd_sel_iface.ipv4_list | length > 0
+    - nnd_v4_sel_input.user_input | default('') | length > 0
+
+- name: "MMN NND - Append selected IPv4 addresses"
+  ansible.builtin.set_fact:
+    nnd_selected_ipv4: "{{ nnd_selected_ipv4 | default([]) + [{'iface': nnd_sel_iface.name, 'addr': nnd_sel_iface.ipv4_list[nnd_v4_i]}] }}"
+  loop: "{{ nnd_v4_sel_indices | default([]) }}"
+  loop_control:
+    loop_var: nnd_v4_i
+  when:
+    - nnd_v4_sel_indices is defined
+    - nnd_v4_i < (nnd_sel_iface.ipv4_list | length)
+
+- name: "MMN NND - Reset IPv4 display"
+  ansible.builtin.set_fact:
+    nnd_v4_display: []
+  when: nnd_v4_display is defined
+
+- name: "MMN NND - Build numbered IPv6 display for {{ nnd_sel_iface.name }}"
+  ansible.builtin.set_fact:
+    nnd_v6_display: "{{ nnd_v6_display | default([]) + [_line] }}"
+  loop: "{{ nnd_sel_iface.ipv6_list | default([]) }}"
+  loop_control:
+    loop_var: nnd_v6_addr
+    index_var: nnd_v6_idx
+  vars:
+    _line: "  [{{ nnd_v6_idx }}] {{ nnd_v6_addr.address }}/{{ nnd_v6_addr.prefix | default('?') }} ({{ nnd_v6_addr.scope | default('') }})"
+  when:
+    - nnd_sel_iface.ipv6_list is defined
+    - nnd_sel_iface.ipv6_list | length > 0
+
+- name: "MMN NND - Show numbered IPv6 list for {{ nnd_sel_iface.name }}"
+  ansible.builtin.debug:
+    msg: "{{ nnd_v6_display }}"
+  when:
+    - nnd_v6_display is defined
+    - nnd_v6_display | length > 0
+
+- name: "MMN NND - Prompt for IPv6 selection on {{ nnd_sel_iface.name }}"
+  ansible.builtin.pause:
+    prompt: "Select IPv6 addresses for {{ nnd_sel_iface.name }} (comma-separated indices, Enter to skip):"
+  register: nnd_v6_sel_input
+  run_once: true
+  when:
+    - nnd_sel_iface.ipv6_list is defined
+    - nnd_sel_iface.ipv6_list | length > 0
+
+- name: "MMN NND - Parse selected IPv6 indices for {{ nnd_sel_iface.name }}"
+  ansible.builtin.set_fact:
+    nnd_v6_sel_indices: "{{ nnd_v6_sel_input.user_input | default('') | trim | split(',') | map('trim') | reject('equalto', '') | map('int') | list }}"
+  when:
+    - nnd_sel_iface.ipv6_list is defined
+    - nnd_sel_iface.ipv6_list | length > 0
+    - nnd_v6_sel_input.user_input | default('') | length > 0
+
+- name: "MMN NND - Append selected IPv6 addresses"
+  ansible.builtin.set_fact:
+    nnd_selected_ipv6: "{{ nnd_selected_ipv6 | default([]) + [{'iface': nnd_sel_iface.name, 'addr': nnd_sel_iface.ipv6_list[nnd_v6_i]}] }}"
+  loop: "{{ nnd_v6_sel_indices | default([]) }}"
+  loop_control:
+    loop_var: nnd_v6_i
+  when:
+    - nnd_v6_sel_indices is defined
+    - nnd_v6_i < (nnd_sel_iface.ipv6_list | length)
+
+- name: "MMN NND - Reset IPv6 display"
+  ansible.builtin.set_fact:
+    nnd_v6_display: []
+  when: nnd_v6_display is defined

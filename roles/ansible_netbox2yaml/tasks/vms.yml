@@ -2,13 +2,13 @@
 # Fetching
 - name: "MMN netbox2yaml - Fetching all vms"
   ansible.builtin.set_fact:
-    nb_vms_fetched: "{{ query('netbox.netbox.nb_lookup', 'virtual-machines', api_endpoint=NETBOX_URL, token=NETBOX_TOKEN) }}"
+    nb_vms_fetched: "{{ query('netbox.netbox.nb_lookup', 'virtual-machines', api_endpoint=mmn_netbox_url, token=mmn_netbox_token) }}"
 - name: "MMN netbox2yaml - Fetching interfaces"
   ansible.builtin.set_fact:
-    nb_interfaces_fetched: "{{ query('netbox.netbox.nb_lookup', 'virtualization-interfaces', api_endpoint=NETBOX_URL, token=NETBOX_TOKEN) }}"
+    nb_interfaces_fetched: "{{ query('netbox.netbox.nb_lookup', 'virtualization-interfaces', api_endpoint=mmn_netbox_url, token=mmn_netbox_token) }}"
 - name: "MMN netbox2yaml - Fetching IP addresses"
   ansible.builtin.set_fact:
-    nb_ips_fetched: "{{ query('netbox.netbox.nb_lookup', 'ip-addresses',  api_filter='assigned_to_interface=True', api_endpoint=NETBOX_URL, token=NETBOX_TOKEN) }}"
+    nb_ips_fetched: "{{ query('netbox.netbox.nb_lookup', 'ip-addresses',  api_filter='assigned_to_interface=True', api_endpoint=mmn_netbox_url, token=mmn_netbox_token) }}"
 - name: "MMN netbox2yaml - filter ip addresses for vms only"
   ansible.builtin.set_fact:
     nb_ips_filtered: "{{ nb_ips_fetched | selectattr('value.assigned_object_type', '==', 'virtualization.vminterface') }}"

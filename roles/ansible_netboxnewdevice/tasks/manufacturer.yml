@@ -1,28 +1,42 @@
 ---
-- name: "MMN NND - Fetch all manufacturers from Netbox"
+- name: "MMN NND - Fetch all manufacturers from NetBox"
   ansible.builtin.set_fact:
-    nnd_manufacturers_list: "{{ query('netbox.netbox.nb_lookup', 'manufacturers', api_endpoint=NETBOX_URL, token=NETBOX_TOKEN) }}"
+    nnd_manufacturers_list: "{{ query('netbox.netbox.nb_lookup', 'manufacturers', api_endpoint=mmn_netbox_url, token=mmn_netbox_token) }}"
 
 - name: "MMN NND - Create list of manufacturers with IDs, slugs, and names"
   ansible.builtin.set_fact:
-    nnd_manufacturers_with_ids: "{{ nnd_manufacturers_with_ids | default([]) + [{'id': item.id, 'slug': item.slug, 'name': item.name}] }}"
+    nnd_manufacturers_with_ids: "{{ nnd_manufacturers_with_ids | default([]) + [{'id': mfr.id, 'slug': mfr.slug, 'name': mfr.name}] }}"
   loop: "{{ nnd_manufacturers_list | map(attribute='value') | list }}"
   loop_control:
-    loop_var: item
+    loop_var: mfr
+
+- name: "MMN NND - Use pre-discovered manufacturer from crawl"
+  ansible.builtin.set_fact:
+    selected_manufacturer: "{{ nnd_manufacturers_with_ids | selectattr('id', 'equalto', nnd_preselect_manufacturer.id) | first }}"
+  when:
+    - nnd_preselect_manufacturer is defined
+    - nnd_preselect_manufacturer is not none
+
+- name: "MMN NND - Display auto-selected manufacturer"
+  ansible.builtin.debug:
+    msg: "Auto-selected manufacturer from crawled facts: {{ selected_manufacturer.name }} (ID: {{ selected_manufacturer.id }})"
+  when:
+    - nnd_preselect_manufacturer is defined
+    - nnd_preselect_manufacturer is not none
 
 - name: "MMN NND - Build table rows"
   ansible.builtin.set_fact:
     manufacturers_table_rows: "{{ manufacturers_table_rows | default([]) + [row] }}"
   vars:
-    id_str: "{{ item.id | string }}"
+    id_str: "{{ mfr.id | string }}"
     id_pad: "{{ ('   ' if id_str | length == 1 else ('  ' if id_str | length == 2 else (' ' if id_str | length == 3 else ''))) }}"
-    slug_str: "{{ item.slug }}"
+    slug_str: "{{ mfr.slug }}"
     slug_len: "{{ slug_str | length }}"
     slug_pad: "{{ ('                                        '[:39 - slug_len] if slug_len < 39 else '') }}"
-    row: "{{ id_pad }}{{ id_str }}  | {{ slug_str }}{{ slug_pad }} | {{ item.name }}"
+    row: "{{ id_pad }}{{ id_str }}  | {{ slug_str }}{{ slug_pad }} | {{ mfr.name }}"
   loop: "{{ nnd_manufacturers_with_ids }}"
   loop_control:
-    loop_var: item
+    loop_var: mfr
 
 - name: "MMN NND - Build complete table message"
   ansible.builtin.set_fact:
@@ -38,6 +52,8 @@
       Enter the ID of the manufacturer you want to use:
   register: manufacturer_id_input
   run_once: true
+  when:
+    - nnd_preselect_manufacturer is not defined or nnd_preselect_manufacturer is none
 
 - name: "MMN NND - Validate manufacturer ID input"
   ansible.builtin.assert:
@@ -47,10 +63,14 @@
     fail_msg: "Invalid manufacturer ID. Please enter a valid ID from the list above."
     success_msg: "Manufacturer ID is valid."
   run_once: true
+  when:
+    - nnd_preselect_manufacturer is not defined or nnd_preselect_manufacturer is none
 
-- name: "MMN NND - Set selected manufacturer"
+- name: "MMN NND - Set selected manufacturer from manual input"
   ansible.builtin.set_fact:
     selected_manufacturer: "{{ nnd_manufacturers_with_ids | selectattr('id', 'equalto', manufacturer_id_input.user_input | int) | first }}"
+  when:
+    - nnd_preselect_manufacturer is not defined or nnd_preselect_manufacturer is none
 
 - name: "MMN NND - Display selected manufacturer"
   ansible.builtin.debug:

@@ -1,2 +1,13 @@
 ---
 # defaults file for ansible_netboxnewdevice
+
+# Enable crawl mode: gather facts from the target host and auto-fill
+# manufacturer, device type, serial, platform, and interfaces/IPs.
+# Set to false for pure interactive wizard mode (original behaviour).
+mmn_netbox_crawl_enabled: true
+
+# Create physical interfaces in NetBox from crawled Ansible facts.
+mmn_netbox_create_interfaces: true
+
+# Assign IP addresses to interfaces in NetBox from crawled facts.
+mmn_netbox_assign_ip_addresses: true

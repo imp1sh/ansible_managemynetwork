@@ -1,0 +1,119 @@
+---
+# Crawl facts from the target device and attempt to auto-match
+# manufacturer and device_type in NetBox. Sets nnd_preselect_* facts
+# that downstream wizard steps consult to skip unnecessary prompts.
+
+- name: "MMN NND - Determine if Ansible facts are available"
+  ansible.builtin.set_fact:
+    nnd_facts_available: "{{ ansible_hostname is defined }}"
+
+- name: "MMN NND - Report no facts (pure wizard mode)"
+  ansible.builtin.debug:
+    msg:
+      - "No Ansible facts detected (running on localhost or gather_facts disabled)."
+      - "Falling back to pure interactive wizard mode."
+  when: not nnd_facts_available
+
+- name: "MMN NND - Display crawled device facts"
+  ansible.builtin.debug:
+    msg:
+      - "============================================"
+      - "Crawled device facts"
+      - "============================================"
+      - "Hostname:  {{ ansible_hostname | default('N/A') }}"
+      - "Vendor:    {{ ansible_system_vendor | default('N/A') }}"
+      - "Product:   {{ ansible_product_name | default('N/A') }}"
+      - "Serial:    {{ ansible_product_serial | default('N/A') }}"
+      - "OS:        {{ ansible_distribution | default('N/A') }} {{ ansible_distribution_version | default('') }}"
+      - "Platform:  {{ ansible_distribution | default('') | lower }}{{ ansible_distribution_major_version | default('') }}"
+      - "Interfaces: {{ ansible_interfaces | default([]) | join(', ') }}"
+      - "============================================"
+  when: nnd_facts_available
+
+- name: "MMN NND - Set preselect device name from inventory hostname"
+  ansible.builtin.set_fact:
+    nnd_preselect_device_name: "{{ inventory_hostname }}"
+  when:
+    - nnd_facts_available
+
+- name: "MMN NND - Set preselect serial from crawled facts"
+  ansible.builtin.set_fact:
+    nnd_preselect_serial: "{{ ansible_product_serial }}"
+  when:
+    - nnd_facts_available
+    - ansible_product_serial is defined
+    - ansible_product_serial | length > 0
+
+- name: "MMN NND - Set preselect platform from crawled OS"
+  ansible.builtin.set_fact:
+    nnd_preselect_platform: "{{ ansible_distribution | lower }}{{ ansible_distribution_major_version }}"
+  when:
+    - nnd_facts_available
+    - ansible_distribution is defined
+    - ansible_distribution_major_version is defined
+
+- name: "MMN NND - Fetch all manufacturers from NetBox for matching"
+  ansible.builtin.set_fact:
+    nnd_crawl_manufacturers: "{{ query('netbox.netbox.nb_lookup', 'manufacturers', api_endpoint=mmn_netbox_url, token=mmn_netbox_token) }}"
+  when:
+    - nnd_facts_available
+    - ansible_system_vendor is defined
+
+- name: "MMN NND - Match crawled vendor against NetBox manufacturers"
+  ansible.builtin.set_fact:
+    nnd_preselect_manufacturer: "{{ (nnd_crawl_manufacturers | map(attribute='value') | selectattr('name', 'equalto', ansible_system_vendor) | first) | default(None) }}"
+  when:
+    - nnd_facts_available
+    - ansible_system_vendor is defined
+    - nnd_crawl_manufacturers is defined
+
+- name: "MMN NND - Report manufacturer match result"
+  ansible.builtin.debug:
+    msg: "Auto-matched manufacturer: {{ nnd_preselect_manufacturer.name }} (ID: {{ nnd_preselect_manufacturer.id }})"
+  when:
+    - nnd_facts_available
+    - nnd_preselect_manufacturer is defined
+    - nnd_preselect_manufacturer is not none
+
+- name: "MMN NND - Report no manufacturer match"
+  ansible.builtin.debug:
+    msg: "No automatic manufacturer match for vendor '{{ ansible_system_vendor }}'. Will prompt."
+  when:
+    - nnd_facts_available
+    - ansible_system_vendor is defined
+    - (nnd_preselect_manufacturer is not defined or nnd_preselect_manufacturer is none)
+
+- name: "MMN NND - Fetch device types for matched manufacturer"
+  ansible.builtin.set_fact:
+    nnd_crawl_devicetypes: "{{ query('netbox.netbox.nb_lookup', 'device-types', api_filter='manufacturer_id=' ~ nnd_preselect_manufacturer.id, api_endpoint=mmn_netbox_url, token=mmn_netbox_token) }}"
+  when:
+    - nnd_facts_available
+    - nnd_preselect_manufacturer is defined
+    - nnd_preselect_manufacturer is not none
+    - ansible_product_name is defined
+
+- name: "MMN NND - Match crawled product against NetBox device types"
+  ansible.builtin.set_fact:
+    nnd_preselect_devicetype: "{{ (nnd_crawl_devicetypes | map(attribute='value') | selectattr('model', 'equalto', ansible_product_name) | first) | default(None) }}"
+  when:
+    - nnd_facts_available
+    - nnd_preselect_manufacturer is defined
+    - nnd_preselect_manufacturer is not none
+    - ansible_product_name is defined
+    - nnd_crawl_devicetypes is defined
+
+- name: "MMN NND - Report device type match result"
+  ansible.builtin.debug:
+    msg: "Auto-matched device type: {{ nnd_preselect_devicetype.model }} (ID: {{ nnd_preselect_devicetype.id }})"
+  when:
+    - nnd_facts_available
+    - nnd_preselect_devicetype is defined
+    - nnd_preselect_devicetype is not none
+
+- name: "MMN NND - Report no device type match"
+  ansible.builtin.debug:
+    msg: "No automatic device type match for model '{{ ansible_product_name }}'. Will prompt."
+  when:
+    - nnd_facts_available
+    - ansible_product_name is defined
+    - (nnd_preselect_devicetype is not defined or nnd_preselect_devicetype is none)

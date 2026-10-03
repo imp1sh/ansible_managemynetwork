@@ -5,15 +5,15 @@
 # Fetching
 - name: "MMN netbox2yaml - Fetching all vlan groups"
   ansible.builtin.set_fact:
-    nb_vlan_groups_fetched: "{{ query('netbox.netbox.nb_lookup', 'vlan-groups', api_endpoint=NETBOX_URL, token=NETBOX_TOKEN) }}"
+    nb_vlan_groups_fetched: "{{ query('netbox.netbox.nb_lookup', 'vlan-groups', api_endpoint=mmn_netbox_url, token=mmn_netbox_token) }}"
 
 - name: "MMN netbox2yaml - Fetching all vlans"
   ansible.builtin.set_fact:
-    nb_vlans_fetched: "{{ query('netbox.netbox.nb_lookup', 'vlans', api_endpoint=NETBOX_URL, token=NETBOX_TOKEN) }}"
+    nb_vlans_fetched: "{{ query('netbox.netbox.nb_lookup', 'vlans', api_endpoint=mmn_netbox_url, token=mmn_netbox_token) }}"
 
 - name: "MMN netbox2yaml - Fetching all prefixes for vlan subnet linkage"
   ansible.builtin.set_fact:
-    nb_prefixes_for_vlans: "{{ query('netbox.netbox.nb_lookup', 'prefixes', api_endpoint=NETBOX_URL, token=NETBOX_TOKEN) }}"
+    nb_prefixes_for_vlans: "{{ query('netbox.netbox.nb_lookup', 'prefixes', api_endpoint=mmn_netbox_url, token=mmn_netbox_token) }}"
 
 # Prefixes that have a vlan set (for building subnets per vlan)
 - name: "MMN netbox2yaml - Build list of prefixes linked to vlan"

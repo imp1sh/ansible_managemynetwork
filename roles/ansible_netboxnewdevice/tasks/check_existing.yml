@@ -1,0 +1,89 @@
+---
+# Check if a device with the crawled hostname already exists in NetBox.
+# If found, populate nnd_preselect_* facts from the existing record so
+# the wizard can skip prompts for fields that are already set.
+
+- name: "MMN NND - Determine device name to search for"
+  ansible.builtin.set_fact:
+    nnd_search_name: "{{ nnd_preselect_device_name | default(inventory_hostname) }}"
+
+- name: "MMN NND - Search for existing device in NetBox by name"
+  ansible.builtin.set_fact:
+    nnd_existing_device_raw: "{{ query('netbox.netbox.nb_lookup', 'devices', api_filter='name=' ~ nnd_search_name, api_endpoint=mmn_netbox_url, token=mmn_netbox_token) }}"
+  when: nnd_search_name is defined
+
+- name: "MMN NND - Evaluate whether device exists"
+  ansible.builtin.set_fact:
+    nnd_device_exists: "{{ nnd_existing_device_raw | default([]) | length > 0 }}"
+
+- name: "MMN NND - Report existing device found"
+  ansible.builtin.debug:
+    msg:
+      - "Existing device found in NetBox: {{ (nnd_existing_device_raw | first).value.name }} (ID: {{ (nnd_existing_device_raw | first).value.id }})"
+      - "Wizard will pre-fill known fields and only prompt for missing ones."
+  when: nnd_device_exists
+
+- name: "MMN NND - Report no existing device"
+  ansible.builtin.debug:
+    msg: "No existing device found with name '{{ nnd_search_name }}'. A new device will be created."
+  when: not nnd_device_exists
+
+- name: "MMN NND - Extract existing device fields for preselection"
+  ansible.builtin.set_fact:
+    nnd_existing_device: "{{ (nnd_existing_device_raw | first).value }}"
+  when: nnd_device_exists
+
+- name: "MMN NND - Preselect manufacturer from existing device"
+  ansible.builtin.set_fact:
+    nnd_preselect_manufacturer: "{{ nnd_existing_device.device_type.manufacturer }}"
+  when:
+    - nnd_device_exists
+    - nnd_existing_device.device_type is defined
+    - nnd_existing_device.device_type.manufacturer is defined
+    - nnd_preselect_manufacturer is not defined or nnd_preselect_manufacturer is none
+
+- name: "MMN NND - Preselect device type from existing device"
+  ansible.builtin.set_fact:
+    nnd_preselect_devicetype: "{{ nnd_existing_device.device_type }}"
+  when:
+    - nnd_device_exists
+    - nnd_existing_device.device_type is defined
+    - nnd_preselect_devicetype is not defined or nnd_preselect_devicetype is none
+
+- name: "MMN NND - Preselect device role from existing device"
+  ansible.builtin.set_fact:
+    nnd_preselect_device_role: "{{ nnd_existing_device.device_role }}"
+  when:
+    - nnd_device_exists
+    - nnd_existing_device.device_role is defined
+    - nnd_existing_device.device_role is not none
+
+- name: "MMN NND - Preselect site from existing device"
+  ansible.builtin.set_fact:
+    nnd_preselect_site: "{{ nnd_existing_device.site }}"
+  when:
+    - nnd_device_exists
+    - nnd_existing_device.site is defined
+    - nnd_existing_device.site is not none
+
+- name: "MMN NND - Preselect status from existing device"
+  ansible.builtin.set_fact:
+    nnd_preselect_status_value: "{{ nnd_existing_device.status.value }}"
+  when:
+    - nnd_device_exists
+    - nnd_existing_device.status is defined
+    - nnd_existing_device.status.value is defined
+
+- name: "MMN NND - Preselect serial from existing device"
+  ansible.builtin.set_fact:
+    nnd_preselect_serial: "{{ nnd_existing_device.serial }}"
+  when:
+    - nnd_device_exists
+    - nnd_existing_device.serial is defined
+    - nnd_existing_device.serial | length > 0
+    - (nnd_preselect_serial is not defined or nnd_preselect_serial | length == 0)
+
+- name: "MMN NND - Store existing device ID for potential update"
+  ansible.builtin.set_fact:
+    nnd_existing_device_id: "{{ nnd_existing_device.id }}"
+  when: nnd_device_exists
