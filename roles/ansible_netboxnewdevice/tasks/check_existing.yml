@@ -40,7 +40,6 @@
     - nnd_device_exists
     - nnd_existing_device.device_type is defined
     - nnd_existing_device.device_type.manufacturer is defined
-    - nnd_preselect_manufacturer is not defined or nnd_preselect_manufacturer is none
 
 - name: "MMN NND - Preselect device type from existing device"
   ansible.builtin.set_fact:
@@ -48,7 +47,6 @@
   when:
     - nnd_device_exists
     - nnd_existing_device.device_type is defined
-    - nnd_preselect_devicetype is not defined or nnd_preselect_devicetype is none
 
 - name: "MMN NND - Preselect device role from existing device"
   ansible.builtin.set_fact:
@@ -81,7 +79,23 @@
     - nnd_device_exists
     - nnd_existing_device.serial is defined
     - nnd_existing_device.serial | length > 0
-    - (nnd_preselect_serial is not defined or nnd_preselect_serial | length == 0)
+
+- name: "MMN NND - Preselect platform from existing device"
+  ansible.builtin.set_fact:
+    nnd_preselect_platform: "{{ nnd_existing_device.platform.slug }}"
+  when:
+    - nnd_device_exists
+    - nnd_existing_device.platform is defined
+    - nnd_existing_device.platform is not none
+    - nnd_existing_device.platform.slug is defined
+
+- name: "MMN NND - Preselect description from existing device"
+  ansible.builtin.set_fact:
+    nnd_preselect_description: "{{ nnd_existing_device.description }}"
+  when:
+    - nnd_device_exists
+    - nnd_existing_device.description is defined
+    - nnd_existing_device.description | length > 0
 
 - name: "MMN NND - Store existing device ID for potential update"
   ansible.builtin.set_fact:

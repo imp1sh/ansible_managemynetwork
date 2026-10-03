@@ -240,20 +240,40 @@
     - nnd_v4_primary_display is defined
     - nnd_v4_primary_display | length > 0
 
-- name: "MMN NND - Set primary IPv4 on device in NetBox"
-  netbox.netbox.netbox_device:
-    netbox_url: "{{ mmn_netbox_url }}"
-    netbox_token: "{{ mmn_netbox_token }}"
-    data:
-      name: "{{ nnd_target_device_name }}"
-      primary_ip4: "{{ nnd_selected_ipv4[nnd_v4_primary_input.user_input | int].addr.address }}/{{ nnd_selected_ipv4[nnd_v4_primary_input.user_input | int].addr.prefix | default(((nnd_selected_ipv4[nnd_v4_primary_input.user_input | int].addr.netmask | default('255.255.255.255')) | ansible.utils.ipaddr('prefix'))) }}"
-    state: present
-  delegate_to: localhost
-  become: false
+- name: "MMN NND - Compute IPv4 CIDR for primary IP query"
+  ansible.builtin.set_fact:
+    nnd_v4_primary_cidr: "{{ nnd_selected_ipv4[nnd_v4_primary_input.user_input | int].addr.address }}/{{ nnd_selected_ipv4[nnd_v4_primary_input.user_input | int].addr.prefix | default(((nnd_selected_ipv4[nnd_v4_primary_input.user_input | int].addr.netmask | default('255.255.255.255')) | ansible.utils.ipaddr('prefix'))) }}"
   when:
     - nnd_v4_primary_display is defined
     - nnd_v4_primary_display | length > 0
     - nnd_v4_primary_input.user_input | default('') | length > 0
+
+- name: "MMN NND - Query IPv4 address ID from NetBox for primary IP"
+  ansible.builtin.set_fact:
+    nnd_v4_primary_raw: "{{ query('netbox.netbox.nb_lookup', 'ip-addresses', api_filter='device_id=' ~ (nnd_created_device_id | default(nnd_existing_device_id)) ~ ' address=' ~ nnd_v4_primary_cidr, api_endpoint=mmn_netbox_url, token=mmn_netbox_token) }}"
+
+- name: "MMN NND - Debug primary IPv4 query result"
+  ansible.builtin.debug:
+    msg: "CIDR={{ nnd_v4_primary_cidr }} results={{ nnd_v4_primary_raw | default([]) | length }} ids={{ nnd_v4_primary_raw | default([]) | map(attribute='value.id') | list }}"
+  when:
+    - nnd_v4_primary_cidr is defined
+
+- name: "MMN NND - Set primary IPv4 on device in NetBox"
+  ansible.builtin.uri:
+    url: "{{ mmn_netbox_url }}/api/dcim/devices/{{ nnd_created_device_id | default(nnd_existing_device_id) }}/"
+    method: PATCH
+    headers:
+      Authorization: "Token {{ mmn_netbox_token }}"
+      Content-Type: application/json
+    body_format: json
+    body:
+      primary_ip4: "{{ (nnd_v4_primary_raw | first).value.id | int }}"
+    status_code: 200
+  delegate_to: localhost
+  become: false
+  when:
+    - nnd_v4_primary_cidr is defined
+    - nnd_v4_primary_raw | default([]) | length > 0
 
 - name: "MMN NND - Build numbered list of created IPv6 addresses for primary IP selection"
   ansible.builtin.set_fact:
@@ -284,17 +304,37 @@
     - nnd_v6_primary_display is defined
     - nnd_v6_primary_display | length > 0
 
-- name: "MMN NND - Set primary IPv6 on device in NetBox"
-  netbox.netbox.netbox_device:
-    netbox_url: "{{ mmn_netbox_url }}"
-    netbox_token: "{{ mmn_netbox_token }}"
-    data:
-      name: "{{ nnd_target_device_name }}"
-      primary_ip6: "{{ nnd_selected_ipv6[nnd_v6_primary_input.user_input | int].addr.address }}/{{ nnd_selected_ipv6[nnd_v6_primary_input.user_input | int].addr.prefix | default(64) }}"
-    state: present
-  delegate_to: localhost
-  become: false
+- name: "MMN NND - Compute IPv6 CIDR for primary IP query"
+  ansible.builtin.set_fact:
+    nnd_v6_primary_cidr: "{{ nnd_selected_ipv6[nnd_v6_primary_input.user_input | int].addr.address }}/{{ nnd_selected_ipv6[nnd_v6_primary_input.user_input | int].addr.prefix | default(64) }}"
   when:
     - nnd_v6_primary_display is defined
     - nnd_v6_primary_display | length > 0
     - nnd_v6_primary_input.user_input | default('') | length > 0
+
+- name: "MMN NND - Query IPv6 address ID from NetBox for primary IP"
+  ansible.builtin.set_fact:
+    nnd_v6_primary_raw: "{{ query('netbox.netbox.nb_lookup', 'ip-addresses', api_filter='device_id=' ~ (nnd_created_device_id | default(nnd_existing_device_id)) ~ ' address=' ~ nnd_v6_primary_cidr, api_endpoint=mmn_netbox_url, token=mmn_netbox_token) }}"
+
+- name: "MMN NND - Debug primary IPv6 query result"
+  ansible.builtin.debug:
+    msg: "CIDR={{ nnd_v6_primary_cidr }} results={{ nnd_v6_primary_raw | default([]) | length }} ids={{ nnd_v6_primary_raw | default([]) | map(attribute='value.id') | list }}"
+  when:
+    - nnd_v6_primary_cidr is defined
+
+- name: "MMN NND - Set primary IPv6 on device in NetBox"
+  ansible.builtin.uri:
+    url: "{{ mmn_netbox_url }}/api/dcim/devices/{{ nnd_created_device_id | default(nnd_existing_device_id) }}/"
+    method: PATCH
+    headers:
+      Authorization: "Token {{ mmn_netbox_token }}"
+      Content-Type: application/json
+    body_format: json
+    body:
+      primary_ip6: "{{ (nnd_v6_primary_raw | first).value.id | int }}"
+    status_code: 200
+  delegate_to: localhost
+  become: false
+  when:
+    - nnd_v6_primary_cidr is defined
+    - nnd_v6_primary_raw | default([]) | length > 0

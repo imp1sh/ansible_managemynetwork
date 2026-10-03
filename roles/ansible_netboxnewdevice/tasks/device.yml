@@ -27,11 +27,34 @@
   when:
     - nnd_preselect_device_name is not defined or nnd_preselect_device_name | length == 0
 
+- name: "MMN NND - Use pre-existing description"
+  ansible.builtin.set_fact:
+    device_description_final: "{{ nnd_preselect_description }}"
+  when:
+    - nnd_preselect_description is defined
+    - nnd_preselect_description | length > 0
+
+- name: "MMN NND - Display pre-existing description"
+  ansible.builtin.debug:
+    msg: "Description from existing NetBox record: {{ device_description_final }}"
+  when:
+    - nnd_preselect_description is defined
+    - nnd_preselect_description | length > 0
+
 - name: "MMN NND - Prompt for optional device description"
   ansible.builtin.pause:
     prompt: "Enter device description (optional, press Enter to skip):"
   register: device_description_input
   run_once: true
+  when:
+    - nnd_preselect_description is not defined or nnd_preselect_description | length == 0
+
+- name: "MMN NND - Set description from manual input"
+  ansible.builtin.set_fact:
+    device_description_final: "{{ device_description_input.user_input }}"
+  when:
+    - nnd_preselect_description is not defined or nnd_preselect_description | length == 0
+    - device_description_input is defined
 
 - name: "MMN NND - Set serial from preselect or prompt"
   ansible.builtin.set_fact:
@@ -73,9 +96,9 @@
       Device Role: {{ selected_device_role.name if selected_device_role is defined else 'Not selected' }}
       Site: {{ selected_site.name if selected_site is defined else 'Not selected' }}
       Status: {{ selected_device_status.label if selected_device_status is defined else 'Not selected' }}
-      Description: {{ device_description_input.user_input if (device_description_input is defined and device_description_input.user_input | length > 0) else 'None' }}
+      Description: {{ device_description_final if (device_description_final is defined and device_description_final | length > 0) else 'None' }}
       Serial: {{ device_serial_final if (device_serial_final is defined and device_serial_final | length > 0) else 'None' }}
-      Platform: {{ nnd_preselect_platform | default('N/A') }}
+      Platform: {{ selected_platform.name if (selected_platform is defined) else 'N/A' }}
 
 - name: "MMN NND - Confirm device creation/update"
   ansible.builtin.pause:
@@ -122,31 +145,6 @@
       - "Site Slug: {{ site_slug }}"
   when: device_creation_confirm.user_input | lower == 'yes'
 
-- name: "MMN NND - Validate platform slug exists in NetBox"
-  block:
-    - name: "MMN NND - Fetch all platforms from NetBox"
-      ansible.builtin.set_fact:
-        nnd_all_platform_slugs: "{{ query('netbox.netbox.nb_lookup', 'platforms', api_endpoint=mmn_netbox_url, token=mmn_netbox_token) | map(attribute='value.slug') | list }}"
-
-    - name: "MMN NND - Check if crawled platform exists"
-      ansible.builtin.set_fact:
-        nnd_validated_platform: "{{ (nnd_preselect_platform in nnd_all_platform_slugs) | ternary(nnd_preselect_platform, none) }}"
-  rescue:
-    - name: "MMN NND - Could not fetch platforms, omitting platform"
-      ansible.builtin.set_fact:
-        nnd_validated_platform: "{{ none }}"
-  when:
-    - nnd_preselect_platform is defined
-    - nnd_preselect_platform | length > 0
-
-- name: "MMN NND - Warn about platform omission"
-  ansible.builtin.debug:
-    msg: "Platform '{{ nnd_preselect_platform }}' not found in NetBox. Omitting platform from device data."
-  when:
-    - nnd_preselect_platform is defined
-    - nnd_preselect_platform | length > 0
-    - nnd_validated_platform is not defined or nnd_validated_platform is none
-
 - name: "MMN NND - Build device data dictionary"
   ansible.builtin.set_fact:
     device_data: "{{ base_device_data | combine(optional_device_data) }}"
@@ -157,7 +155,7 @@
       device_role: "{{ device_role_slug }}"
       site: "{{ site_slug }}"
       status: "{{ selected_device_status.value }}"
-    optional_device_data: "{{ ({'description': device_description_input.user_input} if (device_description_input is defined and device_description_input.user_input | length > 0) else {}) | combine(({'serial': device_serial_final} if (device_serial_final is defined and device_serial_final | length > 0) else {})) | combine(({'platform': nnd_validated_platform} if (nnd_validated_platform is defined and nnd_validated_platform is not none) else {})) }}"
+    optional_device_data: "{{ ({'description': device_description_final} if (device_description_final is defined and device_description_final | length > 0) else {}) | combine(({'serial': device_serial_final} if (device_serial_final is defined and device_serial_final | length > 0) else {})) | combine(({'platform': selected_platform.slug} if (selected_platform is defined and selected_platform.slug is defined) else {})) }}"
   when: device_creation_confirm.user_input | lower == 'yes'
 
 - name: "MMN NND - Display device data to be sent"

@@ -45,32 +45,79 @@
 - name: "MMN NND - Display all available manufacturers in table format"
   ansible.builtin.debug:
     msg: "{{ manufacturers_table_msg }}"
+  when:
+    - nnd_preselect_manufacturer is not defined or nnd_preselect_manufacturer is none
 
 - name: "MMN NND - Prompt for manufacturer ID"
   ansible.builtin.pause:
     prompt: |
-      Enter the ID of the manufacturer you want to use:
-  register: manufacturer_id_input
+      Enter the ID of the manufacturer you want to use (or type 'create' to create a new one):
+  register: manufacturer_selection
   run_once: true
   when:
     - nnd_preselect_manufacturer is not defined or nnd_preselect_manufacturer is none
 
-- name: "MMN NND - Validate manufacturer ID input"
-  ansible.builtin.assert:
-    that:
-      - manufacturer_id_input.user_input | int > 0
-      - manufacturer_id_input.user_input | int in (nnd_manufacturers_with_ids | map(attribute='id') | list)
-    fail_msg: "Invalid manufacturer ID. Please enter a valid ID from the list above."
-    success_msg: "Manufacturer ID is valid."
-  run_once: true
-  when:
-    - nnd_preselect_manufacturer is not defined or nnd_preselect_manufacturer is none
+- name: "MMN NND - Choosing an existing manufacturer"
+  block:
+    - name: "MMN NND - Validate manufacturer ID input"
+      ansible.builtin.assert:
+        that:
+          - manufacturer_selection.user_input | int > 0
+          - manufacturer_selection.user_input | int in (nnd_manufacturers_with_ids | map(attribute='id') | list)
+        fail_msg: "Invalid manufacturer ID. Please enter a valid ID from the list above."
+        success_msg: "Manufacturer ID is valid."
+      run_once: true
 
-- name: "MMN NND - Set selected manufacturer from manual input"
-  ansible.builtin.set_fact:
-    selected_manufacturer: "{{ nnd_manufacturers_with_ids | selectattr('id', 'equalto', manufacturer_id_input.user_input | int) | first }}"
+    - name: "MMN NND - Set selected manufacturer from manual input"
+      ansible.builtin.set_fact:
+        selected_manufacturer: "{{ nnd_manufacturers_with_ids | selectattr('id', 'equalto', manufacturer_selection.user_input | int) | first }}"
   when:
     - nnd_preselect_manufacturer is not defined or nnd_preselect_manufacturer is none
+    - manufacturer_selection.user_input != 'create'
+
+- name: "MMN NND - Creating a new manufacturer"
+  block:
+    - name: "MMN NND - Prompt for new manufacturer name"
+      ansible.builtin.pause:
+        prompt: "Enter the manufacturer name e.g. Lenovo Group Ltd."
+      register: nnd_new_manufacturer_name
+      run_once: true
+
+    - name: "MMN NND - Prompt for new manufacturer slug"
+      ansible.builtin.pause:
+        prompt: "Enter the manufacturer slug, containing only alphanumerical, no whitespaces and only dashes allowed. e.g. lenovo"
+      register: nnd_new_manufacturer_slug
+      run_once: true
+
+    - name: "MMN NND - Prompt for new manufacturer description"
+      ansible.builtin.pause:
+        prompt: "Enter the manufacturer description (optional)"
+      register: nnd_new_manufacturer_description
+      run_once: true
+
+    - name: "MMN NND - Insert manufacturer into NetBox"
+      netbox.netbox.netbox_manufacturer:
+        netbox_url: "{{ mmn_netbox_url }}"
+        netbox_token: "{{ mmn_netbox_token }}"
+        data:
+          name: "{{ nnd_new_manufacturer_name.user_input }}"
+          slug: "{{ nnd_new_manufacturer_slug.user_input }}"
+          description: "{{ nnd_new_manufacturer_description.user_input }}"
+        state: present
+      delegate_to: localhost
+      become: false
+      register: created_manufacturer
+
+    - name: "MMN NND - Query newly created manufacturer from NetBox"
+      ansible.builtin.set_fact:
+        nnd_created_mfr_raw: "{{ query('netbox.netbox.nb_lookup', 'manufacturers', api_filter='slug=' ~ nnd_new_manufacturer_slug.user_input, api_endpoint=mmn_netbox_url, token=mmn_netbox_token) }}"
+
+    - name: "MMN NND - Set selected manufacturer after creation"
+      ansible.builtin.set_fact:
+        selected_manufacturer: "{{ {'id': (nnd_created_mfr_raw | first).value.id, 'slug': (nnd_created_mfr_raw | first).value.slug, 'name': (nnd_created_mfr_raw | first).value.name} }}"
+  when:
+    - nnd_preselect_manufacturer is not defined or nnd_preselect_manufacturer is none
+    - manufacturer_selection.user_input == 'create'
 
 - name: "MMN NND - Display selected manufacturer"
   ansible.builtin.debug:

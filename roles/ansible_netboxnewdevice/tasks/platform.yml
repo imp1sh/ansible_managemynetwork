@@ -1,0 +1,142 @@
+---
+# Platform selector — mirrors the pattern of manufacturer/device_role/site.
+# If a platform was auto-detected from crawled facts and exists in NetBox,
+# use it. Otherwise prompt the user to pick an existing one or create new.
+
+- name: "MMN NND - Fetch all platforms from NetBox"
+  ansible.builtin.set_fact:
+    nnd_platforms_list: "{{ query('netbox.netbox.nb_lookup', 'platforms', api_endpoint=mmn_netbox_url, token=mmn_netbox_token) }}"
+
+- name: "MMN NND - Initialize platforms numbered list"
+  ansible.builtin.set_fact:
+    nnd_platforms_numbered: []
+  when: true
+
+- name: "MMN NND - Create list of platforms with IDs, slugs, and names"
+  ansible.builtin.set_fact:
+    nnd_platforms_numbered: "{{ nnd_platforms_numbered + [{'id': plat.id, 'name': plat.name, 'slug': plat.slug}] }}"
+  loop: "{{ nnd_platforms_list | map(attribute='value') | list }}"
+  loop_control:
+    loop_var: plat
+
+- name: "MMN NND - Check if auto-detected platform exists in NetBox"
+  ansible.builtin.set_fact:
+    selected_platform: "{{ nnd_platforms_numbered | selectattr('slug', 'equalto', nnd_preselect_platform) | first }}"
+  when:
+    - nnd_preselect_platform is defined
+    - nnd_preselect_platform | length > 0
+    - nnd_preselect_platform in (nnd_platforms_numbered | map(attribute='slug') | list)
+
+- name: "MMN NND - Display auto-selected platform"
+  ansible.builtin.debug:
+    msg: "Auto-selected platform from crawled facts: {{ selected_platform.name }} (ID: {{ selected_platform.id }})"
+  when:
+    - selected_platform is defined
+
+- name: "MMN NND - Build table rows for platforms"
+  ansible.builtin.set_fact:
+    platforms_table_rows: "{{ platforms_table_rows | default([]) + [row] }}"
+  vars:
+    id_str: "{{ plat.id | string }}"
+    id_pad: "{{ ('   ' if id_str | length == 1 else ('  ' if id_str | length == 2 else (' ' if id_str | length == 3 else ''))) }}"
+    slug_str: "{{ plat.slug }}"
+    slug_len: "{{ slug_str | length }}"
+    slug_pad: "{{ ('                                        '[:39 - slug_len] if slug_len < 39 else '') }}"
+    row: "{{ id_pad }}{{ id_str }}  | {{ slug_str }}{{ slug_pad }} | {{ plat.name }}"
+  loop: "{{ nnd_platforms_numbered }}"
+  loop_control:
+    loop_var: plat
+  when:
+    - selected_platform is not defined
+    - nnd_platforms_numbered | length > 0
+
+- name: "MMN NND - Build complete platforms table message"
+  ansible.builtin.set_fact:
+    platforms_table_msg: "{{ ['Available Platforms:', '====================================================================================', 'ID     | Slug                                    | Name', '-------+-----------------------------------------+-----------------------------------'] + (platforms_table_rows | default([])) + ['===================================================================================='] }}"
+  when:
+    - selected_platform is not defined
+    - nnd_platforms_numbered | length > 0
+
+- name: "MMN NND - Display all available platforms in table format"
+  ansible.builtin.debug:
+    msg: "{{ platforms_table_msg }}"
+  when:
+    - selected_platform is not defined
+    - nnd_platforms_numbered | length > 0
+
+- name: "MMN NND - Prompt for platform ID"
+  ansible.builtin.pause:
+    prompt: |
+      Enter the ID of the platform you want to use (or type 'create' to create a new one):
+  register: platform_selection
+  run_once: true
+  when:
+    - selected_platform is not defined
+    - nnd_platforms_numbered | length > 0
+
+- name: "MMN NND - Auto-select create when no platforms exist"
+  ansible.builtin.set_fact:
+    platform_selection:
+      user_input: "create"
+  when:
+    - selected_platform is not defined
+    - nnd_platforms_numbered | length == 0
+
+- name: "MMN NND - Choosing an existing platform"
+  block:
+    - name: "MMN NND - Validate platform ID input"
+      ansible.builtin.assert:
+        that:
+          - platform_selection.user_input | int > 0
+          - platform_selection.user_input | int in (nnd_platforms_numbered | map(attribute='id') | list)
+        fail_msg: "Invalid platform ID. Please enter a valid ID from the list above."
+        success_msg: "Platform ID is valid."
+      run_once: true
+
+    - name: "MMN NND - Set selected platform from manual input"
+      ansible.builtin.set_fact:
+        selected_platform: "{{ nnd_platforms_numbered | selectattr('id', 'equalto', platform_selection.user_input | int) | first }}"
+  when:
+    - selected_platform is not defined
+    - platform_selection.user_input | default('') != 'create'
+
+- name: "MMN NND - Creating a new platform"
+  block:
+    - name: "MMN NND - Prompt for new platform name"
+      ansible.builtin.pause:
+        prompt: "Enter the platform name e.g. OpenWrt 25.12{% if nnd_preselect_platform is defined and nnd_preselect_platform | length > 0 %} (detected: {{ nnd_preselect_platform }}){% endif %}"
+      register: nnd_new_platform_name
+      run_once: true
+
+    - name: "MMN NND - Prompt for new platform slug"
+      ansible.builtin.pause:
+        prompt: "Enter the platform slug, containing only alphanumerical, no whitespaces and only dashes allowed{% if nnd_preselect_platform is defined and nnd_preselect_platform | length > 0 %} (detected: {{ nnd_preselect_platform }}){% endif %}:"
+      register: nnd_new_platform_slug
+      run_once: true
+
+    - name: "MMN NND - Insert platform into NetBox"
+      netbox.netbox.netbox_platform:
+        netbox_url: "{{ mmn_netbox_url }}"
+        netbox_token: "{{ mmn_netbox_token }}"
+        data:
+          name: "{{ nnd_new_platform_name.user_input }}"
+          slug: "{{ nnd_new_platform_slug.user_input }}"
+        state: present
+      delegate_to: localhost
+      become: false
+      register: created_platform
+
+    - name: "MMN NND - Query newly created platform from NetBox"
+      ansible.builtin.set_fact:
+        nnd_created_platform_raw: "{{ query('netbox.netbox.nb_lookup', 'platforms', api_filter='slug=' ~ nnd_new_platform_slug.user_input, api_endpoint=mmn_netbox_url, token=mmn_netbox_token) }}"
+
+    - name: "MMN NND - Set selected platform after creation"
+      ansible.builtin.set_fact:
+        selected_platform: "{{ {'id': (nnd_created_platform_raw | first).value.id, 'name': (nnd_created_platform_raw | first).value.name, 'slug': (nnd_created_platform_raw | first).value.slug} }}"
+  when:
+    - selected_platform is not defined
+    - platform_selection.user_input | default('') == 'create'
+
+- name: "MMN NND - Display selected platform"
+  ansible.builtin.debug:
+    msg: "Selected platform: {{ selected_platform.name }} (ID: {{ selected_platform.id }})"

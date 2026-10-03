@@ -38,7 +38,9 @@
 
 - name: "MMN NND - Check if device already exists in NetBox"
   ansible.builtin.include_tasks: check_existing.yml
-  when: mmn_netbox_crawl_enabled | default(true) | bool
+  when:
+    - mmn_netbox_crawl_enabled | default(true) | bool
+    - not (mmn_netbox_force_prompt | default(false) | bool)
 
 - name: "MMN NND - Include Manufacturer task"
   ansible.builtin.include_tasks: manufacturer.yml
@@ -48,6 +50,9 @@
 
 - name: "MMN NND - Include Device Role task"
   ansible.builtin.include_tasks: device_role.yml
+
+- name: "MMN NND - Include Platform task"
+  ansible.builtin.include_tasks: platform.yml
 
 - name: "MMN NND - Include Site task"
   ansible.builtin.include_tasks: site.yml

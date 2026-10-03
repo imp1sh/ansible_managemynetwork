@@ -19,9 +19,15 @@
   when:
     - nnd_preselect_device_role is not defined or nnd_preselect_device_role is none
 
+- name: "MMN NND - Initialize device roles numbered list"
+  ansible.builtin.set_fact:
+    nnd_device_roles_numbered: []
+  when:
+    - nnd_preselect_device_role is not defined or nnd_preselect_device_role is none
+
 - name: "MMN NND - Create list of device roles with IDs, slugs, and names"
   ansible.builtin.set_fact:
-    nnd_device_roles_numbered: "{{ nnd_device_roles_numbered | default([]) + [{'id': drole.id, 'name': drole.name, 'slug': drole.slug}] }}"
+    nnd_device_roles_numbered: "{{ nnd_device_roles_numbered + [{'id': drole.id, 'name': drole.name, 'slug': drole.slug}] }}"
   loop: "{{ nnd_device_roles_list | map(attribute='value') | list }}"
   loop_control:
     loop_var: drole
@@ -43,44 +49,101 @@
     loop_var: drole
   when:
     - nnd_preselect_device_role is not defined or nnd_preselect_device_role is none
+    - nnd_device_roles_numbered | length > 0
 
 - name: "MMN NND - Build complete device roles table message"
   ansible.builtin.set_fact:
-    deviceroles_table_msg: "{{ ['Available Device Roles:', '====================================================================================', 'ID     | Slug                                    | Name', '-------+-----------------------------------------+-----------------------------------'] + deviceroles_table_rows + ['===================================================================================='] }}"
+    deviceroles_table_msg: "{{ ['Available Device Roles:', '====================================================================================', 'ID     | Slug                                    | Name', '-------+-----------------------------------------+-----------------------------------'] + (deviceroles_table_rows | default([])) + ['===================================================================================='] }}"
   when:
     - nnd_preselect_device_role is not defined or nnd_preselect_device_role is none
+    - nnd_device_roles_numbered | length > 0
 
 - name: "MMN NND - Display all available device roles in table format"
   ansible.builtin.debug:
     msg: "{{ deviceroles_table_msg }}"
   when:
     - nnd_preselect_device_role is not defined or nnd_preselect_device_role is none
+    - nnd_device_roles_numbered | length > 0
 
 - name: "MMN NND - Prompt for device role ID"
   ansible.builtin.pause:
     prompt: |
-      Enter the ID of the device role you want to use:
-  register: device_role_id_input
+      Enter the ID of the device role you want to use (or type 'create' to create a new one):
+  register: device_role_selection
   run_once: true
   when:
     - nnd_preselect_device_role is not defined or nnd_preselect_device_role is none
+    - nnd_device_roles_numbered | length > 0
 
-- name: "MMN NND - Validate device role ID input"
-  ansible.builtin.assert:
-    that:
-      - device_role_id_input.user_input | int > 0
-      - device_role_id_input.user_input | int in (nnd_device_roles_numbered | map(attribute='id') | list)
-    fail_msg: "Invalid device role ID. Please enter a valid ID from the list above."
-    success_msg: "Device role ID is valid."
-  run_once: true
-  when:
-    - nnd_preselect_device_role is not defined or nnd_preselect_device_role is none
-
-- name: "MMN NND - Set selected device role from manual input"
+- name: "MMN NND - Auto-select create when no device roles exist"
   ansible.builtin.set_fact:
-    selected_device_role: "{{ nnd_device_roles_numbered | selectattr('id', 'equalto', device_role_id_input.user_input | int) | first }}"
+    device_role_selection:
+      user_input: "create"
   when:
     - nnd_preselect_device_role is not defined or nnd_preselect_device_role is none
+    - nnd_device_roles_numbered | length == 0
+
+- name: "MMN NND - Choosing an existing device role"
+  block:
+    - name: "MMN NND - Validate device role ID input"
+      ansible.builtin.assert:
+        that:
+          - device_role_selection.user_input | int > 0
+          - device_role_selection.user_input | int in (nnd_device_roles_numbered | map(attribute='id') | list)
+        fail_msg: "Invalid device role ID. Please enter a valid ID from the list above."
+        success_msg: "Device role ID is valid."
+      run_once: true
+
+    - name: "MMN NND - Set selected device role from manual input"
+      ansible.builtin.set_fact:
+        selected_device_role: "{{ nnd_device_roles_numbered | selectattr('id', 'equalto', device_role_selection.user_input | int) | first }}"
+  when:
+    - nnd_preselect_device_role is not defined or nnd_preselect_device_role is none
+    - device_role_selection.user_input | default('') != 'create'
+
+- name: "MMN NND - Creating a new device role"
+  block:
+    - name: "MMN NND - Prompt for new device role name"
+      ansible.builtin.pause:
+        prompt: "Enter the device role name e.g. Firewall"
+      register: nnd_new_drole_name
+      run_once: true
+
+    - name: "MMN NND - Prompt for new device role slug"
+      ansible.builtin.pause:
+        prompt: "Enter the device role slug, containing only alphanumerical, no whitespaces and only dashes allowed. e.g. firewall"
+      register: nnd_new_drole_slug
+      run_once: true
+
+    - name: "MMN NND - Prompt for new device role color"
+      ansible.builtin.pause:
+        prompt: "Enter the device role color as hex code (optional, press Enter to skip, e.g. ff0000)"
+      register: nnd_new_drole_color
+      run_once: true
+
+    - name: "MMN NND - Insert device role into NetBox"
+      netbox.netbox.netbox_device_role:
+        netbox_url: "{{ mmn_netbox_url }}"
+        netbox_token: "{{ mmn_netbox_token }}"
+        data:
+          name: "{{ nnd_new_drole_name.user_input }}"
+          slug: "{{ nnd_new_drole_slug.user_input }}"
+          color: "{{ nnd_new_drole_color.user_input | default(omit) }}"
+        state: present
+      delegate_to: localhost
+      become: false
+      register: created_device_role
+
+    - name: "MMN NND - Query newly created device role from NetBox"
+      ansible.builtin.set_fact:
+        nnd_created_drole_raw: "{{ query('netbox.netbox.nb_lookup', 'device-roles', api_filter='slug=' ~ nnd_new_drole_slug.user_input, api_endpoint=mmn_netbox_url, token=mmn_netbox_token) }}"
+
+    - name: "MMN NND - Set selected device role after creation"
+      ansible.builtin.set_fact:
+        selected_device_role: "{{ {'id': (nnd_created_drole_raw | first).value.id, 'name': (nnd_created_drole_raw | first).value.name, 'slug': (nnd_created_drole_raw | first).value.slug} }}"
+  when:
+    - nnd_preselect_device_role is not defined or nnd_preselect_device_role is none
+    - device_role_selection.user_input | default('') == 'create'
 
 - name: "MMN NND - Display selected device role"
   ansible.builtin.debug:

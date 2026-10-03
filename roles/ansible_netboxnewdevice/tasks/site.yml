@@ -19,9 +19,15 @@
   when:
     - nnd_preselect_site is not defined or nnd_preselect_site is none
 
+- name: "MMN NND - Initialize sites numbered list"
+  ansible.builtin.set_fact:
+    nnd_sites_numbered: []
+  when:
+    - nnd_preselect_site is not defined or nnd_preselect_site is none
+
 - name: "MMN NND - Create list of sites with IDs, slugs, and names"
   ansible.builtin.set_fact:
-    nnd_sites_numbered: "{{ nnd_sites_numbered | default([]) + [{'id': site.id, 'name': site.name, 'slug': site.slug}] }}"
+    nnd_sites_numbered: "{{ nnd_sites_numbered + [{'id': site.id, 'name': site.name, 'slug': site.slug}] }}"
   loop: "{{ nnd_sites_list | map(attribute='value') | list }}"
   loop_control:
     loop_var: site
@@ -43,44 +49,94 @@
     loop_var: site
   when:
     - nnd_preselect_site is not defined or nnd_preselect_site is none
+    - nnd_sites_numbered | length > 0
 
 - name: "MMN NND - Build complete sites table message"
   ansible.builtin.set_fact:
-    sites_table_msg: "{{ ['Available Sites:', '====================================================================================', 'ID     | Slug                                    | Name', '-------+-----------------------------------------+-----------------------------------'] + sites_table_rows + ['===================================================================================='] }}"
+    sites_table_msg: "{{ ['Available Sites:', '====================================================================================', 'ID     | Slug                                    | Name', '-------+-----------------------------------------+-----------------------------------'] + (sites_table_rows | default([])) + ['===================================================================================='] }}"
   when:
     - nnd_preselect_site is not defined or nnd_preselect_site is none
+    - nnd_sites_numbered | length > 0
 
 - name: "MMN NND - Display all available sites in table format"
   ansible.builtin.debug:
     msg: "{{ sites_table_msg }}"
   when:
     - nnd_preselect_site is not defined or nnd_preselect_site is none
+    - nnd_sites_numbered | length > 0
 
 - name: "MMN NND - Prompt for site ID"
   ansible.builtin.pause:
     prompt: |
-      Enter the ID of the site you want to use:
-  register: site_id_input
+      Enter the ID of the site you want to use (or type 'create' to create a new one):
+  register: site_selection
   run_once: true
   when:
     - nnd_preselect_site is not defined or nnd_preselect_site is none
+    - nnd_sites_numbered | length > 0
 
-- name: "MMN NND - Validate site ID input"
-  ansible.builtin.assert:
-    that:
-      - site_id_input.user_input | int > 0
-      - site_id_input.user_input | int in (nnd_sites_numbered | map(attribute='id') | list)
-    fail_msg: "Invalid site ID. Please enter a valid ID from the list above."
-    success_msg: "Site ID is valid."
-  run_once: true
-  when:
-    - nnd_preselect_site is not defined or nnd_preselect_site is none
-
-- name: "MMN NND - Set selected site from manual input"
+- name: "MMN NND - Auto-select create when no sites exist"
   ansible.builtin.set_fact:
-    selected_site: "{{ nnd_sites_numbered | selectattr('id', 'equalto', site_id_input.user_input | int) | first }}"
+    site_selection:
+      user_input: "create"
   when:
     - nnd_preselect_site is not defined or nnd_preselect_site is none
+    - nnd_sites_numbered | length == 0
+
+- name: "MMN NND - Choosing an existing site"
+  block:
+    - name: "MMN NND - Validate site ID input"
+      ansible.builtin.assert:
+        that:
+          - site_selection.user_input | int > 0
+          - site_selection.user_input | int in (nnd_sites_numbered | map(attribute='id') | list)
+        fail_msg: "Invalid site ID. Please enter a valid ID from the list above."
+        success_msg: "Site ID is valid."
+      run_once: true
+
+    - name: "MMN NND - Set selected site from manual input"
+      ansible.builtin.set_fact:
+        selected_site: "{{ nnd_sites_numbered | selectattr('id', 'equalto', site_selection.user_input | int) | first }}"
+  when:
+    - nnd_preselect_site is not defined or nnd_preselect_site is none
+    - site_selection.user_input | default('') != 'create'
+
+- name: "MMN NND - Creating a new site"
+  block:
+    - name: "MMN NND - Prompt for new site name"
+      ansible.builtin.pause:
+        prompt: "Enter the site name e.g. Forellenweg 7"
+      register: nnd_new_site_name
+      run_once: true
+
+    - name: "MMN NND - Prompt for new site slug"
+      ansible.builtin.pause:
+        prompt: "Enter the site slug, containing only alphanumerical, no whitespaces and only dashes allowed. e.g. forellenweg-7"
+      register: nnd_new_site_slug
+      run_once: true
+
+    - name: "MMN NND - Insert site into NetBox"
+      netbox.netbox.netbox_site:
+        netbox_url: "{{ mmn_netbox_url }}"
+        netbox_token: "{{ mmn_netbox_token }}"
+        data:
+          name: "{{ nnd_new_site_name.user_input }}"
+          slug: "{{ nnd_new_site_slug.user_input }}"
+        state: present
+      delegate_to: localhost
+      become: false
+      register: created_site
+
+    - name: "MMN NND - Query newly created site from NetBox"
+      ansible.builtin.set_fact:
+        nnd_created_site_raw: "{{ query('netbox.netbox.nb_lookup', 'sites', api_filter='slug=' ~ nnd_new_site_slug.user_input, api_endpoint=mmn_netbox_url, token=mmn_netbox_token) }}"
+
+    - name: "MMN NND - Set selected site after creation"
+      ansible.builtin.set_fact:
+        selected_site: "{{ {'id': (nnd_created_site_raw | first).value.id, 'name': (nnd_created_site_raw | first).value.name, 'slug': (nnd_created_site_raw | first).value.slug} }}"
+  when:
+    - nnd_preselect_site is not defined or nnd_preselect_site is none
+    - site_selection.user_input | default('') == 'create'
 
 - name: "MMN NND - Display selected site"
   ansible.builtin.debug:

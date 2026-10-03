@@ -20,9 +20,15 @@
   when:
     - nnd_preselect_devicetype is not defined or nnd_preselect_devicetype is none
 
+- name: "MMN NND - Initialize device types stripped list"
+  ansible.builtin.set_fact:
+    nnd_devicetypes_list_stripped: []
+  when:
+    - nnd_preselect_devicetype is not defined or nnd_preselect_devicetype is none
+
 - name: "MMN NND - Create list of device types with IDs, slugs, and models"
   ansible.builtin.set_fact:
-    nnd_devicetypes_list_stripped: "{{ nnd_devicetypes_list_stripped | default([]) + [{'id': dtype.id, 'model': dtype.model, 'slug': dtype.slug}] }}"
+    nnd_devicetypes_list_stripped: "{{ nnd_devicetypes_list_stripped + [{'id': dtype.id, 'model': dtype.model, 'slug': dtype.slug}] }}"
   loop: "{{ nnd_devicetypes_list | map(attribute='value') | list }}"
   loop_control:
     loop_var: dtype
@@ -44,18 +50,28 @@
     loop_var: dtype
   when:
     - nnd_preselect_devicetype is not defined or nnd_preselect_devicetype is none
+    - nnd_devicetypes_list_stripped | length > 0
 
 - name: "MMN NND - Build complete device types table message"
   ansible.builtin.set_fact:
-    devicetypes_table_msg: "{{ ['Available Device Types:', '====================================================================================', 'ID     | Slug                                    | Model', '-------+-----------------------------------------+-----------------------------------'] + devicetypes_table_rows + ['===================================================================================='] }}"
+    devicetypes_table_msg: "{{ ['Available Device Types:', '====================================================================================', 'ID     | Slug                                    | Model', '-------+-----------------------------------------+-----------------------------------'] + (devicetypes_table_rows | default([])) + ['===================================================================================='] }}"
   when:
     - nnd_preselect_devicetype is not defined or nnd_preselect_devicetype is none
+    - nnd_devicetypes_list_stripped | length > 0
 
 - name: "MMN NND - Display all available device types in table format"
   ansible.builtin.debug:
     msg: "{{ devicetypes_table_msg }}"
   when:
     - nnd_preselect_devicetype is not defined or nnd_preselect_devicetype is none
+    - nnd_devicetypes_list_stripped | length > 0
+
+- name: "MMN NND - Inform about no existing device types"
+  ansible.builtin.debug:
+    msg: "No device types exist yet for this manufacturer. You will need to create one."
+  when:
+    - nnd_preselect_devicetype is not defined or nnd_preselect_devicetype is none
+    - nnd_devicetypes_list_stripped | length == 0
 
 - name: "MMN NND - Prompt for device type ID"
   ansible.builtin.pause:
@@ -65,6 +81,15 @@
   run_once: true
   when:
     - nnd_preselect_devicetype is not defined or nnd_preselect_devicetype is none
+    - nnd_devicetypes_list_stripped | length > 0
+
+- name: "MMN NND - Auto-select create when no device types exist"
+  ansible.builtin.set_fact:
+    devicetype_selection:
+      user_input: "create"
+  when:
+    - nnd_preselect_devicetype is not defined or nnd_preselect_devicetype is none
+    - nnd_devicetypes_list_stripped | length == 0
 
 - name: "MMN NND - Choosing an existing device type"
   block:
@@ -125,7 +150,7 @@
 
     - name: "MMN NND - Query newly created device type from NetBox"
       ansible.builtin.set_fact:
-        nnd_created_dt_raw: "{{ query('netbox.netbox.nb_lookup', 'device-types', api_filter='manufacturer_id=' ~ selected_manufacturer.id ~ '&slug=' ~ nnd_new_devicetype_slug.user_input, api_endpoint=mmn_netbox_url, token=mmn_netbox_token) }}"
+        nnd_created_dt_raw: "{{ query('netbox.netbox.nb_lookup', 'device-types', api_filter='slug=' ~ nnd_new_devicetype_slug.user_input, api_endpoint=mmn_netbox_url, token=mmn_netbox_token) }}"
 
     - name: "MMN NND - Set selected device type after creation"
       ansible.builtin.set_fact:
