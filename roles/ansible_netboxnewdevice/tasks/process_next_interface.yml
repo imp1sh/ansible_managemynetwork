@@ -1,0 +1,149 @@
+---
+# Process one interface at a time: select, create, assign IPs,
+# then ask if the user wants to add another.
+
+- name: "MMN NND - Show remaining interfaces"
+  ansible.builtin.debug:
+    msg: "{{ ['Remaining interfaces:'] + (nnd_remaining_interfaces | default([]) | map(attribute='name') | list) }}"
+  when:
+    - nnd_remaining_interfaces is defined
+    - nnd_remaining_interfaces | length > 0
+
+- name: "MMN NND - Build numbered remaining interface display"
+  ansible.builtin.set_fact:
+    nnd_remain_display: "{{ nnd_remain_display | default([]) + [_line] }}"
+  loop: "{{ nnd_remaining_interfaces | default([]) }}"
+  loop_control:
+    loop_var: nnd_rem_iface
+    index_var: nnd_rem_idx
+  vars:
+    _line: "  [{{ nnd_rem_idx }}] {{ nnd_rem_iface.name }} ({{ nnd_rem_iface.type }}, MAC: {{ nnd_rem_iface.mac_address | default('N/A') }}) - IPv4: {{ nnd_rem_iface.ipv4_list | length }}, IPv6: {{ nnd_rem_iface.ipv6_list | length }}"
+  when:
+    - nnd_remaining_interfaces is defined
+    - nnd_remaining_interfaces | length > 0
+
+- name: "MMN NND - Display remaining interfaces"
+  ansible.builtin.debug:
+    msg: "{{ nnd_remain_display }}"
+  when:
+    - nnd_remain_display is defined
+    - nnd_remain_display | length > 0
+
+- name: "MMN NND - Prompt for interface index"
+  ansible.builtin.pause:
+    prompt: "Enter the index of the interface to add (Enter to skip):"
+  register: nnd_iface_pick
+  run_once: true
+  when:
+    - nnd_remaining_interfaces is defined
+    - nnd_remaining_interfaces | length > 0
+
+- name: "MMN NND - Clear remaining display"
+  ansible.builtin.set_fact:
+    nnd_remain_display: []
+  when: nnd_remain_display is defined
+
+- name: "MMN NND - Set picked interface"
+  ansible.builtin.set_fact:
+    nnd_current_iface: "{{ nnd_remaining_interfaces[nnd_iface_pick.user_input | int] }}"
+  when:
+    - nnd_remaining_interfaces is defined
+    - nnd_remaining_interfaces | length > 0
+    - nnd_iface_pick.user_input | default('') | length > 0
+    - (nnd_iface_pick.user_input | int) < (nnd_remaining_interfaces | length)
+
+- name: "MMN NND - Remove picked interface from remaining list"
+  ansible.builtin.set_fact:
+    nnd_remaining_interfaces: "{{ nnd_remaining_interfaces | difference([nnd_current_iface]) }}"
+  when:
+    - nnd_current_iface is defined
+
+- name: "MMN NND - Select IP addresses for {{ nnd_current_iface.name | default('') }}"
+  ansible.builtin.include_tasks: select_ips.yml
+  vars:
+    nnd_sel_iface: "{{ nnd_current_iface }}"
+  when:
+    - nnd_current_iface is defined
+
+- name: "MMN NND - Create interface {{ nnd_current_iface.name | default('') }} in NetBox"
+  netbox.netbox.netbox_device_interface:
+    netbox_url: "{{ mmn_netbox_url }}"
+    netbox_token: "{{ mmn_netbox_token }}"
+    data:
+      device: "{{ nnd_target_device_name }}"
+      name: "{{ nnd_current_iface.name }}"
+      type: "{{ nnd_current_iface.type }}"
+      mac_address: "{{ nnd_current_iface.mac_address | default(omit) }}"
+      mtu: "{{ nnd_current_iface.mtu | default(omit) }}"
+      enabled: "{{ nnd_current_iface.enabled }}"
+    state: present
+  delegate_to: localhost
+  become: false
+  when:
+    - nnd_current_iface is defined
+    - mmn_netbox_create_interfaces | default(true) | bool
+  register: nnd_iface_create_result
+
+- name: "MMN NND - Create IPv4 addresses for {{ nnd_current_iface.name | default('') }}"
+  netbox.netbox.netbox_ip_address:
+    netbox_url: "{{ mmn_netbox_url }}"
+    netbox_token: "{{ mmn_netbox_token }}"
+    data:
+      address: "{{ nnd_v4_item.addr.address }}/{{ nnd_v4_item.addr.prefix | default(((nnd_v4_item.addr.netmask | default('255.255.255.255')) | ansible.utils.ipaddr('prefix'))) }}"
+      assigned_object:
+        name: "{{ nnd_current_iface.name }}"
+        device: "{{ nnd_target_device_name }}"
+      status: active
+    state: present
+  delegate_to: localhost
+  become: false
+  loop: "{{ nnd_selected_ipv4 | default([]) | selectattr('iface', 'equalto', nnd_current_iface.name) | list }}"
+  loop_control:
+    loop_var: nnd_v4_item
+    label: "{{ nnd_v4_item.addr.address }}"
+  when:
+    - nnd_current_iface is defined
+    - mmn_netbox_assign_ip_addresses | default(true) | bool
+
+- name: "MMN NND - Create IPv6 addresses for {{ nnd_current_iface.name | default('') }}"
+  netbox.netbox.netbox_ip_address:
+    netbox_url: "{{ mmn_netbox_url }}"
+    netbox_token: "{{ mmn_netbox_token }}"
+    data:
+      address: "{{ nnd_v6_item.addr.address }}/{{ nnd_v6_item.addr.prefix | default(64) }}"
+      assigned_object:
+        name: "{{ nnd_current_iface.name }}"
+        device: "{{ nnd_target_device_name }}"
+      status: active
+    state: present
+  delegate_to: localhost
+  become: false
+  loop: "{{ nnd_selected_ipv6 | default([]) | selectattr('iface', 'equalto', nnd_current_iface.name) | list }}"
+  loop_control:
+    loop_var: nnd_v6_item
+    label: "{{ nnd_v6_item.addr.address }}"
+  when:
+    - nnd_current_iface is defined
+    - mmn_netbox_assign_ip_addresses | default(true) | bool
+
+- name: "MMN NND - Clear current interface"
+  ansible.builtin.set_fact:
+    nnd_current_iface: "{{ none }}"
+  when: nnd_current_iface is defined
+
+- name: "MMN NND - Ask if user wants to add another interface"
+  ansible.builtin.pause:
+    prompt: "Add another interface? (yes/no):"
+  register: nnd_add_another
+  run_once: true
+  when:
+    - nnd_remaining_interfaces is defined
+    - nnd_remaining_interfaces | length > 0
+
+- name: "MMN NND - Process next interface"
+  ansible.builtin.include_tasks: process_next_interface.yml
+  when:
+    - nnd_add_another is defined
+    - nnd_add_another.user_input | default('') | lower == 'yes'
+    - nnd_remaining_interfaces is defined
+    - nnd_remaining_interfaces | length > 0
