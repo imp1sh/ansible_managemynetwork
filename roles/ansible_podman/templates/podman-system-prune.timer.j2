@@ -1,0 +1,11 @@
+[Unit]
+Description=Nightly Podman system prune
+
+[Timer]
+OnCalendar={{ podman_prune_timer_oncalendar }}
+Persistent=true
+RandomizedDelaySec={{ podman_prune_timer_randomized_delay_sec }}
+Unit=podman-system-prune.service
+
+[Install]
+WantedBy=timers.target

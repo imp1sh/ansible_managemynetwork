@@ -194,6 +194,30 @@ Optional tuning keys: `stop_timeout` (default 10), `start_timeout` (default
 host device nodes (`/dev/kfd`, `/dev/dri`), supplemental groups (`video`,
 `render`), large `/dev/shm`, and relaxed seccomp.
 
+## System prune timer
+
+Container-image-building workloads (notably Gitea ActRunner pipelines) fill
+disk with dangling layers, exited job containers and build cache. Podman ships
+no built-in prune timer (unlike `podman-auto-update.timer`), so this role can
+deploy its own `podman-system-prune.service` / `.timer` pair, gated by a
+per-host flag (Linux only; skipped on OpenWrt):
+
+```yaml
+podman_prune_timer_enabled: true
+```
+
+Tunables (see `defaults/main.yml`):
+
+| Variable | Default | Meaning |
+| - | - | - |
+| `podman_prune_command_args` | `"--force"` | Args appended to `podman system prune`. `--force` skips the prompt and only removes unreferenced/dangling data (keeps tagged images backing intentionally-stopped containers). Use `--all --force` for maximal reclaim at the cost of dropping unused tagged images. |
+| `podman_prune_timer_oncalendar` | `"*-*-* 04:00"` | systemd `OnCalendar=` expression. |
+| `podman_prune_timer_randomized_delay_sec` | `1800` | `RandomizedDelaySec=`, spreads runs across hosts so they don't all hit registries/caches simultaneously. |
+
+Because ActRunner mounts the **root** podman socket (`/run/podman/podman.sock`),
+CI images land in root's storage, so a root-run `podman system prune` reclaims
+them. Disabling the flag on a host stops/deletes the units on the next run.
+
 ## Fedora / SELinux
 
 On Fedora SELinux is enforcing by default. A container process (type

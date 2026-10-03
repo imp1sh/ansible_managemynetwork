@@ -16,3 +16,20 @@ podman_deploypath_initscript: "{{ podman_deployroot }}etc/init.d"
 # containers carrying the io.containers.autoupdate=label against the registry
 # (digest comparison) on the timer's schedule. Off by default; opt in per host.
 podman_auto_update_enabled: false
+
+# Periodically run `podman system prune` to reclaim disk eaten by dangling
+# images, exited containers, unused networks and build cache — the typical
+# fallout of Gitea ActRunner pipelines that build container images. Off by
+# default; opt in per host. Podman ships no equivalent built-in timer (unlike
+# podman-auto-update.timer), so the role deploys its own
+# podman-system-prune.service/.timer pair when enabled. Skipped on OpenWrt.
+podman_prune_timer_enabled: false
+podman_prune_executable: "/usr/bin/podman"
+# Arguments appended to `podman system prune`. Default `--force` skips the
+# interactive confirmation and only removes unreferenced/dangling data (tagged
+# images backing intentionally-stopped containers are kept). Set to
+# `--all --force` per host for maximal reclaim at the cost of dropping unused
+# tagged images.
+podman_prune_command_args: "--force"
+podman_prune_timer_oncalendar: "*-*-* 04:00"
+podman_prune_timer_randomized_delay_sec: 1800

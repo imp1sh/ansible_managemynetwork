@@ -6,3 +6,9 @@
     name: podman
   when:
     - not podman_runimagebuilder | default(false) | bool
+
+- name: Restart podman system prune timer
+  ansible.builtin.systemd:
+    name: podman-system-prune.timer
+    state: restarted
+    daemon_reload: true

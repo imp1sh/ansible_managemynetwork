@@ -1,0 +1,7 @@
+[Unit]
+Description=Podman system prune - reclaim dangling images, exited containers, unused networks and build cache
+Documentation=man:podman-system-prune(1)
+
+[Service]
+Type=oneshot
+ExecStart={{ podman_prune_executable }} system prune {{ podman_prune_command_args }}

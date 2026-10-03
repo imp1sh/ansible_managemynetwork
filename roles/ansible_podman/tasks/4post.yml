@@ -56,6 +56,60 @@
     - ansible_distribution != "OpenWrt"
     - podman_auto_update_enabled | default(false) | bool
 
+- name: "MMN Podman - Deploy podman-system-prune units"
+  when:
+    - ansible_distribution != "OpenWrt"
+    - podman_prune_timer_enabled | default(false) | bool
+  block:
+    - name: "MMN Podman - Install podman-system-prune.service"
+      ansible.builtin.template:
+        src: podman-system-prune.service.j2
+        dest: /etc/systemd/system/podman-system-prune.service
+        mode: "0644"
+      notify: Restart podman system prune timer
+
+    - name: "MMN Podman - Install podman-system-prune.timer"
+      ansible.builtin.template:
+        src: podman-system-prune.timer.j2
+        dest: /etc/systemd/system/podman-system-prune.timer
+        mode: "0644"
+      notify: Restart podman system prune timer
+
+    - name: "MMN Podman - Enable podman-system-prune.timer"
+      ansible.builtin.systemd:
+        name: podman-system-prune.timer
+        daemon_reload: true
+        enabled: true
+        state: started
+
+- name: "MMN Podman - Stop and disable podman-system-prune units when disabled"
+  ansible.builtin.systemd:
+    name: "{{ _unit }}"
+    daemon_reload: true
+    enabled: false
+    state: stopped
+  loop:
+    - podman-system-prune.timer
+    - podman-system-prune.service
+  loop_control:
+    loop_var: _unit
+  when:
+    - ansible_distribution != "OpenWrt"
+    - not (podman_prune_timer_enabled | default(false) | bool)
+
+- name: "MMN Podman - Delete podman-system-prune unit files when disabled"
+  ansible.builtin.file:
+    path: "/etc/systemd/system/{{ _unit }}"
+    state: absent
+  loop:
+    - podman-system-prune.timer
+    - podman-system-prune.service
+  loop_control:
+    loop_var: _unit
+  when:
+    - ansible_distribution != "OpenWrt"
+    - not (podman_prune_timer_enabled | default(false) | bool)
+
 - name: "MMN Podman - systemd tasks"
   ansible.builtin.include_tasks:
     file: 3systemd.yml
