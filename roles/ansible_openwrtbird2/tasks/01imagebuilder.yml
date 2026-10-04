@@ -1,0 +1,33 @@
+---
+# Imagebuilder mode for imp1sh.ansible_managemynetwork.ansible_openwrtbird2.
+# Renders the identical config into the Image Builder's files/ tree on the
+# build host, wires the boot-time enable symlink, and feeds the package list.
+# Nothing runs on a target device; no daemon is restarted.
+
+- name: "MMN openwrtbird2 - Render bird.conf and drop-ins into image tree"
+  ansible.builtin.include_tasks: 02render.yml
+
+- name: "MMN openwrtbird2 - Ensure rc.d directory exists in image tree"
+  ansible.builtin.file:
+    path: "{{ openwrt_bird2_deploypath_rcd }}"
+    state: directory
+    mode: "0755"
+  delegate_to: "{{ _openwrt_bird2_target_host }}"
+
+- name: "MMN openwrtbird2 - Enable bird service at boot in image tree"
+  ansible.builtin.file:
+    src: "../init.d/{{ openwrt_bird2_initscript }}"
+    dest: "{{ openwrt_bird2_deploypath_rcd }}/{{ openwrt_bird2_rc_order }}"
+    state: link
+    force: true
+    follow: false
+  delegate_to: "{{ _openwrt_bird2_target_host }}"
+
+- name: "MMN openwrtbird2 - Initialise imagebuilder package accumulator"
+  ansible.builtin.set_fact:
+    packages_installimagebuilder: []
+  when: packages_installimagebuilder is not defined
+
+- name: "MMN openwrtbird2 - Feed bird packages into imagebuilder package list"
+  ansible.builtin.set_fact:
+    packages_installimagebuilder: "{{ packages_installimagebuilder + [_openwrt_bird2_packages] | flatten }}"

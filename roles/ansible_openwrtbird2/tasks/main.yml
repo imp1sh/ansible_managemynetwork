@@ -1,0 +1,62 @@
+---
+# tasks for imp1sh.ansible_managemynetwork.ansible_openwrtbird2
+
+- name: "MMN openwrtbird2 - Determine target host for delegation"
+  ansible.builtin.set_fact:
+    _openwrt_bird2_target_host: >-
+      {{
+        openwrt_imagebuilder_buildhost
+        if (openwrt_imagebuilder_buildhost is defined and openwrt_imagebuilder_buildhost != inventory_hostname)
+        else inventory_hostname
+      }}
+
+- name: "MMN openwrtbird2 - Adopt imagebuilder deployroot when published"
+  ansible.builtin.set_fact:
+    openwrt_bird2_deployroot: "{{ openwrt_imagebuilder_deployroot }}"
+  when: openwrt_imagebuilder_deployroot is defined
+
+- name: "MMN openwrtbird2 - Resolve imagebuilder mode flag"
+  ansible.builtin.set_fact:
+    _openwrt_bird2_is_imagebuilder: >-
+      {{
+        (openwrt_bird2_runimagebuilder | default(packages_runimagebuilder | default(false))) | bool
+      }}
+
+- name: "MMN openwrtbird2 - Compute effective package list"
+  ansible.builtin.set_fact:
+    _openwrt_bird2_packages: >-
+      {{
+        (openwrt_bird2_packages | default(['bird2', 'bird2c']))
+        + (['luci-app-bird2'] if (openwrt_bird2_with_luci | default(false) | bool) else [])
+      }}
+
+- name: "MMN openwrtbird2 - Debug resolved state"
+  ansible.builtin.debug:
+    msg:
+      - "target host: {{ _openwrt_bird2_target_host }}"
+      - "imagebuilder mode: {{ _openwrt_bird2_is_imagebuilder }}"
+      - "deployroot: {{ openwrt_bird2_deployroot }}"
+      - "packages: {{ _openwrt_bird2_packages }}"
+      - "router id: {{ openwrt_bird2_router_id | default('<unset>') }}"
+  when: mmn_verbose | default(false) | bool
+
+- name: "MMN openwrtbird2 - Is openwrt_bird2_router_id defined?"
+  when: openwrt_bird2_router_id is defined
+  block:
+    - name: "MMN openwrtbird2 - Run input checks"
+      ansible.builtin.include_tasks: checks.yml
+
+    - name: "MMN openwrtbird2 - Run live mode"
+      ansible.builtin.include_tasks: 01live.yml
+      when: not _openwrt_bird2_is_imagebuilder
+
+    - name: "MMN openwrtbird2 - Run imagebuilder mode"
+      ansible.builtin.include_tasks: 01imagebuilder.yml
+      when: _openwrt_bird2_is_imagebuilder
+
+- name: "MMN openwrtbird2 - Skip status feedback"
+  ansible.builtin.debug:
+    msg: >-
+      The role openwrtbird2 did not run on host {{ inventory_hostname }}
+      because openwrt_bird2_router_id is not set.
+  when: openwrt_bird2_router_id is not defined

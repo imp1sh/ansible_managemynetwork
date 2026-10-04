@@ -1,0 +1,39 @@
+---
+# Shared bird.conf renderer for imp1sh.ansible_managemynetwork.ansible_openwrtbird2.
+# Included by both live and imagebuilder modes; mode-neutral (writes only).
+
+- name: "MMN openwrtbird2 - Ensure config directory exists"
+  ansible.builtin.file:
+    path: "{{ openwrt_bird2_deploypath_conf }}"
+    state: directory
+    mode: "0755"
+  delegate_to: "{{ _openwrt_bird2_target_host }}"
+
+- name: "MMN openwrtbird2 - Ensure drop-in directory exists"
+  ansible.builtin.file:
+    path: "{{ openwrt_bird2_deploypath_dropindir }}"
+    state: directory
+    mode: "0755"
+  delegate_to: "{{ _openwrt_bird2_target_host }}"
+  when: openwrt_bird2_dropins is defined
+
+- name: "MMN openwrtbird2 - Render drop-in files"
+  ansible.builtin.copy:
+    dest: "{{ openwrt_bird2_deploypath_dropindir }}/{{ dropin.name }}"
+    content: "{{ dropin.content }}"
+    mode: "{{ dropin.mode | default('0644') }}"
+  loop: "{{ openwrt_bird2_dropins }}"
+  loop_control:
+    loop_var: dropin
+  delegate_to: "{{ _openwrt_bird2_target_host }}"
+  when: openwrt_bird2_dropins is defined
+
+- name: "MMN openwrtbird2 - Render /etc/bird.conf"
+  ansible.builtin.template:
+    src: bird.conf.jinja2
+    dest: "{{ openwrt_bird2_deploypath_conf }}/{{ openwrt_bird2_deployfile_conf }}"
+    mode: "0600"
+  notify:
+    - "MMN openwrtbird2 - Hot-reload bird via birdc"
+    - "MMN openwrtbird2 - Restart bird service"
+  delegate_to: "{{ _openwrt_bird2_target_host }}"

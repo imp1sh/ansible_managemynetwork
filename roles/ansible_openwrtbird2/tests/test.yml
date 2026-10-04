@@ -1,0 +1,54 @@
+---
+- name: Smoke test for imp1sh.ansible_managemynetwork.ansible_openwrtbird2
+  hosts: test
+  gather_facts: false
+  vars:
+    openwrt_bird2_router_id: "192.0.2.1"
+    openwrt_bird2_log_targets:
+      - sink: "stderr"
+        level: "{ error, warning }"
+    openwrt_bird2_tables:
+      - name: "k8s"
+        sorted: true
+    openwrt_bird2_device:
+      enabled: true
+      scan_time: 10
+    openwrt_bird2_kernel:
+      - name: "kernel6"
+        persist: true
+        scan_time: 10
+        ipv6:
+          import: "none"
+          export: "all"
+    openwrt_bird2_static:
+      - name: "upstream_gua"
+        ipv6: {}
+        routes:
+          - type: "blackhole"
+            prefix: "2001:db8:dead::/48"
+    openwrt_bird2_filters:
+      - |
+        filter accept_upstream_gua {
+          if net = 2001:db8:dead::/48 then accept;
+          reject;
+        }
+    openwrt_bird2_bgp_templates:
+      - name: "K8S_PEERS"
+        local_as: 65001
+        hold_time: 180
+        ipv6:
+          import: "filter accept_upstream_gua"
+          export: "all"
+    openwrt_bird2_bgp:
+      - name: "k8s_node1"
+        template: "K8S_PEERS"
+        local_addr: "2001:db8:cafe::1"
+        neighbor_addr: "2001:db8:cafe::11"
+        neighbor_as: 65002
+      - name: "k8s_node2"
+        template: "K8S_PEERS"
+        local_addr: "2001:db8:cafe::1"
+        neighbor_addr: "2001:db8:cafe::12"
+        neighbor_as: 65002
+  roles:
+    - role: imp1sh.ansible_managemynetwork.ansible_openwrtbird2

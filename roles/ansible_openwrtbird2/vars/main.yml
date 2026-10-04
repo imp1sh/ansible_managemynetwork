@@ -1,0 +1,17 @@
+---
+# Internal constants for imp1sh.ansible_managemynetwork.ansible_openwrtbird2.
+# Role vars are exposed to templates automatically. The list below maps the
+# operator-facing camelCase keys to Bird 2's space-separated option names so
+# the template can emit them without hardcoding the spellings twice.
+# Verified against the Bird 2.0 user's guide, chapter 6.3 (BGP).
+
+_openwrt_bird2_bgp_time_opts:
+  - ["hold_time", "hold time"]
+  - ["startup_hold_time", "startup hold time"]
+  - ["keepalive_time", "keepalive time"]
+  - ["connect_delay_time", "connect delay time"]
+  - ["connect_retry_time", "connect retry time"]
+  - ["error_wait_time", "error wait time"]
+  - ["error_forget_time", "error forget time"]
+  - ["graceful_restart_time", "graceful restart time"]
+  - ["long_lived_stale_time", "long lived stale time"]

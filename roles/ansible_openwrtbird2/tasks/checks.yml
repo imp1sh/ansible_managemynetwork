@@ -1,0 +1,162 @@
+---
+# Input validation for imp1sh.ansible_managemynetwork.ansible_openwrtbird2.
+# Every assertion is guarded so unspecified variables never trip a check.
+
+- name: "MMN openwrtbird2 - Validate router id"
+  ansible.builtin.assert:
+    that:
+      - openwrt_bird2_router_id is regex('^(?:[0-9]{1,3}\.){3}[0-9]{1,3}$')
+      - openwrt_bird2_router_id.split('.')[0] | int <= 255
+      - openwrt_bird2_router_id.split('.')[1] | int <= 255
+      - openwrt_bird2_router_id.split('.')[2] | int <= 255
+      - openwrt_bird2_router_id.split('.')[3] | int <= 255
+    fail_msg: "openwrt_bird2_router_id must be a dotted-quad IPv4 address (got '{{ openwrt_bird2_router_id }}')."
+    success_msg: "openwrt_bird2_router_id is a valid IPv4 router id."
+  when: openwrt_bird2_router_id is defined
+
+- name: "MMN openwrtbird2 - Validate reload method"
+  ansible.builtin.assert:
+    that:
+      - openwrt_bird2_reload_method in ["reload", "restart"]
+    fail_msg: "openwrt_bird2_reload_method must be 'reload' or 'restart' (got '{{ openwrt_bird2_reload_method }}')."
+    success_msg: "openwrt_bird2_reload_method is valid."
+  when: openwrt_bird2_reload_method is defined
+
+- name: "MMN openwrtbird2 - Validate custom tables"
+  ansible.builtin.assert:
+    that:
+      - tbl.name is defined
+      - tbl.name | length > 0
+      - tbl.name is regex('^[A-Za-z0-9_]+$')
+    fail_msg: "Each openwrt_bird2_tables entry needs a non-empty alphanumeric/underscore 'name'."
+    success_msg: "openwrt_bird2_tables entry '{{ tbl.name }}' is valid."
+  loop: "{{ openwrt_bird2_tables }}"
+  loop_control:
+    loop_var: tbl
+  when: openwrt_bird2_tables is defined
+
+- name: "MMN openwrtbird2 - Validate log targets"
+  ansible.builtin.assert:
+    that:
+      - lt.sink is defined
+      - lt.sink in ["stderr", "syslog"] or lt.sink is regex('^/')
+    fail_msg: "Each openwrt_bird2_log_targets entry needs a 'sink' of 'stderr', 'syslog' or an absolute file path."
+    success_msg: "openwrt_bird2_log_targets sink '{{ lt.sink }}' is valid."
+  loop: "{{ openwrt_bird2_log_targets }}"
+  loop_control:
+    loop_var: lt
+  when: openwrt_bird2_log_targets is defined
+
+- name: "MMN openwrtbird2 - Validate listen.bgp.port"
+  ansible.builtin.assert:
+    that:
+      - openwrt_bird2_listen.bgp.port | int >= 1
+      - openwrt_bird2_listen.bgp.port | int <= 65535
+    fail_msg: "openwrt_bird2_listen.bgp.port must be an integer 1..65535."
+    success_msg: "openwrt_bird2_listen.bgp.port is valid."
+  when:
+    - openwrt_bird2_listen is defined
+    - openwrt_bird2_listen.bgp is defined
+    - openwrt_bird2_listen.bgp.port is defined
+
+- name: "MMN openwrtbird2 - Validate static routes"
+  ansible.builtin.assert:
+    that:
+      - inst.name is defined
+      - inst.name | length > 0
+      - rt.prefix is defined
+      - rt.prefix | length > 0
+      - rt.type | default("route") in ["route", "blackhole", "unreachable", "prohibit"]
+      - "rt.type | default('route') != 'route' or (rt.via is defined and rt.via | length > 0)"
+      - "rt.type | default('route') == 'route' or rt.via is not defined"
+      - "not (rt.via | type_debug == 'list' and rt.via | length > 1 and rt.attributes is defined)"
+    fail_msg: >-
+      Invalid static route in instance '{{ inst.name | default("<unnamed>") }}':
+      every route needs a 'prefix'; 'type' must be route/blackhole/unreachable/prohibit;
+      'via' is required for type 'route' and forbidden otherwise; combining multiple
+      'via' with 'attributes' is not supported by this role.
+    success_msg: "static route '{{ rt.prefix }}' in instance '{{ inst.name }}' is valid."
+  loop: "{{ openwrt_bird2_static | subelements('routes', skip_missing=True) }}"
+  loop_control:
+    loop_var: pair
+  vars:
+    inst: "{{ pair[0] }}"
+    rt: "{{ pair[1] }}"
+  when: openwrt_bird2_static is defined
+
+- name: "MMN openwrtbird2 - Validate BGP instances"
+  ansible.builtin.assert:
+    that:
+      - bgp.name is defined
+      - bgp.name | length > 0
+      - bgp.name is regex('^[A-Za-z0-9_]+$')
+      - bgp.neighbor_addr is defined or bgp.neighbor_range is defined
+      - bgp.local_as is not defined or (bgp.local_as | int >= 1 and bgp.local_as | int <= 4294967295)
+      - bgp.neighbor_as is not defined or (bgp.neighbor_as | int >= 1 and bgp.neighbor_as | int <= 4294967295)
+    fail_msg: >-
+      Invalid BGP instance '{{ bgp.name | default("<unnamed>") }}': needs a non-empty
+      alphanumeric 'name' and either 'neighbor_addr' or 'neighbor_range'; AS numbers,
+      when given, must be integers 1..4294967295.
+    success_msg: "BGP instance '{{ bgp.name }}' is structurally valid."
+  loop: "{{ openwrt_bird2_bgp }}"
+  loop_control:
+    loop_var: bgp
+  when: openwrt_bird2_bgp is defined
+
+- name: "MMN openwrtbird2 - Validate BGP templates"
+  ansible.builtin.assert:
+    that:
+      - tmpl.name is defined
+      - tmpl.name | length > 0
+      - tmpl.name is regex('^[A-Za-z0-9_]+$')
+      - tmpl.local_as is not defined or (tmpl.local_as | int >= 1 and tmpl.local_as | int <= 4294967295)
+    fail_msg: "Invalid BGP template '{{ tmpl.name | default('<unnamed>') }}': needs an alphanumeric 'name'; 'local_as', when given, must be 1..4294967295."
+    success_msg: "BGP template '{{ tmpl.name }}' is structurally valid."
+  loop: "{{ openwrt_bird2_bgp_templates | default([]) }}"
+  loop_control:
+    loop_var: tmpl
+  when: openwrt_bird2_bgp_templates is defined
+
+- name: "MMN openwrtbird2 - Validate BGP option value types"
+  ansible.builtin.assert:
+    that:
+      - "(bp.add_paths is not defined) or (bp.add_paths is boolean) or (bp.add_paths in ['rx', 'tx'])"
+      - "(bp.graceful_restart is not defined) or (bp.graceful_restart is boolean) or (bp.graceful_restart == 'aware')"
+      - "(bp.long_lived_graceful_restart is not defined) or (bp.long_lived_graceful_restart is boolean) or (bp.long_lived_graceful_restart == 'aware')"
+      - "(bp.allow_local_as is not defined) or (bp.allow_local_as is boolean) or (bp.allow_local_as is number)"
+    fail_msg: >-
+      Invalid BGP option on '{{ bp.name | default("<unnamed>") }}':
+      add_paths must be a boolean or 'rx'/'tx';
+      graceful_restart / long_lived_graceful_restart must be a boolean or 'aware';
+      allow_local_as must be a boolean or an integer.
+    success_msg: "BGP option values for '{{ bp.name }}' are valid."
+  loop: "{{ [(openwrt_bird2_bgp | default([])), (openwrt_bird2_bgp_templates | default([]))] | flatten }}"
+  loop_control:
+    loop_var: bp
+  when: (openwrt_bird2_bgp is defined) or (openwrt_bird2_bgp_templates is defined)
+
+- name: "MMN openwrtbird2 - Validate filters"
+  ansible.builtin.assert:
+    that:
+      - flt is string or (flt is mapping and flt.name is defined and flt.action in ["accept", "reject"])
+    fail_msg: >-
+      Each openwrt_bird2_filters entry must be a verbatim filter block (string) or a
+      {name, action} shortcut with action 'accept'/'reject'.
+    success_msg: "filter entry is valid."
+  loop: "{{ openwrt_bird2_filters }}"
+  loop_control:
+    loop_var: flt
+  when: openwrt_bird2_filters is defined
+
+- name: "MMN openwrtbird2 - Validate functions"
+  ansible.builtin.assert:
+    that:
+      - fn is string or (fn is mapping and fn.body is defined)
+    fail_msg: >-
+      Each openwrt_bird2_functions entry must be a verbatim function block (string)
+      or a mapping with a 'body' key.
+    success_msg: "function entry is valid."
+  loop: "{{ openwrt_bird2_functions }}"
+  loop_control:
+    loop_var: fn
+  when: openwrt_bird2_functions is defined

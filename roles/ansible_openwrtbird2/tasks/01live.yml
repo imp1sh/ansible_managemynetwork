@@ -1,0 +1,33 @@
+---
+# Live mode for imp1sh.ansible_managemynetwork.ansible_openwrtbird2.
+# Applies to a running OpenWrt device: renders config, parse-validates it,
+# reconciles packages, and enables/starts the bird service.
+
+- name: "MMN openwrtbird2 - Render bird.conf and drop-ins"
+  ansible.builtin.include_tasks: 02render.yml
+
+- name: "MMN openwrtbird2 - Reconcile packages (luci / overrides)"
+  ansible.builtin.include_role:
+    name: imp1sh.ansible_managemynetwork.ansible_packages
+  vars:
+    packages_installrole: "{{ _openwrt_bird2_packages }}"
+  when:
+    - (openwrt_bird2_with_luci | default(false) | bool) or (openwrt_bird2_packages is defined)
+
+- name: "MMN openwrtbird2 - Parse-test rendered config"
+  ansible.builtin.command:
+    argv:
+      - "{{ openwrt_bird2_binary }}"
+      - "-p"
+      - "-c"
+      - "{{ openwrt_bird2_deploypath_conf }}/{{ openwrt_bird2_deployfile_conf }}"
+  register: _openwrt_bird2_parsetest
+  changed_when: false
+  failed_when: _openwrt_bird2_parsetest.rc != 0
+  when: openwrt_bird2_validate | default(true) | bool
+
+- name: "MMN openwrtbird2 - Enable and start bird service"
+  ansible.builtin.service:
+    name: "{{ openwrt_bird2_initscript }}"
+    enabled: true
+    state: started

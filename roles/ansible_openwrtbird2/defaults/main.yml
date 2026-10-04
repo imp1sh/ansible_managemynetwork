@@ -1,0 +1,143 @@
+---
+# defaults for imp1sh.ansible_managemynetwork.ansible_openwrtbird2
+#
+# Bird 2 dynamic routing daemon for OpenWrt.
+#
+# The role is inert until `openwrt_bird2_router_id` is defined. Set it to a
+# stable IPv4 address identifying this speaker (commonly a loopback or the
+# router's primary IPv4):
+#
+#   openwrt_bird2_router_id: "192.0.2.1"
+
+# ---------------------------------------------------------------------------
+# Deployment internals (OpenWrt imagebuilder contract)
+# ---------------------------------------------------------------------------
+# Paths derive from `openwrt_bird2_deployroot` so the same templates resolve in
+# both live ("/") and imagebuilder ("<imagebuilder-files-dir>/") mode. The role
+# adopts `openwrt_imagebuilder_deployroot` automatically when it is published by
+# the imagebuilder role; override there, not here.
+openwrt_bird2_deployroot: "/"
+openwrt_bird2_deploypath_conf: "{{ openwrt_bird2_deployroot }}etc"
+openwrt_bird2_deployfile_conf: "bird.conf"
+openwrt_bird2_deploypath_initd: "{{ openwrt_bird2_deployroot }}etc/init.d"
+openwrt_bird2_deploypath_rcd: "{{ openwrt_bird2_deployroot }}etc/rc.d"
+openwrt_bird2_deploypath_dropindir: "{{ openwrt_bird2_deployroot }}etc/bird.d"
+openwrt_bird2_initscript: "bird"
+openwrt_bird2_rc_order: "S70bird"
+
+# Switch the role into imagebuilder mode. The caller play sets this (alongside
+# `packages_runimagebuilder`); the role also honours the latter as a fallback.
+openwrt_bird2_runimagebuilder: false
+
+# ---------------------------------------------------------------------------
+# Binaries (live mode only)
+# ---------------------------------------------------------------------------
+openwrt_bird2_binary: "/usr/sbin/bird"
+openwrt_bird2_birdc: "/usr/sbin/birdc"
+
+# ---------------------------------------------------------------------------
+# Behaviour toggles
+# ---------------------------------------------------------------------------
+# Parse-test the rendered config with `bird -p` before touching the live daemon.
+openwrt_bird2_validate: true
+# How to apply a changed config: "reload" => `birdc configure` (graceful);
+# "restart" => init-script restart (flaps BGP sessions).
+openwrt_bird2_reload_method: "reload"
+# Pull the LuCI companion package so the web UI can drive bird2.
+openwrt_bird2_with_luci: false
+# Base package set handed to imp1sh.ansible_managemynetwork.ansible_packages.
+openwrt_bird2_packages:
+  - "bird2"
+  - "bird2c"
+
+# ---------------------------------------------------------------------------
+# Global bird.conf settings
+# ---------------------------------------------------------------------------
+# Custom routing tables: list of {name: <str>, sorted: <bool>} dicts.
+# openwrt_bird2_tables:
+#   - name: "k8s"
+#     sorted: true
+
+# Log targets: list of {sink: "stderr"|"syslog"|"<path>", level: <str>} dicts.
+# `level` defaults to "all". Example:
+# openwrt_bird2_log_targets:
+#   - sink: "stderr"
+#     level: "{ error, warning }"
+#   - sink: "/var/log/bird.log"
+
+# Listening sockets: dict with optional `bgp` and `ospf` keys.
+# openwrt_bird2_listen:
+#   bgp:
+#     address: "::"
+#     port: 179
+
+# `include` directives emitted verbatim (list of glob/path strings).
+# openwrt_bird2_includes:
+#   - "/etc/bird.d/*.conf"
+
+# Raw escape hatches: lists of strings emitted verbatim near the top/bottom.
+# openwrt_bird2_prepend_lines: []
+# openwrt_bird2_append_lines: []
+
+# ---------------------------------------------------------------------------
+# Protocols — each is a list of dicts (see README for the full schema)
+# ---------------------------------------------------------------------------
+# Singleton `protocol device {}`. Disabled by setting `enabled: false`.
+openwrt_bird2_device:
+  enabled: true
+  scan_time: 10
+
+# protocol direct {}: list of instances.
+# openwrt_bird2_direct:
+#   - name: "direct_lan"
+#     interface: ["br-lan"]
+
+# protocol kernel {}: list of instances (commonly one per address family).
+# openwrt_bird2_kernel:
+#   - name: "kernel6"
+#     persist: true
+#     learn: false
+#     scan_time: 10
+#     ipv6:
+#       import: "none"
+#       export: "all"
+
+# protocol static {}: list of instances, each carrying a `routes` list.
+# openwrt_bird2_static:
+#   - name: "upstream_gua"
+#     routes:
+#       - type: "blackhole"
+#         prefix: "2001:db8:dead::/48"
+
+# protocol bgp {}: list of instances, optionally inheriting a template.
+# Sensitive values like `password` (TCP-MD5 auth) MUST be supplied via
+# ansible-vault; the role never hardcodes secrets.
+# openwrt_bird2_bgp_templates:
+#   - name: "K8S_PEERS"
+#     local_as: 65001
+#     hold_time: 180
+#     graceful_restart: true
+#     ipv6:
+#       import: "filter accept_upstream_gua"
+#       export: "all"
+# openwrt_bird2_bgp:
+#   - name: "k8s_node1"
+#     template: "K8S_PEERS"
+#     local_addr: "2001:db8:cafe::1"
+#     neighbor_addr: "2001:db8:cafe::11"
+#     neighbor_as: 65002
+#     add_paths: "rx"
+#     ttl_security: true
+
+# ---------------------------------------------------------------------------
+# Functions & filters — verbatim Bird 2 code
+# ---------------------------------------------------------------------------
+# List items are either a STRING (a complete filter/function block) or a
+# {name: <str>, action: "accept"|"reject"} shortcut for trivial filters.
+# openwrt_bird2_filters:
+#   - |
+#     filter accept_upstream_gua {
+#       if net = 2001:db8:dead::/48 then accept;
+#       reject;
+#     }
+# openwrt_bird2_functions: []

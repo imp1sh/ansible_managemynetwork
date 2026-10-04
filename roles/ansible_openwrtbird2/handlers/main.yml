@@ -1,0 +1,19 @@
+---
+# Handlers for imp1sh.ansible_managemynetwork.ansible_openwrtbird2.
+# Both are notified on a config change; each is guarded so only the one
+# matching openwrt_bird2_reload_method runs, and never in imagebuilder mode.
+
+- name: "MMN openwrtbird2 - Hot-reload bird via birdc"
+  ansible.builtin.command: "{{ openwrt_bird2_birdc }} configure"
+  changed_when: true
+  when:
+    - not _openwrt_bird2_is_imagebuilder
+    - openwrt_bird2_reload_method | default("reload") == "reload"
+
+- name: "MMN openwrtbird2 - Restart bird service"
+  ansible.builtin.service:
+    name: "{{ openwrt_bird2_initscript }}"
+    state: restarted
+  when:
+    - not _openwrt_bird2_is_imagebuilder
+    - openwrt_bird2_reload_method | default("reload") == "restart"

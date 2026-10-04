@@ -1,0 +1,24 @@
+---
+galaxy_info:
+  role_name: ansible_openwrtbird2
+  author: Jochen Demmer
+  description: >-
+    Bird 2 dynamic routing daemon for OpenWrt (BGP, static, kernel, device),
+    with OpenWrt imagebuilder support.
+  company: libcom.de
+  issue_tracker_url: https://github.com/imp1sh/ansible_managemynetwork/issues
+  license: BSD-3-Clause
+  min_ansible_version: "2.11"
+  platforms:
+    - name: OpenWrt
+      versions:
+        - "22.03"
+        - "23.05"
+        - "24.10"
+  galaxy_tags: [openwrt, lede, bird, bird2, bgp, routing, cilium, kubernetes]
+dependencies:
+  - role: imp1sh.ansible_managemynetwork.ansible_packages
+    vars:
+      packages_installrole:
+        - bird2
+        - bird2c

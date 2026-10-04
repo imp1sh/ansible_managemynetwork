@@ -1,0 +1,221 @@
+{#- Bird 2 configuration managed by imp1sh.ansible_managemynetwork.ansible_openwrtbird2. -#}
+# Distributed by Ansible (role: imp1sh.ansible_managemynetwork.ansible_openwrtbird2)
+# Host: {{ inventory_hostname }}
+#
+# Bird 2 syntax reference: https://bird.network.cz/?get_doc&v=20-08-2024&f=bird.html
+{% macro channel(afi, c, proto="other") -%}
+{%- set _bgp = proto == "bgp" -%}
+{%- set _content = (c.import is defined) or (c.export is defined) or (_bgp and ((c.next_hop_self | default(false) | bool) or (c.next_hop_keep | default(false) | bool) or (c.extended_next_hop | default(false) | bool) or (c.gateway is defined) or (c.missing_lladdr is defined))) or ((c.extra_channel_options | default([])) | length > 0) -%}
+{%- if not _content %}
+  {{ afi }};
+{%- else %}
+  {{ afi }} {
+{% if c.import is defined %}    import {{ c.import }};
+{% endif %}{% if c.export is defined %}    export {{ c.export }};
+{% endif %}{% if _bgp and c.next_hop_self | default(false) | bool %}    next hop self;
+{% endif %}{% if _bgp and c.next_hop_keep | default(false) | bool %}    next hop keep;
+{% endif %}{% if _bgp and c.extended_next_hop | default(false) | bool %}    extended next hop;
+{% endif %}{% if _bgp and c.gateway is defined %}    gateway {{ c.gateway }};
+{% endif %}{% if _bgp and c.missing_lladdr is defined %}    missing lladdr {{ c.missing_lladdr }};
+{% endif %}{% for eo in c.extra_channel_options | default([]) %}    {{ eo }}
+{% endfor %}  };
+{%- endif -%}
+{%- endmacro %}
+
+{% for line in openwrt_bird2_prepend_lines | default([]) %}
+{{ line }}
+{% endfor %}
+
+{% for lt in openwrt_bird2_log_targets | default([]) %}
+{% if lt.sink in ["stderr", "syslog"] %}log {{ lt.sink }} {{ lt.level | default("all") }};
+{% else %}log "{{ lt.sink }}" {{ lt.level | default("all") }};
+{% endif %}
+{% endfor %}
+
+router id {{ openwrt_bird2_router_id }};
+
+{% if openwrt_bird2_listen is defined %}
+{% if openwrt_bird2_listen.bgp is defined %}listen bgp{{ " address " ~ openwrt_bird2_listen.bgp.address if openwrt_bird2_listen.bgp.address is defined }}{{ " port " ~ (openwrt_bird2_listen.bgp.port | string) if openwrt_bird2_listen.bgp.port is defined }};
+{% endif %}
+{% if openwrt_bird2_listen.ospf is defined %}listen ospf {{ "yes" if openwrt_bird2_listen.ospf | bool else "no" }};
+{% endif %}
+{% endif %}
+
+{% for inc in openwrt_bird2_includes | default([]) %}
+include "{{ inc }}";
+{% endfor %}
+
+{% for tbl in openwrt_bird2_tables | default([]) %}
+table {{ tbl.name }}{{ " sorted" if tbl.sorted | default(false) | bool }};
+{% endfor %}
+
+{% for fn in openwrt_bird2_functions | default([]) %}
+{% if fn is string %}
+{{ fn }}
+{% elif fn is mapping %}
+function {{ fn.name | default("") }}{% if fn.args is defined %}({% for a in fn.args %}{{ a.type }} {{ a.name }}{% if not loop.last %}, {% endif %}{% endfor %}){% endif %}{% if fn.return_type is defined %} -> {{ fn.return_type }}{% endif %} {
+{{ fn.body | trim | indent(2, True) }}
+}
+{% endif %}
+{% endfor %}
+
+{% for flt in openwrt_bird2_filters | default([]) %}
+{% if flt is string %}
+{{ flt }}
+{% elif flt is mapping %}
+filter {{ flt.name }} {
+  {{ flt.action }};
+}
+{% endif %}
+{% endfor %}
+
+{% if openwrt_bird2_device is defined and openwrt_bird2_device.enabled | default(true) | bool %}
+protocol device {
+{% if openwrt_bird2_device.scan_time is defined %}  scan time {{ openwrt_bird2_device.scan_time }};
+{% endif %}{% for eo in openwrt_bird2_device.extra_options | default([]) %}  {{ eo }}
+{% endfor %}}
+
+{% endif %}
+
+{% for d in openwrt_bird2_direct | default([]) %}
+protocol direct{{ ' "' ~ d.name ~ '"' if d.name is defined }} {
+{% if d.interface is defined %}  interface {% if d.interface is string %}"{{ d.interface }}"{% else %}{% for iface in d.interface %}"{{ iface }}"{% if not loop.last %}, {% endif %}{% endfor %}{% endif %};
+{% endif %}{% if d.check_link | default(false) | bool %}  check link;
+{% endif %}{% for eo in d.extra_options | default([]) %}  {{ eo }}
+{% endfor %}{% if d.ipv4 is defined %}
+{{ channel("ipv4", d.ipv4) }}
+{% endif %}{% if d.ipv6 is defined %}
+{{ channel("ipv6", d.ipv6) }}
+{% endif %}}
+
+{% endfor %}
+
+{% for k in openwrt_bird2_kernel | default([]) %}
+protocol kernel{{ ' "' ~ k.name ~ '"' if k.name is defined }} {
+{% if k.learn | default(false) | bool %}  learn;
+{% endif %}{% if k.persist | default(false) | bool %}  persist;
+{% endif %}{% if k.scan_time is defined %}  scan time {{ k.scan_time }};
+{% endif %}{% if k.kernel_table is defined %}  kernel table {{ k.kernel_table }};
+{% endif %}{% if k.table is defined %}  table {{ k.table }};
+{% endif %}{% if k.metric is defined %}  metric {{ k.metric }};
+{% endif %}{% if k.device_routes | default(false) | bool %}  device routes;
+{% endif %}{% if k.graceful_restart | default(false) | bool %}  graceful restart;
+{% endif %}{% for eo in k.extra_options | default([]) %}  {{ eo }}
+{% endfor %}{% if k.ipv4 is defined %}
+{{ channel("ipv4", k.ipv4) }}
+{% endif %}{% if k.ipv6 is defined %}
+{{ channel("ipv6", k.ipv6) }}
+{% endif %}}
+
+{% endfor %}
+
+{% for s in openwrt_bird2_static | default([]) %}
+protocol static{{ ' "' ~ s.name ~ '"' if s.name is defined }} {
+{% if s.table is defined %}  table {{ s.table }};
+{% endif %}{% for eo in s.extra_options | default([]) %}  {{ eo }}
+{% endfor %}{% if s.ipv4 is defined %}
+{{ channel("ipv4", s.ipv4) }}
+{% endif %}{% if s.ipv6 is defined %}
+{{ channel("ipv6", s.ipv6) }}
+{% endif %}{% for r in s.routes | default([]) %}
+{% if r.type | default("route") == "route" %}
+{% if r.via is iterable and r.via is not string %}
+{% for nh in r.via %}  route {{ r.prefix }} via {{ nh }}{{ " bfd" if r.bfd | default(false) | bool }};
+{% endfor %}
+{% else %}  route {{ r.prefix }} via {{ r.via }}{{ " bfd" if r.bfd | default(false) | bool }}{% if r.attributes is defined %} {
+{% for a in r.attributes %}    {{ a }}
+{% endfor %}  }{% endif %};
+{% endif %}
+{% else %}  {{ r.type }} {{ r.prefix }}{% if r.attributes is defined %} {
+{% for a in r.attributes %}    {{ a }}
+{% endfor %}  }{% endif %};
+{% endif %}
+{% endfor %}}
+
+{% endfor %}
+
+{% for tmpl in openwrt_bird2_bgp_templates | default([]) %}
+template bgp {{ tmpl.name }} {
+{% if tmpl.local_addr is defined or tmpl.local_as is defined %}  local{{ " " ~ tmpl.local_addr if tmpl.local_addr is defined }}{{ " as " ~ (tmpl.local_as | string) if tmpl.local_as is defined }};
+{% endif %}{% if tmpl.neighbor_as is defined %}  neighbor as {{ tmpl.neighbor_as }};
+{% endif %}{% if tmpl.source_address is defined %}  source address {{ tmpl.source_address }};
+{% endif %}{% if tmpl.igp_table is defined %}  igp table {{ tmpl.igp_table }};
+{% endif %}{% for key, bn in _openwrt_bird2_bgp_time_opts %}{% if tmpl[key] is defined %}  {{ bn }} {{ tmpl[key] }};
+{% endif %}{% endfor %}{% if tmpl.multihop is defined %}{% if tmpl.multihop is boolean %}{% if tmpl.multihop %}  multihop;
+{% endif %}{% else %}  multihop {{ tmpl.multihop }};
+{% endif %}{% endif %}{% if tmpl.passive | default(false) | bool %}  passive;
+{% endif %}{% if tmpl.direct | default(false) | bool %}  direct;
+{% endif %}{% if tmpl.rr_client | default(false) | bool %}  rr client;
+{% endif %}{% if tmpl.rr_cluster_id is defined %}  rr cluster id {{ tmpl.rr_cluster_id }};
+{% endif %}{% if tmpl.rs_client | default(false) | bool %}  rs client;
+{% endif %}{% if tmpl.secondary | default(false) | bool %}  secondary;
+{% endif %}{% if tmpl.check_link | default(false) | bool %}  check link;
+{% endif %}{% if tmpl.bfd | default(false) | bool %}  bfd;
+{% endif %}{% if tmpl.add_paths is defined %}{% if tmpl.add_paths is boolean %}  add paths;
+{% else %}  add paths {{ tmpl.add_paths }};
+{% endif %}{% endif %}{% if tmpl.allow_bgp_local_pref | default(false) | bool %}  allow bgp_local_pref;
+{% endif %}{% if tmpl.allow_local_as is defined %}{% if tmpl.allow_local_as is boolean %}{% if tmpl.allow_local_as %}  allow local as;
+{% endif %}{% else %}  allow local as {{ tmpl.allow_local_as }};
+{% endif %}{% endif %}{% if tmpl.disable_after_error | default(false) | bool %}  disable after error;
+{% endif %}{% if tmpl.prefer_older | default(false) | bool %}  prefer older;
+{% endif %}{% if tmpl.med_metric | default(false) | bool %}  med metric;
+{% endif %}{% if tmpl.graceful_restart is defined %}{% if tmpl.graceful_restart is boolean %}{% if tmpl.graceful_restart %}  graceful restart;
+{% endif %}{% else %}  graceful restart {{ tmpl.graceful_restart }};
+{% endif %}{% endif %}{% if tmpl.long_lived_graceful_restart is defined %}{% if tmpl.long_lived_graceful_restart is boolean %}{% if tmpl.long_lived_graceful_restart %}  long lived graceful restart;
+{% endif %}{% else %}  long lived graceful restart {{ tmpl.long_lived_graceful_restart }};
+{% endif %}{% endif %}{% if tmpl.ttl_security | default(false) | bool %}  ttl security;
+{% endif %}{% if tmpl.password is defined %}  password "{{ tmpl.password }}";
+{% endif %}{% if tmpl.disabled | default(false) | bool %}  disabled;
+{% endif %}{% for eo in tmpl.extra_options | default([]) %}  {{ eo }}
+{% endfor %}{% if tmpl.ipv4 is defined %}
+{{ channel("ipv4", tmpl.ipv4, "bgp") }}
+{% endif %}{% if tmpl.ipv6 is defined %}
+{{ channel("ipv6", tmpl.ipv6, "bgp") }}
+{% endif %}}
+
+{% endfor %}
+
+{% for b in openwrt_bird2_bgp | default([]) %}
+protocol bgp {{ b.name }}{{ " from " ~ b.template if b.template is defined }} {
+{% if b.local_addr is defined or b.local_as is defined %}  local{{ " " ~ b.local_addr if b.local_addr is defined }}{{ " as " ~ (b.local_as | string) if b.local_as is defined }};
+{% endif %}{% if b.neighbor_addr is defined or b.neighbor_range is defined or b.neighbor_as is defined %}  neighbor{{ " " ~ b.neighbor_addr if b.neighbor_addr is defined }}{{ " " ~ b.neighbor_range if b.neighbor_range is defined }}{{ " as " ~ (b.neighbor_as | string) if b.neighbor_as is defined }};
+{% endif %}{% if b.source_address is defined %}  source address {{ b.source_address }};
+{% endif %}{% if b.igp_table is defined %}  igp table {{ b.igp_table }};
+{% endif %}{% for key, bn in _openwrt_bird2_bgp_time_opts %}{% if b[key] is defined %}  {{ bn }} {{ b[key] }};
+{% endif %}{% endfor %}{% if b.multihop is defined %}{% if b.multihop is boolean %}{% if b.multihop %}  multihop;
+{% endif %}{% else %}  multihop {{ b.multihop }};
+{% endif %}{% endif %}{% if b.passive | default(false) | bool %}  passive;
+{% endif %}{% if b.direct | default(false) | bool %}  direct;
+{% endif %}{% if b.rr_client | default(false) | bool %}  rr client;
+{% endif %}{% if b.rr_cluster_id is defined %}  rr cluster id {{ b.rr_cluster_id }};
+{% endif %}{% if b.rs_client | default(false) | bool %}  rs client;
+{% endif %}{% if b.secondary | default(false) | bool %}  secondary;
+{% endif %}{% if b.check_link | default(false) | bool %}  check link;
+{% endif %}{% if b.bfd | default(false) | bool %}  bfd;
+{% endif %}{% if b.add_paths is defined %}{% if b.add_paths is boolean %}  add paths;
+{% else %}  add paths {{ b.add_paths }};
+{% endif %}{% endif %}{% if b.allow_bgp_local_pref | default(false) | bool %}  allow bgp_local_pref;
+{% endif %}{% if b.allow_local_as is defined %}{% if b.allow_local_as is boolean %}{% if b.allow_local_as %}  allow local as;
+{% endif %}{% else %}  allow local as {{ b.allow_local_as }};
+{% endif %}{% endif %}{% if b.disable_after_error | default(false) | bool %}  disable after error;
+{% endif %}{% if b.prefer_older | default(false) | bool %}  prefer older;
+{% endif %}{% if b.med_metric | default(false) | bool %}  med metric;
+{% endif %}{% if b.graceful_restart is defined %}{% if b.graceful_restart is boolean %}{% if b.graceful_restart %}  graceful restart;
+{% endif %}{% else %}  graceful restart {{ b.graceful_restart }};
+{% endif %}{% endif %}{% if b.long_lived_graceful_restart is defined %}{% if b.long_lived_graceful_restart is boolean %}{% if b.long_lived_graceful_restart %}  long lived graceful restart;
+{% endif %}{% else %}  long lived graceful restart {{ b.long_lived_graceful_restart }};
+{% endif %}{% endif %}{% if b.ttl_security | default(false) | bool %}  ttl security;
+{% endif %}{% if b.password is defined %}  password "{{ b.password }}";
+{% endif %}{% if b.disabled | default(false) | bool %}  disabled;
+{% endif %}{% for eo in b.extra_options | default([]) %}  {{ eo }}
+{% endfor %}{% if b.ipv4 is defined %}
+{{ channel("ipv4", b.ipv4, "bgp") }}
+{% endif %}{% if b.ipv6 is defined %}
+{{ channel("ipv6", b.ipv6, "bgp") }}
+{% endif %}}
+
+{% endfor %}
+
+{% for line in openwrt_bird2_append_lines | default([]) %}
+{{ line }}
+{% endfor %}
