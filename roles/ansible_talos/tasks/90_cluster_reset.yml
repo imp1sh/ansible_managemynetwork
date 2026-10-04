@@ -1,10 +1,12 @@
+---
 - name: MMN Talos - Reset worker nodes
-  ansible.builtin.command: talosctl reset -n talos_cluster.value.hosts_controlplane[0].ip4[0] -e clusternode.ip4[0] --reboot
-  loop: talos_cluster.value.hosts.worker
+  ansible.builtin.command: "talosctl reset --nodes {{ clusternode.ip4[0] | ansible.utils.ipaddr('address') }} --endpoints {{ clusternode.ip4[0] | ansible.utils.ipaddr('address') }} --reboot"
+  loop: "{{ talos_cluster.value.hosts_worker | default([]) }}"
   loop_control:
     loop_var: clusternode
-- name: MMN Talos - Reset cluster nodes
-  ansible.builtin.command: talosctl reset -n talos_cluster.value.hosts_controlplane[0].ip4[0] -e clusternode.ip4[0] --reboot
-  loop: talos_cluster.value.hosts.worker | reverse
+
+- name: MMN Talos - Reset controlplane nodes (reverse order)
+  ansible.builtin.command: "talosctl reset --nodes {{ clusternode.ip4[0] | ansible.utils.ipaddr('address') }} --endpoints {{ clusternode.ip4[0] | ansible.utils.ipaddr('address') }} --reboot"
+  loop: "{{ talos_cluster.value.hosts_controlplane | reverse }}"
   loop_control:
     loop_var: clusternode

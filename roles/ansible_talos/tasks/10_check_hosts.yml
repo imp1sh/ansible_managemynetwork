@@ -1,31 +1,56 @@
 ---
-# CHECK HOSTS
-#- name: debug
-#  debug:
-#    msg: "Knoten {{ cpnode.ip4[0] | ansible.utils.ipaddr('address') }}"
-#  loop: "{{ talos_cluster.value.hosts_controlplane }}"
-#  loop_control:
-#    loop_var:  cpnode
-- name: MMN Talos - Implicitly check the control plane node's availability
-  ansible.builtin.command: "talosctl get disks --insecure -n {{ cpnode.ip4[0] | ansible.utils.ipaddr('address') }}"
+# CHECK HOSTS — query each node for its disk, store results
+
+# CONTROLPLANE: query disks (parse text output, not JSON)
+- name: MMN Talos - Query controlplane node disks
+  ansible.builtin.shell: "talosctl get disks --insecure -n {{ cpnode.ip4[0] | ansible.utils.ipaddr('address') }} | awk 'NR>1 && $7 == \"false\" {print $4}' | head -1"
   loop: "{{ talos_cluster.value.hosts_controlplane }}"
   loop_control:
-    loop_var:  cpnode
+    loop_var: cpnode
   changed_when: false
-    #- name: MMN Talos - Parse and store disk device paths per node
-    #  ansible.builtin.set_fact:
-    #    disks_per_node: "{{ disks_per_node | default({}) | combine({
-    #      item.item.ip4[0]: item.stdout | from_json
-    #    }) }}"
-    #  loop: "{{ disks_output.results }}"
-    #  loop_control:
-    #    label: "{{ item.item.ip4[0] }}"
-    #- name: debug
-    #  debug:
-    #    var: disks_per_node
-- name: MMN Talos - Implicitly check the worker node's availability
-  ansible.builtin.command: "talosctl get disks --insecure -n {{ workernode.ip4[0] | ansible.utils.ipaddr('address') }}"
-  loop: "{{ talos_cluster.value.hosts_worker }}"
+  register: talos_cp_disks_raw
+
+- name: MMN Talos - Build disk map for controlplane nodes
+  ansible.builtin.set_fact:
+    talos_cp_disk_map: "{{ talos_cp_disk_map | default({}) | combine({item.cpnode.name: item.stdout | trim | default('/dev/sda', true)}) }}"
+  loop: "{{ talos_cp_disks_raw.results }}"
   loop_control:
-    loop_var:  workernode
+    label: "{{ item.cpnode.name }}"
+
+- name: MMN Talos - Enrich controlplane hosts with discovered disk
+  ansible.builtin.set_fact:
+    talos_cluster_hosts_cp: "{{ talos_cluster_hosts_cp | default([]) + [item | combine({'systemdisk': talos_cp_disk_map[item.name]})] }}"
+  loop: "{{ talos_cluster.value.hosts_controlplane }}"
+  loop_control:
+    label: "{{ item.name }}"
+
+- name: MMN Talos - Debug controlplane discovered disks
+  ansible.builtin.debug:
+    var: talos_cluster_hosts_cp
+  when: mmn_verbose | default(false) | bool
+
+# WORKERS: query disks
+- name: MMN Talos - Query worker node disks
+  ansible.builtin.shell: "talosctl get disks --insecure -n {{ workernode.ip4[0] | ansible.utils.ipaddr('address') }} | awk 'NR>1 && $7 == \"false\" {print $4}' | head -1"
+  loop: "{{ talos_cluster.value.hosts_worker | default([]) }}"
+  loop_control:
+    loop_var: workernode
   changed_when: false
+  register: talos_worker_disks_raw
+  when: talos_cluster.value.hosts_worker | default([]) | length > 0
+
+- name: MMN Talos - Build disk map for worker nodes
+  ansible.builtin.set_fact:
+    talos_worker_disk_map: "{{ talos_worker_disk_map | default({}) | combine({item.workernode.name: item.stdout | trim | default('/dev/sda', true)}) }}"
+  loop: "{{ talos_worker_disks_raw.results | default([]) }}"
+  loop_control:
+    label: "{{ item.workernode.name }}"
+  when: talos_cluster.value.hosts_worker | default([]) | length > 0
+
+- name: MMN Talos - Enrich worker hosts with discovered disk
+  ansible.builtin.set_fact:
+    talos_cluster_hosts_worker: "{{ talos_cluster_hosts_worker | default([]) + [item | combine({'systemdisk': talos_worker_disk_map[item.name]})] }}"
+  loop: "{{ talos_cluster.value.hosts_worker | default([]) }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when: talos_cluster.value.hosts_worker | default([]) | length > 0

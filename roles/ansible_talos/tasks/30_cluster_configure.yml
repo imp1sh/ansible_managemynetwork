@@ -6,14 +6,29 @@
 - name: MMN Talos - Generate secrets file for cluster "{{ talos_cluster.key }}"
   ansible.builtin.command: "talosctl gen secrets -o {{ talos_config_path }}/{{ talos_secrets_file }}"
   when: "not talos_secrets_stat_result.stat.exists"
+
+- name: MMN Talos - Generate controlplane cluster-wide patchfile for cluster "{{ talos_cluster.key }}"
+  ansible.builtin.template:
+    src: controlplane_patch.yaml.j2
+    dest: "{{ talos_patches_path }}/{{ talos_filename_controlplane_patch }}"
+
 - name: MMN Talos - Check if config file is already there
   ansible.builtin.stat:
     path: "{{ talos_config_path }}/controlplane.yaml"
   register: talos_stat_result
+
 - name: MMN Talos - Generate config file for cluster "{{ talos_cluster.key }}"
-  ansible.builtin.command: "talosctl gen config --with-secrets {{ talos_config_path }}/{{ talos_secrets_file }} {{ talos_cluster.key }} https://{{ talos_cluster.value.api_fqdn }}:6443 --output-dir {{ talos_config_path }} --install-disk {{ talos_global_disk | default('/dev/sda') }} --install-image ghcr.io/siderolabs/installer:{{ talos_cluster.value.talos_version | default(talos_version) }}"
+  ansible.builtin.command: >-
+    talosctl gen config
+    --with-secrets {{ talos_config_path }}/{{ talos_secrets_file }}
+    {{ talos_cluster.key }} https://{{ talos_cluster.value.api_fqdn }}:6443
+    --output-dir {{ talos_config_path }}
+    --install-disk {{ talos_cp_disk_map[talos_cluster.value.hosts_controlplane[0].name] | default('/dev/sda') }}
+    --install-image factory.talos.dev/metal-installer/376567988ad370138ad8b2698212367b8edcb69b5fd68c80be1f2ec7d603b4ba:{{ talos_cluster.value.talos_version | default(talos_version) }}
+    --config-patch-control-plane @{{ talos_patches_path }}/{{ talos_filename_controlplane_patch }}
   when: "not talos_stat_result.stat.exists"
   changed_when: true
+
 - name: "MMN Talos - Remove 'auto: stable' to allow static hostname via patch in controlplane.yaml"
   ansible.builtin.lineinfile:
     path: "{{ talos_config_path }}/controlplane.yaml"

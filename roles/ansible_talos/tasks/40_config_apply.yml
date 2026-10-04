@@ -1,41 +1,25 @@
 ---
-# CLUSTER WIDE PATCHING
-# CONTROLPLANE
-- name: MMN Talos - Generate controlplane patchfile for cluster "{{ talos_cluster.key }}"
-  ansible.builtin.template:
-    src: controlplane_patch.yaml.j2
-    dest: "{{ talos_patches_path }}/{{ talos_filename_controlplane_patch }}"
-- name: MMN Talos - Apply controlplane patchfile for cluster "{{ talos_cluster.key }}"
-  ansible.builtin.command:
-    cmd: "talosctl machineconfig patch {{ talos_config_path }}/controlplane.yaml -p @{{ talos_patches_path }}/{{ talos_filename_controlplane_patch }} -o {{ talos_config_path }}/{{ talos_filename_controlplane_patched }}"
-# WORKER
-- name: MMN Talos - Generate worker nodes patchfile for cluster "{{ talos_cluster.key }}"
-  ansible.builtin.template:
-    src: worker_patch.yaml.j2
-    dest: "{{ talos_patches_path }}/{{ talos_filename_worker_patch }}"
-- name: MMN Talos - Apply worker nodes patchfile for cluster "{{ talos_cluster.key }}"
-  ansible.builtin.command:
-    cmd: "talosctl machineconfig patch {{ talos_config_path }}/worker.yaml -p @{{ talos_patches_path }}/{{ talos_filename_worker_patch }} -o {{ talos_config_path }}/{{ talos_filename_worker_patched }}"
+# HOST-SPECIFIC PATCHING ONLY
+# Cluster-wide patches are applied during `talosctl gen config` via --config-patch flags.
 
 # CONTROLPLANE NODES
-- name: MMN Talos - Generate controlpane host patches
+- name: MMN Talos - Generate controlplane host patches
   ansible.builtin.template:
     src: controlplane_patch_hostspecific.yaml.j2
     dest: "{{ talos_patches_path }}/controlplane_{{ clusternode.name }}_patch.yaml"
-  loop: "{{ talos_cluster.value.hosts_controlplane }}"
+  loop: "{{ talos_cluster_hosts_cp }}"
   loop_control:
     loop_var: clusternode
 - name: MMN Talos - Apply controlplane host patchfiles
   ansible.builtin.command:
-    cmd: "talosctl machineconfig patch {{ talos_config_path }}/{{ talos_filename_controlplane_patched }} -p @{{ talos_patches_path }}/controlplane_{{ clusternode.name }}_patch.yaml -o {{ talos_config_path }}/controlplane_{{ clusternode.name }}.yaml"
-  loop: "{{ talos_cluster.value.hosts_controlplane }}"
+    cmd: "talosctl machineconfig patch {{ talos_config_path }}/controlplane.yaml -p @{{ talos_patches_path }}/controlplane_{{ clusternode.name }}_patch.yaml -o {{ talos_config_path }}/controlplane_{{ clusternode.name }}.yaml"
+  loop: "{{ talos_cluster_hosts_cp }}"
   loop_control:
-    loop_var:  clusternode
-# hier sollte ich einen schalter einbauen entweder boostrap (--insecure) oder apply auf running cluster
+    loop_var: clusternode
 - name: MMN Talos - Deploy controlplane hosts
   ansible.builtin.command:
     cmd: "talosctl apply-config --insecure --nodes {{ clusternode.ip4[0] | ansible.utils.ipaddr('address') }} --endpoints {{ clusternode.ip4[0] | ansible.utils.ipaddr('address') }} --file {{ talos_config_path }}/controlplane_{{ clusternode.name }}.yaml"
-  loop: "{{ talos_cluster.value.hosts_controlplane }}"
+  loop: "{{ talos_cluster_hosts_cp }}"
   loop_control:
     loop_var: clusternode
 
@@ -44,19 +28,18 @@
   ansible.builtin.template:
     src: worker_patch_hostspecific.yaml.j2
     dest: "{{ talos_patches_path }}/worker_{{ clusternode.name }}_patch.yaml"
-  loop: "{{ talos_cluster.value.hosts_worker }}"
+  loop: "{{ talos_cluster_hosts_worker | default([]) }}"
   loop_control:
     loop_var: clusternode
 - name: MMN Talos - Apply worker node patchfiles
   ansible.builtin.command:
-    cmd: "talosctl machineconfig patch {{ talos_config_path }}/{{ talos_filename_worker_patched }} -p @{{ talos_patches_path }}/worker_{{ clusternode.name }}_patch.yaml -o {{ talos_config_path }}/worker_{{ clusternode.name }}.yaml"
-  loop: "{{ talos_cluster.value.hosts_worker }}"
+    cmd: "talosctl machineconfig patch {{ talos_config_path }}/worker.yaml -p @{{ talos_patches_path }}/worker_{{ clusternode.name }}_patch.yaml -o {{ talos_config_path }}/worker_{{ clusternode.name }}.yaml"
+  loop: "{{ talos_cluster_hosts_worker | default([]) }}"
   loop_control:
-    loop_var:  clusternode
-# hier sollte ich einen schalter einbauen entweder boostrap (--insecure) oder apply auf running cluster
-- name: MMN Talos - Deyploy worker nodes
+    loop_var: clusternode
+- name: MMN Talos - Deploy worker nodes
   ansible.builtin.command:
-    cmd: "talosctl apply-config --insecure --nodes {{ clusternode.name }} --endpoints {{ clusternode.ip4[0] | ansible.utils.ipaddr('address') }} --file {{ talos_config_path }}/worker_{{ clusternode.name }}.yaml"
-  loop: "{{ talos_cluster.value.hosts_worker }}"
+    cmd: "talosctl apply-config --insecure --nodes {{ clusternode.ip4[0] | ansible.utils.ipaddr('address') }} --endpoints {{ clusternode.ip4[0] | ansible.utils.ipaddr('address') }} --file {{ talos_config_path }}/worker_{{ clusternode.name }}.yaml"
+  loop: "{{ talos_cluster_hosts_worker | default([]) }}"
   loop_control:
     loop_var: clusternode
