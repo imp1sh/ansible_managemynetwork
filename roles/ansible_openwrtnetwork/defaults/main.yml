@@ -25,3 +25,17 @@ openwrt_network_wireguardpeers: {}
 
 # Generate QR code PNGs for wireguard client configs (requires qrencode on the controller)
 openwrt_network_wg_generateqr: false
+
+# Kubernetes inbound LB sync (dynamic GUA pool from PD)
+# When enabled, deploys a hotplug script that syncs the ISP-delegated IPv6
+# prefix to a CiliumLoadBalancerIPPool CRD in Kubernetes on each PD rotation.
+openwrt_network_k8s_inbound: false
+openwrt_network_k8s_api_token: ""
+openwrt_network_k8s_subnetid: "20"
+openwrt_network_k8s_api: ""
+openwrt_network_k8s_poolname: "junicluster0-lb-pool-gua"
+openwrt_network_k8s_waninterface: "wan6"
+openwrt_network_k8s_landevice: "br-lan"
+openwrt_network_k8s_tokenfile: "/etc/cilium-pd-sync/token"
+openwrt_network_k8s_chainname: "k8s_lb"
+openwrt_network_k8s_hotplug_script: "/etc/hotplug.d/iface/99-cilium-pd-sync"

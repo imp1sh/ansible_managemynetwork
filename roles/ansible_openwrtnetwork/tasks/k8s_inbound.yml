@@ -1,0 +1,58 @@
+---
+# Kubernetes inbound LB sync — deploy hotplug script + token for dynamic GUA pool
+# Condition: openwrt_network_k8s_inbound is true
+
+- name: "k8s inbound - Assert required variables are set"
+  ansible.builtin.assert:
+    that:
+      - openwrt_network_k8s_api | length > 0
+      - openwrt_network_k8s_api_token | length > 0
+      - openwrt_network_k8s_subnetid | length > 0
+      - openwrt_network_k8s_poolname | length > 0
+    fail_msg: "openwrt_network_k8s_inbound is true but required variables are missing. Need: k8s_api, k8s_api_token, k8s_subnetid, k8s_poolname."
+    success_msg: "Required k8s inbound variables are set."
+
+- name: "k8s inbound - Ensure curl is installed"
+  ansible.builtin.command: apk add curl
+  register: _k8s_curl_install
+  changed_when: "'Installing' in _k8s_curl_install.stdout or 'Downloading' in _k8s_curl_install.stdout"
+  failed_when: _k8s_curl_install.rc != 0 and 'already satisfied' not in _k8s_curl_install.stderr
+
+- name: "k8s inbound - Ensure token directory exists"
+  ansible.builtin.file:
+    path: "{{ openwrt_network_k8s_tokenfile | dirname }}"
+    state: directory
+    mode: "0700"
+    owner: root
+
+- name: "k8s inbound - Deploy K8s API token"
+  ansible.builtin.copy:
+    dest: "{{ openwrt_network_k8s_tokenfile }}"
+    content: "{{ openwrt_network_k8s_api_token }}"
+    mode: "0600"
+    owner: root
+  no_log: true
+
+- name: "k8s inbound - Deploy hotplug script"
+  ansible.builtin.template:
+    src: k8s-pd-sync-hotplug.j2
+    dest: "{{ openwrt_network_k8s_hotplug_script }}"
+    mode: "0755"
+    owner: root
+
+- name: "k8s inbound - Clear state file to force initial run"
+  ansible.builtin.file:
+    path: "/tmp/cilium-pd-sync-gua-prefix"
+    state: absent
+
+- name: "k8s inbound - Trigger initial sync"
+  ansible.builtin.shell: |
+    INTERFACE={{ openwrt_network_k8s_waninterface }} ACTION=ifup {{ openwrt_network_k8s_hotplug_script }}
+  register: _k8s_pd_sync_initial
+  changed_when: false
+  failed_when: false
+
+- name: "k8s inbound - Log initial sync result"
+  ansible.builtin.debug:
+    msg: "{{ _k8s_pd_sync_initial.stderr_lines | default(['Initial sync completed']) }}"
+  when: _k8s_pd_sync_initial.stderr_lines is defined

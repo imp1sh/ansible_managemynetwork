@@ -97,6 +97,11 @@
   ansible.builtin.include_tasks: ha.yml
   when: openwrt_network_hamaster is defined or openwrt_network_habackup is defined
 
+# Kubernetes inbound LB sync
+- name: Run k8s inbound sync tasks
+  ansible.builtin.include_tasks: k8s_inbound.yml
+  when: openwrt_network_k8s_inbound | bool
+
 - name: MMN openwrtnetwork - Check if interfaces are present
   pause:
     prompt: "Neither interfaceshost nor interfacesgroup is defined. Do you still want to deploy network config? [yes/no]"

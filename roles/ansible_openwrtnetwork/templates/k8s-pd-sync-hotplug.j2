@@ -1,0 +1,73 @@
+#!/bin/sh
+# Sync dynamic PD prefix to Cilium LB IPAM GUA pool for Kubernetes
+# Deployed by ansible_openwrtnetwork role when openwrt_network_k8s_inbound is true.
+# Triggers on {{ openwrt_network_k8s_waninterface }} interface events (ifup, ifupdate).
+
+[ "$INTERFACE" = "{{ openwrt_network_k8s_waninterface }}" ] || exit 0
+[ "$ACTION" = "ifup" -o "$ACTION" = "ifupdate" ] || exit 0
+
+POOL_NAME="{{ openwrt_network_k8s_poolname }}"
+SUBNET_ID="{{ openwrt_network_k8s_subnetid }}"
+K8S_API="{{ openwrt_network_k8s_api }}"
+TOKEN_FILE="{{ openwrt_network_k8s_tokenfile }}"
+STATE_FILE="/tmp/cilium-pd-sync-gua-prefix"
+CHAIN_NAME="{{ openwrt_network_k8s_chainname }}"
+LAN_DEV="{{ openwrt_network_k8s_landevice }}"
+
+TOKEN=$(cat "$TOKEN_FILE" 2>/dev/null)
+[ -z "$TOKEN" ] && logger -t pd-sync "No token found at $TOKEN_FILE" && exit 0
+
+. /lib/functions/network.sh
+network_flush_cache
+network_find_wan6 WAN_IF
+network_get_device WAN_DEV "${WAN_IF}"
+network_get_prefix6 WAN_PFX "${WAN_IF}"
+[ -z "$WAN_PFX" ] && logger -t pd-sync "No PD prefix on {{ openwrt_network_k8s_waninterface }}" && exit 0
+
+# Derive GUA /64 from PD /56 + fixed subnet ID
+GUA_BASE=$(echo "$WAN_PFX" | cut -d: -f1-3)
+GUA_PFX="${GUA_BASE}:${SUBNET_ID}::/64"
+
+# Skip if unchanged
+OLD_PFX=$(cat "$STATE_FILE" 2>/dev/null)
+[ "$OLD_PFX" = "$GUA_PFX" ] && exit 0
+
+logger -t pd-sync "New GUA prefix: ${GUA_PFX}"
+
+# Remove old route
+if [ -n "$OLD_PFX" ]; then
+    ip -6 route del "$OLD_PFX" dev "$LAN_DEV" 2>/dev/null
+fi
+
+# Add route for new GUA /64 into LAN
+ip -6 route add "$GUA_PFX" dev "$LAN_DEV" 2>/dev/null
+
+# Recreate dedicated nft chain (flush + repopulate — clean slate every time)
+nft delete chain inet fw4 "${CHAIN_NAME}" 2>/dev/null
+nft add chain inet fw4 "${CHAIN_NAME}"
+nft insert rule inet fw4 raw_prerouting jump "${CHAIN_NAME}"
+nft insert rule inet fw4 raw_output jump "${CHAIN_NAME}"
+nft insert rule inet fw4 forward jump "${CHAIN_NAME}"
+
+nft add rule inet fw4 "${CHAIN_NAME}" ip6 daddr "${GUA_PFX}" notrack
+nft add rule inet fw4 "${CHAIN_NAME}" ip6 saddr "${GUA_PFX}" notrack
+nft add rule inet fw4 "${CHAIN_NAME}" iifname "$LAN_DEV" oifname "${WAN_DEV}" ip6 saddr "${GUA_PFX}" accept
+nft add rule inet fw4 "${CHAIN_NAME}" iifname "${WAN_DEV}" oifname "$LAN_DEV" ip6 daddr "${GUA_PFX}" accept
+
+# Create or update the GUA CiliumLoadBalancerIPPool
+curl -sk -X POST \
+    -H "Authorization: Bearer ${TOKEN}" \
+    -H "Content-Type: application/json" \
+    "https://${K8S_API}/apis/cilium.io/v2/ciliumloadbalancerippools" \
+    -d "{\"apiVersion\":\"cilium.io/v2\",\"kind\":\"CiliumLoadBalancerIPPool\",\"metadata\":{\"name\":\"${POOL_NAME}\"},\"spec\":{\"allowFirstLastIPs\":\"No\",\"blocks\":[{\"cidr\":\"${GUA_PFX}\"}]}}" \
+    > /dev/null 2>&1
+
+curl -sk -X PATCH \
+    -H "Authorization: Bearer ${TOKEN}" \
+    -H "Content-Type: application/merge-patch+json" \
+    "https://${K8S_API}/apis/cilium.io/v2/ciliumloadbalancerippools/${POOL_NAME}" \
+    -d "{\"spec\":{\"allowFirstLastIPs\":\"No\",\"blocks\":[{\"cidr\":\"${GUA_PFX}\"}]}}" \
+    > /dev/null 2>&1
+
+echo "$GUA_PFX" > "$STATE_FILE"
+logger -t pd-sync "Pool ${POOL_NAME} updated with ${GUA_PFX}, route + nft chain ${CHAIN_NAME} applied"
