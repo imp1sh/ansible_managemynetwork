@@ -16,11 +16,11 @@ nb_vms:
     site: {{ vm.value.site | default({}, true) }}
     status: "{{ vm.value.status.value | default("") }}"
     interfaces:
-{% for interface in dict_interfaces[vm.key] %}
+{% for interface in dict_interfaces[vm.key|int]|default([], true) %}
       {{ interface.name }}:
-{% if dict_ips[interface.ips] is defined %}
-        ip4: {{ dict_ips[interface.ips]|selectattr('family', 'eq', 4)|map(attribute='address')|list }}
-        ip6: {{ dict_ips[interface.ips]|selectattr('family', 'eq', 6)|map(attribute='address')|list }}
+{% if dict_ips[interface.ips|int] is defined %}
+        ip4: {{ dict_ips[interface.ips|int]|selectattr('family', 'eq', 4)|map(attribute='address')|list }}
+        ip6: {{ dict_ips[interface.ips|int]|selectattr('family', 'eq', 6)|map(attribute='address')|list }}
 {% endif %}
 {% endfor %}
 {% endfor %}
