@@ -1,0 +1,35 @@
+---
+# Apply static bans. Entries containing '/' are CIDR ranges which
+# fail2ban's nftables action cannot handle (its nft sets use
+# individual address types, not prefix/interval sets). CIDRs are
+# inserted as direct nftables rules in the f2b-table instead.
+# Individual IPs go through fail2ban-client as normal.
+
+- name: "MMN fail2ban - Split static bans into CIDRs and single IPs"
+  ansible.builtin.set_fact:
+    fail2ban_static_cidrs: "{{ fail2ban_static_bans | select('match', '/') | list }}"
+    fail2ban_static_ips: "{{ fail2ban_static_bans | reject('match', '/') | list }}"
+
+- name: "MMN fail2ban - Ensure f2b-static chain exists"
+  ansible.builtin.command: nft add chain inet f2b-table f2b-static '{ type filter hook input priority -2 ; }'
+  changed_when: false
+  failed_when: false
+
+- name: "MMN fail2ban - Enforce static CIDR bans via nftables"
+  ansible.builtin.command: >-
+    nft add rule inet f2b-table f2b-static
+    {{ 'ip6' if ':' in item else 'ip' }} saddr {{ item }} reject
+  loop: "{{ fail2ban_static_cidrs }}"
+  loop_control:
+    label: "{{ item }}"
+  changed_when: false
+  failed_when: false
+
+- name: "MMN fail2ban - Enforce static single-IP bans via fail2ban-client"
+  ansible.builtin.command: "fail2ban-client set {{ fail2ban_static_bans_jail }} banip {{ item }}"
+  loop: "{{ fail2ban_static_ips }}"
+  loop_control:
+    label: "{{ item }}"
+  when: fail2ban_static_ips | length > 0
+  changed_when: false
+  failed_when: false

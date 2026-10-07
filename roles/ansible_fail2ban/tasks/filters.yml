@@ -1,0 +1,12 @@
+---
+- name: "MMN fail2ban - Deploy custom filter files"
+  ansible.builtin.copy:
+    dest: "{{ fail2ban_config_dir }}/filter.d/{{ item.key }}.conf"
+    content: "{{ item.value }}"
+    owner: root
+    group: root
+    mode: "0644"
+  loop: "{{ fail2ban_customfilters | dict2items }}"
+  loop_control:
+    label: "{{ item.key }}"
+  notify: Restart fail2ban

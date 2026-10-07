@@ -55,6 +55,31 @@ fail2ban_jailshost: {}
 fail2ban_ignoreiphost: []
 fail2ban_settingshost: {}
 
+# ── Custom filter files ──────────────────────────────────────────
+# Dict of filter name → raw filter file content. Deployed to
+# /etc/fail2ban/filter.d/<name>.conf. Allows defining jails that
+# reference custom filters without shipping them in the fail2ban pkg.
+# Example:
+#   fail2ban_customfilters:
+#     gitea-auth: |
+#       [Definition]
+#       failregex = ^.*Failed authentication attempt.*from <HOST>.*$
+#       ignoreregex =
+fail2ban_customfilters: {}
+
+# ── Static CIDR bans ─────────────────────────────────────────────
+# List of CIDR ranges to permanently ban via fail2ban-client.
+# Requires a jail named 'blocklist' (or fail2ban_static_bans_jail)
+# to be defined in fail2ban_jailshost/group/default. The jail acts
+# as a container for programmatic bans — its filter never matches
+# real log lines. Bans are re-applied on every role run and persist
+# in the fail2ban database across restarts.
+# Example:
+#   fail2ban_static_bans:
+#     - "2a03:2880:f814::/48"
+fail2ban_static_bans: []
+fail2ban_static_bans_jail: "blocklist"
+
 # ── Prometheus metrics exporter ──────────────────────────────────
 # Deploys a Python script + systemd timer that writes a .prom file
 # to the node_exporter textfile collector directory.

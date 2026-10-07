@@ -23,11 +23,22 @@
     mode: "0644"
   notify: Restart fail2ban
 
+- name: "MMN fail2ban - Deploy custom filter files"
+  ansible.builtin.import_tasks: filters.yml
+  when: fail2ban_customfilters | length > 0
+
 - name: "MMN fail2ban - Enable and start fail2ban service"
   ansible.builtin.service:
     name: "{{ fail2ban_service_name }}"
     state: started
     enabled: true
+
+- name: "MMN fail2ban - Flush handlers before static bans"
+  ansible.builtin.meta: flush_handlers
+
+- name: "MMN fail2ban - Enforce static CIDR bans"
+  ansible.builtin.import_tasks: staticbans.yml
+  when: fail2ban_static_bans | length > 0
 
 - name: "MMN fail2ban - Deploy Prometheus metrics exporter"
   import_tasks: exporter.yml
