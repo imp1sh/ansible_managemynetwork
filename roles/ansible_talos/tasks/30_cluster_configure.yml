@@ -1,4 +1,20 @@
 ---
+- name: MMN Talos - Find existing generated files in workdir
+  ansible.builtin.find:
+    paths: "{{ talos_config_path }}"
+    recurse: true
+    file_type: file
+  register: talos_workdir_files
+- name: MMN Talos - Clear workdir except secrets
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: absent
+  loop: "{{ talos_workdir_files.files }}"
+  when: >
+    item.path != talos_config_path ~ '/' ~ talos_secrets_file
+    and item.path != talos_config_path ~ '/cilium-ca.yaml'
+    and item.path != talos_patches_path ~ '/cilium-manifest.cache.yaml'
+    and item.path != talos_patches_path ~ '/cilium-manifest.cache.meta'
 - name: MMN Talos - Check if secret file is already there
   ansible.builtin.stat:
     path: "{{ talos_config_path }}/{{ talos_secrets_file }}"
@@ -7,15 +23,144 @@
   ansible.builtin.command: "talosctl gen secrets -o {{ talos_config_path }}/{{ talos_secrets_file }}"
   when: "not talos_secrets_stat_result.stat.exists"
 
+- name: MMN Talos - Ensure cilium helm repo exists for cluster "{{ talos_cluster.key }}"
+  ansible.builtin.shell: |
+    helm repo add cilium https://helm.cilium.io
+    helm repo update cilium
+  when: talos_cluster.value.custom_cni is defined and talos_cluster.value.custom_cni == "cilium"
+  changed_when: true
+
+- name: MMN Talos - Stat vaulted Cilium CA file for cluster "{{ talos_cluster.key }}"
+  ansible.builtin.stat:
+    path: "{{ talos_config_path }}/cilium-ca.yaml"
+  register: talos_cilium_ca_stat
+  when: talos_cluster.value.custom_cni is defined and talos_cluster.value.custom_cni == "cilium"
+
+- name: MMN Talos - Load vaulted Cilium CA for cluster "{{ talos_cluster.key }}"
+  ansible.builtin.include_vars:
+    file: "{{ talos_config_path }}/cilium-ca.yaml"
+    name: talos_cilium_ca
+  when:
+    - talos_cluster.value.custom_cni is defined and talos_cluster.value.custom_cni == "cilium"
+    - talos_cilium_ca_stat.stat.exists
+
+- name: MMN Talos - Expose Cilium CA vars for template rendering
+  ansible.builtin.set_fact:
+    cilium_ca_cert: "{{ talos_cilium_ca.cilium_ca_cert | default('') }}"
+    cilium_ca_key: "{{ talos_cilium_ca.cilium_ca_key | default('') }}"
+  when: talos_cluster.value.custom_cni is defined and talos_cluster.value.custom_cni == "cilium"
+
+- name: MMN Talos - Render Cilium helm values for cluster "{{ talos_cluster.key }}"
+  ansible.builtin.template:
+    src: cilium-values.yaml.j2
+    dest: "{{ talos_patches_path }}/cilium-values.yaml"
+  when: talos_cluster.value.custom_cni is defined and talos_cluster.value.custom_cni == "cilium"
+  register: talos_cilium_values_render
+
+- name: MMN Talos - Compute Cilium render fingerprint
+  ansible.builtin.set_fact:
+    talos_cilium_fingerprint: "{{ (cilium_chart_version | default('1.20.2')) ~ ':' ~ (lookup('ansible.builtin.file', talos_patches_path ~ '/cilium-values.yaml') | hash('sha256')) }}"
+  when: talos_cluster.value.custom_cni is defined and talos_cluster.value.custom_cni == "cilium"
+
+- name: MMN Talos - Stat cached Cilium manifest marker
+  ansible.builtin.stat:
+    path: "{{ talos_patches_path }}/cilium-manifest.cache.meta"
+  register: talos_cilium_cache_meta_stat
+  when: talos_cluster.value.custom_cni is defined and talos_cluster.value.custom_cni == "cilium"
+
+- name: MMN Talos - Read cached Cilium manifest marker
+  ansible.builtin.slurp:
+    path: "{{ talos_patches_path }}/cilium-manifest.cache.meta"
+  register: talos_cilium_cache_meta_slurp
+  when:
+    - talos_cluster.value.custom_cni is defined and talos_cluster.value.custom_cni == "cilium"
+    - talos_cilium_cache_meta_stat.stat.exists
+
+- name: MMN Talos - Decide whether Cilium manifest needs re-rendering
+  ansible.builtin.set_fact:
+    talos_cilium_needs_render: >-
+      {{
+        (talos_cluster.value.custom_cni is defined and talos_cluster.value.custom_cni == "cilium")
+        and (
+          not (talos_cilium_cache_meta_stat.stat.exists | default(false))
+          or (talos_cilium_cache_meta_slurp.content | default('') | b64decode) != talos_cilium_fingerprint
+        )
+      }}
+
+- name: MMN Talos - Render Cilium inline manifest for cluster "{{ talos_cluster.key }}"
+  ansible.builtin.command: >-
+    helm template cilium cilium/cilium
+    --version {{ cilium_chart_version | default("1.20.2") }}
+    --namespace kube-system
+    --values {{ talos_patches_path }}/cilium-values.yaml
+  register: cilium_manifest_output
+  when: talos_cilium_needs_render | default(false)
+  changed_when: true
+
+- name: MMN Talos - Cache Cilium manifest
+  ansible.builtin.copy:
+    dest: "{{ talos_patches_path }}/cilium-manifest.cache.yaml"
+    content: "{{ cilium_manifest_output.stdout }}"
+  when: talos_cilium_needs_render | default(false)
+
+- name: MMN Talos - Write Cilium manifest cache marker
+  ansible.builtin.copy:
+    dest: "{{ talos_patches_path }}/cilium-manifest.cache.meta"
+    content: "{{ talos_cilium_fingerprint }}"
+  when: talos_cilium_needs_render | default(false)
+
+- name: MMN Talos - Load cached Cilium manifest as render output
+  ansible.builtin.set_fact:
+    cilium_manifest_output:
+      stdout: "{{ lookup('ansible.builtin.file', talos_patches_path ~ '/cilium-manifest.cache.yaml') }}"
+  when:
+    - talos_cluster.value.custom_cni is defined and talos_cluster.value.custom_cni == "cilium"
+    - not (talos_cilium_needs_render | default(false))
+
+- name: MMN Talos - Stage Cilium manifest for CA extraction
+  ansible.builtin.copy:
+    dest: "{{ talos_patches_path }}/cilium-manifest.yaml"
+    content: "{{ cilium_manifest_output.stdout }}"
+  when:
+    - talos_cluster.value.custom_cni is defined and talos_cluster.value.custom_cni == "cilium"
+    - not (talos_cilium_ca_stat.stat.exists | default(false))
+
+- name: MMN Talos - Extract Cilium CA from staged manifest (bootstrap; vault this file afterwards)
+  ansible.builtin.shell: |
+    python3 - <<'PY'
+    import yaml
+    with open("{{ talos_patches_path }}/cilium-manifest.yaml") as f:
+        docs = list(yaml.safe_load_all(f))
+    ca = next(d for d in docs if d.get('kind') == 'Secret' and d.get('metadata', {}).get('name') == 'cilium-ca')
+    print('---')
+    print('cilium_ca_cert: ' + ca['data']['ca.crt'])
+    print('cilium_ca_key: ' + ca['data']['ca.key'])
+    PY
+  args:
+    executable: /bin/bash
+  register: talos_cilium_ca_extract
+  when:
+    - talos_cluster.value.custom_cni is defined and talos_cluster.value.custom_cni == "cilium"
+    - not (talos_cilium_ca_stat.stat.exists | default(false))
+  changed_when: true
+
+- name: MMN Talos - Write extracted Cilium CA to file (vault this when ready)
+  ansible.builtin.copy:
+    dest: "{{ talos_config_path }}/cilium-ca.yaml"
+    content: "{{ talos_cilium_ca_extract.stdout }}"
+  when:
+    - talos_cluster.value.custom_cni is defined and talos_cluster.value.custom_cni == "cilium"
+    - not (talos_cilium_ca_stat.stat.exists | default(false))
+
 - name: MMN Talos - Generate controlplane cluster-wide patchfile for cluster "{{ talos_cluster.key }}"
   ansible.builtin.template:
     src: controlplane_patch.yaml.j2
     dest: "{{ talos_patches_path }}/{{ talos_filename_controlplane_patch }}"
 
-- name: MMN Talos - Check if config file is already there
-  ansible.builtin.stat:
-    path: "{{ talos_config_path }}/controlplane.yaml"
-  register: talos_stat_result
+- name: MMN Talos - Generate worker cluster-wide patchfile for cluster "{{ talos_cluster.key }}"
+  ansible.builtin.template:
+    src: worker_patch.yaml.j2
+    dest: "{{ talos_patches_path }}/{{ talos_filename_worker_patch }}"
 
 - name: MMN Talos - Generate config file for cluster "{{ talos_cluster.key }}"
   ansible.builtin.command: >-
@@ -26,7 +171,7 @@
     --install-disk {{ talos_cp_disk_map[talos_cluster.value.hosts_controlplane[0].name] | default('/dev/sda') }}
     --install-image factory.talos.dev/metal-installer/376567988ad370138ad8b2698212367b8edcb69b5fd68c80be1f2ec7d603b4ba:{{ talos_cluster.value.talos_version | default(talos_version) }}
     --config-patch-control-plane @{{ talos_patches_path }}/{{ talos_filename_controlplane_patch }}
-  when: "not talos_stat_result.stat.exists"
+    --config-patch-worker @{{ talos_patches_path }}/{{ talos_filename_worker_patch }}
   changed_when: true
 
 - name: "MMN Talos - Remove 'auto: stable' to allow static hostname via patch in controlplane.yaml"

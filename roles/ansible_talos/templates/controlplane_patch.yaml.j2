@@ -4,3 +4,40 @@ apiVersion: v1alpha1
 kind: KubeNodeConfig
 taints: {}
 {% endif %}
+{% if talos_cluster.value.custom_cni is defined and talos_cluster.value.custom_cni %}
+---
+apiVersion: v1alpha1
+kind: KubeFlannelCNIConfig
+$patch: delete
+{% endif %}
+{% if talos_cluster.value.disable_kube_proxy is defined and talos_cluster.value.disable_kube_proxy %}
+---
+apiVersion: v1alpha1
+kind: KubeProxyConfig
+enabled: false
+{% endif %}
+{% if talos_cluster.value.custom_cni is defined and talos_cluster.value.custom_cni == "cilium" and cilium_manifest_output is defined %}
+---
+apiVersion: v1alpha1
+kind: KubeInlineManifestConfig
+name: cilium
+manifest: |
+{{ cilium_manifest_output.stdout | indent(4, true) }}
+{% endif %}
+{% if talos_cluster.value.pod_subnets is defined or talos_cluster.value.service_subnets is defined %}
+---
+apiVersion: v1alpha1
+kind: KubeNetworkConfig
+{% if talos_cluster.value.pod_subnets is defined %}
+podSubnets:
+{% for subnet in talos_cluster.value.pod_subnets %}
+    - {{ subnet }}
+{% endfor %}
+{% endif %}
+{% if talos_cluster.value.service_subnets is defined %}
+serviceSubnets:
+{% for subnet in talos_cluster.value.service_subnets %}
+    - {{ subnet }}
+{% endfor %}
+{% endif %}
+{% endif %}

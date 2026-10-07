@@ -1,20 +1,32 @@
 ---
-# Bootstrap: talk directly to the first controlplane node.
-# Pass --nodes and --endpoints explicitly per the v1.14 CLI docs.
+# Bootstrap: initialize etcd cluster on first controlplane node.
+# Idempotent: "already initialized" is treated as success (changed=false).
+# Robust: retries handle the window where etcd is still preparing after node boot.
+# We do NOT skip bootstrap based on a node-API probe — a fresh node responds to
+# `talosctl version` while etcd is still awaiting bootstrap.
 
-- name: MMN Talos - Wait for first controlplane node maintenance API
+- name: MMN Talos - Wait for first controlplane node Talos API
   ansible.builtin.wait_for:
     host: "{{ talos_cluster.value.hosts_controlplane[0].ip4[0] | ansible.utils.ipaddr('address') }}"
     port: 50000
     timeout: 600
 
 - name: MMN Talos - Bootstrap cluster
-  ansible.builtin.command: "talosctl bootstrap --nodes {{ talos_cluster.value.hosts_controlplane[0].ip4[0] | ansible.utils.ipaddr('address') }} --endpoints {{ talos_cluster.value.hosts_controlplane[0].ip4[0] | ansible.utils.ipaddr('address') }} --talosconfig {{ talos_config_file }}"
+  ansible.builtin.command: >-
+    talosctl bootstrap
+    --nodes {{ talos_cluster.value.hosts_controlplane[0].ip4[0] | ansible.utils.ipaddr('address') }}
+    --endpoints {{ talos_cluster.value.hosts_controlplane[0].ip4[0] | ansible.utils.ipaddr('address') }}
+    --talosconfig {{ talos_config_file }}
   register: talos_bootstrap_result
   retries: 30
-  delay: 30
-  until: talos_bootstrap_result.rc == 0
+  delay: 10
+  until: >-
+    talos_bootstrap_result.rc == 0
+    or 'already' in (talos_bootstrap_result.stderr | default('')) | lower
   changed_when: talos_bootstrap_result.rc == 0
+  failed_when: >-
+    talos_bootstrap_result.rc != 0
+    and 'already' not in (talos_bootstrap_result.stderr | default('')) | lower
 
 - name: MMN Talos - Set talosconfig endpoints
   ansible.builtin.command: "talosctl config endpoint {{ talos_cluster.value.hosts_controlplane | map(attribute='ip4') | flatten | map('ansible.utils.ipaddr', 'address') | join(' ') }} --talosconfig {{ talos_config_file }}"

@@ -5,3 +5,4 @@ talos_talosctl_version: "{{ talos_version }}"
 talos_secrets_file: "secrets.yaml"
 # this is the file name where the patches for the controlplanes go into, not to confuse with talos_filename_controlplane_patch
 talos_filename_controlplane_patched: "controlplane_patched.yaml"
+cilium_chart_version: "1.20.2"

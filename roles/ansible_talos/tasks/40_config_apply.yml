@@ -16,9 +16,31 @@
   loop: "{{ talos_cluster_hosts_cp }}"
   loop_control:
     loop_var: clusternode
+- name: MMN Talos - Probe controlplane node bootstrap state
+  ansible.builtin.command:
+    cmd: "talosctl --talosconfig {{ talosctl_config_path }} --endpoints {{ clusternode.ip4[0] | ansible.utils.ipaddr('address') }} --nodes {{ clusternode.ip4[0] | ansible.utils.ipaddr('address') }} version"
+  register: talos_cp_probe_raw
+  failed_when: false
+  changed_when: false
+  loop: "{{ talos_cluster_hosts_cp }}"
+  loop_control:
+    loop_var: clusternode
+- name: MMN Talos - Summarize controlplane bootstrap state
+  ansible.builtin.set_fact:
+    talos_cp_bootstrapped: "{{ talos_cp_bootstrapped | default({}) | combine({probe.clusternode.name: (probe.rc | default(1)) == 0}) }}"
+  loop: "{{ talos_cp_probe_raw.results }}"
+  loop_control:
+    loop_var: probe
 - name: MMN Talos - Deploy controlplane hosts
   ansible.builtin.command:
-    cmd: "talosctl apply-config --insecure --nodes {{ clusternode.ip4[0] | ansible.utils.ipaddr('address') }} --endpoints {{ clusternode.ip4[0] | ansible.utils.ipaddr('address') }} --file {{ talos_config_path }}/controlplane_{{ clusternode.name }}.yaml"
+    cmd: >-
+      talosctl
+      {{ '--talosconfig ' ~ talosctl_config_path if (talos_cp_bootstrapped[clusternode.name] | default(false)) else '' }}
+      apply-config
+      {{ '' if (talos_cp_bootstrapped[clusternode.name] | default(false)) else '--insecure' }}
+      --nodes {{ clusternode.ip4[0] | ansible.utils.ipaddr('address') }}
+      --endpoints {{ clusternode.ip4[0] | ansible.utils.ipaddr('address') }}
+      --file {{ talos_config_path }}/controlplane_{{ clusternode.name }}.yaml
   loop: "{{ talos_cluster_hosts_cp }}"
   loop_control:
     loop_var: clusternode
@@ -37,9 +59,31 @@
   loop: "{{ talos_cluster_hosts_worker | default([]) }}"
   loop_control:
     loop_var: clusternode
-- name: MMN Talos - Deploy worker nodes
+- name: MMN Talos - Probe worker node bootstrap state
   ansible.builtin.command:
-    cmd: "talosctl apply-config --insecure --nodes {{ clusternode.ip4[0] | ansible.utils.ipaddr('address') }} --endpoints {{ clusternode.ip4[0] | ansible.utils.ipaddr('address') }} --file {{ talos_config_path }}/worker_{{ clusternode.name }}.yaml"
+    cmd: "talosctl --talosconfig {{ talosctl_config_path }} --endpoints {{ clusternode.ip4[0] | ansible.utils.ipaddr('address') }} --nodes {{ clusternode.ip4[0] | ansible.utils.ipaddr('address') }} version"
+  register: talos_worker_probe_raw
+  failed_when: false
+  changed_when: false
+  loop: "{{ talos_cluster_hosts_worker | default([]) }}"
+  loop_control:
+    loop_var: clusternode
+- name: MMN Talos - Summarize worker bootstrap state
+  ansible.builtin.set_fact:
+    talos_worker_bootstrapped: "{{ talos_worker_bootstrapped | default({}) | combine({probe.clusternode.name: (probe.rc | default(1)) == 0}) }}"
+  loop: "{{ talos_worker_probe_raw.results }}"
+  loop_control:
+    loop_var: probe
+- name: MMN Talos - Deploy worker hosts
+  ansible.builtin.command:
+    cmd: >-
+      talosctl
+      {{ '--talosconfig ' ~ talosctl_config_path if (talos_worker_bootstrapped[clusternode.name] | default(false)) else '' }}
+      apply-config
+      {{ '' if (talos_worker_bootstrapped[clusternode.name] | default(false)) else '--insecure' }}
+      --nodes {{ clusternode.ip4[0] | ansible.utils.ipaddr('address') }}
+      --endpoints {{ clusternode.ip4[0] | ansible.utils.ipaddr('address') }}
+      --file {{ talos_config_path }}/worker_{{ clusternode.name }}.yaml
   loop: "{{ talos_cluster_hosts_worker | default([]) }}"
   loop_control:
     loop_var: clusternode

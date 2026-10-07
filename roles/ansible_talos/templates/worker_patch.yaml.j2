@@ -1,1 +1,23 @@
-# No cluster-wide worker patch needed — gen config defaults suffice
+{% if talos_cluster.value.disable_kube_proxy is defined and talos_cluster.value.disable_kube_proxy %}
+---
+apiVersion: v1alpha1
+kind: KubeProxyConfig
+enabled: false
+{% endif %}
+{% if talos_cluster.value.pod_subnets is defined or talos_cluster.value.service_subnets is defined %}
+---
+apiVersion: v1alpha1
+kind: KubeNetworkConfig
+{% if talos_cluster.value.pod_subnets is defined %}
+podSubnets:
+{% for subnet in talos_cluster.value.pod_subnets %}
+    - {{ subnet }}
+{% endfor %}
+{% endif %}
+{% if talos_cluster.value.service_subnets is defined %}
+serviceSubnets:
+{% for subnet in talos_cluster.value.service_subnets %}
+    - {{ subnet }}
+{% endfor %}
+{% endif %}
+{% endif %}
