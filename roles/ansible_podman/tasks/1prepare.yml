@@ -121,13 +121,13 @@
     - (podman_dockerio_username is not defined) or (podman_dockerio_password is not defined)
     - not podman_runimagebuilder | default(false) | bool
 
-- name: "MMN Podman - Login additional registries"
-  containers.podman.podman_login:
-    registry: "{{ item.registryurl }}"
-    username: "{{ item.username }}"
-    password: "{{ item.password }}"
-  loop: "{{ podman_additional_registries }}"
-  when:
-    - podman_containers is defined
-    - not podman_runimagebuilder | default(false) | bool
-    - podman_additional_registries is defined
+# - name: "MMN Podman - Login additional registries"
+#   containers.podman.podman_login:
+#     registry: "{{ item.registryurl }}"
+#     username: "{{ item.username }}"
+#     password: "{{ item.password }}"
+#   loop: "{{ podman_additional_registries }}"
+#   when:
+#     - podman_containers is defined
+#     - not podman_runimagebuilder | default(false) | bool
+#     - podman_additional_registries is defined
