@@ -55,19 +55,52 @@ nft add rule inet fw4 "${CHAIN_NAME}" iifname "$LAN_DEV" oifname "${WAN_DEV}" ip
 nft add rule inet fw4 "${CHAIN_NAME}" iifname "${WAN_DEV}" oifname "$LAN_DEV" ip6 daddr "${GUA_PFX}" accept
 
 # Create or update the GUA CiliumLoadBalancerIPPool
-curl -sk -X POST \
+# Try POST first (creates the pool), fall back to PATCH (updates if it exists).
+# Capture HTTP status to distinguish auth failures from other errors.
+API_RESULT=""
+API_DETAIL=""
+
+POST_STATUS=$(curl -sk -o /dev/null -w "%{http_code}" -X POST \
     -H "Authorization: Bearer ${TOKEN}" \
     -H "Content-Type: application/json" \
     "https://${K8S_API}/apis/cilium.io/v2/ciliumloadbalancerippools" \
-    -d "{\"apiVersion\":\"cilium.io/v2\",\"kind\":\"CiliumLoadBalancerIPPool\",\"metadata\":{\"name\":\"${POOL_NAME}\"},\"spec\":{\"allowFirstLastIPs\":\"No\",\"blocks\":[{\"cidr\":\"${GUA_PFX}\"}]}}" \
-    > /dev/null 2>&1
+    -d "{\"apiVersion\":\"cilium.io/v2\",\"kind\":\"CiliumLoadBalancerIPPool\",\"metadata\":{\"name\":\"${POOL_NAME}\"},\"spec\":{\"allowFirstLastIPs\":\"No\",\"blocks\":[{\"cidr\":\"${GUA_PFX}\"}]}}")
 
-curl -sk -X PATCH \
-    -H "Authorization: Bearer ${TOKEN}" \
-    -H "Content-Type: application/merge-patch+json" \
-    "https://${K8S_API}/apis/cilium.io/v2/ciliumloadbalancerippools/${POOL_NAME}" \
-    -d "{\"spec\":{\"allowFirstLastIPs\":\"No\",\"blocks\":[{\"cidr\":\"${GUA_PFX}\"}]}}" \
-    > /dev/null 2>&1
+case "$POST_STATUS" in
+    200|201|202)
+        API_RESULT="created"
+        ;;
+    409)
+        # Pool already exists — patch it instead
+        PATCH_STATUS=$(curl -sk -o /dev/null -w "%{http_code}" -X PATCH \
+            -H "Authorization: Bearer ${TOKEN}" \
+            -H "Content-Type: application/merge-patch+json" \
+            "https://${K8S_API}/apis/cilium.io/v2/ciliumloadbalancerippools/${POOL_NAME}" \
+            -d "{\"spec\":{\"allowFirstLastIPs\":\"No\",\"blocks\":[{\"cidr\":\"${GUA_PFX}\"}]}}")
+        case "$PATCH_STATUS" in
+            200|202)
+                API_RESULT="patched"
+                ;;
+            *)
+                API_RESULT="failed"
+                API_DETAIL="PATCH returned HTTP ${PATCH_STATUS}"
+                ;;
+        esac
+        ;;
+    401|403)
+        API_RESULT="failed"
+        API_DETAIL="token rejected (HTTP ${POST_STATUS})"
+        ;;
+    *)
+        API_RESULT="failed"
+        API_DETAIL="POST returned HTTP ${POST_STATUS}"
+        ;;
+esac
+
+if [ "$API_RESULT" = "failed" ]; then
+    logger -t pd-sync "FAILED to update pool ${POOL_NAME}: ${API_DETAIL}. Prefix ${GUA_PFX} not synced to Kubernetes."
+    exit 1
+fi
 
 echo "$GUA_PFX" > "$STATE_FILE"
-logger -t pd-sync "Pool ${POOL_NAME} updated with ${GUA_PFX}, route + nft chain ${CHAIN_NAME} applied"
+logger -t pd-sync "Pool ${POOL_NAME} ${API_RESULT} with ${GUA_PFX}, route + nft chain ${CHAIN_NAME} applied"
