@@ -41,3 +41,10 @@ serviceSubnets:
 {% endfor %}
 {% endif %}
 {% endif %}
+{% if talos_cluster.value.vip is defined and talos_cluster.value.vip_interface is defined %}
+---
+apiVersion: v1alpha1
+kind: Layer2VIPConfig
+name: {{ talos_cluster.value.vip }}
+link: {{ talos_cluster.value.vip_interface }}
+{% endif %}
