@@ -156,3 +156,19 @@
 - name: "MMN cacert - Manage client PKCS12 on additional hosts"
   ansible.builtin.include_tasks: ca_instance_clientcert_additional_hosts.yml
   when: cacert_clientcert.additionalhosts is defined
+
+# Kubernetes TLS Secret deployment for client certs.
+# Fires when cacert_clientcert.k8s_namespace is defined and k8s connection
+# vars (cacert_k8s_api_url, cacert_k8s_api_token, cacert_k8s_ca_b64) are set.
+- name: "MMN cacert - Deploy client cert to k8s"
+  ansible.builtin.include_tasks: ca_instance_k8s_secret.yml
+  vars:
+    _cacert_k8s_namespace: "{{ cacert_clientcert.k8s_namespace }}"
+    _cacert_k8s_secret_name: "{{ cacert_ca.key }}-client-{{ cacert_clientcert.common_name | default(inventory_hostname) }}"
+    _cacert_k8s_cert_path: "{{ cacert_path_clientcert }}"
+    _cacert_k8s_key_path: "{{ cacert_path_clientkey }}"
+    _cacert_k8s_state: "{{ cacert_clientcert.state | default('present') }}"
+  when:
+    - cacert_clientcert.k8s_namespace is defined
+    - cacert_k8s_api_url is defined
+    - cacert_k8s_api_url | length > 0

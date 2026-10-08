@@ -1,0 +1,167 @@
+---
+# Generate client certificates that exist EXCLUSIVELY in Kubernetes.
+# These certs are generated on the CA manager host and deployed as k8s TLS
+# Secrets. They are never written to any target host filesystem.
+#
+# Per-item schema (cacert_k8s_clientcerts):
+#   common_name:    mandatory (used as k8s Secret name)
+#   k8s_namespace:  mandatory, target k8s namespace
+#   state:          present|absent (defaults to present)
+#   not_after:      inherits from cacert_clientcert_not_after
+#   not_before:     inherits from cacert_clientcert_not_before
+#   type:           inherits from cacert_clientcert_type
+#   bitsize:        inherits from cacert_clientcert_bitsize
+#   curve:          inherits from cacert_clientcert_curve
+#   passphrase:     inherits from cacert_clientcert_passphrase
+#   force:          inherits from cacert_clientcert_force
+
+- name: "MMN cacert - k8s-only client cert - Build temp paths on CA manager host"
+  ansible.builtin.set_fact:
+    _cacert_k8s_cli_key_path: "/tmp/{{ cacert_ca.key }}_{{ cacert_k8s_clientcert.common_name }}_clientkey.pem"
+    _cacert_k8s_cli_cert_path: "/tmp/{{ cacert_ca.key }}_{{ cacert_k8s_clientcert.common_name }}_clientcert.pem"
+  delegate_to: "{{ cacert_ca_manager_host }}"
+
+- name: "MMN cacert - k8s-only client cert - Present block"
+  when:
+    - cacert_ca.value.state | default('present') == 'present'
+    - cacert_k8s_clientcert.state | default('present') == 'present'
+  delegate_to: "{{ cacert_ca_manager_host }}"
+  block:
+    - name: "MMN cacert - k8s-only client cert - Create private key on CA manager host"
+      community.crypto.openssl_privatekey:
+        path: "{{ _cacert_k8s_cli_key_path }}"
+        passphrase: "{{ cacert_k8s_clientcert.passphrase | default(cacert_clientcert_passphrase) | default(omit) }}"
+        size: "{{ cacert_k8s_clientcert.bitsize | default(cacert_clientcert_bitsize) | default(4096) }}"
+        type: "{{ cacert_k8s_clientcert.type | default(cacert_clientcert_type) | default('RSA') }}"
+        curve: "{{ cacert_k8s_clientcert.curve | default(cacert_clientcert_curve) | default(omit) }}"
+        mode: "0600"
+
+    - name: "MMN cacert - k8s-only client cert - Check if cert exists on CA manager host"
+      ansible.builtin.stat:
+        path: "{{ _cacert_k8s_cli_cert_path }}"
+      register: _cacert_k8s_cli_cert_stat
+
+    - name: "MMN cacert - k8s-only client cert - Read existing certificate"
+      ansible.builtin.slurp:
+        src: "{{ _cacert_k8s_cli_cert_path }}"
+      register: _cacert_k8s_cli_cert_existing
+      when: _cacert_k8s_cli_cert_stat.stat.exists
+
+    - name: "MMN cacert - k8s-only client cert - Check if cert is expired"
+      ansible.builtin.command:
+        cmd: "openssl x509 -in {{ _cacert_k8s_cli_cert_path }} -checkend 0 -noout"
+      register: _cacert_k8s_cli_cert_expiry
+      changed_when: false
+      failed_when: false
+      when: _cacert_k8s_cli_cert_stat.stat.exists
+
+    - name: "MMN cacert - k8s-only client cert - Manage CSR"
+      community.crypto.openssl_csr_pipe:
+        privatekey_path: "{{ _cacert_k8s_cli_key_path }}"
+        privatekey_passphrase: "{{ cacert_k8s_clientcert.passphrase | default(cacert_clientcert_passphrase) | default(omit) }}"
+        common_name: "{{ cacert_k8s_clientcert.common_name }}"
+      register: _cacert_k8s_cli_csr
+      changed_when: false
+
+    - name: "MMN cacert - k8s-only client cert - Normalize validity timespecs (y->w)"
+      ansible.builtin.set_fact:
+        _cacert_k8s_cli_na: >-
+          {%- set t = cacert_k8s_clientcert.not_after | default(cacert_clientcert_not_after) | default('+54w') -%}
+          {%- if t[-1] == 'y' -%}{{ t[0] }}{{ (t[1:-1] | int) * 52 }}w{%- else -%}{{ t }}{%- endif -%}
+        _cacert_k8s_cli_nb: >-
+          {%- set t = cacert_k8s_clientcert.not_before | default(cacert_clientcert_not_before) | default('-1d') -%}
+          {%- if t[-1] == 'y' -%}{{ t[0] }}{{ (t[1:-1] | int) * 52 }}w{%- else -%}{{ t }}{%- endif -%}
+
+    - name: "MMN cacert - k8s-only client cert - Sign certificate with CA"
+      become: true
+      community.crypto.x509_certificate_pipe:
+        csr_content: "{{ _cacert_k8s_cli_csr.csr }}"
+        content: "{{ (_cacert_k8s_cli_cert_existing.content | b64decode) if _cacert_k8s_cli_cert_stat.stat.exists else omit }}"
+        force: "{{ (cacert_k8s_clientcert.force | default(cacert_clientcert_force) | default(false) | bool) or ((_cacert_k8s_cli_cert_expiry.rc | default(0)) != 0) }}"
+        provider: ownca
+        ownca_path: "{{ cacert_path_cacert }}"
+        ownca_privatekey_path: "{{ cacert_path_cakey }}"
+        ownca_privatekey_passphrase: "{{ cacert_ca.value.key.passphrase | default(omit) }}"
+        ownca_not_after: "{{ _cacert_k8s_cli_na }}"
+        ownca_not_before: "{{ _cacert_k8s_cli_nb }}"
+      register: _cacert_k8s_cli_cert_result
+
+    - name: "MMN cacert - k8s-only client cert - Write cert to temp file on CA manager host"
+      ansible.builtin.copy:
+        dest: "{{ _cacert_k8s_cli_cert_path }}"
+        content: "{{ _cacert_k8s_cli_cert_result.certificate }}"
+        mode: "0600"
+      when: _cacert_k8s_cli_cert_result is changed
+
+    - name: "MMN cacert - k8s-only client cert - Slurp cert from CA manager host"
+      ansible.builtin.slurp:
+        src: "{{ _cacert_k8s_cli_cert_path }}"
+      register: _cacert_k8s_cli_cert_slurp
+
+    - name: "MMN cacert - k8s-only client cert - Slurp key from CA manager host"
+      ansible.builtin.slurp:
+        src: "{{ _cacert_k8s_cli_key_path }}"
+      register: _cacert_k8s_cli_key_slurp
+
+    - name: "MMN cacert - k8s-only client cert - Decode CA cert to temp file on localhost"
+      ansible.builtin.copy:
+        dest: "/tmp/cacert_k8s_ca.pem"
+        content: "{{ cacert_k8s_ca_b64 | b64decode }}"
+        mode: "0600"
+      delegate_to: localhost
+      run_once: true
+
+    - name: "MMN cacert - k8s-only client cert - Deploy TLS Secret to k8s"
+      kubernetes.core.k8s:
+        state: present
+        host: "https://{{ cacert_k8s_api_url }}"
+        api_key: "{{ cacert_k8s_api_token }}"
+        validate_certs: true
+        ca_cert: "/tmp/cacert_k8s_ca.pem"
+        definition:
+          apiVersion: v1
+          kind: Secret
+          metadata:
+            name: "{{ (cacert_ca.key ~ '-client-' ~ cacert_k8s_clientcert.common_name) | regex_replace('_', '-') | lower }}"
+            namespace: "{{ cacert_k8s_clientcert.k8s_namespace }}"
+          type: kubernetes.io/tls
+          data:
+            tls.crt: "{{ _cacert_k8s_cli_cert_slurp.content }}"
+            tls.key: "{{ _cacert_k8s_cli_key_slurp.content }}"
+      delegate_to: localhost
+
+- name: "MMN cacert - k8s-only client cert - Absent block"
+  when: cacert_k8s_clientcert.state | default('present') == 'absent'
+  delegate_to: localhost
+  block:
+    - name: "MMN cacert - k8s-only client cert - Decode CA cert to temp file on localhost"
+      ansible.builtin.copy:
+        dest: "/tmp/cacert_k8s_ca.pem"
+        content: "{{ cacert_k8s_ca_b64 | b64decode }}"
+        mode: "0600"
+      run_once: true
+
+    - name: "MMN cacert - k8s-only client cert - Delete TLS Secret from k8s"
+      kubernetes.core.k8s:
+        state: absent
+        host: "https://{{ cacert_k8s_api_url }}"
+        api_key: "{{ cacert_k8s_api_token }}"
+        validate_certs: true
+        ca_cert: "/tmp/cacert_k8s_ca.pem"
+        definition:
+          apiVersion: v1
+          kind: Secret
+          metadata:
+            name: "{{ (cacert_ca.key ~ '-client-' ~ cacert_k8s_clientcert.common_name) | regex_replace('_', '-') | lower }}"
+            namespace: "{{ cacert_k8s_clientcert.k8s_namespace }}"
+      delegate_to: localhost
+
+- name: "MMN cacert - k8s-only client cert - Clean up temp files on CA manager host"
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - "{{ _cacert_k8s_cli_key_path }}"
+    - "{{ _cacert_k8s_cli_cert_path }}"
+  delegate_to: "{{ cacert_ca_manager_host }}"
+  when: cacert_runimagebuilder | default(false) | bool == false

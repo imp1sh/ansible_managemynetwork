@@ -493,3 +493,106 @@ ansible-playbook cacert.yml --ask-vault-pass
 ```
 
 Without the lazy `setup` task, only options 2 and 3 would work. Option 1 is the typical workflow when you only changed a passphrase on the CA manager and want to redistribute bundles without scanning every host.
+
+## Kubernetes TLS Secret Deployment
+
+The role can deploy certificates and their private keys as Kubernetes TLS Secrets (`type: kubernetes.io/tls`) directly via the Kubernetes API. This is opt-in per cert — existing certs are unaffected unless you explicitly set a `k8s_namespace` on them.
+
+### Prerequisites
+
+- The `kubernetes.core` collection must be installed on the Ansible control host.
+- Three global variables must be set (typically in `group_vars`):
+
+| Variable | Purpose |
+| - | - |
+| `cacert_k8s_api_url` | Kubernetes API endpoint in `host:port` format (e.g. `junicluster0.t.libcom.de:6443`). |
+| `cacert_k8s_api_token` | Bearer token for authenticating to the Kubernetes API. Vault-encrypt this. |
+| `cacert_k8s_ca_b64` | Base64-encoded CA certificate used by the Kubernetes API server for TLS verification. Vault-encrypt this. |
+
+When all three are empty (their defaults), k8s deployment is completely disabled regardless of per-cert `k8s_namespace` settings.
+
+### Opting in per cert
+
+Add `k8s_namespace` to any cert item to deploy it to k8s in addition to (or instead of) the host filesystem:
+
+**Client certs** (`cacert_clientcerts`):
+```yaml
+cacert_clientcerts:
+  - common_name: "jochen"
+    dest: "/etc/pki/tls/private"
+    state: "present"
+    k8s_namespace: "nginx-test"
+```
+Deploys cert+key as a TLS Secret named `<ca>-client-<common_name>` (e.g. `main_jochenit-client-jochen`) in namespace `nginx-test`. The cert and key are also written to the host filesystem at `dest` as usual.
+
+**Default server cert** (per-host automatic cert):
+```yaml
+cacert_defaultcert_k8s_namespace: "nginx-test"
+```
+Deploys the host's default cert+key as a TLS Secret named `<ca>-server-<inventory_hostname>` in the given namespace.
+
+**Additional server certs** (`cacert_additionalcerts`):
+```yaml
+cacert_additionalcerts:
+  - id: "wildcard_lpv4"
+    common_name: "*.lpv4.net"
+    k8s_namespace: "nginx-test"
+```
+Deploys the cert+key as a TLS Secret named `<ca>-server-<id>` in the given namespace.
+
+### Behaviour
+
+- The TLS Secret is created or updated via `kubernetes.core.k8s` (declarative — idempotent on re-run).
+- The cert and key are slurped from the target host (or CA manager host for k8s-only certs) and uploaded as base64 `tls.crt` / `tls.key` data fields.
+- Setting `state: absent` on the cert item also deletes the TLS Secret from the namespace.
+- All k8s API calls are made from the Ansible control host (`delegate_to: localhost`) — no k8s client needs to be installed on target hosts.
+- The CA cert is decoded from `cacert_k8s_ca_b64` to a temp file on the control host for TLS verification of the API connection.
+
+### Kubernetes-only certificates
+
+Sometimes you need certificates that exist exclusively in Kubernetes — they should never be written to any target host filesystem. Two dedicated lists cover this:
+
+**`cacert_k8s_servercerts`** — server certs generated on the CA manager host, deployed as k8s TLS Secrets only:
+
+```yaml
+cacert_k8s_servercerts:
+  - id: "nginx-ingress-wildcard"
+    common_name: "*.lpv4.net"
+    k8s_namespace: "nginx-ingress"
+    altnames:
+      - name: "*.lpv4.net"
+        prefix: "DNS"
+```
+
+Schema is identical to `cacert_additionalcerts` except:
+- `k8s_namespace` is **mandatory** (there's no host filesystem destination)
+- No `dest`, `additionalpaths`, or `key_additionalpaths` — certs never touch a host
+- `id` is used as part of the k8s Secret name (`<ca>-server-<id>`)
+- Unset fields inherit from `cacert_defaultcert_*` scalars
+
+**`cacert_k8s_clientcerts`** — client certs generated on the CA manager host, deployed as k8s TLS Secrets only:
+
+```yaml
+cacert_k8s_clientcerts:
+  - common_name: "mqtt-client"
+    k8s_namespace: "iot"
+```
+
+Schema is identical to `cacert_clientcerts` except:
+- `k8s_namespace` is **mandatory**
+- No `dest` — cert never touches a host
+- No `additionalhosts`, no PKCS#12 bundle generation (not needed for k8s)
+- `common_name` is used as part of the k8s Secret name (`<ca>-client-<common_name>`)
+- Unset fields inherit from `cacert_clientcert_*` scalars
+
+**Lifecycle**: Both lists support `state: present` (generate + deploy) and `state: absent` (delete the TLS Secret from k8s). Temp files on the CA manager host are cleaned up after each run.
+
+**Summary of k8s deployment paths:**
+
+| Feature | Variable | Touches host FS? | Goes to k8s? |
+| - | - | - | - |
+| Dual-deploy client cert | `cacert_clientcerts[].k8s_namespace` | Yes (at `dest`) | Yes |
+| Dual-deploy default server cert | `cacert_defaultcert_k8s_namespace` | Yes (OS paths) | Yes |
+| Dual-deploy additional server cert | `cacert_additionalcerts[].k8s_namespace` | Yes (OS paths) | Yes |
+| k8s-only server cert | `cacert_k8s_servercerts` | No | Yes |
+| k8s-only client cert | `cacert_k8s_clientcerts` | No | Yes |

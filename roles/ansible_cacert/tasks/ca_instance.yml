@@ -118,6 +118,20 @@
 - name: "MMN cacert - Manage default cert on additional hosts"
   ansible.builtin.include_tasks: ca_instance_defaultcert_additional_hosts.yml
 
+# KUBERNETES TLS SECRET — default server cert
+- name: "MMN cacert - Deploy default cert to k8s"
+  ansible.builtin.include_tasks: ca_instance_k8s_secret.yml
+  vars:
+    _cacert_k8s_namespace: "{{ cacert_defaultcert_k8s_namespace | default(omit) }}"
+    _cacert_k8s_secret_name: "{{ cacert_ca.key }}-server-{{ inventory_hostname }}"
+    _cacert_k8s_cert_path: "{{ cacert_path_defaultcert }}"
+    _cacert_k8s_key_path: "{{ cacert_path_defaultkey }}"
+    _cacert_k8s_state: "{{ cacert_defaultcert_state | default('present') }}"
+  when:
+    - cacert_defaultcert_k8s_namespace is defined
+    - cacert_k8s_api_url is defined
+    - cacert_k8s_api_url | length > 0
+
 # ADDITIONAL CERTS (extra server certs, e.g. wildcards)
 - name: "MMN cacert - Manage additional certs"
   ansible.builtin.include_tasks: ca_instance_onecert.yml
@@ -148,6 +162,24 @@
       key_additionalpaths: "{{ cacert_additionalcert.key_additionalpaths | default([]) }}"
   when: cacert_additionalcerts is defined
 
+# KUBERNETES TLS SECRET — additional server certs
+- name: "MMN cacert - Deploy additional certs to k8s"
+  ansible.builtin.include_tasks: ca_instance_k8s_secret.yml
+  loop: "{{ cacert_additionalcerts | default([]) }}"
+  loop_control:
+    loop_var: cacert_additionalcert_k8s
+  vars:
+    _cacert_k8s_namespace: "{{ cacert_additionalcert_k8s.k8s_namespace | default(omit) }}"
+    _cacert_k8s_secret_name: "{{ cacert_ca.key }}-server-{{ cacert_additionalcert_k8s.id }}"
+    _cacert_k8s_cert_path: "{{ cacert_openssl_path_certificate_server }}/{{ cacert_ca.key }}_{{ cacert_additionalcert_k8s.id }}_{{ cacert_tag_certificate }}.pem"
+    _cacert_k8s_key_path: "{{ cacert_openssl_path_key_server }}/{{ cacert_ca.key }}_{{ cacert_additionalcert_k8s.id }}_{{ cacert_tag_privatekey }}.pem"
+    _cacert_k8s_state: "{{ cacert_additionalcert_k8s.state | default('present') }}"
+  when:
+    - cacert_additionalcerts is defined
+    - cacert_additionalcert_k8s.k8s_namespace is defined
+    - cacert_k8s_api_url is defined
+    - cacert_k8s_api_url | length > 0
+
 # CLIENT CERT PRIVATE KEY
 - name: "MMN cacert - Manage client key"
   ansible.builtin.include_tasks: ca_instance_clientkey.yml
@@ -161,3 +193,27 @@
   loop: "{{ cacert_clientcerts }}"
   loop_control:
     loop_var: "cacert_clientcert"
+
+# KUBERNETES-ONLY SERVER CERTS (generated on CA manager host, deployed exclusively to k8s)
+- name: "MMN cacert - Manage k8s-only server certs"
+  ansible.builtin.include_tasks: ca_instance_k8s_servercert.yml
+  loop: "{{ cacert_k8s_servercerts | default([]) }}"
+  loop_control:
+    loop_var: "cacert_k8s_servercert"
+  when:
+    - cacert_k8s_servercerts is defined
+    - cacert_k8s_servercerts | length > 0
+    - cacert_k8s_api_url is defined
+    - cacert_k8s_api_url | length > 0
+
+# KUBERNETES-ONLY CLIENT CERTS (generated on CA manager host, deployed exclusively to k8s)
+- name: "MMN cacert - Manage k8s-only client certs"
+  ansible.builtin.include_tasks: ca_instance_k8s_clientcert.yml
+  loop: "{{ cacert_k8s_clientcerts | default([]) }}"
+  loop_control:
+    loop_var: "cacert_k8s_clientcert"
+  when:
+    - cacert_k8s_clientcerts is defined
+    - cacert_k8s_clientcerts | length > 0
+    - cacert_k8s_api_url is defined
+    - cacert_k8s_api_url | length > 0

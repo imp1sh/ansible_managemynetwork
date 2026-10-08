@@ -13,18 +13,22 @@
 # is not yet known, so the role works regardless of which hosts `-l` selects.
 # See README "Client cert additional hosts" for the full rationale.
 
-- name: "MMN cacert - Gather facts on delegated host {{ cacert_clientcert_additionalhost.targethost }} if missing"
+- name: "MMN cacert - Determine OS family on delegated host {{ cacert_clientcert_additionalhost.targethost }}"
   delegate_to: "{{ cacert_clientcert_additionalhost.targethost }}"
   ansible.builtin.setup:
     gather_subset: min
-  when: hostvars[cacert_clientcert_additionalhost.targethost].ansible_os_family is not defined
+  register: _cacert_delegated_setup
+  ignore_unreachable: true
 
 - name: "MMN cacert - Ensure NSS tooling present on {{ cacert_clientcert_additionalhost.targethost }}"
   delegate_to: "{{ cacert_clientcert_additionalhost.targethost }}"
   become: True
   ansible.builtin.package:
-    name: "{{ (hostvars[cacert_clientcert_additionalhost.targethost].ansible_os_family == 'RedHat') | ternary('nss-tools', 'libnss3-tools') }}"
+    name: "{{ (((_cacert_delegated_setup['ansible_facts'] | default({}))['ansible_os_family'] | default('')) == 'RedHat') | ternary('nss-tools', 'libnss3-tools') }}"
     state: present
+  when:
+    - _cacert_delegated_setup is not failed
+    - _cacert_delegated_setup.unreachable | default(false) is not true
 
 - name: "MMN cacert - Ensure client cert target path exists on {{ cacert_clientcert_additionalhost.targethost }}"
   delegate_to: "{{ cacert_clientcert_additionalhost.targethost }}"
@@ -35,6 +39,9 @@
     owner: "{{ cacert_clientcert_additionalhost.targethostuser | default(omit) }}"
     group: "{{ cacert_clientcert_additionalhost.targethostgroup | default(omit) }}"
     mode: "0700"
+  when:
+    - _cacert_delegated_setup is not failed
+    - _cacert_delegated_setup.unreachable | default(false) is not true
 
 - name: "MMN cacert - Copy client PKCS12 bundle to {{ cacert_clientcert_additionalhost.targethost }}"
   delegate_to: "{{ cacert_clientcert_additionalhost.targethost }}"
@@ -45,6 +52,9 @@
     owner: "{{ cacert_clientcert_additionalhost.targethostuser | default(omit) }}"
     group: "{{ cacert_clientcert_additionalhost.targethostgroup | default(omit) }}"
     mode: "0600"
+  when:
+    - _cacert_delegated_setup is not failed
+    - _cacert_delegated_setup.unreachable | default(false) is not true
 
 - name: "MMN cacert - Ensure NSS database directory exists on {{ cacert_clientcert_additionalhost.targethost }}"
   delegate_to: "{{ cacert_clientcert_additionalhost.targethost }}"
@@ -55,7 +65,10 @@
     owner: "{{ cacert_clientcert_additionalhost.targethostuser | default(omit) }}"
     group: "{{ cacert_clientcert_additionalhost.targethostgroup | default(omit) }}"
     mode: "0700"
-  when: cacert_clientcert_additionalhost.nss_import | default(true) | bool
+  when:
+    - _cacert_delegated_setup is not failed
+    - _cacert_delegated_setup.unreachable | default(false) is not true
+    - cacert_clientcert_additionalhost.nss_import | default(true) | bool
 
 - name: "MMN cacert - Stat NSS database on {{ cacert_clientcert_additionalhost.targethost }}"
   delegate_to: "{{ cacert_clientcert_additionalhost.targethost }}"
@@ -63,7 +76,10 @@
   ansible.builtin.stat:
     path: "{{ cacert_clientcert_additionalhost.targethostpath }}/nssdb/cert9.db"
   register: cacert_clientcert_nss_stat
-  when: cacert_clientcert_additionalhost.nss_import | default(true) | bool
+  when:
+    - _cacert_delegated_setup is not failed
+    - _cacert_delegated_setup.unreachable | default(false) is not true
+    - cacert_clientcert_additionalhost.nss_import | default(true) | bool
 
 - name: "MMN cacert - Initialize NSS database if absent on {{ cacert_clientcert_additionalhost.targethost }}"
   delegate_to: "{{ cacert_clientcert_additionalhost.targethost }}"
@@ -72,6 +88,8 @@
   ansible.builtin.command:
     cmd: "certutil -N -d sql:{{ cacert_clientcert_additionalhost.targethostpath }}/nssdb --empty-password"
   when:
+    - _cacert_delegated_setup is not failed
+    - _cacert_delegated_setup.unreachable | default(false) is not true
     - cacert_clientcert_additionalhost.nss_import | default(true) | bool
     - not cacert_clientcert_nss_stat.stat.exists
   changed_when: true
@@ -85,7 +103,10 @@
   register: cacert_clientcert_nss_check
   changed_when: false
   failed_when: false
-  when: cacert_clientcert_additionalhost.nss_import | default(true) | bool
+  when:
+    - _cacert_delegated_setup is not failed
+    - _cacert_delegated_setup.unreachable | default(false) is not true
+    - cacert_clientcert_additionalhost.nss_import | default(true) | bool
 
 - name: "MMN cacert - Import client PKCS12 into NSS database on {{ cacert_clientcert_additionalhost.targethost }}"
   delegate_to: "{{ cacert_clientcert_additionalhost.targethost }}"
@@ -103,6 +124,8 @@
       - -K
       - ""
   when:
+    - _cacert_delegated_setup is not failed
+    - _cacert_delegated_setup.unreachable | default(false) is not true
     - cacert_clientcert_additionalhost.nss_import | default(true) | bool
     - cacert_clientcert_nss_check.rc | default(1) != 0
   no_log: true

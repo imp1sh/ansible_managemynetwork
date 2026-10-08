@@ -45,3 +45,24 @@ cacert_clientcert_force: false
 # typically imported into browsers which require PKCS#12 format.
 cacert_clientcert_pkcs12: true
 cacert_clientcert_pkcs12_passphrase: ""
+
+# Kubernetes TLS Secret deployment (optional, opt-in per cert)
+# Set these globally to enable k8s deployment, then set k8s_namespace
+# on individual client cert or server cert items to target a namespace.
+cacert_k8s_api_url: ""
+cacert_k8s_api_token: ""
+cacert_k8s_ca_b64: ""
+
+# k8s-only server certs: generated on the CA manager host, deployed exclusively
+# as k8s TLS Secrets. Never written to any target host filesystem.
+# Each entry: id (mandatory), common_name (mandatory), k8s_namespace (mandatory),
+# state, altnames, not_after, not_before, type, bitsize, curve, passphrase, force,
+# organization_name, organizational_unit_name, country_name, state_or_province_name,
+# locality_name, email_address. Unset fields inherit from cacert_defaultcert_* scalars.
+cacert_k8s_servercerts: []
+
+# k8s-only client certs: same concept, for client certificates.
+# Each entry: common_name (mandatory), k8s_namespace (mandatory), state,
+# not_after, not_before, type, bitsize, curve, passphrase, force.
+# Unset fields inherit from cacert_clientcert_* scalars.
+cacert_k8s_clientcerts: []
