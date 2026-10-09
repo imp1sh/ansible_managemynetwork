@@ -35,3 +35,63 @@
 - name: MMN Talos - Get kubeconfig
   ansible.builtin.command: "talosctl kubeconfig {{ talos_config_path }} --nodes {{ talos_cluster.value.hosts_controlplane[0].ip4[0] | ansible.utils.ipaddr('address') }} --endpoints {{ talos_cluster.value.hosts_controlplane[0].ip4[0] | ansible.utils.ipaddr('address') }} --talosconfig {{ talos_config_file }}"
   changed_when: true
+
+- name: MMN Talos - Determine kubeconfig path
+  ansible.builtin.set_fact:
+    talos_kubeconfig_path: "{{ talos_config_path }}/kubeconfig"
+
+- name: MMN Talos - Check if Gateway API CRDs already exist
+  ansible.builtin.command: kubectl get crd gatewayclasses.gateway.networking.k8s.io
+  environment:
+    KUBECONFIG: "{{ talos_kubeconfig_path }}"
+  register: talos_gateway_crd_check
+  changed_when: false
+  failed_when: false
+  when:
+    - talos_cp_bootstrapped[talos_cluster.value.hosts_controlplane[0].name] | default(false)
+    - talos_cluster.value.cilium_gateway_api | default(cilium_gateway_api | default(false))
+
+- name: MMN Talos - Apply Cilium inline manifest on bootstrapped cluster
+  ansible.builtin.command: >-
+    kubectl apply -f {{ talos_patches_path }}/cilium-manifest.cache.yaml
+  environment:
+    KUBECONFIG: "{{ talos_kubeconfig_path }}"
+  register: talos_cilium_apply_result
+  changed_when: "'configured' in talos_cilium_apply_result.stdout or 'created' in talos_cilium_apply_result.stdout"
+  when:
+    - talos_cp_bootstrapped[talos_cluster.value.hosts_controlplane[0].name] | default(false)
+    - talos_cluster.value.custom_cni is defined and talos_cluster.value.custom_cni == "cilium"
+
+- name: MMN Talos - Apply Gateway API CRDs on bootstrapped cluster (skip if present)
+  ansible.builtin.command: >-
+    kubectl apply -f {{ talos_patches_path }}/gateway-api-crds.yaml
+  environment:
+    KUBECONFIG: "{{ talos_kubeconfig_path }}"
+  register: talos_gateway_crd_apply_result
+  changed_when: "'configured' in talos_gateway_crd_apply_result.stdout or 'created' in talos_gateway_crd_apply_result.stdout"
+  when:
+    - talos_cp_bootstrapped[talos_cluster.value.hosts_controlplane[0].name] | default(false)
+    - talos_cluster.value.cilium_gateway_api | default(cilium_gateway_api | default(false))
+    - talos_gateway_crd_check.rc != 0
+
+- name: MMN Talos - Restart Cilium workloads if manifest changed
+  ansible.builtin.command: >-
+    kubectl -n kube-system rollout restart ds/cilium ds/cilium-envoy deploy/cilium-operator
+  environment:
+    KUBECONFIG: "{{ talos_kubeconfig_path }}"
+  when:
+    - talos_cp_bootstrapped[talos_cluster.value.hosts_controlplane[0].name] | default(false)
+    - talos_cluster.value.custom_cni is defined and talos_cluster.value.custom_cni == "cilium"
+    - talos_cilium_apply_result is changed
+  changed_when: true
+
+- name: MMN Talos - Wait for Cilium rollout
+  ansible.builtin.command: >-
+    kubectl -n kube-system rollout status ds/cilium --timeout=300s
+  environment:
+    KUBECONFIG: "{{ talos_kubeconfig_path }}"
+  when:
+    - talos_cp_bootstrapped[talos_cluster.value.hosts_controlplane[0].name] | default(false)
+    - talos_cluster.value.custom_cni is defined and talos_cluster.value.custom_cni == "cilium"
+    - talos_cilium_apply_result is changed
+  changed_when: false

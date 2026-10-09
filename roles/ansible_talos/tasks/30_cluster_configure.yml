@@ -175,6 +175,12 @@
       stdout: "{{ gateway_api_crd_fetch.results | map(attribute='content') | join('\n---\n') }}"
   when: talos_cluster.value.cilium_gateway_api | default(cilium_gateway_api | default(false))
 
+- name: MMN Talos - Write Gateway API CRDs to file
+  ansible.builtin.copy:
+    dest: "{{ talos_patches_path }}/gateway-api-crds.yaml"
+    content: "{{ gateway_api_crds_output.stdout }}"
+  when: talos_cluster.value.cilium_gateway_api | default(cilium_gateway_api | default(false))
+
 - name: MMN Talos - Generate controlplane cluster-wide patchfile for cluster "{{ talos_cluster.key }}"
   ansible.builtin.template:
     src: controlplane_patch.yaml.j2
