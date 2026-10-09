@@ -24,6 +24,14 @@ name: cilium
 manifest: |
 {{ cilium_manifest_output.stdout | indent(4, true) }}
 {% endif %}
+{% if talos_cluster.value.cilium_gateway_api | default(cilium_gateway_api | default(false)) and gateway_api_crds_output is defined %}
+---
+apiVersion: v1alpha1
+kind: KubeInlineManifestConfig
+name: gateway-api-crds
+manifest: |
+{{ gateway_api_crds_output.stdout | indent(4, true) }}
+{% endif %}
 {% if talos_cluster.value.pod_subnets is defined or talos_cluster.value.service_subnets is defined %}
 ---
 apiVersion: v1alpha1

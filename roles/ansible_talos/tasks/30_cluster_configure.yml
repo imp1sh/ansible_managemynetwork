@@ -152,6 +152,29 @@
     - talos_cluster.value.custom_cni is defined and talos_cluster.value.custom_cni == "cilium"
     - not (talos_cilium_ca_stat.stat.exists | default(false))
 
+- name: MMN Talos - Set Gateway API CRD base URL
+  ansible.builtin.set_fact:
+    _gateway_api_crd_base: "https://raw.githubusercontent.com/kubernetes-sigs/gateway-api/{{ cilium_gateway_api_crd_version }}/config/crd/standard"
+  when: talos_cluster.value.cilium_gateway_api | default(cilium_gateway_api | default(false))
+
+- name: MMN Talos - Fetch Gateway API CRDs
+  ansible.builtin.uri:
+    url: "{{ item }}"
+    return_content: true
+  loop:
+    - "{{ _gateway_api_crd_base }}/gateway.networking.k8s.io_gatewayclasses.yaml"
+    - "{{ _gateway_api_crd_base }}/gateway.networking.k8s.io_gateways.yaml"
+    - "{{ _gateway_api_crd_base }}/gateway.networking.k8s.io_httproutes.yaml"
+    - "{{ _gateway_api_crd_base }}/gateway.networking.k8s.io_referencegrants.yaml"
+  register: gateway_api_crd_fetch
+  when: talos_cluster.value.cilium_gateway_api | default(cilium_gateway_api | default(false))
+
+- name: MMN Talos - Combine Gateway API CRDs into single manifest
+  ansible.builtin.set_fact:
+    gateway_api_crds_output:
+      stdout: "{{ gateway_api_crd_fetch.results | map(attribute='content') | join('\n---\n') }}"
+  when: talos_cluster.value.cilium_gateway_api | default(cilium_gateway_api | default(false))
+
 - name: MMN Talos - Generate controlplane cluster-wide patchfile for cluster "{{ talos_cluster.key }}"
   ansible.builtin.template:
     src: controlplane_patch.yaml.j2
@@ -169,7 +192,7 @@
     {{ talos_cluster.key }} https://{{ talos_cluster.value.api_fqdn }}:6443
     --output-dir {{ talos_config_path }}
     --install-disk {{ talos_cp_disk_map[talos_cluster.value.hosts_controlplane[0].name] | default('/dev/sda') }}
-    --install-image factory.talos.dev/metal-installer/376567988ad370138ad8b2698212367b8edcb69b5fd68c80be1f2ec7d603b4ba:{{ talos_cluster.value.talos_version | default(talos_version) }}
+    --install-image factory.talos.dev/metal-installer/{{ talos_cluster.value.schematic_id | default(talos_schematic_id) }}:{{ talos_cluster.value.talos_version | default(talos_version) }}
     --config-patch-control-plane @{{ talos_patches_path }}/{{ talos_filename_controlplane_patch }}
     --config-patch-worker @{{ talos_patches_path }}/{{ talos_filename_worker_patch }}
   changed_when: true

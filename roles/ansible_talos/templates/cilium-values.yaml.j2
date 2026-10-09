@@ -15,6 +15,11 @@ kubeProxyReplacement: {{ "true" if (talos_cluster.value.disable_kube_proxy | def
 k8sServiceHost: localhost
 k8sServicePort: 7445
 {% endif %}
+{% if talos_cluster.value.cilium_gateway_api | default(cilium_gateway_api | default(false)) %}
+gatewayAPI:
+  enabled: true
+  enableAlpn: true
+{% endif %}
 securityContext:
   capabilities:
     ciliumAgent:
