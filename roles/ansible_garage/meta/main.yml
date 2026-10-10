@@ -1,0 +1,14 @@
+galaxy_info:
+  author: Jochen Demmer
+  description: Deploys and configures Garage S3-compatible object storage (single-node)
+  license: BSD-3-Clause
+  min_ansible_version: "2.14"
+  platforms:
+    - name: Debian
+      versions: [all]
+  galaxy_tags:
+    - s3
+    - objectstorage
+    - garage
+    - backup
+dependencies: []

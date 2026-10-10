@@ -96,6 +96,7 @@
   when:
     - ansible_distribution != "OpenWrt"
     - not (podman_prune_timer_enabled | default(false) | bool)
+  failed_when: false
 
 - name: "MMN Podman - Delete podman-system-prune unit files when disabled"
   ansible.builtin.file:

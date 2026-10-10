@@ -1,0 +1,37 @@
+---
+# ansible_garage defaults
+
+# Container image (pin to a stable Garage release; v2.4.1 supports
+# `--single-node` auto-layout and env-var configuration of secrets).
+garage_image: "docker.io/dxflrs/garage:v2.4.1"
+
+# Container / systemd unit name (Quadlet renders "<name>.service").
+garage_containername: "garage0"
+
+# Host-side layout. metadata sits on fast storage alongside other container
+# data; object blocks go on the bulky data disk.
+garage_path_base: "/mnt/cntr/unsynced/garage/0"
+garage_path_config: "{{ garage_path_base }}/garage.toml"
+garage_path_meta: "{{ garage_path_base }}/meta"
+garage_path_secrets: "{{ garage_path_base }}/secrets"
+garage_path_data: "/mnt/backupdisk/garage_s3/data"
+
+# Credentials file written by the provision tasks (root-only, mode 0600).
+# Contains the access key id + secret produced by `garage key create` so the
+# operator can feed them into the CNPG/barman-cloud backup configuration.
+garage_credentials_file: "{{ garage_path_secrets }}/{{ garage_key_name }}.txt"
+
+# Garage tunables
+garage_s3_region: "garage"
+garage_bucket_name: "cnpg-backup"
+garage_key_name: "cnpg-backup-key"
+garage_db_engine: "sqlite"
+garage_replication_factor: 1
+
+# Ownership (the dxflrs/garage image runs as root).
+garage_owner: "root"
+garage_group: "root"
+
+# Public S3 endpoint advertised to clients. Override per host if you front
+# Garage with a different hostname than inventory_hostname.
+garage_advertise_endpoint: "https://{{ inventory_hostname }}"

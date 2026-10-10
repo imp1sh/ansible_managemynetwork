@@ -158,3 +158,12 @@
     - podman_container_plugin_smokeping is defined
     - podman_containers is defined
     - _podman_containers_for_plugins | rejectattr('state', 'equalto', 'absent') | list | map(attribute='name') | intersect(podman_container_plugin_smokeping) | length > 0
+
+# GARAGE
+- name: "MMN Podman - Plugin garage"
+  ansible.builtin.include_tasks:
+    file: plugin_garage.yml
+  when:
+    - podman_container_plugin_garage is defined
+    - podman_containers is defined
+    - _podman_containers_for_plugins | rejectattr('state', 'equalto', 'absent') | list | map(attribute='name') | intersect(podman_container_plugin_garage) | length > 0

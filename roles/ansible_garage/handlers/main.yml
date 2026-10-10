@@ -1,0 +1,6 @@
+---
+- name: restart garage container
+  ansible.builtin.systemd:
+    name: "{{ garage_containername | default('garage0') }}"
+    state: restarted
+    daemon_reload: true

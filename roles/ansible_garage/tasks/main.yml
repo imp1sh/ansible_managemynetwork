@@ -1,0 +1,46 @@
+---
+# Run 1 (invoked by the ansible_podman garage plugin BEFORE the container is
+# created): prepares directories, generates the RPC secret on the host and
+# renders garage.toml. Garage reads its structural config exclusively from
+# garage.toml; only secrets and the default bucket/key can come from env vars.
+
+- name: "MMN garage - Ensure directories exist"
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ garage_owner }}"
+    group: "{{ garage_group }}"
+    mode: "0755"
+  loop:
+    - "{{ garage_path_base }}"
+    - "{{ garage_path_meta }}"
+    - "{{ garage_path_secrets }}"
+    - "{{ garage_path_data }}"
+
+- name: "MMN garage - Stat RPC secret file"
+  ansible.builtin.stat:
+    path: "{{ garage_path_secrets }}/rpc_secret"
+  register: _garage_rpc_stat
+
+- name: "MMN garage - Generate RPC secret"
+  ansible.builtin.command: openssl rand -hex 32
+  register: _garage_rpc_gen
+  changed_when: false
+  when: not _garage_rpc_stat.stat.exists
+
+- name: "MMN garage - Write RPC secret file"
+  ansible.builtin.copy:
+    dest: "{{ garage_path_secrets }}/rpc_secret"
+    content: "{{ _garage_rpc_gen.stdout }}\n"
+    mode: "0600"
+    owner: "{{ garage_owner }}"
+    group: "{{ garage_group }}"
+  when: not _garage_rpc_stat.stat.exists
+  no_log: true
+
+- name: "MMN garage - Deploy garage.toml"
+  ansible.builtin.template:
+    src: garage.toml.j2
+    dest: "{{ garage_path_config }}"
+    mode: "0644"
+  notify: restart garage container

@@ -49,7 +49,8 @@
       ( podman_container_plugin_kubo is defined ) or
       ( podman_container_plugin_actrunner is defined ) or
       ( podman_container_plugin_zitadel is defined ) or
-      ( podman_container_plugin_smokeping is defined )
+      ( podman_container_plugin_smokeping is defined ) or
+      ( podman_container_plugin_garage is defined )
     - podman_containers is defined
     - not podman_runimagebuilder | default(false) | bool
 
@@ -99,3 +100,13 @@
     - podman_container_plugin_borgmatic is defined
     - podman_containers is defined
     - podman_containers | rejectattr('state', 'equalto', 'absent') | list | map(attribute='name') | intersect(podman_container_plugin_borgmatic) | length > 0
+
+# GARAGE
+- name: "MMN Podman - Calling garage role for provisioning"
+  ansible.builtin.include_role:
+    name: imp1sh.ansible_managemynetwork.ansible_garage
+    tasks_from: provision.yml
+  when:
+    - podman_container_plugin_garage is defined
+    - podman_containers is defined
+    - podman_containers | rejectattr('state', 'equalto', 'absent') | list | map(attribute='name') | intersect(podman_container_plugin_garage) | length > 0

@@ -1,0 +1,31 @@
+# Managed by ansible_garage role — do not edit manually
+# Structural config that Garage cannot take from environment variables
+# (storage paths, bind addresses, replication factor, db engine, s3 region).
+# Secrets (rpc_secret) are injected via GARAGE_RPC_SECRET_FILE at runtime.
+
+metadata_dir = "/var/lib/garage/meta"
+data_dir = "/var/lib/garage/data"
+db_engine = "{{ garage_db_engine }}"
+
+replication_factor = {{ garage_replication_factor }}
+
+rpc_bind_addr = "[::]:3901"
+rpc_public_addr = "127.0.0.1:3901"
+# rpc_secret provided via GARAGE_RPC_SECRET_FILE env var
+
+[s3_api]
+s3_region = "{{ garage_s3_region }}"
+api_bind_addr = "[::]:3900"
+root_domain = ".s3.{{ inventory_hostname }}"
+advertise_endpoint = "{{ garage_advertise_endpoint }}"
+advertise_path_style = true
+
+[s3_web]
+bind_addr = "[::]:3902"
+root_domain = ".web.{{ inventory_hostname }}"
+
+[admin]
+api_bind_addr = "[::]:3903"
+# admin_token / metrics_token intentionally unset: the admin API is disabled
+# (Garage v2.0+) and the metrics endpoint is reachable only on the internal
+# podman bridge, not published on the host.

@@ -1,0 +1,52 @@
+---
+# Run 2 (invoked from the playbook AFTER ansible_podman has created/started the
+# garage0 container): boots the single-node layout is already done via the
+# `--single-node` flag, so only the bucket and the access key need provisioning.
+# No secrets live in the repo: the access key id + secret are captured into a
+# root-only file on the host for the operator to copy into the CNPG backup config.
+
+- name: "MMN garage - Wait for garage0 to respond"
+  ansible.builtin.command: "podman exec {{ garage_containername }} /garage status"
+  register: _garage_status
+  changed_when: false
+  retries: 15
+  delay: 3
+  until: _garage_status.rc == 0
+
+- name: "MMN garage - Check if bucket exists"
+  ansible.builtin.command: "podman exec {{ garage_containername }} /garage bucket info {{ garage_bucket_name }}"
+  register: _garage_bucket
+  changed_when: false
+  failed_when: false
+
+- name: "MMN garage - Create bucket"
+  ansible.builtin.command: "podman exec {{ garage_containername }} /garage bucket create {{ garage_bucket_name }}"
+  when: _garage_bucket.rc != 0
+
+- name: "MMN garage - Check if access key exists"
+  ansible.builtin.command: "podman exec {{ garage_containername }} /garage key info {{ garage_key_name }}"
+  register: _garage_key
+  changed_when: false
+  failed_when: false
+
+- name: "MMN garage - Create access key and capture credentials"
+  ansible.builtin.command: "podman exec {{ garage_containername }} /garage key create {{ garage_key_name }}"
+  register: _garage_key_create
+  when: _garage_key.rc != 0
+  no_log: true
+
+- name: "MMN garage - Persist access key credentials to host file"
+  ansible.builtin.copy:
+    dest: "{{ garage_credentials_file }}"
+    content: "{{ _garage_key_create.stdout }}\n"
+    mode: "0600"
+    owner: "{{ garage_owner }}"
+    group: "{{ garage_group }}"
+  when: _garage_key.rc != 0
+  no_log: true
+
+- name: "MMN garage - Grant key read/write/owner on bucket"
+  ansible.builtin.command: >-
+    podman exec {{ garage_containername }} /garage bucket allow
+    --read --write --owner {{ garage_bucket_name }} --key {{ garage_key_name }}
+  changed_when: false
