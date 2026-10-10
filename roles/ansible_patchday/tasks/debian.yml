@@ -79,13 +79,18 @@
     - patchday_reboot_notify | bool
     - patchday_reboot_grace_period | int > 0
 
-- name: MMN Patchday - Reboot if needed
-  ansible.builtin.reboot:
-    msg: "Rebooting the system after updates."
-    connect_timeout: 5
-    reboot_timeout: "{{ patchday_reboot_timeout }}"
-    pre_reboot_delay: 0
-    post_reboot_delay: "{{ patchday_post_reboot_delay }}"
+- name: MMN Patchday - Trigger reboot
+  ansible.builtin.shell: '( sleep 2 && systemctl reboot ) & disown'
+  changed_when: true
+  failed_when: false
+  when:
+    - patchday_reboot_needed
+    - not patchday_skip_reboot | default(false)
+
+- name: MMN Patchday - Wait for host to come back
+  ansible.builtin.wait_for_connection:
+    delay: "{{ patchday_post_reboot_delay }}"
+    timeout: "{{ patchday_reboot_timeout }}"
   when:
     - patchday_reboot_needed
     - not patchday_skip_reboot | default(false)
