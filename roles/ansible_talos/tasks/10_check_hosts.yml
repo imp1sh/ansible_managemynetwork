@@ -3,7 +3,7 @@
 
 # CONTROLPLANE: query disks (parse text output, not JSON)
 - name: MMN Talos - Query controlplane node disks
-  ansible.builtin.shell: "talosctl get disks --insecure -n {{ cpnode.ip4[0] | ansible.utils.ipaddr('address') }} | awk 'NR>1 && $7 == \"false\" {print $4}' | head -1"
+  ansible.builtin.shell: "talosctl get disks --insecure -n {{ cpnode.ip4[0] | ansible.utils.ipaddr('address') }} | awk 'NR>1 && $4 != \"loop0\" {print $4}' | head -1"
   loop: "{{ talos_cluster.value.hosts_controlplane }}"
   loop_control:
     loop_var: cpnode
@@ -31,7 +31,7 @@
 
 # WORKERS: query disks
 - name: MMN Talos - Query worker node disks
-  ansible.builtin.shell: "talosctl get disks --insecure -n {{ workernode.ip4[0] | ansible.utils.ipaddr('address') }} | awk 'NR>1 && $7 == \"false\" {print $4}' | head -1"
+  ansible.builtin.shell: "talosctl get disks --insecure -n {{ workernode.ip4[0] | ansible.utils.ipaddr('address') }} | awk 'NR>1 && $4 != \"loop0\" {print $4}' | head -1"
   loop: "{{ talos_cluster.value.hosts_worker | default([]) }}"
   loop_control:
     loop_var: workernode

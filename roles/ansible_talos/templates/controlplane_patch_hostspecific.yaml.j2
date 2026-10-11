@@ -3,3 +3,9 @@ apiVersion: v1alpha1
 kind: HostnameConfig
 auto: null
 hostname: "{{ clusternode.name }}"
+---
+apiVersion: v1alpha1
+kind: UnattendedInstallConfig
+provisioning:
+  diskSelector:
+    match: disk.dev_path == "/dev/{{ clusternode.systemdisk }}"

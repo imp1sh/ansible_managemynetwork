@@ -1,8 +1,15 @@
 ---
 # HOST-SPECIFIC PATCHING ONLY
 # Cluster-wide patches are applied during `talosctl gen config` via --config-patch flags.
+#
+# Controlplane deployment is split into two phases:
+#   Phase 1: deploy the first CP node, bootstrap etcd on it, wait for etcd.
+#   Phase 2: deploy the remaining CP nodes — they join the existing etcd cluster.
+# Deploying all nodes at once causes nodes 2+ to fail joining etcd because
+# etcd has not been bootstrapped on node 1 yet.
 
-# CONTROLPLANE NODES
+# ── COMMON: generate patched configs and probe state for all CP nodes ──
+
 - name: MMN Talos - Generate controlplane host patches
   ansible.builtin.template:
     src: controlplane_patch_hostspecific.yaml.j2
@@ -10,12 +17,14 @@
   loop: "{{ talos_cluster_hosts_cp }}"
   loop_control:
     loop_var: clusternode
+
 - name: MMN Talos - Apply controlplane host patchfiles
   ansible.builtin.command:
     cmd: "talosctl machineconfig patch {{ talos_config_path }}/controlplane.yaml -p @{{ talos_patches_path }}/controlplane_{{ clusternode.name }}_patch.yaml -o {{ talos_config_path }}/controlplane_{{ clusternode.name }}.yaml"
   loop: "{{ talos_cluster_hosts_cp }}"
   loop_control:
     loop_var: clusternode
+
 - name: MMN Talos - Probe controlplane node bootstrap state
   ansible.builtin.command:
     cmd: "talosctl --talosconfig {{ talosctl_config_path }} --endpoints {{ clusternode.ip4[0] | ansible.utils.ipaddr('address') }} --nodes {{ clusternode.ip4[0] | ansible.utils.ipaddr('address') }} version"
@@ -25,13 +34,73 @@
   loop: "{{ talos_cluster_hosts_cp }}"
   loop_control:
     loop_var: clusternode
+
 - name: MMN Talos - Summarize controlplane bootstrap state
   ansible.builtin.set_fact:
     talos_cp_bootstrapped: "{{ talos_cp_bootstrapped | default({}) | combine({probe.clusternode.name: (probe.rc | default(1)) == 0}) }}"
   loop: "{{ talos_cp_probe_raw.results }}"
   loop_control:
     loop_var: probe
-- name: MMN Talos - Deploy controlplane hosts
+
+- name: MMN Talos - Determine if cluster needs bootstrap
+  ansible.builtin.set_fact:
+    _talos_needs_bootstrap: "{{ not (talos_cp_bootstrapped[talos_cluster.value.hosts_controlplane[0].name] | default(false)) }}"
+
+# ── PHASE 1: deploy first CP node and bootstrap etcd ──
+
+- name: MMN Talos - Deploy first controlplane node
+  ansible.builtin.command:
+    cmd: >-
+      talosctl
+      {{ '--talosconfig ' ~ talosctl_config_path if (talos_cp_bootstrapped[_first_cp.name] | default(false)) else '' }}
+      apply-config
+      {{ '' if (talos_cp_bootstrapped[_first_cp.name] | default(false)) else '--insecure' }}
+      --nodes {{ _first_cp.ip4[0] | ansible.utils.ipaddr('address') }}
+      --endpoints {{ _first_cp.ip4[0] | ansible.utils.ipaddr('address') }}
+      --file {{ talos_config_path }}/controlplane_{{ _first_cp.name }}.yaml
+  vars:
+    _first_cp: "{{ talos_cluster_hosts_cp[0] }}"
+
+- name: MMN Talos - Wait for first controlplane node Talos API
+  ansible.builtin.wait_for:
+    host: "{{ talos_cluster_hosts_cp[0].ip4[0] | ansible.utils.ipaddr('address') }}"
+    port: 50000
+    timeout: 600
+
+- name: MMN Talos - Bootstrap etcd on first controlplane node
+  ansible.builtin.command: >-
+    talosctl bootstrap
+    --nodes {{ talos_cluster_hosts_cp[0].ip4[0] | ansible.utils.ipaddr('address') }}
+    --endpoints {{ talos_cluster_hosts_cp[0].ip4[0] | ansible.utils.ipaddr('address') }}
+    --talosconfig {{ talos_config_file }}
+  register: talos_bootstrap_result
+  retries: 30
+  delay: 10
+  until: >-
+    talos_bootstrap_result.rc == 0
+    or 'already' in (talos_bootstrap_result.stderr | default('')) | lower
+  changed_when: talos_bootstrap_result.rc == 0
+  failed_when: >-
+    talos_bootstrap_result.rc != 0
+    and 'already' not in (talos_bootstrap_result.stderr | default('')) | lower
+  when: _talos_needs_bootstrap
+
+- name: MMN Talos - Wait for first controlplane node to be ready
+  ansible.builtin.command: >-
+    talosctl --talosconfig {{ talosctl_config_path }}
+    --endpoints {{ talos_cluster_hosts_cp[0].ip4[0] | ansible.utils.ipaddr('address') }}
+    --nodes {{ talos_cluster_hosts_cp[0].ip4[0] | ansible.utils.ipaddr('address') }}
+    version
+  register: _talos_first_ready
+  retries: 30
+  delay: 10
+  until: _talos_first_ready.rc == 0
+  changed_when: false
+  when: _talos_needs_bootstrap
+
+# ── PHASE 2: deploy remaining CP nodes (join etcd) ──
+
+- name: MMN Talos - Deploy remaining controlplane nodes
   ansible.builtin.command:
     cmd: >-
       talosctl
@@ -41,7 +110,7 @@
       --nodes {{ clusternode.ip4[0] | ansible.utils.ipaddr('address') }}
       --endpoints {{ clusternode.ip4[0] | ansible.utils.ipaddr('address') }}
       --file {{ talos_config_path }}/controlplane_{{ clusternode.name }}.yaml
-  loop: "{{ talos_cluster_hosts_cp }}"
+  loop: "{{ talos_cluster_hosts_cp[1:] }}"
   loop_control:
     loop_var: clusternode
 

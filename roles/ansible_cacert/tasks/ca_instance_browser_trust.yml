@@ -2,6 +2,11 @@
 # Auto-deploy Mozilla enterprise policies so Firefox/LibreWolf import
 # the system trust store (where our CA cert already lives).
 # Chrome/Chromium use the system trust store natively and need nothing extra.
+#
+# Additionally, import the CA cert directly into every Firefox/LibreWolf
+# NSS profile database via certutil.  ImportEnterpriseRoots on Linux reads
+# from the OS trust store, but in practice misses some CAs (notably ECC
+# alternates).  Direct NSS import guarantees the CA is trusted regardless.
 
 - name: "MMN cacert - Detect Firefox"
   ansible.builtin.shell: "command -v firefox 2>/dev/null"
@@ -16,6 +21,14 @@
   args:
     executable: /bin/sh
   register: _cacert_librewolf_bin
+  changed_when: false
+  failed_when: false
+
+- name: "MMN cacert - Detect certutil"
+  ansible.builtin.shell: "command -v certutil 2>/dev/null"
+  args:
+    executable: /bin/sh
+  register: _cacert_certutil_bin
   changed_when: false
   failed_when: false
 
@@ -60,3 +73,57 @@
         }
       }
   when: _cacert_librewolf_bin.rc == 0
+
+# ── Direct NSS DB import (Firefox) ──
+- name: "MMN cacert - Find Firefox NSS profile databases"
+  ansible.builtin.find:
+    paths: "{{ item }}"
+    patterns: "cert9.db"
+    recurse: true
+    hidden: true
+  loop:
+    - "/home/{{ ansible_user_id }}/.mozilla/firefox"
+  register: _cacert_ff_nss_find
+  when:
+    - _cacert_firefox_bin.rc == 0
+    - _cacert_certutil_bin.rc == 0
+
+- name: "MMN cacert - Import CA into Firefox NSS databases"
+  ansible.builtin.command: >-
+    certutil -A -d sql:{{ item.path | dirname }}
+    -n '{{ cacert_ca.value.common_name | default(cacert_ca.key) }}'
+    -t 'CT,C,C'
+    -i '{{ cacert_path_cacert }}'
+  loop: "{{ _cacert_ff_nss_find.results | map(attribute='files') | flatten | list }}"
+  changed_when: false
+  failed_when: false
+  when:
+    - _cacert_firefox_bin.rc == 0
+    - _cacert_certutil_bin.rc == 0
+
+# ── Direct NSS DB import (LibreWolf) ──
+- name: "MMN cacert - Find LibreWolf NSS profile databases"
+  ansible.builtin.find:
+    paths: "{{ item }}"
+    patterns: "cert9.db"
+    recurse: true
+    hidden: true
+  loop:
+    - "/home/{{ ansible_user_id }}/.librewolf"
+  register: _cacert_lw_nss_find
+  when:
+    - _cacert_librewolf_bin.rc == 0
+    - _cacert_certutil_bin.rc == 0
+
+- name: "MMN cacert - Import CA into LibreWolf NSS databases"
+  ansible.builtin.command: >-
+    certutil -A -d sql:{{ item.path | dirname }}
+    -n '{{ cacert_ca.value.common_name | default(cacert_ca.key) }}'
+    -t 'CT,C,C'
+    -i '{{ cacert_path_cacert }}'
+  loop: "{{ _cacert_lw_nss_find.results | map(attribute='files') | flatten | list }}"
+  changed_when: false
+  failed_when: false
+  when:
+    - _cacert_librewolf_bin.rc == 0
+    - _cacert_certutil_bin.rc == 0
