@@ -40,13 +40,10 @@
     mode: "0755"
     owner: root
 
-- name: "k8s inbound - Clear state file to force initial run"
-  ansible.builtin.file:
-    path: "/tmp/cilium-pd-sync-gua-prefix"
-    state: absent
-
 - name: "k8s inbound - Trigger initial sync"
   ansible.builtin.shell: |
+    INCLUDE_FILE="/etc/nftables.d/50-k8s-lb-notrack-{{ openwrt_network_k8s_subnetid }}.nft"
+    rm -f "$INCLUDE_FILE"
     INTERFACE={{ openwrt_network_k8s_waninterface }} ACTION=ifup {{ openwrt_network_k8s_hotplug_script }}
   register: _k8s_pd_sync_initial
   changed_when: false

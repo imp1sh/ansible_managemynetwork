@@ -662,7 +662,7 @@ If the pool, route, or firewall rules seem out of sync, clear the state file
 and run the hotplug script manually on OpenWRT:
 
 ```bash
-rm /tmp/cilium-pd-sync-gua-prefix
+rm /etc/nftables.d/50-k8s-lb-notrack-<subnet-id>.nft
 INTERFACE=wan6 ACTION=ifup /etc/hotplug.d/iface/99-cilium-pd-sync
 ```
 
