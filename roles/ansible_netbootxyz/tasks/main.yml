@@ -1,0 +1,48 @@
+---
+# ansible_netbootxyz - deploy local-vars.ipxe + custom iPXE scripts into the
+# netboot.xyz container bind-mounts. Runs on the podman host (filer0); no
+# container restart is needed because dnsmasq TFTP and nginx serve files live.
+
+- name: "MMN netbootxyz - Validate required paths"
+  ansible.builtin.assert:
+    that:
+      - netbootxyz_config_dir is defined
+      - netbootxyz_assets_dir is defined
+      - netbootxyz_assets_url is defined
+    msg: "netbootxyz_config_dir, netbootxyz_assets_dir and netbootxyz_assets_url must be defined."
+
+- name: "MMN netbootxyz - Ensure TFTP root (config dir) exists with correct ownership"
+  ansible.builtin.file:
+    path: "{{ netbootxyz_config_dir }}"
+    state: directory
+    owner: "{{ netbootxyz_owner }}"
+    group: "{{ netbootxyz_group }}"
+    mode: '0755'
+
+- name: "MMN netbootxyz - Ensure custom assets dir exists"
+  ansible.builtin.file:
+    path: "{{ netbootxyz_assets_dir }}/custom"
+    state: directory
+    owner: "{{ netbootxyz_owner }}"
+    group: "{{ netbootxyz_group }}"
+    mode: '0755'
+
+# local-vars.ipxe is TFTP-fetched by the compiled netboot.xyz bootloader BEFORE
+# menu.ipxe is chained. We manage it wholesale; any manual edits here are
+# overwritten on the next Ansible run. To add a host, use netbootxyz_pxe_routes.
+- name: "MMN netbootxyz - Deploy local-vars.ipxe (TFTP root)"
+  ansible.builtin.template:
+    src: local-vars.ipxe.j2
+    dest: "{{ netbootxyz_config_dir }}/local-vars.ipxe"
+    owner: "{{ netbootxyz_owner }}"
+    group: "{{ netbootxyz_group }}"
+    mode: '0644'
+
+- name: "MMN netbootxyz - Deploy Talos metal installer iPXE script"
+  ansible.builtin.template:
+    src: talos-metal.ipxe.j2
+    dest: "{{ netbootxyz_assets_dir }}/custom/talos-metal.ipxe"
+    owner: "{{ netbootxyz_owner }}"
+    group: "{{ netbootxyz_group }}"
+    mode: '0644'
+  when: netbootxyz_deploy_talos_installer | bool

@@ -167,3 +167,12 @@
     - podman_container_plugin_garage is defined
     - podman_containers is defined
     - _podman_containers_for_plugins | rejectattr('state', 'equalto', 'absent') | list | map(attribute='name') | intersect(podman_container_plugin_garage) | length > 0
+
+# NETBOOTXYZ
+- name: "MMN Podman - Plugin netbootxyz"
+  ansible.builtin.include_tasks:
+    file: plugin_netbootxyz.yml
+  when:
+    - podman_container_plugin_netbootxyz is defined
+    - podman_containers is defined
+    - _podman_containers_for_plugins | rejectattr('state', 'equalto', 'absent') | list | map(attribute='name') | intersect(podman_container_plugin_netbootxyz) | length > 0

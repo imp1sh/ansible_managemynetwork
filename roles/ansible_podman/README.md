@@ -1002,3 +1002,59 @@ smokeping_config:
 See the `ansible_smokeping` README for the full variable reference (flat,
 hierarchical and table body shapes).
 
+### netbootxyz
+
+netboot.xyz PXE auto-routing plugin. The `ansible_podman` role spins up the
+container; the
+[`ansible_netbootxyz`](https://github.com/imp1sh/ansible_managemynetwork/tree/main/roles/ansible_netbootxyz)
+role templates `local-vars.ipxe` into the container's TFTP root and custom iPXE
+installer scripts (e.g. a headless Talos metal installer) into the nginx-served
+assets directory. The compiled netboot.xyz bootloader TFTP-fetches
+`local-vars.ipxe` before chaining `menu.ipxe`, so anything chained there
+pre-empts the interactive menu for matching hosts (matched by MAC). Unmatched
+MACs fall through and get the normal netboot.xyz menu unchanged. No container
+restart is needed — dnsmasq TFTP and nginx serve the files live. Enable the
+plugin:
+
+```yaml
+podman_container_plugin_netbootxyz:
+  - "netbootxyz0"
+netbootxyz_pxe_routes:
+  - mac: "52:54:00:8a:3f:c1"   # talos0
+    chain_url: "https://netbootassets.lpv4.net/custom/talos-metal.ipxe"
+netbootxyz_talos_version: "v1.14.2"
+```
+
+Then define the container:
+
+```yaml
+podman_containers:
+  - name: netbootxyz0
+    state: started
+    network: podmannet
+    image: ghcr.io/netbootxyz/netbootxyz:latest
+    volume:
+      - "/filer0/netbootxyz/config/:/config"
+      - "/filer0/netbootxyz/assets/:/assets"
+    env:
+      MENU_VERSION: "2.0.84"
+      NGINX_PORT: "80"
+      WEB_APP_PORT: "3000"
+    ports:
+      - "69:69/udp"
+```
+
+Notes:
+
+- Files placed in the TFTP root must be owned by the container's TFTP user
+  (dnsmasq runs with `--tftp-secure`). In the stock netboot.xyz image that user
+  is `nbxyz` (uid 1000), which typically maps to a host user such as `setup`
+  (uid 1000). Set `netbootxyz_owner`/`netbootxyz_group` accordingly, otherwise
+  TFTP retrieval of `local-vars.ipxe` will silently fail and hosts will fall
+  back to the normal menu.
+- Custom iPXE scripts are reached over HTTPS via `netbootxyz_assets_url`
+  (typically fronted by traefik), since the container only publishes `:69/udp`
+  TFTP and nginx `:80` is LAN-unreachable except through traefik on `:443`.
+
+See the `ansible_netbootxyz` README for the full variable reference.
+

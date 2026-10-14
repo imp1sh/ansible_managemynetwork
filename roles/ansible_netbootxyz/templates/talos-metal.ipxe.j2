@@ -1,0 +1,12 @@
+#!ipxe
+# Managed by imp1sh.ansible_managemynetwork.ansible_netbootxyz - do not edit by hand.
+#
+# Generic Talos metal installer. Pulls kernel + initramfs from the Sidero CDN at
+# boot time. No machine config is supplied (talos.config unset), so the node
+# comes up into the Talos maintenance/waiting state ready for `talosctl apply`.
+# Boot params mirror netboot.xyz's own talos.ipxe :talos_boot entry.
+set talos_base_url {{ netbootxyz_talos_mirror }}/{{ netbootxyz_talos_version }}
+set boot_params printk.devkmsg=on slab_nomerge pti=on {{ netbootxyz_talos_console }} init_on_alloc=1 init_on_free=1 consoleblank=0 nvme_core.io_timeout=4294967295 ima_template=ima-ng ima_appraise=fix ima_hash=sha512 talos.platform={{ netbootxyz_talos_platform }} initrd=initrd.magic ${cmdline}
+kernel ${talos_base_url}/vmlinuz-amd64 ${boot_params}
+initrd ${talos_base_url}/initramfs-amd64.xz
+boot

@@ -1,0 +1,14 @@
+galaxy_info:
+  author: Jochen Demmer
+  description: Templates netboot.xyz local-vars.ipxe and custom iPXE installer scripts (e.g. headless Talos) into the container bind-mounts
+  license: BSD-3-Clause
+  min_ansible_version: "2.14"
+  platforms:
+    - name: Debian
+      versions: [all]
+  galaxy_tags:
+    - pxe
+    - netbootxyz
+    - ipxe
+    - talos
+dependencies: []

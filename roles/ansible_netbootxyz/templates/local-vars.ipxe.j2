@@ -1,0 +1,9 @@
+#!ipxe
+# Managed by imp1sh.ansible_managemynetwork.ansible_netbootxyz - do not edit by hand.
+#
+# This file is TFTP-fetched by the compiled netboot.xyz bootloader before
+# menu.ipxe is chained. Anything chained here pre-empts the interactive menu.
+# Unmatched MACs fall through (empty body) and boot the normal netboot.xyz menu.
+{% for route in netbootxyz_pxe_routes %}
+iseq ${mac} {{ route.mac }} && chain {{ route.chain_url }} ||
+{% endfor %}

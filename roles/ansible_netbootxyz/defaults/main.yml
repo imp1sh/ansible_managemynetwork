@@ -1,0 +1,57 @@
+---
+# ansible_netbootxyz defaults
+#
+# These defaults reflect a typical self-hosted netboot.xyz docker/podman
+# deployment on filer0 (uid 1000 = in-container nbxyz = host user "setup").
+# Override per host in host_vars as needed.
+
+# ---- Paths (host-side bind-mount locations of the netbootxyz container) ----
+# TFTP root: dnsmasq runs "--tftp-secure --tftp-root=/config/menus", so files
+# placed here are served over TFTP. This is where local-vars.ipxe must live,
+# because the compiled netboot.xyz bootloader TFTP-fetches it before menu.ipxe.
+netbootxyz_config_dir: "/filer0/netbootxyz/config/menus"
+
+# nginx assets root: served on :80 inside the container and fronted by traefik
+# (e.g. https://netbootassets.lpv4.net). Custom iPXE scripts live under
+# <assets_dir>/custom/ and are reached over HTTPS via netbootxyz_assets_url.
+netbootxyz_assets_dir: "/filer0/netbootxyz/assets"
+
+# ---- Ownership --------------------------------------------------------------
+# dnsmasq --tftp-secure refuses to serve files not owned by the tftp user.
+# In the netboot.xyz container that user is "nbxyz" (uid 1000), which maps to
+# the host user "setup" (uid 1000) on filer0. Keep these aligned with the
+# host uid that owns the bind-mount, otherwise TFTP retrieval will silently fail.
+netbootxyz_owner: "setup"
+netbootxyz_group: "setup"
+
+# ---- Assets URL (how iPXE reaches the custom scripts) -----------------------
+netbootxyz_assets_url: "https://netbootassets.lpv4.net"
+
+# ---- Headless PXE auto-routes -----------------------------------------------
+# Each entry renders one line in local-vars.ipxe:
+#   iseq ${mac} <mac> && chain <chain_url> ||
+# An unmatched MAC falls through to the normal interactive netboot.xyz menu.
+# Leave empty ([]) to deploy a no-op local-vars.ipxe (every host gets the menu).
+netbootxyz_pxe_routes: []
+# Example:
+# netbootxyz_pxe_routes:
+#   - mac: "52:54:00:8a:3f:c1"
+#     chain_url: "https://netbootassets.lpv4.net/custom/talos-metal.ipxe"
+
+# ---- Built-in Talos metal installer script ----------------------------------
+# When true, the role templates talos-metal.ipxe into <assets_dir>/custom/.
+# It is inert unless a route in netbootxyz_pxe_routes chains to it.
+netbootxyz_deploy_talos_installer: true
+
+# Talos version to PXE-install. Pin to match your cluster, e.g. "{{ talos_version }}".
+netbootxyz_talos_version: "v1.14.2"
+
+# Sidero release CDN. Kernel/initramfs are pulled from here at boot time.
+netbootxyz_talos_mirror: "https://cdn.siderolabs.dev/releases"
+
+# talos.platform kernel arg. "metal" = bare-metal / hypervisor install.
+netbootxyz_talos_platform: "metal"
+
+# Console args. talos0 is a QEMU/KVM guest; ttyS0 + tty0 matches netboot.xyz's
+# own talos.ipxe defaults.
+netbootxyz_talos_console: "console=ttyS0 console=tty0"
