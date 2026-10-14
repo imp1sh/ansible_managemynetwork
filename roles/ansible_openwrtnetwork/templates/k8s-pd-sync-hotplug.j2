@@ -1,268 +1,106 @@
 #!/bin/sh
-# k8s-pd-sync — synchronize the dynamic PD prefix to k8s LB infrastructure
-#
-# Deployed by ansible_openwrtnetwork when openwrt_network_k8s_inbound is true.
-# Triggers on {{ openwrt_network_k8s_waninterface }} interface events.
-#
-# Reconciles five artifacts against the live PD prefix:
-#
-#    0. RP rule exemption — ip -6 rule that exempts the k8s GUA /64 from
-#       netifd's anti-spoofing unreachable rule (prio 4200000000), allowing
-#       return traffic from the cluster to transit the router
-#    1. NOTRACK rules  — nft include at raw priority (-300, pre-conntrack)
-#       + uci include section (fw4_compatible 1) so fw4 ingests the file
-#    2. FORWARD accept — uci firewall rule (WAN→LAN, renders inline in
-#       fw4's forward chain before zone jumps — terminal verdict)
-#    3. ROUTE          — ip -6 route replace (imperative, survives fw4
-#       reloads, not reboots)
-#    4. K8s POOL       — CiliumLoadBalancerIPPool via API
-#
-# Each layer reconciles against its actual state. At most one fw4 reload
-# per invocation (batched via NEED_RELOAD). No state file.
+# Sync dynamic PD prefix to Cilium LB IPAM GUA pool for Kubernetes
+# Deployed by ansible_openwrtnetwork role when openwrt_network_k8s_inbound is true.
+# Triggers on {{ openwrt_network_k8s_waninterface }} interface events (ifup, ifupdate).
 
-set -e
+[ "$INTERFACE" = "{{ openwrt_network_k8s_waninterface }}" ] || exit 0
+[ "$ACTION" = "ifup" -o "$ACTION" = "ifupdate" ] || exit 0
 
-# ---------------------------------------------------------------------------
-# Configuration (templated by Ansible)
-# ---------------------------------------------------------------------------
 POOL_NAME="{{ openwrt_network_k8s_poolname }}"
 SUBNET_ID="{{ openwrt_network_k8s_subnetid }}"
 K8S_API="{{ openwrt_network_k8s_api }}"
 TOKEN_FILE="{{ openwrt_network_k8s_tokenfile }}"
+STATE_FILE="/tmp/cilium-pd-sync-gua-prefix"
 CHAIN_NAME="{{ openwrt_network_k8s_chainname }}"
 LAN_DEV="{{ openwrt_network_k8s_landevice }}"
-WAN_IFACE="{{ openwrt_network_k8s_waninterface }}"
-INCLUDE_FILE="/etc/nftables.d/50-${CHAIN_NAME}.nft"
-FW_RULE="k8s_gua_forward"
-FW_INCLUDE="k8s_nft_include"
-# Priority just below netifd's anti-spoofing rule (4200000000).
-# Must be lower number = higher priority so it wins.
-RP_RULE_PRIO=4199999999
-NEED_RELOAD=0
 
-# ---------------------------------------------------------------------------
-# Guards
-# ---------------------------------------------------------------------------
-[ "${INTERFACE:-}" = "$WAN_IFACE" ] || exit 0
-[ "${ACTION:-}" = "ifup" ] || [ "${ACTION:-}" = "ifupdate" ] || exit 0
-
-log() { logger -t pd-sync "$*"; }
-
-# ---------------------------------------------------------------------------
-# Derive the GUA /64 from the PD /56 + fixed subnet ID
-# ---------------------------------------------------------------------------
-TOKEN=""
-TOKEN=$(cat "$TOKEN_FILE" 2>/dev/null) || true
-[ -n "$TOKEN" ] || { log "no token at $TOKEN_FILE"; exit 0; }
+TOKEN=$(cat "$TOKEN_FILE" 2>/dev/null)
+[ -z "$TOKEN" ] && logger -t pd-sync "No token found at $TOKEN_FILE" && exit 0
 
 . /lib/functions/network.sh
 network_flush_cache
 network_find_wan6 WAN_IF
-network_get_prefix6 WAN_PFX "$WAN_IF"
-[ -n "$WAN_PFX" ] || { log "no PD prefix on $WAN_IFACE"; exit 0; }
+network_get_device WAN_DEV "${WAN_IF}"
+network_get_prefix6 WAN_PFX "${WAN_IF}"
+[ -z "$WAN_PFX" ] && logger -t pd-sync "No PD prefix on {{ openwrt_network_k8s_waninterface }}" && exit 0
 
+# Derive GUA /64 from PD /56 + fixed subnet ID
 GUA_BASE=$(echo "$WAN_PFX" | cut -d: -f1-3)
 GUA_PFX="${GUA_BASE}:${SUBNET_ID}::/64"
 
-log "reconciling ${GUA_PFX}"
+# Skip if unchanged
+OLD_PFX=$(cat "$STATE_FILE" 2>/dev/null)
+[ "$OLD_PFX" = "$GUA_PFX" ] && exit 0
 
-# ---------------------------------------------------------------------------
-# Layer 0 — RP rule exemption (anti-spoofing bypass)
-#
-# netifd installs: "from <PD>::/52 iif br-lan unreachable" at prio
-# 4200000000 to prevent LAN hosts from spoofing the PD prefix. The k8s
-# cluster legitimately uses :20::/64 (carved from the PD) and sends
-# return traffic via br-lan. Without this exemption, the kernel drops
-# every reply (SYN-ACK, etc.) with an unreachable verdict — silently,
-# no log, no RST.
-#
-# We insert a more specific rule at a lower priority number (higher
-# precedence) that directs the k8s GUA /64 to the main routing table.
-# The rule is imperative (not persisted across reboots); reconciled
-# on every invocation.
-# ---------------------------------------------------------------------------
-reconcile_rp_rule() {
-    _existing=""
-    _existing=$(ip -6 rule show 2>/dev/null | grep "from ${GUA_PFX} iif ${LAN_DEV} lookup main" | head -n1) || true
+logger -t pd-sync "New GUA prefix: ${GUA_PFX}"
 
-    if [ -n "$_existing" ]; then
-        return
-    fi
-
-    log "rp-rule: adding exemption for ${GUA_PFX} on ${LAN_DEV}"
-
-    # Clean up any stale rule from a previous prefix
-    _stale=""
-    _stale=$(ip -6 rule show 2>/dev/null | grep "iif ${LAN_DEV} lookup main" | grep "from ${GUA_BASE}:") || true
-    if [ -n "$_stale" ]; then
-        echo "$_stale" | while IFS= read -r _line; do
-            _old_pfx=$(echo "$_line" | sed -n 's/.*from \([^ ]*\) .*/\1/p')
-            if [ -n "$_old_pfx" ] && [ "$_old_pfx" != "$GUA_PFX" ]; then
-                ip -6 rule del from "$_old_pfx" iif "$LAN_DEV" lookup main 2>/dev/null || true
-            fi
-        done
-    fi
-
-    ip -6 rule add from "$GUA_PFX" iif "$LAN_DEV" lookup main prio "$RP_RULE_PRIO" 2>/dev/null || true
-}
-
-# ---------------------------------------------------------------------------
-# Layer 1 — NOTRACK (nft include + uci include section)
-#
-# The nft file contains self-hooked chains at raw priority (-300).
-# fw4 ignores files in /etc/nftables.d/ unless a uci include section
-# declares fw4_compatible 1. Both the file and the uci section are
-# reconciled here.
-# ---------------------------------------------------------------------------
-reconcile_notrack() {
-    _desired="# Managed by pd-sync hotplug — do not edit.
-# GUA LB subnet: ${GUA_PFX}
-chain ${CHAIN_NAME}_in {
-    type filter hook prerouting priority -300; policy accept;
-    meta l4proto { tcp, udp } ip6 daddr ${GUA_PFX} counter notrack
-}
-chain ${CHAIN_NAME}_out {
-    type filter hook output priority -300; policy accept;
-    meta l4proto { tcp, udp } ip6 saddr ${GUA_PFX} counter notrack
-}"
-
-    _file_changed=0
-    _current=""
-    _current=$(cat "$INCLUDE_FILE" 2>/dev/null) || true
-    
-    if [ "$_current" != "$_desired" ]; then
-        log "notrack: rewriting ${INCLUDE_FILE}"
-        
-        # Clean up any stale nft include files from previous chain names/prefixes
-        for _old_file in /etc/nftables.d/50-*.nft; do
-            [ "$_old_file" = "$INCLUDE_FILE" ] && continue
-            [ -f "$_old_file" ] && rm -f "$_old_file"
-        done
-
-        mkdir -p "$(dirname "$INCLUDE_FILE")"
-        printf '%s\n' "$_desired" > "$INCLUDE_FILE"
-        _file_changed=1
-    fi
-
-    # Ensure the uci include section exists so fw4 ingests the file
-    _inc_path=""
-    _inc_path=$(uci -q get "firewall.${FW_INCLUDE}.path" 2>/dev/null) || true
-    _inc_compat=""
-    _inc_compat=$(uci -q get "firewall.${FW_INCLUDE}.fw4_compatible" 2>/dev/null) || true
-    
-    if [ "$_inc_path" != "$INCLUDE_FILE" ] || [ "$_inc_compat" != "1" ]; then
-        log "notrack: registering uci include section ${FW_INCLUDE}"
-        uci -q delete "firewall.${FW_INCLUDE}" || true
-        uci set "firewall.${FW_INCLUDE}=include"
-        uci set "firewall.${FW_INCLUDE}.path=${INCLUDE_FILE}"
-        uci set "firewall.${FW_INCLUDE}.fw4_compatible=1"
-        uci commit firewall
-        _file_changed=1
-    fi
-
-    [ "$_file_changed" = 1 ] && NEED_RELOAD=1
-}
-
-# ---------------------------------------------------------------------------
-# Layer 2 — FORWARD accept (uci rule, inline in fw4's forward chain)
-#
-# nft base-chain accept at custom priority is NON-TERMINAL — fw4's
-# forward chain at priority 0 still applies zone policy (WAN→LAN = DROP).
-# A uci rule renders inline before the zone jumps, giving a terminal
-# verdict. We check every field; if any differs, delete + recreate.
-# ---------------------------------------------------------------------------
-reconcile_forward() {
-    _need=0
-
-    _s=$(uci -q get "firewall.${FW_RULE}.src" 2>/dev/null) || true
-    _d=$(uci -q get "firewall.${FW_RULE}.dest" 2>/dev/null) || true
-    _f=$(uci -q get "firewall.${FW_RULE}.family" 2>/dev/null) || true
-    _t=$(uci -q get "firewall.${FW_RULE}.target" 2>/dev/null) || true
-    _ip=$(uci -q get "firewall.${FW_RULE}.dest_ip" 2>/dev/null) || true
-
-    if [ "$_s" != "WAN" ] || [ "$_d" != "LAN" ] || [ "$_f" != "ipv6" ] \
-        || [ "$_t" != "ACCEPT" ] || [ "$_ip" != "$GUA_PFX" ]; then
-        _need=1
-    fi
-
-    [ "$_need" = 0 ] && return
-
-    log "forward: rebuilding uci rule ${FW_RULE}"
-
-    uci -q delete "firewall.${FW_RULE}" || true
-    uci set "firewall.${FW_RULE}=rule"
-    uci set "firewall.${FW_RULE}.src=WAN"
-    uci set "firewall.${FW_RULE}.dest=LAN"
-    uci set "firewall.${FW_RULE}.family=ipv6"
-    uci set "firewall.${FW_RULE}.target=ACCEPT"
-    uci set "firewall.${FW_RULE}.dest_ip=${GUA_PFX}"
-    uci commit firewall
-    NEED_RELOAD=1
-}
-
-# ---------------------------------------------------------------------------
-# Layer 3 — ROUTE (imperative, survives fw4 reloads, not reboots)
-# ---------------------------------------------------------------------------
-reconcile_route() {
-    ip -6 route replace "$GUA_PFX" dev "$LAN_DEV"
-}
-
-# ---------------------------------------------------------------------------
-# Layer 4 — CiliumLoadBalancerIPPool (Kubernetes API)
-# ---------------------------------------------------------------------------
-reconcile_pool() {
-    _body="{\"apiVersion\":\"cilium.io/v2\",\"kind\":\"CiliumLoadBalancerIPPool\",\"metadata\":{\"name\":\"${POOL_NAME}\"},\"spec\":{\"allowFirstLastIPs\":\"No\",\"blocks\":[{\"cidr\":\"${GUA_PFX}\"}]}}"
-    _patch_body="{\"spec\":{\"allowFirstLastIPs\":\"No\",\"blocks\":[{\"cidr\":\"${GUA_PFX}\"}]}}"
-
-    _status=$(curl -sk -o /dev/null -w "%{http_code}" -X POST \
-        -H "Authorization: Bearer ${TOKEN}" \
-        -H "Content-Type: application/json" \
-        "https://${K8S_API}/apis/cilium.io/v2/ciliumloadbalancerippools" \
-        -d "$_body") || true
-
-    case "$_status" in
-        200|201|202)
-            log "pool ${POOL_NAME} created with ${GUA_PFX}"
-            ;;
-        409)
-            _patch=$(curl -sk -o /dev/null -w "%{http_code}" -X PATCH \
-                -H "Authorization: Bearer ${TOKEN}" \
-                -H "Content-Type: application/merge-patch+json" \
-                "https://${K8S_API}/apis/cilium.io/v2/ciliumloadbalancerippools/${POOL_NAME}" \
-                -d "$_patch_body") || true
-            case "$_patch" in
-                200|202) log "pool ${POOL_NAME} patched with ${GUA_PFX}" ;;
-                *) log "pool PATCH failed: HTTP ${_patch}"; return 1 ;;
-            esac
-            ;;
-        401|403)
-            log "pool auth failed: HTTP ${_status}"
-            return 1
-            ;;
-        *)
-            log "pool POST unexpected: HTTP ${_status}"
-            return 1
-            ;;
-    esac
-}
-
-# ---------------------------------------------------------------------------
-# Main — reconcile all layers, batch the reload
-# ---------------------------------------------------------------------------
-reconcile_rp_rule
-reconcile_notrack
-reconcile_forward
-reconcile_route
-
-if [ "$NEED_RELOAD" = 1 ]; then
-    if ! fw4 reload; then
-        log "fw4 reload FAILED — rolling back include"
-        rm -f "$INCLUDE_FILE"
-        fw4 reload || true
-        exit 1
-    fi
+# Remove old route
+if [ -n "$OLD_PFX" ]; then
+    ip -6 route del "$OLD_PFX" dev "$LAN_DEV" 2>/dev/null
 fi
 
-reconcile_pool || exit 1
+# Add route for new GUA /64 into LAN
+ip -6 route add "$GUA_PFX" dev "$LAN_DEV" 2>/dev/null
 
-log "complete: ${GUA_PFX} (reload=${NEED_RELOAD})"
+# Recreate dedicated nft chain (flush + repopulate — clean slate every time)
+nft delete chain inet fw4 "${CHAIN_NAME}" 2>/dev/null
+nft add chain inet fw4 "${CHAIN_NAME}"
+nft insert rule inet fw4 raw_prerouting jump "${CHAIN_NAME}"
+nft insert rule inet fw4 raw_output jump "${CHAIN_NAME}"
+nft insert rule inet fw4 forward jump "${CHAIN_NAME}"
+
+nft add rule inet fw4 "${CHAIN_NAME}" ip6 daddr "${GUA_PFX}" notrack
+nft add rule inet fw4 "${CHAIN_NAME}" ip6 saddr "${GUA_PFX}" notrack
+nft add rule inet fw4 "${CHAIN_NAME}" iifname "$LAN_DEV" oifname "${WAN_DEV}" ip6 saddr "${GUA_PFX}" accept
+nft add rule inet fw4 "${CHAIN_NAME}" iifname "${WAN_DEV}" oifname "$LAN_DEV" ip6 daddr "${GUA_PFX}" accept
+
+# Create or update the GUA CiliumLoadBalancerIPPool
+# Try POST first (creates the pool), fall back to PATCH (updates if it exists).
+# Capture HTTP status to distinguish auth failures from other errors.
+API_RESULT=""
+API_DETAIL=""
+
+POST_STATUS=$(curl -sk -o /dev/null -w "%{http_code}" -X POST \
+    -H "Authorization: Bearer ${TOKEN}" \
+    -H "Content-Type: application/json" \
+    "https://${K8S_API}/apis/cilium.io/v2/ciliumloadbalancerippools" \
+    -d "{\"apiVersion\":\"cilium.io/v2\",\"kind\":\"CiliumLoadBalancerIPPool\",\"metadata\":{\"name\":\"${POOL_NAME}\"},\"spec\":{\"allowFirstLastIPs\":\"No\",\"blocks\":[{\"cidr\":\"${GUA_PFX}\"}]}}")
+
+case "$POST_STATUS" in
+    200|201|202)
+        API_RESULT="created"
+        ;;
+    409)
+        # Pool already exists — patch it instead
+        PATCH_STATUS=$(curl -sk -o /dev/null -w "%{http_code}" -X PATCH \
+            -H "Authorization: Bearer ${TOKEN}" \
+            -H "Content-Type: application/merge-patch+json" \
+            "https://${K8S_API}/apis/cilium.io/v2/ciliumloadbalancerippools/${POOL_NAME}" \
+            -d "{\"spec\":{\"allowFirstLastIPs\":\"No\",\"blocks\":[{\"cidr\":\"${GUA_PFX}\"}]}}")
+        case "$PATCH_STATUS" in
+            200|202)
+                API_RESULT="patched"
+                ;;
+            *)
+                API_RESULT="failed"
+                API_DETAIL="PATCH returned HTTP ${PATCH_STATUS}"
+                ;;
+        esac
+        ;;
+    401|403)
+        API_RESULT="failed"
+        API_DETAIL="token rejected (HTTP ${POST_STATUS})"
+        ;;
+    *)
+        API_RESULT="failed"
+        API_DETAIL="POST returned HTTP ${POST_STATUS}"
+        ;;
+esac
+
+if [ "$API_RESULT" = "failed" ]; then
+    logger -t pd-sync "FAILED to update pool ${POOL_NAME}: ${API_DETAIL}. Prefix ${GUA_PFX} not synced to Kubernetes."
+    exit 1
+fi
+
+echo "$GUA_PFX" > "$STATE_FILE"
+logger -t pd-sync "Pool ${POOL_NAME} ${API_RESULT} with ${GUA_PFX}, route + nft chain ${CHAIN_NAME} applied"
