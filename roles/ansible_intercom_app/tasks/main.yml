@@ -1,0 +1,104 @@
+---
+- name: "Intercom app - Validate source tree"
+  ansible.builtin.assert:
+    that:
+      - intercom_app_src_dir is not none
+      - intercom_app_src_dir | length > 0
+    fail_msg: "intercom_app_src_dir muss auf den App-Quellbaum zeigen (host_vars)."
+
+- name: "Intercom app - Check source tree on control node"
+  ansible.builtin.stat:
+    path: "{{ intercom_app_src_dir }}/CMakeLists.txt"
+  delegate_to: localhost
+  become: false
+  register: intercom_app_cmake
+  changed_when: false
+
+- name: "Intercom app - Fail when source tree is missing"
+  ansible.builtin.assert:
+    that:
+      - intercom_app_cmake.stat.exists
+    fail_msg: >-
+      Quellbaum nicht gefunden: {{ intercom_app_src_dir }}/CMakeLists.txt
+      (thorion.org_souvicon auschecken oder intercom_app_src_dir ueberschreiben).
+
+- name: "Intercom app - Install build and runtime packages"
+  ansible.builtin.apt:
+    name: "{{ intercom_app_packages }}"
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: "Intercom app - Ensure install directories"
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  loop:
+    - "{{ intercom_app_install_dir }}"
+    - "{{ intercom_app_install_dir }}/bin"
+    - "{{ intercom_app_install_dir }}/qml"
+    - "{{ intercom_app_src_stage }}"
+    - "{{ intercom_app_build_dir }}"
+
+- name: "Intercom app - Sync source tree"
+  ansible.builtin.copy:
+    src: "{{ intercom_app_src_dir }}/"
+    dest: "{{ intercom_app_src_stage }}/"
+    owner: root
+    group: root
+    mode: preserve
+  register: intercom_app_src
+
+- name: "Intercom app - Configure (CMake)"
+  ansible.builtin.command:
+    cmd: >-
+      cmake -S {{ intercom_app_src_stage }}
+      -B {{ intercom_app_build_dir }}
+      -DCMAKE_BUILD_TYPE=Release
+  args:
+    creates: "{{ intercom_app_build_dir }}/CMakeCache.txt"
+
+- name: "Intercom app - Build"
+  ansible.builtin.command:
+    cmd: >-
+      cmake --build {{ intercom_app_build_dir }}
+      --parallel {{ ansible_processor_vcpus | default(2) }}
+  changed_when: false
+
+- name: "Intercom app - Install binary"
+  ansible.builtin.copy:
+    src: "{{ intercom_app_build_dir }}/intercom"
+    dest: "{{ intercom_app_install_dir }}/bin/intercom"
+    remote_src: true
+    owner: root
+    group: root
+    mode: "0755"
+  notify: Restart intercom app
+
+- name: "Intercom app - Install QML"
+  ansible.builtin.copy:
+    src: "{{ intercom_app_src_dir }}/qml/"
+    dest: "{{ intercom_app_install_dir }}/qml/"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart intercom app
+
+- name: "Intercom app - systemd unit"
+  ansible.builtin.template:
+    src: intercom-app.service.j2
+    dest: "/etc/systemd/system/{{ intercom_app_service_name }}.service"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart intercom app
+
+- name: "Intercom app - Enable and start"
+  ansible.builtin.systemd:
+    name: "{{ intercom_app_service_name }}.service"
+    enabled: true
+    state: started
+    daemon_reload: true

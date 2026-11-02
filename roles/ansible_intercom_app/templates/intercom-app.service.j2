@@ -1,0 +1,27 @@
+[Unit]
+Description=Intercom indoor UI (Qt6/EGLFS)
+After=network-online.target intercomd.service
+Wants=network-online.target
+Conflicts=getty@tty{{ intercom_app_vt }}.service
+
+[Service]
+Type=simple
+Environment=QT_QPA_PLATFORM=eglfs
+Environment=QSG_RHI_BACKEND=opengl
+Environment=QT_QPA_EGLFS_HIDECURSOR=1
+{% if intercom_app_latency_log %}
+Environment=INTERCOM_LATENCY_LOG=1
+{% endif %}
+TTYPath=/dev/tty{{ intercom_app_vt }}
+StandardInput=tty
+StandardOutput=journal
+StandardError=journal
+TTYReset=yes
+TTYVHangup=yes
+ExecStartPre=/usr/bin/chvt {{ intercom_app_vt }}
+ExecStart={{ intercom_app_install_dir }}/bin/intercom
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target

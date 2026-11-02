@@ -1,0 +1,6 @@
+---
+- name: Restart intercom app
+  ansible.builtin.systemd:
+    name: "{{ intercom_app_service_name }}.service"
+    state: restarted
+    daemon_reload: true

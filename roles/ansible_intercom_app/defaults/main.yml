@@ -1,0 +1,53 @@
+---
+# ansible_intercom_app — native Qt6/EGLFS-Intercom-UI auf dem Innengeraet.
+#
+# Baut die App auf dem Zielgeraet aus dem Quellbaum und installiert
+# Binary + QML unter /opt/intercom-app. Die App laeuft als systemd-Service
+# auf tty2 (EGLFS/KMS), damit sie auch nach einem Reboot automatisch startet.
+
+# Quellbaum der App auf dem Control-Node (thorion.org_souvicon).
+# Wird in host_vars/intercombasement.t.libcom.de.yml gesetzt.
+intercom_app_src_dir: null
+
+intercom_app_install_dir: /opt/intercom-app
+intercom_app_src_stage: "{{ intercom_app_install_dir }}/src"
+intercom_app_build_dir: "{{ intercom_app_install_dir }}/build"
+
+intercom_app_service_name: intercom-app
+intercom_app_vt: 2
+
+# Optionales Latenz-Logging der Video-Pipeline (alle 10 s ins Journal).
+intercom_app_latency_log: false
+
+intercom_app_packages:
+  # Build-Toolchain
+  - build-essential
+  - cmake
+  - pkg-config
+  # Qt6 (Dev + QML-Module, die die UI importiert)
+  - qt6-base-dev
+  - qt6-declarative-dev
+  - libqt6opengl6
+  - libqt6network6
+  - qml6-module-qtquick
+  - qml6-module-qtquick-window
+  - qml6-module-qtquick-shapes
+  # GStreamer (Dev fuer den Build, Plugins fuer den Betrieb)
+  - libgstreamer1.0-dev
+  - libgstreamer-plugins-base1.0-dev
+  - libgstreamer-plugins-bad1.0-dev
+  - gstreamer1.0-tools
+  - gstreamer1.0-plugins-base
+  - gstreamer1.0-plugins-good
+  - gstreamer1.0-plugins-bad
+  - gstreamer1.0-plugins-ugly
+  - gstreamer1.0-gl
+  - gstreamer1.0-alsa
+  - gstreamer1.0-qt6
+  - gstreamer1.0-libav
+  - gstreamer1.0-nice
+  # GL/DRM-Laufzeit
+  - libegl1
+  - libgles2
+  - libdrm2
+  - libgbm1
