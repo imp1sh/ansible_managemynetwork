@@ -4,3 +4,9 @@
     name: intercom-door-button.service
     state: restarted
     daemon_reload: true
+
+- name: Restart intercom audio receiver
+  ansible.builtin.systemd:
+    name: intercom-audio-rx.service
+    state: restarted
+    daemon_reload: true

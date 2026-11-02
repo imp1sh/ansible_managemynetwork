@@ -9,6 +9,10 @@
   ansible.builtin.apt:
     name:
       - python3-paho-mqtt
+      - gstreamer1.0-tools
+      - gstreamer1.0-plugins-good
+      - gstreamer1.0-plugins-bad
+      - gstreamer1.0-alsa
     state: present
 
 - name: "Intercom indoor - Ensure directory"
@@ -25,14 +29,21 @@
     group: root
     mode: "0755"
 
-- name: "Intercom indoor - systemd unit"
+- name: "Intercom indoor - systemd unit (intercomd)"
   ansible.builtin.template:
     src: intercomd.service.j2
     dest: /etc/systemd/system/intercomd.service
     mode: "0644"
   notify: Restart intercomd
 
-- name: "Intercom indoor - Enable and start"
+- name: "Intercom indoor - systemd unit (audio sender)"
+  ansible.builtin.template:
+    src: intercom-audio-tx.service.j2
+    dest: /etc/systemd/system/intercom-audio-tx.service
+    mode: "0644"
+  notify: Restart intercom audio sender if running
+
+- name: "Intercom indoor - Enable intercomd"
   ansible.builtin.systemd:
     name: intercomd.service
     enabled: true

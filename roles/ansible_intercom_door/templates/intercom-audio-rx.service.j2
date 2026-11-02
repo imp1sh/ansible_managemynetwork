@@ -1,0 +1,12 @@
+[Unit]
+Description=Intercom audio receiver (Opus RTP -> Klinke)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+ExecStart=/usr/bin/gst-launch-1.0 -e udpsrc address=:: port={{ intercom_audio_rx_port }} caps=application/x-rtp,media=audio,encoding-name=OPUS,payload=96,clock-rate=48000 ! queue ! rtpopusdepay ! opusdec ! audioconvert ! audioresample ! alsasink device=plughw:CARD=Headphones,DEV=0 sync=true
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target

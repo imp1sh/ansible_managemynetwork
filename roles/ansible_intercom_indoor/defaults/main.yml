@@ -1,10 +1,12 @@
 ---
-# ansible_intercom_indoor — MQTT-Subscriber + lokaler State-/LED-Daemon
+# ansible_intercom_indoor — MQTT/State + Mikro-Sender (Opus/RTP)
 intercom_broker_host: "mqtt0.t.libcom.de"
 intercom_broker_port: 8883
 intercom_ca_file: "/etc/ssl/certs/ca-certificates.crt"
 intercom_mqtt_username: "intercomd-intercombasement"
-intercom_mqtt_password: ""      # vaulted in host_vars (erforderlich)
+intercom_mqtt_password: ""
 intercom_state_http_port: 8099
-intercom_ring_timeout: 30       # Sekunden bis RING automatisch auf idle faellt
-intercom_led_gpio: null          # z. B. 23, sobald verdrahtet
+intercom_ring_timeout: 30
+intercom_led_gpio: null
+intercom_audio_tx_host: "fd01:4dd0:28d4::6923"
+intercom_audio_tx_port: 5004

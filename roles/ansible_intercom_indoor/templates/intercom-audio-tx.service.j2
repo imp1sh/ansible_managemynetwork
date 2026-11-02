@@ -1,0 +1,12 @@
+[Unit]
+Description=Intercom audio sender (HyperX -> Opus RTP)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+ExecStart=/usr/bin/gst-launch-1.0 -e alsasrc device=plughw:CARD=Sound,DEV=0 ! audioconvert ! audioresample ! audio/x-raw,rate=48000,channels=1 ! opusenc bitrate=32000 ! rtpopuspay pt=96 ! udpsink host={{ intercom_audio_tx_host }} port={{ intercom_audio_tx_port }}
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target

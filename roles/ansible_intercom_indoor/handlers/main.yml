@@ -4,3 +4,10 @@
     name: intercomd.service
     state: restarted
     daemon_reload: true
+
+- name: Restart intercom audio sender if running
+  ansible.builtin.systemd:
+    name: intercom-audio-tx.service
+    state: restarted
+    daemon_reload: true
+  when: "'intercom-audio-tx.service' in ansible_facts.services and ansible_facts.services['intercom-audio-tx.service'].state == 'running'"

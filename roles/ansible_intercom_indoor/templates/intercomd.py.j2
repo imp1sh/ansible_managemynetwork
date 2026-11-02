@@ -2,6 +2,7 @@
 # Managed by Ansible (role ansible_intercom_indoor).
 # MQTT-Subscriber fuer Tuer-Events + lokaler State-HTTP-Server fuer die Qt-App.
 import json
+import subprocess
 import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -23,6 +24,15 @@ ring_timer = None
 
 led = None
 led_stop = threading.Event()
+TX_SERVICE = "intercom-audio-tx"
+
+
+def set_tx(enabled):
+    try:
+        subprocess.run(["systemctl", "start" if enabled else "stop", TX_SERVICE],
+                       check=False, timeout=5)
+    except Exception as e:
+        print(f"tx control failed: {e}", flush=True)
 
 
 def publish_state():
@@ -90,6 +100,7 @@ def on_message(client, userdata, msg):
         if event == "ring":
             state["call"] = "ringing"
             state["ts"] = int(time.time())
+            set_tx(False)
             led_stop.clear()
             if led:
                 threading.Thread(target=blink_led, daemon=True).start()
@@ -97,6 +108,7 @@ def on_message(client, userdata, msg):
         elif event == "hangup":
             state["call"] = "idle"
             state["ts"] = int(time.time())
+            set_tx(False)
             cancel_ring_timer()
             led_stop.set()
             if led:
@@ -140,6 +152,7 @@ class Handler(BaseHTTPRequestHandler):
             cancel_ring_timer()
             if new_call == "ringing":
                 schedule_ring_timeout()
+            set_tx(new_call == "active")
             led_stop.set()
             if led:
                 led.off()
@@ -165,4 +178,5 @@ client.connect(BROKER, PORT, keepalive=30)
 client.loop_start()
 
 print(f"state http on 127.0.0.1:{HTTP_PORT}", flush=True)
+set_tx(False)
 ThreadingHTTPServer(("127.0.0.1", HTTP_PORT), Handler).serve_forever()

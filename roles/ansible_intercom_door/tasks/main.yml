@@ -11,6 +11,10 @@
       - python3-paho-mqtt
       - python3-gpiozero
       - python3-lgpio
+      - gstreamer1.0-tools
+      - gstreamer1.0-plugins-good
+      - gstreamer1.0-plugins-bad
+      - gstreamer1.0-alsa
     state: present
 
 - name: "Intercom door - Ensure directory"
@@ -27,16 +31,26 @@
     group: root
     mode: "0755"
 
-- name: "Intercom door - systemd unit"
+- name: "Intercom door - systemd unit (button)"
   ansible.builtin.template:
     src: intercom-door-button.service.j2
     dest: /etc/systemd/system/intercom-door-button.service
     mode: "0644"
   notify: Restart intercom door button
 
+- name: "Intercom door - systemd unit (audio receiver)"
+  ansible.builtin.template:
+    src: intercom-audio-rx.service.j2
+    dest: /etc/systemd/system/intercom-audio-rx.service
+    mode: "0644"
+  notify: Restart intercom audio receiver
+
 - name: "Intercom door - Enable and start"
   ansible.builtin.systemd:
-    name: intercom-door-button.service
+    name: "{{ item }}"
     enabled: true
     state: started
     daemon_reload: true
+  loop:
+    - intercom-door-button.service
+    - intercom-audio-rx.service
