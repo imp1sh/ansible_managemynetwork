@@ -141,6 +141,7 @@ class Handler(BaseHTTPRequestHandler):
         try:
             payload = json.loads(self.rfile.read(length).decode())
             new_call = payload.get("call")
+            speak = bool(payload.get("speak", False))
             if new_call not in ("idle", "active", "ringing"):
                 raise ValueError
         except Exception:
@@ -152,7 +153,7 @@ class Handler(BaseHTTPRequestHandler):
             cancel_ring_timer()
             if new_call == "ringing":
                 schedule_ring_timeout()
-            set_tx(new_call == "active")
+            set_tx(new_call == "active" and speak)
             led_stop.set()
             if led:
                 led.off()
