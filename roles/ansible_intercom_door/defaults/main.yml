@@ -9,3 +9,13 @@ intercom_gpio_line: 17
 intercom_button_bounce: 0.1
 intercom_button_debounce: 0.6
 intercom_audio_rx_port: 5004
+
+# Mechanischer Gong (Honeywell D117) ueber Relais an GPIO24.
+# Relaisplatine ist active-low: LOW = angezogen, HIGH = aus.
+intercom_gong_enabled: true
+intercom_gong_gpio: 24
+intercom_gong_active_high: false
+# Pulsdauer je Tastendruck (Solenoid nicht dauerhaft bestromen).
+intercom_gong_pulse: 0.8
+# Gong auch beim Auflegen (Taste waehrend Gespraech) ausloesen?
+intercom_gong_on_hangup: false
