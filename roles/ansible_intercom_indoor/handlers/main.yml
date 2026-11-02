@@ -10,4 +10,4 @@
     name: intercom-audio-tx.service
     state: restarted
     daemon_reload: true
-  when: "'intercom-audio-tx.service' in ansible_facts.services and ansible_facts.services['intercom-audio-tx.service'].state == 'running'"
+  when: "ansible_facts.get('services', {}).get('intercom-audio-tx.service', {}).get('state', '') == 'running'"
