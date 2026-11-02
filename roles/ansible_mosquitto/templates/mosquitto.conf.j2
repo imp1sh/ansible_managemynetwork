@@ -1,0 +1,14 @@
+# Managed by Ansible - role imp1sh.ansible_managemynetwork.ansible_mosquitto
+listener {{ mosquitto_listener_port }}
+protocol mqtt
+allow_anonymous false
+password_file /mosquitto/config/passwd
+acl_file /mosquitto/config/acl
+certfile /mosquitto/config/certs/{{ mosquitto_cert_filename }}
+keyfile /mosquitto/config/certs/{{ mosquitto_key_filename }}
+cafile /mosquitto/config/certs/{{ mosquitto_ca_filename }}
+tls_version tlsv1.2
+
+persistence false
+max_connections {{ mosquitto_max_connections }}
+max_packet_size {{ mosquitto_message_size_limit }}

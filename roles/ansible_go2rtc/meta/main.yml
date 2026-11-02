@@ -1,0 +1,10 @@
+---
+galaxy_info:
+  author: Jochen Demmer
+  description: Renders go2rtc configuration for a podman-managed go2rtc container
+  license: MIT
+  min_ansible_version: "2.14"
+  platforms:
+    - name: Debian
+    - name: Fedora
+dependencies: []

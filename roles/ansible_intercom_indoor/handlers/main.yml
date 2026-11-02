@@ -1,0 +1,6 @@
+---
+- name: Restart intercomd
+  ansible.builtin.systemd:
+    name: intercomd.service
+    state: restarted
+    daemon_reload: true

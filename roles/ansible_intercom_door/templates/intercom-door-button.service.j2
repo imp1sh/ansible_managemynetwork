@@ -1,0 +1,13 @@
+[Unit]
+Description=Intercom door button -> MQTT
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 /opt/intercom/doorpi0-button.py
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

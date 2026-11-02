@@ -1,0 +1,13 @@
+[Unit]
+Description=Intercom indoor daemon (MQTT + state HTTP)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 /opt/intercom/intercomd.py
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

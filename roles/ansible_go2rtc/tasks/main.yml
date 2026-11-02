@@ -1,0 +1,24 @@
+---
+- name: "MMN go2rtc - Validate inputs"
+  ansible.builtin.assert:
+    that:
+      - go2rtc_path_config is not none
+      - go2rtc_config is mapping
+    fail_msg: "go2rtc_path_config must be set and go2rtc_config must be a mapping."
+
+- name: "MMN go2rtc - Ensure config directory exists"
+  ansible.builtin.file:
+    path: "{{ go2rtc_path_config }}"
+    state: directory
+    owner: "{{ go2rtc_owner }}"
+    group: "{{ go2rtc_group }}"
+    mode: "0755"
+
+- name: "MMN go2rtc - Render go2rtc config"
+  ansible.builtin.template:
+    src: config.j2
+    dest: "{{ go2rtc_path_config }}/{{ go2rtc_file_config }}"
+    owner: "{{ go2rtc_owner }}"
+    group: "{{ go2rtc_group }}"
+    mode: "{{ go2rtc_mode_config }}"
+  notify: Restart go2rtc container

@@ -1,0 +1,32 @@
+---
+# ansible_go2rtc — container-only role.
+#
+# Renders the go2rtc configuration (YAML) onto host-side bind-mount paths
+# consumed by a podman container. The container itself is declared by the
+# caller via the ansible_podman role (plugin: podman_container_plugin_go2rtc).
+# This role performs no package installation and no service management.
+
+# --- Paths (host bind-mount roots) ---
+# Host directory where go2rtc.yaml is rendered. Bind-mount this into the
+# container (convention: /config). REQUIRED — set in host_vars/group_vars.
+go2rtc_path_config: null
+
+# Filename of the config inside go2rtc_path_config.
+go2rtc_file_config: "go2rtc.yaml"
+
+# --- Ownership / modes ---
+go2rtc_owner: "root"
+go2rtc_group: "root"
+go2rtc_mode_config: "0644"
+
+# --- go2rtc_config (PRIMARY INPUT) ---
+# Structured representation of go2rtc.yaml: log, api, rtsp, webrtc, streams, ...
+# Rendered verbatim via to_nice_yaml (width widened so long ffmpeg command
+# strings are not wrapped).
+go2rtc_config: {}
+
+# --- reload mechanism ---
+# Name of the podman container running go2rtc. When set, config changes
+# trigger a container restart. Under Quadlet the unit is `<name>`; under the
+# legacy path `container-<name>`.
+go2rtc_containername: null

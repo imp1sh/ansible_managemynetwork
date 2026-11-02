@@ -159,6 +159,24 @@
     - podman_containers is defined
     - _podman_containers_for_plugins | rejectattr('state', 'equalto', 'absent') | list | map(attribute='name') | intersect(podman_container_plugin_smokeping) | length > 0
 
+# MOSQUITTO
+- name: "MMN Podman - Plugin mosquitto"
+  ansible.builtin.include_tasks:
+    file: plugin_mosquitto.yml
+  when:
+    - podman_container_plugin_mosquitto is defined
+    - podman_containers is defined
+    - _podman_containers_for_plugins | rejectattr('state', 'equalto', 'absent') | list | map(attribute='name') | intersect(podman_container_plugin_mosquitto) | length > 0
+
+# GO2RTC
+- name: "MMN Podman - Plugin go2rtc"
+  ansible.builtin.include_tasks:
+    file: plugin_go2rtc.yml
+  when:
+    - podman_container_plugin_go2rtc is defined
+    - podman_containers is defined
+    - _podman_containers_for_plugins | rejectattr('state', 'equalto', 'absent') | list | map(attribute='name') | intersect(podman_container_plugin_go2rtc) | length > 0
+
 # GARAGE
 - name: "MMN Podman - Plugin garage"
   ansible.builtin.include_tasks:

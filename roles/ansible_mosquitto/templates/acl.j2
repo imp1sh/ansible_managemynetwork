@@ -1,0 +1,8 @@
+# Managed by Ansible - role imp1sh.ansible_managemynetwork.ansible_mosquitto
+{% for entry in mosquitto_acl %}
+user {{ entry.user }}
+{% for rule in entry.rules %}
+topic {{ rule }}
+{% endfor %}
+
+{% endfor %}

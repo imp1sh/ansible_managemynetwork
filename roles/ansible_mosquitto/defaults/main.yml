@@ -1,0 +1,26 @@
+---
+# ansible_mosquitto — container-only role.
+# Renders mosquitto.conf, ACL and password file for a podman-managed broker.
+mosquitto_path_config: null
+mosquitto_owner: "1883"
+mosquitto_group: "1883"
+mosquitto_mode_config: "0644"
+mosquitto_mode_secret: "0600"
+mosquitto_mode_acl: "0600"
+
+# Cert filenames as deployed by ansible_cacert into <path_config>/certs/
+mosquitto_ca_filename: null
+mosquitto_cert_filename: null
+mosquitto_key_filename: null
+
+# AuthN/AuthZ
+mosquitto_users: {}          # username -> password hash ($7$...) — provide vaulted
+mosquitto_acl: []            # list of {user: name, rules: ["read topic", "write topic", ...]}
+
+# Limits
+mosquitto_max_connections: 100
+mosquitto_message_size_limit: 8192
+mosquitto_listener_port: 8883
+
+# Restart-on-change
+mosquitto_containername: null

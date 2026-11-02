@@ -1,0 +1,6 @@
+---
+- name: Restart go2rtc container
+  ansible.builtin.systemd:
+    name: "{{ ('container-' ~ go2rtc_containername) if not (podman_use_quadlet | default(false) | bool) else go2rtc_containername }}"
+    state: restarted
+  when: go2rtc_containername is not none

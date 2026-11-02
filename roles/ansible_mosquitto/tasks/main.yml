@@ -1,0 +1,48 @@
+---
+- name: "MMN mosquitto - Validate inputs"
+  ansible.builtin.assert:
+    that:
+      - mosquitto_path_config is not none
+      - mosquitto_ca_filename is not none
+      - mosquitto_cert_filename is not none
+      - mosquitto_key_filename is not none
+    fail_msg: "mosquitto_path_config/ca/cert/key must be set."
+
+- name: "MMN mosquitto - Ensure config and cert directories exist"
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: "{{ mosquitto_owner }}"
+    group: "{{ mosquitto_group }}"
+    mode: "0755"
+  loop:
+    - "{{ mosquitto_path_config }}"
+    - "{{ mosquitto_path_config }}/certs"
+
+- name: "MMN mosquitto - Render mosquitto.conf"
+  ansible.builtin.template:
+    src: mosquitto.conf.j2
+    dest: "{{ mosquitto_path_config }}/mosquitto.conf"
+    owner: "{{ mosquitto_owner }}"
+    group: "{{ mosquitto_group }}"
+    mode: "{{ mosquitto_mode_config }}"
+  notify: Restart mosquitto container
+
+- name: "MMN mosquitto - Render ACL"
+  ansible.builtin.template:
+    src: acl.j2
+    dest: "{{ mosquitto_path_config }}/acl"
+    owner: "{{ mosquitto_owner }}"
+    group: "{{ mosquitto_group }}"
+    mode: "{{ mosquitto_mode_acl }}"
+  notify: Restart mosquitto container
+
+- name: "MMN mosquitto - Render password file"
+  ansible.builtin.template:
+    src: passwd.j2
+    dest: "{{ mosquitto_path_config }}/passwd"
+    owner: "{{ mosquitto_owner }}"
+    group: "{{ mosquitto_group }}"
+    mode: "{{ mosquitto_mode_secret }}"
+  no_log: true
+  notify: Restart mosquitto container

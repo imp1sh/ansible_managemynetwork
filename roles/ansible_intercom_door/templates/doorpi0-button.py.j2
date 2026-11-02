@@ -1,0 +1,65 @@
+#!/usr/bin/env python3
+# Managed by Ansible (role ansible_intercom_door).
+# GPIO-Taster: kurzer Druck = 'ring'; waehrend aktivem Gespraech = 'hangup'.
+import json
+import signal
+import threading
+import time
+
+import paho.mqtt.client as mqtt
+from gpiozero import Button
+
+BROKER = "{{ intercom_broker_host }}"
+PORT = {{ intercom_broker_port }}
+CA = "{{ intercom_ca_file }}"
+USER = "{{ intercom_mqtt_username }}"
+PASSWORD = "{{ intercom_mqtt_password }}"
+LINE = {{ intercom_gpio_line }}
+BOUNCE = {{ intercom_button_bounce }}
+DEBOUNCE = {{ intercom_button_debounce }}
+
+call_active = False
+last_press = 0.0
+
+
+def on_connect(client, userdata, flags, rc, properties=None):
+    if rc == 0:
+        client.publish("intercom/door/presence", "online", qos=1, retain=True)
+        client.subscribe("intercom/indoor/+/state", qos=1)
+        print("mqtt connected", flush=True)
+
+
+def on_message(client, userdata, msg):
+    global call_active
+    try:
+        payload = json.loads(msg.payload.decode())
+    except Exception:
+        return
+    call_active = payload.get("call") == "active"
+
+
+def on_press():
+    global last_press
+    now = time.time()
+    if now - last_press < DEBOUNCE:
+        return
+    last_press = now
+    event = "hangup" if call_active else "ring"
+    client.publish("intercom/door/event",
+                   json.dumps({"event": event, "ts": int(now)}), qos=1)
+    print(f"event published: {event}", flush=True)
+
+
+client = mqtt.Client(client_id="doorpi0-button")
+client.will_set("intercom/door/presence", "offline", qos=1, retain=True)
+client.tls_set(ca_certs=CA)
+client.username_pw_set(USER, PASSWORD)
+client.on_connect = on_connect
+client.on_message = on_message
+client.connect(BROKER, PORT, keepalive=30)
+client.loop_start()
+
+button = Button(LINE, pull_up=True, bounce_time=BOUNCE)
+button.when_pressed = on_press
+
+signal.pause()

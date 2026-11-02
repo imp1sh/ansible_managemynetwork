@@ -1,0 +1,130 @@
+#!/usr/bin/env python3
+# Managed by Ansible (role ansible_intercom_indoor).
+# MQTT-Subscriber fuer Tuer-Events + lokaler State-HTTP-Server fuer die Qt-App.
+import json
+import threading
+import time
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+import paho.mqtt.client as mqtt
+
+BROKER = "{{ intercom_broker_host }}"
+PORT = {{ intercom_broker_port }}
+CA = "{{ intercom_ca_file }}"
+USER = "{{ intercom_mqtt_username }}"
+PASSWORD = "{{ intercom_mqtt_password }}"
+HTTP_PORT = {{ intercom_state_http_port }}
+LED_GPIO = {{ 'None' if intercom_led_gpio is none else intercom_led_gpio }}
+
+state = {"call": "idle", "ts": 0}
+lock = threading.Lock()
+
+led = None
+led_stop = threading.Event()
+
+
+def publish_state():
+    with lock:
+        payload = json.dumps(state)
+    client.publish("intercom/indoor/intercombasement/state", payload, qos=1, retain=True)
+
+
+def blink_led():
+    led_stop.clear()
+    while not led_stop.is_set():
+        if led:
+            led.on()
+        time.sleep(0.25)
+        if led:
+            led.off()
+        time.sleep(0.25)
+
+
+def on_connect(client, userdata, flags, rc, properties=None):
+    if rc == 0:
+        client.subscribe("intercom/door/event", qos=1)
+        publish_state()
+        print("mqtt connected", flush=True)
+
+
+def on_message(client, userdata, msg):
+    try:
+        payload = json.loads(msg.payload.decode())
+    except Exception:
+        return
+    event = payload.get("event")
+    with lock:
+        if event == "ring":
+            state["call"] = "ringing"
+            state["ts"] = int(time.time())
+            led_stop.clear()
+            if led:
+                threading.Thread(target=blink_led, daemon=True).start()
+        elif event == "hangup":
+            state["call"] = "idle"
+            state["ts"] = int(time.time())
+            led_stop.set()
+            if led:
+                led.off()
+    publish_state()
+    print(f"door event: {event}", flush=True)
+
+
+class Handler(BaseHTTPRequestHandler):
+    def _send(self, code, payload):
+        body = json.dumps(payload).encode()
+        self.send_response(code)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def do_GET(self):
+        if self.path == "/state":
+            with lock:
+                self._send(200, state)
+        else:
+            self._send(404, {"error": "not found"})
+
+    def do_POST(self):
+        if self.path != "/state":
+            self._send(404, {"error": "not found"})
+            return
+        length = int(self.headers.get("Content-Length", "0"))
+        try:
+            payload = json.loads(self.rfile.read(length).decode())
+            new_call = payload.get("call")
+            if new_call not in ("idle", "active", "ringing"):
+                raise ValueError
+        except Exception:
+            self._send(400, {"error": "invalid payload"})
+            return
+        with lock:
+            state["call"] = new_call
+            state["ts"] = int(time.time())
+            led_stop.set()
+            if led:
+                led.off()
+        publish_state()
+        self._send(200, state)
+
+    def log_message(self, fmt, *args):
+        pass
+
+
+if LED_GPIO is not None:
+    from gpiozero import LED
+    led = LED(LED_GPIO)
+
+client = mqtt.Client(client_id="intercomd-intercombasement")
+client.will_set("intercom/indoor/intercombasement/state",
+                json.dumps({"call": "idle", "ts": 0}), qos=1, retain=True)
+client.tls_set(ca_certs=CA)
+client.username_pw_set(USER, PASSWORD)
+client.on_connect = on_connect
+client.on_message = on_message
+client.connect(BROKER, PORT, keepalive=30)
+client.loop_start()
+
+print(f"state http on 127.0.0.1:{HTTP_PORT}", flush=True)
+ThreadingHTTPServer(("127.0.0.1", HTTP_PORT), Handler).serve_forever()

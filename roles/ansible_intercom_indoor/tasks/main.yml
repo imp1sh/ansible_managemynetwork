@@ -1,0 +1,40 @@
+---
+- name: "Intercom indoor - Validate credentials"
+  ansible.builtin.assert:
+    that:
+      - intercom_mqtt_password | length > 0
+    fail_msg: "intercom_mqtt_password fehlt (vaulted in host_vars eintragen)."
+
+- name: "Intercom indoor - Install python packages"
+  ansible.builtin.apt:
+    name:
+      - python3-paho-mqtt
+    state: present
+
+- name: "Intercom indoor - Ensure directory"
+  ansible.builtin.file:
+    path: /opt/intercom
+    state: directory
+    mode: "0755"
+
+- name: "Intercom indoor - Render daemon"
+  ansible.builtin.template:
+    src: intercomd.py.j2
+    dest: /opt/intercom/intercomd.py
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: "Intercom indoor - systemd unit"
+  ansible.builtin.template:
+    src: intercomd.service.j2
+    dest: /etc/systemd/system/intercomd.service
+    mode: "0644"
+  notify: Restart intercomd
+
+- name: "Intercom indoor - Enable and start"
+  ansible.builtin.systemd:
+    name: intercomd.service
+    enabled: true
+    state: started
+    daemon_reload: true

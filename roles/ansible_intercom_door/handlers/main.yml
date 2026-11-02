@@ -1,0 +1,6 @@
+---
+- name: Restart intercom door button
+  ansible.builtin.systemd:
+    name: intercom-door-button.service
+    state: restarted
+    daemon_reload: true

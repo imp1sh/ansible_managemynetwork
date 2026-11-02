@@ -1,0 +1,6 @@
+---
+- name: Restart mosquitto container
+  ansible.builtin.systemd:
+    name: "{{ ('container-' ~ mosquitto_containername) if not (podman_use_quadlet | default(false) | bool) else mosquitto_containername }}"
+    state: restarted
+  when: mosquitto_containername is not none

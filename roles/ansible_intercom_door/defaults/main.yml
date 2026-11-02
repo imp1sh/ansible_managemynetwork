@@ -1,0 +1,10 @@
+---
+# ansible_intercom_door — GPIO-Taster an der Tuerstation -> MQTT-Events
+intercom_broker_host: "mqtt0.t.libcom.de"
+intercom_broker_port: 8883
+intercom_ca_file: "/etc/ssl/certs/ca-certificates.crt"
+intercom_mqtt_username: "doorpi0"
+intercom_mqtt_password: ""      # vaulted in host_vars (erforderlich)
+intercom_gpio_line: 17
+intercom_button_bounce: 0.1
+intercom_button_debounce: 0.6
