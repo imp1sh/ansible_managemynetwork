@@ -6,4 +6,5 @@ intercom_ca_file: "/etc/ssl/certs/ca-certificates.crt"
 intercom_mqtt_username: "intercomd-intercombasement"
 intercom_mqtt_password: ""      # vaulted in host_vars (erforderlich)
 intercom_state_http_port: 8099
+intercom_ring_timeout: 30       # Sekunden bis RING automatisch auf idle faellt
 intercom_led_gpio: null          # z. B. 23, sobald verdrahtet

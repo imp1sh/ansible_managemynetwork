@@ -14,10 +14,12 @@ CA = "{{ intercom_ca_file }}"
 USER = "{{ intercom_mqtt_username }}"
 PASSWORD = "{{ intercom_mqtt_password }}"
 HTTP_PORT = {{ intercom_state_http_port }}
+RING_TIMEOUT = {{ intercom_ring_timeout }}
 LED_GPIO = {{ 'None' if intercom_led_gpio is none else intercom_led_gpio }}
 
 state = {"call": "idle", "ts": 0}
 lock = threading.Lock()
+ring_timer = None
 
 led = None
 led_stop = threading.Event()
@@ -27,6 +29,37 @@ def publish_state():
     with lock:
         payload = json.dumps(state)
     client.publish("intercom/indoor/intercombasement/state", payload, qos=1, retain=True)
+
+
+def cancel_ring_timer():
+    global ring_timer
+    if ring_timer:
+        ring_timer.cancel()
+        ring_timer = None
+
+
+def ring_timeout():
+    global ring_timer
+    with lock:
+        if state["call"] != "ringing":
+            ring_timer = None
+            return
+        state["call"] = "idle"
+        state["ts"] = int(time.time())
+        led_stop.set()
+        if led:
+            led.off()
+    ring_timer = None
+    publish_state()
+    print("ring timeout -> idle", flush=True)
+
+
+def schedule_ring_timeout():
+    global ring_timer
+    cancel_ring_timer()
+    ring_timer = threading.Timer(RING_TIMEOUT, ring_timeout)
+    ring_timer.daemon = True
+    ring_timer.start()
 
 
 def blink_led():
@@ -60,9 +93,11 @@ def on_message(client, userdata, msg):
             led_stop.clear()
             if led:
                 threading.Thread(target=blink_led, daemon=True).start()
+            schedule_ring_timeout()
         elif event == "hangup":
             state["call"] = "idle"
             state["ts"] = int(time.time())
+            cancel_ring_timer()
             led_stop.set()
             if led:
                 led.off()
@@ -102,6 +137,9 @@ class Handler(BaseHTTPRequestHandler):
         with lock:
             state["call"] = new_call
             state["ts"] = int(time.time())
+            cancel_ring_timer()
+            if new_call == "ringing":
+                schedule_ring_timeout()
             led_stop.set()
             if led:
                 led.off()
