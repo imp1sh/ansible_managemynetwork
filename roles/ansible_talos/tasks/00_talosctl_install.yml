@@ -1,20 +1,91 @@
-# Ansible Playbook to install Talos
-- name: MMN Talos - Check if talosctl is present
-  ansible.builtin.command: "which talosctl"
-  register: talos_talosctl_check
-  ignore_errors: yes
+# talosctl is the only tool used to drive the cluster, so its version must be
+# declarative: after this role runs, the effective binary must be exactly
+# talos_talosctl_version, regardless of what was installed before.
+---
+- name: MMN Talos - Assert consistent talosctl version across clusters
+  ansible.builtin.assert:
+    that:
+      - item.value.talosctl_version | default(talos_talosctl_version) == talos_talosctl_version
+    fail_msg: >-
+      talos_clusters.{{ item.key }}.talosctl_version is
+      '{{ item.value.talosctl_version | default(talos_talosctl_version) }}', but
+      talos_talosctl_version is '{{ talos_talosctl_version }}'. Only one
+      talosctl binary is managed, so all clusters must agree on the version.
+  loop: "{{ talos_clusters | dict2items }}"
+  loop_control:
+    label: "{{ item.key }}"
 
-- name: MMN Talos - Download talosctl for Linux (amd64) version {{ talos_talosctl_version }}
+- name: MMN Talos - Locate installed talosctl
+  ansible.builtin.shell: command -v talosctl  # noqa: command-instead-of-shell
+  register: talos_talosctl_which
+  changed_when: false
+  failed_when: false
+
+- name: MMN Talos - Read installed talosctl version
+  ansible.builtin.command: "{{ talos_talosctl_which.stdout }} version --client --short"
+  register: talos_talosctl_installed
+  changed_when: false
+  failed_when: false
+  when: talos_talosctl_which.rc == 0
+
+- name: MMN Talos - Normalize installed talosctl version
+  ansible.builtin.set_fact:
+    talos_talosctl_installed_version: >-
+      {{ talos_talosctl_installed.stdout | default('')
+         | regex_search('v[0-9]+\.[0-9]+\.[0-9]+') | default('', true) }}
+  when: talos_talosctl_which.rc == 0
+
+- name: MMN Talos - Download talosctl version {{ talos_talosctl_version }}
   ansible.builtin.get_url:
-    url: https://github.com/siderolabs/talos/releases/download/{{ talos_talosctl_version }}/talosctl-linux-amd64
-    dest: "/usr/local/bin/talosctl"
+    url: "https://github.com/siderolabs/talos/releases/download/{{ talos_talosctl_version }}/talosctl-linux-{{ talos_talosctl_arch }}"
+    dest: "{{ talos_talosctl_path }}"
     mode: '0755'  # Make the binary executable
+    force: true   # Re-download when the installed version differs
   become: true
   become_user: root
   register: talos_download_result  # Register the result for debugging or verification
-  # delegate_to: 127.0.0.1
-  when: (talos_talosctl_check.rc != 0) or (talos_talosctl_force_install|default(false))
+  when: >
+    talos_talosctl_which.rc != 0
+    or (talos_talosctl_installed_version | default('')) != talos_talosctl_version
+    or (talos_talosctl_force_install | default(false))
+
 - name: MMN Talos - Display download result
   ansible.builtin.debug:
     var: talos_download_result  # Display the result of the download task
-  # delegate_to: 127.0.0.1
+
+- name: MMN Talos - Verify installed talosctl version
+  ansible.builtin.command: "{{ talos_talosctl_path }} version --client --short"
+  register: talos_talosctl_verify
+  changed_when: false
+  failed_when: >-
+    talos_talosctl_verify.rc != 0
+    or (talos_talosctl_verify.stdout | regex_search('v[0-9]+\.[0-9]+\.[0-9]+')
+    | default('', true)) != talos_talosctl_version
+
+- name: MMN Talos - Re-resolve talosctl in PATH
+  ansible.builtin.shell: command -v talosctl  # noqa: command-instead-of-shell
+  register: talos_talosctl_resolved
+  changed_when: false
+  failed_when: false
+
+- name: MMN Talos - Read effective talosctl version
+  ansible.builtin.command: "{{ talos_talosctl_resolved.stdout }} version --client --short"
+  register: talos_talosctl_effective
+  changed_when: false
+  failed_when: false
+  when: talos_talosctl_resolved.rc == 0
+
+- name: MMN Talos - Assert the effective talosctl has the target version
+  ansible.builtin.assert:
+    that:
+      - talos_talosctl_resolved.rc == 0
+      - (talos_talosctl_effective.stdout | default('')
+         | regex_search('v[0-9]+\.[0-9]+\.[0-9]+') | default('', true)) == talos_talosctl_version
+    fail_msg: >-
+      The talosctl that resolves first in PATH is
+      '{{ talos_talosctl_resolved.stdout | default('') | trim }}' with version
+      '{{ talos_talosctl_effective.stdout | default('')
+         | regex_search('v[0-9]+\.[0-9]+\.[0-9]+') | default('unknown', true) }}',
+      but {{ talos_talosctl_version }} is required. The role manages
+      {{ talos_talosctl_path }}; remove the shadowing binary or point
+      talos_talosctl_path at it.

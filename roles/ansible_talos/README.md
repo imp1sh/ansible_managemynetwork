@@ -21,7 +21,9 @@ talosctl kubeconfig --nodes <masternode> --endpoints <masternode> --talosconfig 
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `talos_version` | `"v1.9.2"` | Talos OS version, used as install-image tag |
-| `talos_talosctl_version` | `"{{ talos_version }}"` | talosctl binary version to install |
+| `talos_talosctl_version` | `"{{ talos_version }}"` | talosctl binary version to install. The role reinstalls the binary whenever the effective version differs |
+| `talos_talosctl_path` | `"/usr/local/bin/talosctl"` | Path of the managed talosctl binary |
+| `talos_talosctl_arch` | `"amd64"` | Architecture suffix of the talosctl release asset (`amd64`, `arm64`) |
 | `talos_secrets_file` | `"secrets.yaml"` | Secrets file name (preserved across runs) |
 | `talos_filename_controlplane_patched` | `"controlplane_patched.yaml"` | Patched controlplane config filename |
 | `cilium_chart_version` | `"1.20.2"` | Helm chart version for Cilium inline manifest |

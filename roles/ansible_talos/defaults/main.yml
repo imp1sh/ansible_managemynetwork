@@ -2,6 +2,10 @@
 # defaults file for ansible_talos
 talos_version: "v1.9.2"
 talos_talosctl_version: "{{ talos_version }}"
+# talosctl is (re)installed whenever the effective binary does not match
+# talos_talosctl_version, making the installed version declarative.
+talos_talosctl_path: "/usr/local/bin/talosctl"
+talos_talosctl_arch: "amd64"
 talos_secrets_file: "secrets.yaml"
 # this is the file name where the patches for the controlplanes go into, not to confuse with talos_filename_controlplane_patch
 talos_filename_controlplane_patched: "controlplane_patched.yaml"
