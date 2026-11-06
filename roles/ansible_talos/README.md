@@ -5,7 +5,9 @@ A role to bootstrap and manage Talos Linux clusters. Generates machine configs,
 deploys them to nodes, bootstraps etcd, and exports kubeconfig/talosconfig.
 
 - Only static IP configuration is supported
-- Upgrades are partially automated — see below
+- The role prepares OS upgrades (client + machine configs); the node rollout
+  itself is manual and must be gated on etcd and workload health — see
+  [Upgrading Talos](#upgrading-talos)
 
 ## Quick start
 
@@ -74,113 +76,269 @@ To get a new schematic (when you need extensions):
 
 ## Upgrading Talos
 
-### What the role does vs. what is manual
+### What the role does vs. what stays manual
 
 The role handles:
-- Installing/updating `talosctl` to the configured version
-- Generating machine configs with the target install-image URL
-- Applying machine config changes via `talosctl apply-config`
 
-The role does **not** handle:
-- Running `talosctl upgrade` to replace the Talos OS image on disk
+- Installing/updating `talosctl` declaratively: if the effective binary does
+  not report `talos_talosctl_version`, it is re-downloaded. Re-running the role
+  is therefore enough to align the client with the pinned version.
+- Regenerating machine configs with the target install-image URL.
+- Applying machine config changes via `talosctl apply-config`.
 
-OS upgrades must be performed manually after re-running the role.
+The role does **not**:
+
+- Run `talosctl upgrade` (that is what replaces the OS image on disk).
+- Reboot nodes or decide the upgrade order.
+
+Those steps are manual because only the operator knows the workload topology
+(etcd quorum, database primaries, maintenance windows).
 
 ### Constraints
 
 - **Downgrades are not supported.** Talos only rolls forward.
-- **Upgrade control plane nodes one at a time.** Etcd quorum must stay intact.
-  With 3 CP nodes you can lose 1, never 2.
-- **Snapshots before upgrading** are strongly recommended as the only rollback
-  mechanism.
+- **Upgrade control-plane nodes one at a time.** With 3 CP nodes etcd tolerates
+  one unavailable member, never two.
+- **Do not batch workers that host stateful workloads.** A worker running a
+  database replica, a quorum member, or similar is upgraded like a control
+  plane node: one at a time, with health gates. Stateless workers may be
+  upgraded together.
+- **Snapshot and back up before starting.** VM snapshots are the only fast
+  rollback for the OS; database backups are the only rollback for data.
+- **Read the upstream release notes** for the target version:
+  `https://www.talos.dev/latest/talos-guides/upgrading-talos/`
 
-### Upgrade procedure
+### Version sources
 
-#### Step 1 — Update version in group_vars
-
-Bump all version fields to the target version (e.g. `v1.15.0`):
+All version fields must be set to the same target version:
 
 ```yaml
-talos_version: "v1.15.0"
-talos_talosctl_version: "v1.15.0"
+talos_version: "<target-version>"           # install-image tag / role default
+talos_talosctl_version: "<target-version>"  # managed talosctl binary
 talos_clusters:
-  junicluster0:
-    talos_version: "v1.15.0"
-    talosctl_version: "v1.15.0"
+  <cluster>:
+    talos_version: "<target-version>"       # per-cluster override
+    talosctl_version: "<target-version>"    # must match the global value
 ```
 
-If switching to a schematic with different extensions, also set:
+The role asserts that every `talos_clusters.<name>.talosctl_version` equals
+`talos_talosctl_version`, because only one `talosctl` binary is managed per
+controller.
+
+If the target requires different system extensions, set the schematic too:
+
 ```yaml
 talos_clusters:
-  junicluster0:
+  <cluster>:
     schematic_id: "<new-schematic-id>"
 ```
 
-Commit the change.
+### Step 1 - Pre-flight checks
 
-#### Step 2 — Re-run the role
+```bash
+# Talos versions currently running
+talosctl --nodes <node-ip> version
+
+# Cluster health (health keys off --nodes)
+talosctl --nodes <control-plane-ip> health
+
+# etcd: all members present, no learners
+talosctl --nodes <control-plane-ip> etcd members
+
+# Kubernetes and workloads
+kubectl get nodes -o wide
+kubectl get pods -A --field-selector=status.phase!=Running
+```
+
+If a CloudNativePG cluster runs on the cluster, verify it is fully healthy
+**before** touching any node:
+
+```bash
+kubectl get clusters.postgresql.cnpg.io -A
+# READY must equal INSTANCES and STATUS must be "Cluster in healthy state"
+
+# Which node hosts the current primary? Upgrade that node last.
+DB_NS=<cnpg-namespace>
+DB_CLUSTER=<cnpg-cluster-name>
+PRIMARY=$(kubectl -n "$DB_NS" get cluster "$DB_CLUSTER" -o jsonpath='{.status.currentPrimary}')
+kubectl -n "$DB_NS" get pod "$PRIMARY" -o wide
+```
+
+Take an on-demand backup first if your policy requires it (requires the
+kubectl-cnpg plugin), for example:
+
+```bash
+kubectl cnpg backup "$DB_CLUSTER" -n "$DB_NS"
+```
+
+### Step 2 - Bump the version and run the role
+
+Edit the version fields above, commit, then run the consuming playbook:
 
 ```bash
 ansible-playbook <playbook-using-ansible_talos>
 ```
 
-This installs the new `talosctl`, regenerates machine configs with the new
-install-image URL, and applies any config changes. Nodes are still running the
-old Talos OS image at this point.
+Verify the result before upgrading any node:
 
-#### Step 3 — Upgrade nodes manually
-
-Set the install image:
 ```bash
+# Controller now has the target client
+talosctl version --client
+
+# Machine configs reference the target installer image
+talosctl --nodes <node-ip> get machineconfig -o yaml | grep -m1 'image:'
+
+# Nodes still run the old OS image at this point
+talosctl --nodes <node-ip> version
+```
+
+### Step 3 - Build the install image reference
+
+```bash
+TARGET_VERSION="<target-version>"
+SCHEMATIC_ID="<schematic-id>"
 INSTALL_IMAGE="factory.talos.dev/metal-installer/${SCHEMATIC_ID}:${TARGET_VERSION}"
+
+# Without a factory schematic (vanilla image):
+# INSTALL_IMAGE="ghcr.io/siderolabs/installer:${TARGET_VERSION}"
 ```
 
-##### Control plane nodes (sequential)
+### Step 4 - Rolling upgrade
 
-Upgrade one node at a time. Wait for each to complete and return to healthy
-before proceeding to the next:
+Upgrade one node at a time and pass the gates in Step 5 after every node before
+touching the next one.
+
+Order rules:
+
+1. If a CNPG cluster exists, upgrade the node hosting the **current primary**
+   **last** - that node causes a failover when it reboots.
+2. Upgrade all other control-plane nodes sequentially.
+3. Stateless workers may be batched; workers hosting a database instance, etcd,
+   or any other quorum member are upgraded one at a time.
 
 ```bash
-talosctl --nodes <cp-node-1-ip> upgrade --image ${INSTALL_IMAGE}
-talosctl --nodes <cp-node-1-ip> health
-
-talosctl --nodes <cp-node-2-ip> upgrade --image ${INSTALL_IMAGE}
-talosctl --nodes <cp-node-2-ip> health
-
-talosctl --nodes <cp-node-3-ip> upgrade --image ${INSTALL_IMAGE}
-talosctl --nodes <cp-node-3-ip> health
+talosctl --nodes <node-ip> upgrade --image "$INSTALL_IMAGE"
 ```
 
-##### Worker nodes (parallel)
+`talosctl upgrade` drains the node by default (`--drain`, 5 minute timeout),
+reboots it, runs the post-check and uncordons it. A
+`server version ... is older than client version ...` warning during the
+upgrade is expected: it is the pre-upgrade comparison, and the post-check runs
+after the reboot.
 
-Workers can be upgraded simultaneously since they don't hold etcd:
+### Step 5 - Gates after every node
+
+Do not continue until **all** of the following pass:
 
 ```bash
-talosctl --nodes <worker-ip-1> --nodes <worker-ip-2> upgrade --image ${INSTALL_IMAGE}
-```
+# New Talos version on the upgraded node
+talosctl --nodes <node-ip> version
 
-#### Step 4 — Verify
-
-```bash
-# All nodes reporting new version
-talosctl --nodes <cp-1> --nodes <cp-2> --nodes <cp-3> version
-
-# Kubernetes components healthy
-talosctl --nodes <cp-1> health --server=false
-
-# Pods running normally
+# Node Ready, new OS image/kernel/containerd
 kubectl get nodes -o wide
-kubectl get pods -A
+
+# Talos/etcd health for control-plane nodes
+talosctl --nodes <control-plane-ip> health
+talosctl --nodes <control-plane-ip> etcd members   # all members, no learners
+
+# No non-running pods
+kubectl get pods -A --field-selector=status.phase!=Running
 ```
+
+With CNPG, also wait until the database is fully healthy again:
+
+```bash
+kubectl -n "$DB_NS" get cluster "$DB_CLUSTER"
+# READY == INSTANCES and STATUS == "Cluster in healthy state"
+
+# Or block until the Ready condition is true. Use a generous timeout: a former
+# primary may have to archive a large WAL backlog first (see Step 6).
+kubectl -n "$DB_NS" wait --for=condition=Ready "cluster/$DB_CLUSTER" --timeout=45m
+```
+
+Never start the next node while a database instance is still recovering.
+
+### Step 6 - CNPG behavior during node reboots
+
+This is the part that most often makes an otherwise healthy upgrade look stuck.
+
+| Node hosted | Expected behavior |
+|-------------|-------------------|
+| a replica | The pod restarts and rejoins via streaming replication; usually ready within minutes. |
+| the primary | The operator promotes a replica (brief write interruption); the old primary restarts and rejoins as a replica. |
+
+The slow case is a **former primary with unarchived WALs**. Before PostgreSQL
+starts, the instance manager archives the leftover WAL segments from its
+`pg_wal` directory. If WAL archiving had been lagging, that backlog can be many
+gigabytes and take tens of minutes. The pod stays `1/2 Ready` and logs:
+
+```
+"This is an old primary instance, waiting for the switchover to finish"
+"Switchover completed"
+"Waiting for the new primary to be available"
+"Detected ready WAL files in a former primary, triggering WAL archiving"
+```
+
+Check that it is progressing - and do **not** delete the pod while it is
+archiving, because that discards the progress. With the Barman Cloud plugin
+the archiving happens in the `plugin-barman-cloud` sidecar; with in-tree
+Barman the same messages appear in the instance-manager (`postgres`) log:
+
+```bash
+kubectl -n "$DB_NS" logs <pod> -c plugin-barman-cloud -f | grep "Archived WAL file"
+```
+
+Only if there is genuinely no progress, follow the CNPG troubleshooting
+runbook; deleting the pod forces a rebuild from a base backup.
+
+After the upgrade, investigate why archiving lagged: a declared `walStorage`
+size is not enforced by every storage provisioner, so a large backlog can
+consume node disk. Check archive health and volume usage, and consider raising
+`walStorage` or alerting on archive lag.
+
+### Step 7 - Final verification
+
+```bash
+for ip in <node-ip-1> <node-ip-2> <node-ip-3>; do
+  echo -n "$ip: "
+  talosctl --nodes "$ip" version | awk '/^Server:/{s=1} s&&/Tag:/{print $2; exit}'
+done
+
+kubectl get nodes -o wide
+kubectl get pods -A --field-selector=status.phase!=Running
+talosctl --nodes <control-plane-ip> etcd members
+
+# If CNPG is present
+kubectl get clusters.postgresql.cnpg.io -A
+kubectl -n "$DB_NS" get cluster "$DB_CLUSTER" \
+  -o jsonpath='{range .status.conditions[*]}{.type}={.status}{"\n"}{end}'
+```
+
+Re-running the role once more is a good idempotence check: it should skip the
+talosctl download and apply no machine-config changes.
 
 ### Rollback
 
 True rollback (downgrade) is not supported. Options if an upgrade goes wrong:
 
-1. **Snapshot restore** — revert VM snapshots taken before the upgrade.
+1. **Snapshot restore** - revert the VM snapshots taken before the upgrade.
    Preserves all cluster state.
-2. **Reset and rebuild** — `talosctl reset` on all nodes, then redeploy from
-   scratch with the old version via this role. Destroys all cluster state
-   (etcd, local volumes).
+2. **Reset and rebuild** - `talosctl reset` on the affected node(s), then
+   redeploy with the old version via this role. This destroys local state on
+   those nodes (etcd, local-path volumes).
+3. **CNPG restore** - if the database is lost, restore it from the Barman
+   ObjectStore backup taken before the upgrade (see the CNPG backup docs).
 
-Always snapshot before upgrading.
+Always snapshot and verify backups before upgrading.
+
+### Troubleshooting quick reference
+
+| Symptom | Meaning / action |
+|---------|------------------|
+| `server version ... is older than client version ...` during upgrade | Expected pre-reboot check; the post-check after the reboot validates the new version. |
+| `talosctl health` fails with "nodes are not set" | Use `--nodes`, not `--endpoints`, with `health`. |
+| `etcd members` fails with "failed to determine endpoints" | Pass `--nodes <ip>`; do not rely on the context endpoints alone. |
+| Node stays `NotReady` after reboot | `talosctl --nodes <ip> health`, `kubectl describe node <node>`, `talosctl --nodes <ip> dmesg`. |
+| CNPG "Waiting for the instances to become active" | At least one instance is not ready. Check `kubectl -n <ns> logs <pod> -c postgres`; a former primary may be archiving WALs (Step 6). |
+| CNPG former primary logs "Detected ready WAL files ..." | Archiving backlog; wait and watch the barman sidecar logs. Do not delete the pod. |
+| CNPG pod `1/2` with "no such file or directory ... .s.PGSQL.5432" | PostgreSQL has not started yet; that log is a symptom, not the cause. Check the archive/instance-manager path. |
