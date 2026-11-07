@@ -1,22 +1,62 @@
 ---
-# ansible_intercom_door — Taster + Audioempfaenger (Opus/RTP -> Klinke)
+# ansible_intercom_door — Tuerstation doorpi0: ein Daemon fuer alles.
+#
+# intercom-door vereint: Taster (GPIO), Gong-Relais (GPIO), SHTC3 (I2C),
+# REST-API, Web-GUI, Prometheus-Exporter und MQTT. Der alte, separate
+# Taster-Dienst (intercom-door-button) wird entfernt.
+#
+# Audioempfaenger (Opus/RTP -> Klinke) bleibt ein eigener Dienst
+# (intercom-audio-rx), da er ein eigenes Media-Pipeline-Handling ist.
+
 intercom_broker_host: "mqtt0.t.libcom.de"
 intercom_broker_port: 8883
 intercom_ca_file: "/etc/ssl/certs/ca-certificates.crt"
 intercom_mqtt_username: "doorpi0"
 intercom_mqtt_password: ""
+
+# --- GPIO ---
 intercom_gpio_line: 17
 intercom_button_bounce: 0.1
 intercom_button_debounce: 0.6
-intercom_audio_rx_port: 5004
 
-# Mechanischer Gong (Honeywell D117) ueber Relais an GPIO24.
-# Verifizierte Verdrahtung: Relais-NC in Reihe mit Klemme 0/3 (Details in der
-# Projekt-Doku WIRING.md). Kontaktlogik/Idle-Bestromung haengt vom Modul ab.
+# --- Gong-Relais (Honeywell D117) ---
+# Verifizierte Verdrahtung: Relais-NC in Reihe mit Klemme 0/3
+# (Details: Projekt-Doku WIRING.md).
 intercom_gong_enabled: true
 intercom_gong_gpio: 24
 intercom_gong_active_high: false
-# Pulsdauer je Tastendruck (Solenoid nicht dauerhaft bestromen).
 intercom_gong_pulse: 0.2
-# Gong auch beim Auflegen (Taste waehrend Gespraech) ausloesen?
 intercom_gong_on_hangup: false
+
+# --- SHTC3 Temperatur-/Feuchtesensor ---
+intercom_sensor_bus: "/dev/i2c-3"
+intercom_sensor_addr: 0x70
+intercom_sensor_interval: 10
+
+# --- HTTP (API/Web/Metriken), laeuft nur lokal; aussen via traefik ---
+intercom_http_host: "127.0.0.1"
+intercom_http_port: 8090
+
+# --- Event-Log (nur RAM, Ringpuffer) ---
+intercom_event_buffer: 500
+
+# --- MQTT-Topics ---
+intercom_topic_event: "intercom/door/event"
+intercom_topic_presence: "intercom/door/presence"
+intercom_topic_button: "intercom/door/button"
+intercom_topic_relay: "intercom/door/relay"
+
+# --- Audioempfaenger (Opus/RTP -> Klinke) ---
+intercom_audio_rx_port: 5004
+
+intercom_packages:
+  - python3-paho-mqtt
+  - python3-gpiozero
+  - python3-lgpio
+  - python3-fastapi
+  - python3-uvicorn
+  - python3-prometheus-client
+  - gstreamer1.0-tools
+  - gstreamer1.0-plugins-good
+  - gstreamer1.0-plugins-bad
+  - gstreamer1.0-alsa

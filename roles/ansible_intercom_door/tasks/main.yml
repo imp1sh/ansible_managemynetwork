@@ -5,17 +5,12 @@
       - intercom_mqtt_password | length > 0
     fail_msg: "intercom_mqtt_password fehlt (vaulted in host_vars eintragen)."
 
-- name: "Intercom door - Install python packages"
+- name: "Intercom door - Install packages"
   ansible.builtin.apt:
-    name:
-      - python3-paho-mqtt
-      - python3-gpiozero
-      - python3-lgpio
-      - gstreamer1.0-tools
-      - gstreamer1.0-plugins-good
-      - gstreamer1.0-plugins-bad
-      - gstreamer1.0-alsa
+    name: "{{ intercom_packages }}"
     state: present
+    update_cache: true
+    cache_valid_time: 3600
 
 - name: "Intercom door - Ensure directory"
   ansible.builtin.file:
@@ -23,27 +18,49 @@
     state: directory
     mode: "0755"
 
-- name: "Intercom door - Render button service"
+- name: "Intercom door - Render daemon"
   ansible.builtin.template:
-    src: doorpi0-button.py.j2
-    dest: /opt/intercom/doorpi0-button.py
+    src: intercom-door.py.j2
+    dest: /opt/intercom/intercom-door.py
     owner: root
     group: root
     mode: "0755"
+  notify: Restart intercom door
 
-- name: "Intercom door - systemd unit (button)"
+- name: "Intercom door - systemd unit (daemon)"
   ansible.builtin.template:
-    src: intercom-door-button.service.j2
-    dest: /etc/systemd/system/intercom-door-button.service
+    src: intercom-door.service.j2
+    dest: /etc/systemd/system/intercom-door.service
+    owner: root
+    group: root
     mode: "0644"
-  notify: Restart intercom door button
+  notify: Restart intercom door
 
 - name: "Intercom door - systemd unit (audio receiver)"
   ansible.builtin.template:
     src: intercom-audio-rx.service.j2
     dest: /etc/systemd/system/intercom-audio-rx.service
+    owner: root
+    group: root
     mode: "0644"
   notify: Restart intercom audio receiver
+
+- name: "Intercom door - Stop and disable legacy button service"
+  ansible.builtin.systemd:
+    name: intercom-door-button.service
+    state: stopped
+    enabled: false
+    daemon_reload: true
+  failed_when: false
+
+- name: "Intercom door - Remove legacy button files"
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - /etc/systemd/system/intercom-door-button.service
+    - /opt/intercom/doorpi0-button.py
+  notify: Restart intercom door
 
 - name: "Intercom door - Enable and start"
   ansible.builtin.systemd:
@@ -52,5 +69,5 @@
     state: started
     daemon_reload: true
   loop:
-    - intercom-door-button.service
+    - intercom-door.service
     - intercom-audio-rx.service

@@ -1,0 +1,687 @@
+#!/usr/bin/env python3
+# Managed by Ansible (role ansible_intercom_door). Do not edit by hand.
+"""intercom-door — Daemon der Tuerstation (doorpi0).
+
+Ein Prozess, ein Besitzer aller GPIOs:
+  * Taster (GPIO{{ intercom_gpio_line }})       -> MQTT ring/hangup + Event-Log
+  * Gong-Relais (GPIO{{ intercom_gong_gpio }})  -> Puls mit Software-Feedback
+  * SHTC3 ({{ intercom_sensor_bus }})          -> Temperatur/Feuchte
+  * REST-API (/api/*), Web-GUI (/), Prometheus (/metrics)
+
+Event-Log bewusst nur im RAM: Prometheus und MQTT sind die persistente
+Ableitung; die GUI zeigt Ereignisse seit dem letzten Neustart an.
+"""
+import atexit
+import fcntl
+import itertools
+import json
+import os
+import struct
+import threading
+import time
+from collections import deque
+from datetime import datetime, timezone
+
+import paho.mqtt.client as mqtt
+import uvicorn
+from fastapi import FastAPI
+from fastapi.responses import HTMLResponse
+from gpiozero import Button, OutputDevice
+from prometheus_client import (CONTENT_TYPE_LATEST, Counter, Gauge,
+                               generate_latest)
+
+# ----------------------------------------------------------- Konfiguration
+BROKER = "{{ intercom_broker_host }}"
+PORT = {{ intercom_broker_port }}
+CA = "{{ intercom_ca_file }}"
+USER = "{{ intercom_mqtt_username }}"
+PASSWORD = "{{ intercom_mqtt_password }}"
+
+BUTTON_GPIO = {{ intercom_gpio_line }}
+BUTTON_BOUNCE = {{ intercom_button_bounce }}
+PRESS_DEBOUNCE = {{ intercom_button_debounce }}
+
+GONG_ENABLED = {{ 'True' if intercom_gong_enabled else 'False' }}
+GONG_GPIO = {{ intercom_gong_gpio }}
+GONG_ACTIVE_HIGH = {{ 'True' if intercom_gong_active_high else 'False' }}
+GONG_PULSE = {{ intercom_gong_pulse }}
+GONG_ON_HANGUP = {{ 'True' if intercom_gong_on_hangup else 'False' }}
+
+SENSOR_BUS = "{{ intercom_sensor_bus }}"
+SENSOR_ADDR = {{ intercom_sensor_addr }}
+SENSOR_INTERVAL = {{ intercom_sensor_interval }}
+
+HTTP_HOST = "{{ intercom_http_host }}"
+HTTP_PORT = {{ intercom_http_port }}
+EVENT_BUFFER = {{ intercom_event_buffer }}
+
+TOPIC_LEGACY = "{{ intercom_topic_event }}"
+TOPIC_PRESENCE = "{{ intercom_topic_presence }}"
+TOPIC_BUTTON = "{{ intercom_topic_button }}"
+TOPIC_RELAY = "{{ intercom_topic_relay }}"
+
+STARTED_TS = time.time()
+STARTED_AT = datetime.fromtimestamp(
+    STARTED_TS, tz=timezone.utc).astimezone().isoformat(timespec="seconds")
+
+APP_VERSION = "1.0"
+
+# ------------------------------------------------------------------ Zustand
+call_active = False
+mqtt_connected = False
+last_press = 0.0
+
+button_events = deque(maxlen=EVENT_BUFFER)
+relay_events = deque(maxlen=EVENT_BUFFER)
+_events_lock = threading.Lock()
+_event_ids = itertools.count(1)
+
+# ----------------------------------------------------------------- Metriken
+m_button_presses = Counter(
+    "intercom_door_button_presses", "Tasterbet betaetigungen", ["event", "source"])
+m_relay_pulses = Counter(
+    "intercom_door_relay_pulses", "Gong-Relais Impulse", ["source", "success"])
+m_relay_failures = Counter(
+    "intercom_door_relay_failures", "Fehlgeschlagene Relais-Impulse")
+m_temperature = Gauge(
+    "intercom_door_temperature_celsius", "SHTC3 Temperatur in Celsius")
+m_humidity = Gauge(
+    "intercom_door_humidity_percent", "SHTC3 relative Feuchte in Prozent")
+m_sensor_age = Gauge(
+    "intercom_door_sensor_age_seconds", "Alter der letzten Sensor-Messung")
+m_sensor_up = Gauge(
+    "intercom_door_sensor_up", "Sensor verfuegbar (1/0)")
+m_call_active = Gauge(
+    "intercom_door_call_active", "Gespraech aktiv (1/0)")
+m_mqtt_connected = Gauge(
+    "intercom_door_mqtt_connected", "MQTT verbunden (1/0)")
+
+
+def now_iso():
+    return datetime.now(tz=timezone.utc).astimezone().isoformat(timespec="seconds")
+
+
+# --------------------------------------------------------------- SHTC3-Sensor
+def crc8(data):
+    crc = 0xFF
+    for byte in data:
+        crc ^= byte
+        for _ in range(8):
+            crc = ((crc << 1) ^ 0x31) & 0xFF if crc & 0x80 else (crc << 1) & 0xFF
+    return crc
+
+
+class Shtc3Sensor(threading.Thread):
+    """Liest den SHTC3 zyklisch (Wakeup -> Messung -> Schlaf)."""
+
+    def __init__(self, bus, addr, interval):
+        super().__init__(daemon=True, name="shtc3")
+        self.bus_path = bus
+        self.addr = addr
+        self.interval = interval
+        self.data = {"temperature_c": None, "humidity_pct": None,
+                     "ts": None, "time": None, "error": "keine Messung"}
+        self._lock = threading.Lock()
+
+    def _read_once(self):
+        fd = os.open(self.bus_path, os.O_RDWR)
+        try:
+            fcntl.ioctl(fd, 0x0703, self.addr)  # I2C_SLAVE
+
+            def cmd(c):
+                os.write(fd, bytes([c >> 8, c & 0xFF]))
+
+            cmd(0x805D)  # Soft Reset
+            time.sleep(0.002)
+            cmd(0xEFC8)  # ID lesen
+            time.sleep(0.002)
+            raw = os.read(fd, 3)
+            chip = struct.unpack(">H", raw[:2])[0] & 0x083F
+            if chip != 0x807:
+                raise OSError("SHTC3 nicht erkannt (ID 0x%03X)" % chip)
+
+            cmd(0x3517)  # Wakeup
+            time.sleep(0.002)
+            cmd(0x7866)  # Messung, T zuerst, ohne Clock Stretching
+            time.sleep(0.015)
+            data = os.read(fd, 6)
+            if len(data) != 6:
+                raise OSError("zu wenige Bytes: %d" % len(data))
+            if crc8(data[0:2]) != data[2] or crc8(data[3:5]) != data[5]:
+                raise OSError("CRC-Fehler")
+            raw_t = struct.unpack(">H", data[0:2])[0]
+            raw_h = struct.unpack(">H", data[3:5])[0]
+            temp = (((4375 * raw_t) >> 14) - 4500) / 100.0
+            hum = ((625 * raw_h) >> 12) / 100.0
+            cmd(0xB098)  # Sleep
+            return temp, hum
+        finally:
+            os.close(fd)
+
+    def run(self):
+        while True:
+            try:
+                temp, hum = self._read_once()
+                with self._lock:
+                    self.data = {"temperature_c": round(temp, 2),
+                                 "humidity_pct": round(hum, 1),
+                                 "ts": time.time(), "time": now_iso(),
+                                 "error": None}
+                m_temperature.set(temp)
+                m_humidity.set(hum)
+                m_sensor_up.set(1)
+            except Exception as exc:
+                with self._lock:
+                    self.data = {"temperature_c": None, "humidity_pct": None,
+                                 "ts": time.time(), "time": now_iso(),
+                                 "error": str(exc)}
+                m_sensor_up.set(0)
+            time.sleep(self.interval)
+
+    def snapshot(self):
+        with self._lock:
+            data = dict(self.data)
+        if data.get("ts"):
+            m_sensor_age.set(max(0.0, time.time() - data["ts"]))
+        return data
+
+
+# ------------------------------------------------------------------ MQTT
+client = None
+
+
+def mqtt_publish(topic, payload, retain=False):
+    if client is None:
+        return
+    try:
+        client.publish(topic, json.dumps(payload), qos=1, retain=retain)
+    except Exception as exc:  # noqa: BLE001 — MQTT darf nie crashen
+        print("mqtt publish failed: %s" % exc, flush=True)
+
+
+def on_connect(cl, userdata, flags, rc, properties=None):
+    global mqtt_connected
+    if rc == 0:
+        mqtt_connected = True
+        m_mqtt_connected.set(1)
+        cl.publish(TOPIC_PRESENCE, "online", qos=1, retain=True)
+        cl.subscribe("intercom/indoor/+/state", qos=1)
+        print("mqtt connected", flush=True)
+    else:
+        mqtt_connected = False
+        m_mqtt_connected.set(0)
+
+
+def on_disconnect(cl, userdata, flags, rc, properties=None):
+    global mqtt_connected
+    mqtt_connected = False
+    m_mqtt_connected.set(0)
+
+
+def on_message(cl, userdata, msg):
+    global call_active
+    try:
+        payload = json.loads(msg.payload.decode())
+    except Exception:
+        return
+    call_active = payload.get("call") == "active"
+    m_call_active.set(1 if call_active else 0)
+
+
+def mqtt_setup():
+    global client
+    try:
+        client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION1,
+                             client_id="intercom-door")
+    except AttributeError:  # aeltere paho-Version
+        client = mqtt.Client(client_id="intercom-door")
+    client.will_set(TOPIC_PRESENCE, "offline", qos=1, retain=True)
+    client.tls_set(ca_certs=CA)
+    client.username_pw_set(USER, PASSWORD)
+    client.on_connect = on_connect
+    client.on_disconnect = on_disconnect
+    client.on_message = on_message
+    # Kein Crash bei DNS-/Netz-Fehlern: Verbindung im Netzwerk-Thread.
+    client.reconnect_delay_set(min_delay=1, max_delay=30)
+    client.connect_async(BROKER, PORT, keepalive=30)
+    client.loop_start()
+
+
+# ------------------------------------------------------------------ Events
+def record_button_event(source, event, call):
+    with _events_lock:
+        entry = {
+            "id": next(_event_ids),
+            "ts": round(time.time(), 3),
+            "time": now_iso(),
+            "source": source,
+            "event": event,
+            "call": call,
+            "relay_event_id": None,
+        }
+        button_events.append(entry)
+    m_button_presses.labels(event=event, source=source).inc()
+    return entry
+
+
+def record_relay_event(source, trigger, button_event_id, success, pin_on):
+    with _events_lock:
+        entry = {
+            "id": next(_event_ids),
+            "ts": round(time.time(), 3),
+            "time": now_iso(),
+            "source": source,
+            "trigger": trigger,
+            "duration_s": GONG_PULSE,
+            "success": success,
+            "pin_state_on": pin_on,
+            "pin_state_off": None,
+            "button_event_id": button_event_id,
+        }
+        relay_events.append(entry)
+    m_relay_pulses.labels(source=source,
+                          success="1" if success else "0").inc()
+    if not success:
+        m_relay_failures.inc()
+    mqtt_publish(TOPIC_RELAY, {
+        "event": "activated" if success else "failed",
+        "source": source,
+        "trigger": trigger,
+        "duration_s": GONG_PULSE,
+        "success": success,
+        "button_event_id": button_event_id,
+        "ts": entry["ts"],
+    })
+    return entry
+
+
+# ------------------------------------------------------------------ Gong
+class Gong:
+    """Gong-Relais mit Puls, Retrigger und Software-Feedback."""
+
+    def __init__(self):
+        self.dev = None
+        self.timer = None
+        self.lock = threading.Lock()
+        if GONG_ENABLED:
+            self.dev = OutputDevice(GONG_GPIO, active_high=GONG_ACTIVE_HIGH,
+                                    initial_value=False)
+
+    def _off(self, entry):
+        with self.lock:
+            self.timer = None
+            if self.dev is None:
+                return
+            try:
+                self.dev.off()
+                ok = self.dev.value == 0.0
+            except Exception:
+                ok = False
+            if entry is not None:
+                entry["pin_state_off"] = ok
+
+    def pulse(self, source, trigger, button_event_id):
+        if self.dev is None:
+            return None
+        entry = None
+        success = False
+        pin_on = None
+        try:
+            with self.lock:
+                if self.timer is not None:
+                    self.timer.cancel()
+                self.dev.on()
+                pin_on = (self.dev.value == 1.0)
+                success = pin_on
+        except Exception as exc:
+            print("gong pulse failed: %s" % exc, flush=True)
+        entry = record_relay_event(source, trigger, button_event_id,
+                                   success, pin_on)
+        if success:
+            with self.lock:
+                self.timer = threading.Timer(GONG_PULSE, self._off, (entry,))
+                self.timer.daemon = True
+                self.timer.start()
+        else:
+            self._off(None)
+        return entry
+
+    def shutdown(self):
+        with self.lock:
+            if self.timer is not None:
+                self.timer.cancel()
+                self.timer = None
+            if self.dev is not None:
+                try:
+                    self.dev.off()
+                except Exception:
+                    pass
+
+
+gong = Gong()
+
+
+# -------------------------------------------------------------- Klingel-Flow
+def handle_press(source):
+    """Physischer oder API-Tastendruck: Event, Gong, MQTT (legacy + neu)."""
+    global last_press
+    now = time.time()
+    if source == "button":
+        if now - last_press < PRESS_DEBOUNCE:
+            return None
+        last_press = now
+    event = "hangup" if call_active else "ring"
+    call = "active" if call_active else "idle"
+    entry = record_button_event(source, event, call)
+    if event == "ring" or GONG_ON_HANGUP:
+        relay_entry = gong.pulse(source=source, trigger=event,
+                                button_event_id=entry["id"])
+        if relay_entry is not None:
+            entry["relay_event_id"] = relay_entry["id"]
+    mqtt_publish(TOPIC_LEGACY, {"event": event, "ts": int(now)})
+    mqtt_publish(TOPIC_BUTTON, {
+        "event": "press",
+        "source": source,
+        "result": event,
+        "call": call,
+        "relay_event_id": entry["relay_event_id"],
+        "ts": entry["ts"],
+    })
+    return entry
+
+
+button = None
+
+
+def gpio_setup():
+    global button
+    button = Button(BUTTON_GPIO, pull_up=True, bounce_time=BUTTON_BOUNCE)
+    button.when_pressed = lambda: handle_press("button")
+
+
+# ------------------------------------------------------------------ API
+api = FastAPI(title="intercom-door", version=APP_VERSION)
+
+
+@api.get("/metrics")
+def api_metrics():
+    from fastapi.responses import Response
+    return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
+
+
+@api.get("/api/status")
+def api_status():
+    snap = SENSOR.snapshot() if SENSOR else {}
+    with _events_lock:
+        btn = list(button_events)
+        rel = list(relay_events)
+    last_btn = btn[-1] if btn else None
+    last_rel = rel[-1] if rel else None
+    return {
+        "version": APP_VERSION,
+        "started_at": STARTED_AT,
+        "started_ts": STARTED_TS,
+        "uptime_s": round(time.time() - STARTED_TS, 1),
+        "button": {"gpio": BUTTON_GPIO,
+                   "pressed": bool(button.is_pressed) if button else None,
+                   "debounce_s": PRESS_DEBOUNCE,
+                   "last_event": last_btn},
+        "relay": {"gpio": GONG_GPIO if GONG_ENABLED else None,
+                  "enabled": GONG_ENABLED,
+                  "pulse_s": GONG_PULSE,
+                  "state": "on" if (GONG_ENABLED and gong.dev
+                                    and gong.dev.value == 1.0) else "off",
+                  "last_event": last_rel},
+        "sensor": snap,
+        "mqtt": {"connected": mqtt_connected, "broker": BROKER},
+        "call_active": call_active,
+        "events": {"buffer": EVENT_BUFFER, "button": len(btn),
+                   "relay": len(rel)},
+    }
+
+
+@api.get("/api/sensor")
+def api_sensor():
+    return SENSOR.snapshot() if SENSOR else {"error": "Sensor deaktiviert"}
+
+
+@api.post("/api/button/press")
+def api_button_press():
+    entry = handle_press("api")
+    return {"ok": entry is not None, "event": entry}
+
+
+@api.post("/api/relay/pulse")
+def api_relay_pulse():
+    entry = gong.pulse(source="api", trigger="test", button_event_id=None)
+    return {"ok": entry is not None and entry["success"], "event": entry}
+
+
+@api.get("/api/events/button")
+def api_events_button(limit: int = 100):
+    with _events_lock:
+        items = list(button_events)
+    items.reverse()
+    return {"count": len(items), "since": STARTED_AT, "events": items[:max(1, min(limit, EVENT_BUFFER))]}
+
+
+@api.get("/api/events/relay")
+def api_events_relay(limit: int = 100):
+    with _events_lock:
+        items = list(relay_events)
+    items.reverse()
+    return {"count": len(items), "since": STARTED_AT, "events": items[:max(1, min(limit, EVENT_BUFFER))]}
+
+
+@api.get("/api/events")
+def api_events(limit: int = 100):
+    with _events_lock:
+        btn = list(button_events)
+        rel = list(relay_events)
+    btn.reverse()
+    rel.reverse()
+    return {
+        "since": STARTED_AT,
+        "button": btn[:max(1, min(limit, EVENT_BUFFER))],
+        "relay": rel[:max(1, min(limit, EVENT_BUFFER))],
+    }
+
+
+GUI_HTML = """<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Intercom Tuerstation</title>
+<style>
+:root { --bg:#101216; --card:#171a20; --line:#262b33; --tx:#e6ebf2; --dim:#8b93a1; --ok:#2e9e5b; --warn:#d98032; }
+* { box-sizing:border-box; }
+body { margin:0; background:var(--bg); color:var(--tx);
+       font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif; }
+header { display:flex; flex-wrap:wrap; gap:12px; align-items:baseline;
+         padding:16px 22px; border-bottom:1px solid var(--line); }
+header h1 { font-size:19px; margin:0; }
+header .meta { color:var(--dim); font-size:13px; }
+main { padding:18px 22px; max-width:1100px; margin:0 auto; }
+.cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr));
+         gap:12px; }
+.card { background:var(--card); border:1px solid var(--line); border-radius:10px;
+        padding:12px 14px; }
+.card .label { color:var(--dim); font-size:12px; text-transform:uppercase;
+               letter-spacing:.06em; }
+.card .value { font-size:22px; font-weight:600; margin-top:4px; }
+.card .sub { color:var(--dim); font-size:12px; margin-top:2px; }
+.actions { display:flex; gap:10px; margin:16px 0; flex-wrap:wrap; }
+button { border:0; border-radius:8px; padding:11px 18px; font-size:15px;
+         font-weight:600; cursor:pointer; color:#fff; }
+button:disabled { opacity:.5; cursor:wait; }
+#btn-ring { background:#1b6e62; }
+#btn-gong { background:#37474f; }
+button:hover { filter:brightness(1.15); }
+#toast { margin-left:auto; color:var(--dim); font-size:13px; align-self:center; }
+h2 { font-size:14px; color:var(--dim); margin:20px 0 8px; text-transform:uppercase;
+     letter-spacing:.06em; }
+table { width:100%; border-collapse:collapse; background:var(--card);
+        border:1px solid var(--line); border-radius:10px; overflow:hidden; }
+th, td { text-align:left; padding:8px 10px; border-bottom:1px solid var(--line);
+         font-size:13.5px; }
+th { color:var(--dim); font-weight:600; }
+td.dim { color:var(--dim); }
+.ok { color:var(--ok); } .err { color:#e05d5d; }
+.pill { display:inline-block; padding:1px 8px; border-radius:99px; font-size:12px;
+        background:#232a33; }
+footer { color:var(--dim); font-size:12px; padding:14px 22px;
+         border-top:1px solid var(--line); margin-top:26px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Intercom T&uuml;rstation</h1>
+  <span class="meta" id="host-meta">doorpi0</span>
+  <span class="meta" id="restart-meta">Neustart: &ndash;</span>
+  <span id="toast"></span>
+</header>
+<main>
+  <div class="cards" id="cards"></div>
+  <div class="actions">
+    <button id="btn-ring" onclick="ring()">&#128276; Klingeln</button>
+    <button id="btn-gong" onclick="gongTest()">&#187; Gong testen</button>
+  </div>
+
+  <h2>Taster-Ereignisse (seit Neustart)</h2>
+  <table id="tbl-button"><thead><tr>
+    <th>Zeit</th><th>Quelle</th><th>Ergebnis</th><th>Anruf</th><th>Relais</th>
+  </tr></thead><tbody></tbody></table>
+
+  <h2>Relais-Aktivit&auml;ten (seit Neustart)</h2>
+  <table id="tbl-relay"><thead><tr>
+    <th>Zeit</th><th>Quelle</th><th>Ausl&ouml;ser</th><th>Dauer</th>
+    <th>Pin an</th><th>Pin aus</th><th>Taster-Ref</th>
+  </tr></thead><tbody></tbody></table>
+</main>
+<footer id="footer">intercom-door</footer>
+<script>
+let status = null;
+
+function fmtTime(iso) {
+  if (!iso) return '\u2013';
+  return new Date(iso).toLocaleString('de-DE');
+}
+
+function card(label, value, sub, cls) {
+  return '<div class="card"><div class="label">' + label + '</div>' +
+    '<div class="value ' + (cls || '') + '">' + value + '</div>' +
+    '<div class="sub">' + (sub || '') + '</div></div>';
+}
+
+function render() {
+  if (!status) return;
+  const s = status.sensor || {};
+  document.getElementById('restart-meta').textContent =
+    'Neustart: ' + fmtTime(status.started_at) +
+    ' (' + Math.round(status.uptime_s / 60) + ' min)';
+  let html = '';
+  html += card('Anruf', status.call_active ? 'aktiv' : 'ruhend',
+               'Zustand der Innenger&auml;te');
+  const lb = status.button.last_event;
+  html += card('T&uuml;rknopf', lb ? lb.event : '\u2013',
+               lb ? fmtTime(lb.time) + ' &middot; ' + lb.source : 'keine Bet&auml;tigung');
+  const lr = status.relay.last_event;
+  html += card('Gong-Relais', status.relay.state === 'on' ? 'an (Puls)' : 'aus',
+               lr ? fmtTime(lr.time) + ' &middot; ' + lr.trigger +
+                    (lr.success ? '' : ' &middot; Fehler') : 'keine Aktivit&auml;t',
+               lr && !lr.success ? 'err' : 'ok');
+  html += card('Temperatur',
+               s.temperature_c !== null && s.temperature_c !== undefined
+                 ? s.temperature_c + ' &deg;C' : '\u2013',
+               s.error ? 'Sensor: ' + s.error : fmtTime(s.time));
+  html += card('Rel. Feuchte',
+               s.humidity_pct !== null && s.humidity_pct !== undefined
+                 ? s.humidity_pct + ' %' : '\u2013',
+               s.error ? 'Sensor: ' + s.error : fmtTime(s.time));
+  html += card('MQTT', status.mqtt.connected ? 'verbunden' : 'getrennt',
+               status.mqtt.broker, status.mqtt.connected ? 'ok' : 'err');
+  document.getElementById('cards').innerHTML = html;
+}
+
+function renderEvents(data) {
+  const tb = document.querySelector('#tbl-button tbody');
+  tb.innerHTML = (data.button || []).map(e =>
+    '<tr><td>' + fmtTime(e.time) + '</td><td class="dim">' + e.source +
+    '</td><td>' + e.event + '</td><td class="dim">' + e.call +
+    '</td><td class="dim">' + (e.relay_event_id !== null ? '#' + e.relay_event_id : '\u2013') +
+    '</td></tr>').join('') || '<tr><td colspan="5" class="dim">keine Ereignisse</td></tr>';
+  const tr = document.querySelector('#tbl-relay tbody');
+  tr.innerHTML = (data.relay || []).map(e =>
+    '<tr><td>' + fmtTime(e.time) + '</td><td class="dim">' + e.source +
+    '</td><td>' + e.trigger + '</td><td class="dim">' + e.duration_s + ' s</td>' +
+    '<td class="' + (e.pin_state_on ? 'ok' : 'err') + '">' + (e.pin_state_on ? 'ok' : 'nein') + '</td>' +
+    '<td class="' + (e.pin_state_off ? 'ok' : 'dim') + '">' + (e.pin_state_off ? 'ok' : '\u2013') + '</td>' +
+    '<td class="dim">' + (e.button_event_id !== null ? '#' + e.button_event_id : '\u2013') +
+    '</td></tr>').join('') || '<tr><td colspan="7" class="dim">keine Aktivit&auml;ten</td></tr>';
+}
+
+async function refresh() {
+  try {
+    const r = await fetch('/api/status');
+    status = await r.json();
+    render();
+    const ev = await (await fetch('/api/events?limit=50')).json();
+    renderEvents(ev);
+    const f = await (await fetch('/metrics')).text();
+    document.getElementById('footer').textContent =
+      'intercom-door ' + status.version + ' &middot; Prometheus-Exporter: /metrics';
+  } catch (e) {
+    document.getElementById('toast').textContent = 'Aktualisierung fehlgeschlagen';
+  }
+}
+
+async function act(url, btn, label) {
+  btn.disabled = true;
+  document.getElementById('toast').textContent = '';
+  try {
+    const r = await fetch(url, {method: 'POST'});
+    const j = await r.json();
+    document.getElementById('toast').textContent =
+      label + (j.ok ? ' OK' : ' fehlgeschlagen');
+  } catch (e) {
+    document.getElementById('toast').textContent = label + ' Fehler: ' + e;
+  }
+  btn.disabled = false;
+  refresh();
+}
+
+function ring() { act('/api/button/press',
+  document.getElementById('btn-ring'), 'Klingeln'); }
+function gongTest() { act('/api/relay/pulse',
+  document.getElementById('btn-gong'), 'Gong'); }
+
+refresh();
+setInterval(refresh, 5000);
+</script>
+</body>
+</html>
+"""
+
+
+@api.get("/", response_class=HTMLResponse)
+def api_gui():
+    return GUI_HTML
+
+
+# ------------------------------------------------------------------ Startup
+SENSOR = Shtc3Sensor(SENSOR_BUS, SENSOR_ADDR, SENSOR_INTERVAL)
+
+
+def main():
+    atexit.register(gong.shutdown)
+    mqtt_setup()
+    gpio_setup()
+    SENSOR.start()
+    print("intercom-door gestartet: http://%s:%d (Neustart %s)"
+          % (HTTP_HOST, HTTP_PORT, STARTED_AT), flush=True)
+    uvicorn.run(api, host=HTTP_HOST, port=HTTP_PORT, log_level="warning")
+
+
+if __name__ == "__main__":
+    main()

@@ -1,12 +1,12 @@
 [Unit]
-Description=Intercom door button -> MQTT
+Description=Intercom door daemon (button, relay, sensor, API, MQTT, metrics)
 After=network-online.target
 Wants=network-online.target
 StartLimitIntervalSec=0
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/python3 /opt/intercom/doorpi0-button.py
+ExecStart=/usr/bin/python3 /opt/intercom/intercom-door.py
 Restart=always
 RestartSec=3
 
