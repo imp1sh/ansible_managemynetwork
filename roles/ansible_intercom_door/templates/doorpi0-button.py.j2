@@ -83,9 +83,12 @@ def on_press():
     # Lokaler Gong zuerst: funktioniert auch ohne MQTT-Verbindung.
     if event == "ring" or GONG_ON_HANGUP:
         pulse_gong()
-    client.publish("intercom/door/event",
-                   json.dumps({"event": event, "ts": int(now)}), qos=1)
-    print(f"event published: {event}", flush=True)
+    try:
+        client.publish("intercom/door/event",
+                       json.dumps({"event": event, "ts": int(now)}), qos=1)
+        print(f"event published: {event}", flush=True)
+    except Exception as exc:  # kein Broker -> Event verwerfen, kein Absturz
+        print(f"event publish failed: {exc}", flush=True)
 
 
 def shutdown(signum, frame):
@@ -107,7 +110,12 @@ client.tls_set(ca_certs=CA)
 client.username_pw_set(USER, PASSWORD)
 client.on_connect = on_connect
 client.on_message = on_message
-client.connect(BROKER, PORT, keepalive=30)
+# Verbindung ohne Absturz: connect_async baut die Verbindung im
+# Netzwerk-Thread auf und wiederholt automatisch (DNS-/Netzstoerungen
+# sind kein Crash). Der Dienst (und damit der lokale Gong) laeuft auch
+# ohne Broker.
+client.reconnect_delay_set(min_delay=1, max_delay=30)
+client.connect_async(BROKER, PORT, keepalive=30)
 client.loop_start()
 
 button = Button(LINE, pull_up=True, bounce_time=BOUNCE)
