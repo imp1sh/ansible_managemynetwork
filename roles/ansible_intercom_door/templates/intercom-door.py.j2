@@ -123,14 +123,17 @@ class Shtc3Sensor(threading.Thread):
                      "ts": None, "time": None, "error": "keine Messung"}
         self._lock = threading.Lock()
 
-    def _read_once(self):
+    def _init_sensor(self):
+        """Einmalige Initialisierung: wecken (NACK im Schlaf!), Reset, ID."""
         fd = os.open(self.bus_path, os.O_RDWR)
         try:
-            fcntl.ioctl(fd, 0x0703, self.addr)  # I2C_SLAVE
+            fcntl.ioctl(fd, 0x0703, self.addr)
 
             def cmd(c):
                 os.write(fd, bytes([c >> 8, c & 0xFF]))
 
+            cmd(0x3517)  # Wakeup — im Schlafmodus NACKt der SHTC3 alles andere
+            time.sleep(0.002)
             cmd(0x805D)  # Soft Reset
             time.sleep(0.002)
             cmd(0xEFC8)  # ID lesen
@@ -139,7 +142,18 @@ class Shtc3Sensor(threading.Thread):
             chip = struct.unpack(">H", raw[:2])[0] & 0x083F
             if chip != 0x807:
                 raise OSError("SHTC3 nicht erkannt (ID 0x%03X)" % chip)
+        finally:
+            os.close(fd)
 
+    def _read_once(self):
+        fd = os.open(self.bus_path, os.O_RDWR)
+        try:
+            fcntl.ioctl(fd, 0x0703, self.addr)
+
+            def cmd(c):
+                os.write(fd, bytes([c >> 8, c & 0xFF]))
+
+            # Wake zuerst, sonst EIO (NACK) im Schlafmodus.
             cmd(0x3517)  # Wakeup
             time.sleep(0.002)
             cmd(0x7866)  # Messung, T zuerst, ohne Clock Stretching
@@ -159,9 +173,23 @@ class Shtc3Sensor(threading.Thread):
             os.close(fd)
 
     def run(self):
+        try:
+            self._init_sensor()
+            print("SHTC3 erkannt (ID 0x807)", flush=True)
+        except Exception as exc:
+            print("SHTC3 init fehlgeschlagen: %s" % exc, flush=True)
         while True:
-            try:
-                temp, hum = self._read_once()
+            temp = hum = None
+            error = None
+            for _ in range(2):  # ein Retry faengt Einzelfehler ab
+                try:
+                    temp, hum = self._read_once()
+                    error = None
+                    break
+                except Exception as exc:
+                    error = str(exc)
+                    time.sleep(0.2)
+            if temp is not None:
                 with self._lock:
                     self.data = {"temperature_c": round(temp, 2),
                                  "humidity_pct": round(hum, 1),
@@ -170,11 +198,11 @@ class Shtc3Sensor(threading.Thread):
                 m_temperature.set(temp)
                 m_humidity.set(hum)
                 m_sensor_up.set(1)
-            except Exception as exc:
+            else:
                 with self._lock:
                     self.data = {"temperature_c": None, "humidity_pct": None,
                                  "ts": time.time(), "time": now_iso(),
-                                 "error": str(exc)}
+                                 "error": error}
                 m_sensor_up.set(0)
             time.sleep(self.interval)
 
