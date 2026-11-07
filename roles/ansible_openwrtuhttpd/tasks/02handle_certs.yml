@@ -29,36 +29,46 @@
 
 - name: MMN openwrtuhttpd - Search for hostname-based certificates
   block:
-    - name: MMN openwrtuhttpd - Search for hostname-based private key
-      ansible.builtin.find:
-        paths: "{{ openwrt_uhttpd_deployroot }}etc/ssl/private"
-        file_type: file
-        patterns: "*_{{ inventory_hostname }}_privatekey.pem"
-        recurse: false
-      register: _found_hostname_key
-
-    - name: MMN openwrtuhttpd - Search for hostname-based certificate
+    # Stem-coherent pairing: derive each candidate cert's expected private key
+    # path from the cert's own stem (swap _certificate.pem -> _privatekey.pem
+    # and certs/ -> private/) and pick the alphabetically-first cert whose
+    # companion key actually exists. Running two independent wildcard searches
+    # and taking files[0] of each risks pairing a cert from one issuer/algorithm
+    # with a key from another (e.g. RSA cert + ECC key), which produces
+    # SEC_ERROR_BAD_SIGNATURE at TLS handshake time.
+    - name: MMN openwrtuhttpd - Search for hostname-based certificates
       ansible.builtin.find:
         paths: "{{ openwrt_uhttpd_deployroot }}etc/ssl/certs"
         file_type: file
         patterns: "*_{{ inventory_hostname }}_certificate.pem"
         recurse: false
-      register: _found_hostname_cert
+      register: _found_hostname_certs
 
-    - name: MMN openwrtuhttpd - Set hostname-based cert and key if both found
+    - name: MMN openwrtuhttpd - Stat matching private key for each candidate cert
+      ansible.builtin.stat:
+        path: "{{ openwrt_uhttpd_deployroot }}etc/ssl/private/{{ (candidate.path | basename) | regex_replace('_certificate\\.pem$', '_privatekey.pem') }}"
+      loop: "{{ _found_hostname_certs.files | default([]) | sort(attribute='path') }}"
+      loop_control:
+        loop_var: candidate
+      register: _hostname_key_stats
+
+    - name: MMN openwrtuhttpd - Set hostname-based cert and key from first coherent pair
       ansible.builtin.set_fact:
-        openwrt_uhttpd_main_cert: "{{ _found_hostname_cert.files[0].path }}"
-        openwrt_uhttpd_main_key: "{{ _found_hostname_key.files[0].path }}"
-      when:
-        - _found_hostname_key.matched | default(0) > 0
-        - _found_hostname_cert.matched | default(0) > 0
+        openwrt_uhttpd_main_cert: "{{ _coherent_pair.candidate.path }}"
+        openwrt_uhttpd_main_key: "{{ _coherent_pair.stat.path }}"
+      vars:
+        _coherent_pairs: "{{ _hostname_key_stats.results | selectattr('stat.exists', 'equalto', true) | list }}"
+        _coherent_pair: "{{ _coherent_pairs | first | default(none) }}"
+      when: _coherent_pairs | length > 0
 
     - name: MMN openwrtuhttpd - Verbose found hostname-based cert/key
       ansible.builtin.debug:
         msg: "Found hostname-based cert: {{ openwrt_uhttpd_main_cert }}, key: {{ openwrt_uhttpd_main_key }}"
       when:
-        - _found_hostname_key.matched | default(0) > 0
-        - _found_hostname_cert.matched | default(0) > 0
+        - openwrt_uhttpd_main_cert is defined
+        - openwrt_uhttpd_main_key is defined
+        - openwrt_uhttpd_main_cert != '/etc/uhttpd.crt'
+        - openwrt_uhttpd_main_key != '/etc/uhttpd.key'
         - (mmn_verbose | default(false)) | bool
   when: not _certs_explicitly_provided | bool
 
