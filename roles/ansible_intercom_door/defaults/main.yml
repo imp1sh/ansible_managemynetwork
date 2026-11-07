@@ -11,7 +11,8 @@ intercom_button_debounce: 0.6
 intercom_audio_rx_port: 5004
 
 # Mechanischer Gong (Honeywell D117) ueber Relais an GPIO24.
-# Relaisplatine ist active-low: LOW = angezogen, HIGH = aus.
+# Verifizierte Verdrahtung: Relais-NC in Reihe mit Klemme 0/3 (Details in der
+# Projekt-Doku WIRING.md). Kontaktlogik/Idle-Bestromung haengt vom Modul ab.
 intercom_gong_enabled: true
 intercom_gong_gpio: 24
 intercom_gong_active_high: false
