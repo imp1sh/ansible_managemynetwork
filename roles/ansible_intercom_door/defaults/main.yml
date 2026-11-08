@@ -59,6 +59,8 @@ intercom_cam_framerate: 10
 intercom_cam_bitrate: 1500000
 intercom_cam_hflip: false
 intercom_cam_vflip: false
+# Freie rpicam-vid-Argumente, z. B. "--flush --denoise cdn_fast --sharpness 1.5"
+intercom_cam_extra_args: ""
 intercom_cam_stream: "cam"
 intercom_cam_rtsp_port: 8554
 
