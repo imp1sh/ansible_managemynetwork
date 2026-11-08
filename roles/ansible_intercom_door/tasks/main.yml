@@ -45,6 +45,15 @@
     mode: "0644"
   notify: Restart intercom audio receiver
 
+- name: "Intercom door - systemd unit (camera)"
+  ansible.builtin.template:
+    src: intercom-cam.service.j2
+    dest: /etc/systemd/system/intercom-cam.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart intercom camera
+
 - name: "Intercom door - Stop and disable legacy button service"
   ansible.builtin.systemd:
     name: intercom-door-button.service
@@ -71,3 +80,4 @@
   loop:
     - intercom-door.service
     - intercom-audio-rx.service
+    - intercom-cam.service
