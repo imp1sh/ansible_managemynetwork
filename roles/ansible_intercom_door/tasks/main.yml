@@ -59,7 +59,7 @@
     owner: "{{ intercom_pipewire_user }}"
     group: "{{ intercom_pipewire_user }}"
     mode: "0644"
-  notify: Restart intercom pipewire
+  notify: Restart intercom pipewire session
 
 - name: "Intercom door - PipeWire quantum configuration"
   ansible.builtin.template:
@@ -68,7 +68,7 @@
     owner: "{{ intercom_pipewire_user }}"
     group: "{{ intercom_pipewire_user }}"
     mode: "0644"
-  notify: Restart intercom pipewire
+  notify: Restart intercom pipewire session
 
 - name: "Intercom door - WirePlumber device monitor override"
   ansible.builtin.template:
@@ -77,20 +77,54 @@
     owner: "{{ intercom_pipewire_user }}"
     group: "{{ intercom_pipewire_user }}"
     mode: "0644"
-  notify: Restart intercom wireplumber
+  notify: Restart intercom pipewire session
 
-- name: "Intercom door - Disable system-wide WirePlumber camera monitors"
+# ---------------- SSH-Sessions ohne Audio-Stack ----------------
+# SSH-Login-Sessions (z. B. der ansible-Automatisierungs-User) starten sonst
+# pipewire/wireplumber in ihrem User-Manager. WirePlumber crasht dort beim
+# Komponenten-Laden (hardware.video-capture findet keinen v4l2-Monitor, weil
+# die virtuellen Komponenten nur in der intercom-User-Konfiguration
+# definiert sind) und crash-loopt: Journal-Flut (~15k Zeilen/min) und CPU-
+# Last machen sshd unbedienbar (Banner-Timeouts, Historie 2026-11-10,
+# siehe REDEPLOY.md). Die Maskierung verhindert den Start komplett; die
+# intercom-Session (Audio, Kamera, AEC) ist davon unberuehrt.
+- name: "Intercom door - Ensure SSH user config dir"
+  ansible.builtin.file:
+    path: "{{ intercom_ssh_user_home }}/.config/systemd/user"
+    state: directory
+    owner: "{{ intercom_ssh_user }}"
+    mode: "0755"
+
+- name: "Intercom door - Mask pipewire/wireplumber for SSH automation user"
+  ansible.builtin.file:
+    path: "{{ intercom_ssh_user_home }}/.config/systemd/user/{{ item }}"
+    src: /dev/null
+    state: link
+    force: true
+    owner: "{{ intercom_ssh_user }}"
+  loop:
+    - pipewire.service
+    - pipewire.socket
+    - wireplumber.service
+
+- name: "Intercom door - System-wide virtual v4l2/libcamera components"
+  # Deklariert virtuelle Komponenten, die den echten Kamera-Monitor
+  # ersetzen — ohne diese Datei crasht WirePlumber im Komponenten-Laden
+  # (hardware.video-capture findet keinen v4l2-Monitor). Die Datei existierte
+  # manuell seit 2026-11-03 und ist nachweislich unschaedlich bis noetig
+  # fuer Boot-Sessions (Historie 2026-11-10: Analyse in REDEPLOY.md);
+  # jetzt rollenverwaltet statt Handpflege. Syntax bewusst mehrzeilig wie
+  # das urspruengliche Manual.
   ansible.builtin.copy:
     dest: /etc/xdg/wireplumber/wireplumber.conf.d/51-disable-camera.conf
     content: |
-      # Managed by Ansible (role ansible_intercom_door) - do not edit by hand.
-      # Verhindert, dass ein systemweiter WirePlumber (z. B. root-Session)
-      # die Kamera-Geraete belegt und rpicam-vid blockiert. Gueltig fuer alle
-      # User-Sessions; die intercom-Session hat ihre eigene Deaktivierung in
-      # ihrer Session-Konfiguration (51-no-devices.conf).
       wireplumber.components = [
-        { type = virtual, provides = monitor.libcamera }
-        { type = virtual, provides = monitor.v4l2 }
+        {
+          type = virtual, provides = monitor.libcamera
+        }
+        {
+          type = virtual, provides = monitor.v4l2
+        }
       ]
     owner: root
     group: root

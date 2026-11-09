@@ -31,12 +31,14 @@
     state: restarted
     daemon_reload: true
 
-- name: Restart intercom pipewire
-  ansible.builtin.command: >
-    systemctl --user -M {{ intercom_pipewire_user }}@.host restart pipewire.service
-  changed_when: false
-
-- name: Restart intercom wireplumber
-  ansible.builtin.command: >
-    systemctl --user -M {{ intercom_pipewire_user }}@.host restart wireplumber.service
-  changed_when: false
+- name: Restart intercom pipewire session
+  # Kompletter REBOOT statt Session-/Service-Restarts: Sowohl einzelne
+  # pipewire/wireplumber-Restarts (aec.capture haengt an der toten Mikro-
+  # Node) als auch loginctl terminate-user (WirePlumber crasht danach bei
+  # jedem Neustart im Komponenten-Laden) zerstoeren die Audio-Kette.
+  # Nur der Boot bringt die Verkettung zuverlaessig zurueck (Historie
+  # 2026-11-10, Details in REDEPLOY.md). Die ffmpeg-Dienste starten per
+  # Restart=always nach dem Boot selbst wieder.
+  ansible.builtin.reboot:
+    reboot_timeout: 300
+    test_command: "systemctl --user -M intercom@.host is-active pipewire.service"

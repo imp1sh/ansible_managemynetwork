@@ -3,10 +3,11 @@
 # capture  = INMP441 (I2S, soc_sound)
 # sink     = USB-Lautsprecher (Jieli)  <- Wiedergabe, Monitor = Echo-Referenz
 # source   = aec.source               <- bereinigtes Mikrofon (Aufnahme)
+# Methode: intercom_pipewire_aec_method (speex empfohlen, siehe defaults).
 context.modules = [
   { name = libpipewire-module-echo-cancel
     args = {
-      aec.method = webrtc
+      aec.method = "{{ intercom_pipewire_aec_method }}"
       capture.props = {
         node.name = "aec.capture"
         target.object = "{{ intercom_pipewire_mic_node }}"

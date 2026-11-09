@@ -60,6 +60,23 @@ intercom_pipewire_user_home: "/var/lib/intercom"
 intercom_pipewire_mic_node: "alsa_input.platform-soc_sound.stereo-fallback"
 intercom_pipewire_speaker_node: "alsa_output.usb-Jieli_Technology_USB_Composite_Device_A58D8A99786C4453-01.analog-stereo"
 
+# --- AEC-Methode (pipewire module-echo-cancel) ---
+# "speex": lineare Echokompensation — Gegenseite bleibt beim gleichzeitigen
+# Sprechen vollstaendig verstaendlich. Messreihe 2026-11-10 (Gain 1.8):
+#   Gegenseite (Gong) bei aktivem Uplink: -0.2 dBFS (praktisch ungedaempft)
+#   Echo (Uplink-Ton): nur noch ~-13 dBFS im 1-kHz-Band (unter dem Gong)
+# "webrtc": staerkere Echo-Unterdrueckung (~+26 dB), unterdrueckt aber die
+# Gegenseite bei aktivem Lautsprecher um ~36 dB — fuer Gegensprechanlage
+# unbrauchbar (Historie 2026-11-10, siehe TODO.md).
+intercom_pipewire_aec_method: "speex"
+
+# --- SSH-Automatisierungs-User: Audio-Stack maskieren ---
+# pipewire/wireplumber in SSH-Login-Session crash-loopen (Journal-Flut,
+# SSH-Timeouts, Historie 2026-11-10) — deshalb fuer den ansible-User
+# komplett maskiert. Siehe Task-Kommentar in tasks/main.yml.
+intercom_ssh_user: "ansible"
+intercom_ssh_user_home: "/home/ansible"
+
 # --- Schallpegel-Messung (SPL-Schaetzung) am Tuer-Mikrofon ---
 # Der Pegelmesser liest das ROHMikrofon (ohne AEC/NS), damit die Anzeige
 # die akustische Realitaet an der Tuer zeigt. XDG_RUNTIME_DIR verbindet
