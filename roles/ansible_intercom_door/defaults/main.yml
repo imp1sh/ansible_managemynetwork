@@ -49,6 +49,14 @@ intercom_topic_relay: "intercom/door/relay"
 # --- Audioempfaenger (Opus/RTP -> Klinke) ---
 intercom_audio_rx_port: 5004
 
+# --- Schallpegel-Messung am Tuer-Mikrofon (SPL-Schaetzung) ---
+# Ein zusaetzlicher ffmpeg-Prozess dekodiert den Opus-Stream des Mikrofons
+# (mediamtx) und misst RMS -> dBFS; dB SPL = dBFS + Offset
+# (INMP441: ~-26 dBFS bei 94 dB SPL => Offset 120).
+intercom_level_meter: true
+intercom_level_source: "rtsp://127.0.0.1:8553/door"
+intercom_level_spl_offset: 120
+
 # --- Kamera (CSI, libcamera/rpicam) ---
 # intercom-cam pusht rpicam-vid (H264) + INMP441 (Opus) an den RTSP-Server
 # mediamtx auf dem Host; go2rtc zieht den Strom als rtsp://-Quelle (preload).

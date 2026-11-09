@@ -15,8 +15,10 @@ import atexit
 import fcntl
 import itertools
 import json
+import math
 import os
 import struct
+import subprocess
 import threading
 import time
 from collections import deque
@@ -54,6 +56,11 @@ SENSOR_INTERVAL = {{ intercom_sensor_interval }}
 HTTP_HOST = "{{ intercom_http_host }}"
 HTTP_PORT = {{ intercom_http_port }}
 EVENT_BUFFER = {{ intercom_event_buffer }}
+
+# Schallpegel: RMS aus dem Mikrofon-Stream, dB SPL = dBFS + Offset
+LEVEL_ENABLED = {{ 'True' if intercom_level_meter else 'False' }}
+LEVEL_SOURCE = "{{ intercom_level_source }}"
+LEVEL_SPL_OFFSET = {{ intercom_level_spl_offset }}
 
 TOPIC_LEGACY = "{{ intercom_topic_event }}"
 TOPIC_PRESENCE = "{{ intercom_topic_presence }}"
@@ -95,6 +102,13 @@ m_call_active = Gauge(
     "intercom_door_call_active", "Gespraech aktiv (1/0)")
 m_mqtt_connected = Gauge(
     "intercom_door_mqtt_connected", "MQTT verbunden (1/0)")
+m_sound_dbfs = Gauge(
+    "intercom_door_sound_level_dbfs", "Schallpegel am Tuermikrofon (dBFS)")
+m_sound_spl = Gauge(
+    "intercom_door_sound_level_db_spl",
+    "Geschaetzter Schalldruck am Tuermikrofon (dB SPL, re 20 uPa)")
+m_sound_peak = Gauge(
+    "intercom_door_sound_peak_dbfs", "Spitzenpegel seit Start (dBFS)")
 
 
 def now_iso():
@@ -212,6 +226,90 @@ class Shtc3Sensor(threading.Thread):
         if data.get("ts"):
             m_sensor_age.set(max(0.0, time.time() - data["ts"]))
         return data
+
+
+# ------------------------------------------------------- Schallpegel-Messung
+class LevelMeter(threading.Thread):
+    """Misst den RMS-Pegel (dBFS) aus dem Mikrofon-Stream und schaetzt den
+    Schalldruck. Ein zusaetzlicher ffmpeg-Prozess dekodiert Opus -> PCM
+    (16 kHz mono) und dieser Thread wertet 125-ms-Bloecke aus."""
+
+    N = 2000  # Samples pro Block (125 ms bei 16 kHz)
+
+    def __init__(self):
+        super().__init__(daemon=True, name="level")
+        self._lock = threading.Lock()
+        self.data = {"dbfs": None, "db_spl": None, "peak_dbfs": None,
+                     "error": "keine Messung"}
+        self._smooth = None
+        self._peak = None
+
+    def run(self):
+        import select
+        n = self.N
+        while True:
+            proc = None
+            try:
+                proc = subprocess.Popen(
+                    ["ffmpeg", "-hide_banner", "-loglevel", "error",
+                     "-rtsp_transport", "tcp", "-i", LEVEL_SOURCE,
+                     "-map", "0:a", "-f", "s16le", "-ar", "16000",
+                     "-ac", "1", "-"],
+                    stdout=subprocess.PIPE)
+                fd = proc.stdout.fileno()
+                buf = bytearray()
+                while True:
+                    r, _, _ = select.select([fd], [], [], 5.0)
+                    if not r:
+                        raise OSError("keine Audio-Daten (Timeout)")
+                    chunk = os.read(fd, 65536)
+                    if not chunk:
+                        raise OSError("Level-Stream beendet")
+                    buf += chunk
+                    while len(buf) >= n * 2:
+                        raw = bytes(buf[:n * 2])
+                        del buf[:n * 2]
+                        samples = struct.unpack("<%dh" % n, raw)
+                        acc = 0
+                        for v in samples:
+                            acc += v * v
+                        rms = math.sqrt(acc / n) / 32768.0
+                        dbfs = (20.0 * math.log10(rms)
+                                if rms > 0 else -90.0)
+                        with self._lock:
+                            self._smooth = (
+                                dbfs if self._smooth is None
+                                else 0.7 * self._smooth + 0.3 * dbfs)
+                            if self._peak is None or dbfs > self._peak:
+                                self._peak = dbfs
+                            self.data = {
+                                "dbfs": round(self._smooth, 1),
+                                "db_spl": round(self._smooth + LEVEL_SPL_OFFSET),
+                                "peak_dbfs": (round(self._peak, 1)
+                                               if self._peak is not None
+                                               else None),
+                                "error": None,
+                            }
+                        m_sound_dbfs.set(self.data["dbfs"])
+                        m_sound_spl.set(self.data["db_spl"])
+                        m_sound_peak.set(self.data["peak_dbfs"])
+            except Exception as exc:  # noqa: BLE001 — Messung darf nie crashen
+                with self._lock:
+                    self.data = {"dbfs": None, "db_spl": None,
+                                 "peak_dbfs": (round(self._peak, 1)
+                                               if self._peak is not None
+                                               else None),
+                                 "error": str(exc)}
+                if proc is not None:
+                    try:
+                        proc.kill()
+                    except Exception:
+                        pass
+                time.sleep(2)  # reconnect
+
+    def snapshot(self):
+        with self._lock:
+            return dict(self.data)
 
 
 # ------------------------------------------------------------------ MQTT
@@ -461,6 +559,7 @@ def api_status():
                                     and gong.dev.value == 1.0) else "off",
                   "last_event": last_rel},
         "sensor": snap,
+        "level": LEVEL.snapshot() if LEVEL else {},
         "mqtt": {"connected": mqtt_connected, "broker": BROKER},
         "call_active": call_active,
         "events": {"buffer": EVENT_BUFFER, "button": len(btn),
@@ -471,6 +570,14 @@ def api_status():
 @api.get("/api/sensor")
 def api_sensor():
     return SENSOR.snapshot() if SENSOR else {"error": "Sensor deaktiviert"}
+
+
+@api.get("/api/level")
+def api_level():
+    if LEVEL:
+        return LEVEL.snapshot()
+    return {"dbfs": None, "db_spl": None, "peak_dbfs": None,
+            "error": "Pegelmesser deaktiviert"}
 
 
 @api.post("/api/button/press")
@@ -558,6 +665,13 @@ td.dim { color:var(--dim); }
 .ok { color:var(--ok); } .err { color:#e05d5d; }
 .pill { display:inline-block; padding:1px 8px; border-radius:99px; font-size:12px;
         background:#232a33; }
+.card.wide { grid-column: span 2; }
+.meter { display:flex; gap:2px; height:26px; align-items:flex-end;
+          margin-top:10px; }
+.meter i { flex:1; min-height:8px; background:#232a33; border-radius:2px; }
+.meter i.on { background:#2e9e5b; }
+.meter i.on.y { background:#d98032; }
+.meter i.on.r { background:#e05d5d; }
 footer { color:var(--dim); font-size:12px; padding:14px 22px;
          border-top:1px solid var(--line); margin-top:26px; }
 </style>
@@ -629,6 +743,11 @@ function render() {
                s.error ? 'Sensor: ' + s.error : fmtTime(s.time));
   html += card('MQTT', status.mqtt.connected ? 'verbunden' : 'getrennt',
                status.mqtt.broker, status.mqtt.connected ? 'ok' : 'err');
+  html += '<div class="card wide">' +
+    '<div class="label">Schallpegel (T&uuml;r-Mikrofon)</div>' +
+    '<div class="meter" id="meter"></div>' +
+    '<div class="sub" id="level-value">wird gemessen &hellip;</div>' +
+    '</div>';
   document.getElementById('cards').innerHTML = html;
 }
 
@@ -664,6 +783,40 @@ async function refresh() {
   }
 }
 
+const SEG = 24, LEVEL_MIN = -60, LEVEL_MAX = 0;
+function renderLevel(l) {
+  const el = document.getElementById('meter');
+  const val = document.getElementById('level-value');
+  if (!el || !val) return;
+  if (el.children.length !== SEG) {
+    let h = '';
+    for (let i = 0; i < SEG; i++) h += '<i></i>';
+    el.innerHTML = h;
+  }
+  if (!l || l.dbfs === null || l.dbfs === undefined) {
+    for (let i = 0; i < SEG; i++) el.children[i].className = '';
+    val.textContent = l && l.error ? 'Fehler: ' + l.error : 'keine Messung';
+    return;
+  }
+  const frac = Math.max(0, Math.min(1, (l.dbfs - LEVEL_MIN) / (LEVEL_MAX - LEVEL_MIN)));
+  const lit = Math.round(frac * SEG);
+  for (let i = 0; i < SEG; i++) {
+    const segDb = LEVEL_MIN + (LEVEL_MAX - LEVEL_MIN) * (i + 1) / SEG;
+    const on = i < lit;
+    el.children[i].className = on ? (segDb > -8 ? 'on r' : (segDb > -18 ? 'on y' : 'on')) : '';
+  }
+  val.textContent = l.dbfs.toFixed(1) + ' dBFS \u00b7 ~' + Math.round(l.db_spl) + ' dB SPL' +
+    (l.peak_dbfs !== null && l.peak_dbfs !== undefined ? ' \u00b7 Peak ' + l.peak_dbfs.toFixed(1) + ' dB' : '');
+}
+
+async function refreshLevel() {
+  try {
+    renderLevel(await (await fetch('/api/level')).json());
+  } catch (e) {
+    renderLevel(null);
+  }
+}
+
 async function act(url, btn, label) {
   btn.disabled = true;
   document.getElementById('toast').textContent = '';
@@ -686,6 +839,8 @@ function gongTest() { act('/api/relay/pulse',
 
 refresh();
 setInterval(refresh, 5000);
+refreshLevel();
+setInterval(refreshLevel, 1000);
 </script>
 </body>
 </html>
@@ -699,6 +854,7 @@ def api_gui():
 
 # ------------------------------------------------------------------ Startup
 SENSOR = Shtc3Sensor(SENSOR_BUS, SENSOR_ADDR, SENSOR_INTERVAL)
+LEVEL = LevelMeter() if LEVEL_ENABLED else None
 
 
 def main():
@@ -706,6 +862,8 @@ def main():
     mqtt_setup()
     gpio_setup()
     SENSOR.start()
+    if LEVEL is not None:
+        LEVEL.start()
     print("intercom-door gestartet: http://%s:%d (Neustart %s)"
           % (HTTP_HOST, HTTP_PORT, STARTED_AT), flush=True)
     uvicorn.run(api, host=HTTP_HOST, port=HTTP_PORT, log_level="warning")
