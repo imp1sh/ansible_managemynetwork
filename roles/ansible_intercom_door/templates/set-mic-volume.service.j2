@@ -1,0 +1,18 @@
+# Managed by Ansible (role ansible_intercom_door) - do not edit by hand.
+# Einmal-Dienst in der intercom-User-Session: setzt den INMP441-Mikrofon-
+# Pegel nach jedem PipeWire-/WirePlumber-(Re)Start neu (Nodes verlieren
+# ihr Volume bei Neuregistrierung). PartOf sorgt dafuer, dass der Dienst
+# beim Neustart von pipewire/wireplumber mitlaeuft und das Volume neu setzt.
+[Unit]
+Description=Intercom: Mikrofon-Volume (INMP441) setzen
+After=pipewire.service wireplumber.service
+Wants=pipewire.service wireplumber.service
+PartOf=pipewire.service wireplumber.service
+
+[Service]
+Type=oneshot
+ExecStart=/opt/intercom/set-mic-volume.sh
+RemainAfterExit=yes
+
+[Install]
+WantedBy=default.target

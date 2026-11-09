@@ -1,0 +1,31 @@
+#!/bin/sh
+# Mikrofon-Pegel (INMP441 via soc_sound) in der PipeWire-Session setzen.
+# Grund: Der INMP441 hat eine feste Analog-Verstaerkung; Sprache kommt roh
+# nur mit ca. -50 dBFS an. Der Node-Volume hebt das Signal digital an
+# (3.0 = ca. +20 dB, gemessen 2026-11-09 per kontrolliertem Tong-Test),
+# damit der Opus-Stream (intercom-cam-audio) und die SPL-Schaetzung
+# (intercom-door Level-Meter) auf gesundem Pegel liegen.
+# Das Skript laeuft als User-Service in der intercom-Session (linger);
+# Node-IDs wechseln zwischen Neustarts -> Suche ueber den Node-Namen.
+# Managed by Ansible (role ansible_intercom_door) - do not edit by hand.
+export XDG_RUNTIME_DIR=/run/user/$(id -u)
+export HOME={{ intercom_pipewire_user_home }}
+
+VOLUME="{{ intercom_mic_volume }}"
+MIC_NODE="{{ intercom_pipewire_mic_node }}"
+
+# Nach dem Boot dauert die Knoten-Registrierung einen Moment -> retry.
+try=0
+while [ "$try" -lt 15 ]; do
+    for id in $(wpctl status 2>/dev/null | sed -n '/Sources:/,/Filters:/p' | grep -oE '[0-9]+\.' | tr -d '.'); do
+        if wpctl inspect "$id" 2>/dev/null | grep -q "node.name = \"${MIC_NODE}\""; then
+            wpctl set-volume "$id" "$VOLUME"
+            echo "intercom: Mikrofon-Volume ${VOLUME} gesetzt (Node ${id}, ${MIC_NODE})"
+            exit 0
+        fi
+    done
+    try=$((try + 1))
+    sleep 2
+done
+echo "intercom: WARNUNG - Mikrofon-Quelle ${MIC_NODE} nicht gefunden, Volume nicht gesetzt" >&2
+exit 0

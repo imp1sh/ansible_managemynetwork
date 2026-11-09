@@ -13,9 +13,17 @@
 
 - name: Restart intercom camera
   ansible.builtin.systemd:
-    name: intercom-cam.service
+    name: "{{ item }}"
     state: restarted
     daemon_reload: true
+  loop:
+    - intercom-cam-video.service
+    - intercom-cam-audio.service
+
+- name: Restart intercom mic volume
+  ansible.builtin.command: >
+    systemctl --user -M {{ intercom_pipewire_user }}@.host restart set-mic-volume.service
+  changed_when: false
 
 - name: Restart intercom mediamtx
   ansible.builtin.systemd:

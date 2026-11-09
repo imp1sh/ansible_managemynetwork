@@ -97,6 +97,32 @@
     start pipewire.socket pipewire.service wireplumber.service
   changed_when: false
 
+- name: "Intercom door - Ensure user systemd directory"
+  ansible.builtin.file:
+    path: "{{ intercom_pipewire_user_home }}/.config/systemd/user"
+    state: directory
+    owner: "{{ intercom_pipewire_user }}"
+    group: "{{ intercom_pipewire_user }}"
+    mode: "0755"
+
+- name: "Intercom door - Deploy mic volume script"
+  ansible.builtin.template:
+    src: set-mic-volume.sh.j2
+    dest: /opt/intercom/set-mic-volume.sh
+    owner: "{{ intercom_pipewire_user }}"
+    group: "{{ intercom_pipewire_user }}"
+    mode: "0755"
+  notify: Restart intercom mic volume
+
+- name: "Intercom door - systemd user unit (mic volume)"
+  ansible.builtin.template:
+    src: set-mic-volume.service.j2
+    dest: "{{ intercom_pipewire_user_home }}/.config/systemd/user/set-mic-volume.service"
+    owner: "{{ intercom_pipewire_user }}"
+    group: "{{ intercom_pipewire_user }}"
+    mode: "0644"
+  notify: Restart intercom mic volume
+
 - name: "Intercom door - Ensure directory"
   ansible.builtin.file:
     path: /opt/intercom
@@ -238,3 +264,9 @@
     - intercom-cam-video.service
     - intercom-cam-audio.service
     - mediamtx.service
+
+- name: "Intercom door - Enable and start mic volume user service"
+  ansible.builtin.command: >
+    systemctl --user -M {{ intercom_pipewire_user }}@.host
+    enable --now set-mic-volume.service
+  changed_when: false

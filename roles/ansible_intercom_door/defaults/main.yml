@@ -64,10 +64,19 @@ intercom_pipewire_speaker_node: "alsa_output.usb-Jieli_Technology_USB_Composite_
 # Der Pegelmesser liest das ROHMikrofon (ohne AEC/NS), damit die Anzeige
 # die akustische Realitaet an der Tuer zeigt. XDG_RUNTIME_DIR verbindet
 # den ffmpeg-Prozess mit der PipeWire-Session des Users intercom.
+# Offset: INMP441 liefert -26 dBFS bei 94 dB SPL (120 dB Differenz).
+# Der Node-Volume (intercom_mic_volume 3.0 = +20.4 dB, Tong-Test 2026-11-09)
+# hebt das Signal digital an -> Offset um den Gain reduzieren.
 intercom_level_meter: true
 intercom_level_source: "rawmic"
 intercom_level_xdg_runtime: "/run/user/{{ intercom_pipewire_uid | default('999') }}"
-intercom_level_spl_offset: 120
+intercom_level_spl_offset: 99.5
+
+# --- Mikrofon-Pegel (INMP441) als Default ---
+# Node-Volume in der PipeWire-Session (wpctl-Skala). 3.0 = ca. +20 dB
+# gegenueber 1.0 (gemessen: kontrollierter Tong-Test, 2026-11-09).
+# Wird nach jedem PipeWire-Start von set-mic-volume.service neu gesetzt.
+intercom_mic_volume: "3.0"
 
 # --- Kamera (CSI, libcamera/rpicam) ---
 # intercom-cam pusht rpicam-vid (H264) + INMP441 (Opus) an den RTSP-Server
