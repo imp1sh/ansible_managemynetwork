@@ -1,0 +1,9 @@
+# Managed by Ansible (role ansible_intercom_door) - do not edit by hand.
+# PipeWire-Quantum reduzieren fuer niedrigere Audio-Latenz.
+# 512 Samples @ 48 kHz = ~10.7 ms (statt 1024 = ~21.3 ms)
+context.properties = {
+  default.clock.rate = 48000
+  default.clock.quantum = 512
+  default.clock.min-quantum = 256
+  default.clock.max-quantum = 1024
+}
