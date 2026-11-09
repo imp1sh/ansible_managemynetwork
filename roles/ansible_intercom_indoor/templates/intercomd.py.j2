@@ -1,13 +1,23 @@
 #!/usr/bin/env python3
 # Managed by Ansible (role ansible_intercom_indoor).
-# MQTT-Subscriber fuer Tuer-Events + lokaler State-HTTP-Server fuer die Qt-App.
+# Innengeraet-Daemon (intercombasement):
+#   * MQTT-Subscriber fuer Tuer-Events (Ring/Hangup, Klingel-LED, TX-Steuerung)
+#   * State-HTTP-Server fuer die Qt-App:
+#       - POST /state   NUR lokal (App auf diesem Geraet)
+#                       Call-State (call/speak) + App-Status (volume, hear,
+#                       Pipeline-Neustarts, Laufzeit) als Teilmenge
+#       - GET  /state   NUR lokal (Polling der App)
+#   * Prometheus-Exporter /metrics und Status-API /api/status:
+#       LAN-weit lesbar, schreibgeschuetzt
 import json
+import socket
 import subprocess
 import threading
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 import paho.mqtt.client as mqtt
+from prometheus_client import CONTENT_TYPE_LATEST, Gauge, generate_latest
 
 BROKER = "{{ intercom_broker_host }}"
 PORT = {{ intercom_broker_port }}
@@ -16,15 +26,111 @@ USER = "{{ intercom_mqtt_username }}"
 PASSWORD = "{{ intercom_mqtt_password }}"
 HTTP_PORT = {{ intercom_state_http_port }}
 RING_TIMEOUT = {{ intercom_ring_timeout }}
-LED_GPIO = {{ 'None' if intercom_led_gpio is none else intercom_led_gpio }}
+LED_GPIO = {{ intercom_led_gpio if intercom_led_gpio is not none else 'None' }}
+APP_SERVICE = "intercom-app.service"
+TX_SERVICE = "intercom-audio-tx.service"
+STARTED_TS = time.time()
 
 state = {"call": "idle", "ts": 0}
+# Letzter Status-Report der Qt-App (POST /state, Felder als Teilmenge).
+app_state = {"hear": None, "speak": None, "volume": None,
+             "video_restarts": None, "audio_restarts": None,
+             "app_uptime_s": None, "ts": 0}
+mqtt_connected = False
 lock = threading.Lock()
 ring_timer = None
 
 led = None
 led_stop = threading.Event()
-TX_SERVICE = "intercom-audio-tx"
+
+# ----------------------------------------------------------------- Metriken
+m_up = Gauge("intercom_indoor_up", "Daemon laeuft (1)")
+m_app_up = Gauge("intercom_indoor_app_up",
+                 "Qt-App aktiv laut systemd (1/0)")
+m_tx = Gauge("intercom_indoor_tx_active",
+             "Audio-Uplink-Dienst (intercom-audio-tx) aktiv (1/0)")
+m_call = Gauge("intercom_indoor_call_active", "Gespraech aktiv (1/0)")
+m_ringing = Gauge("intercom_indoor_call_ringing", "Klingel-Modus (1/0)")
+m_mqtt = Gauge("intercom_indoor_mqtt_connected", "MQTT verbunden (1/0)")
+m_age = Gauge("intercom_indoor_app_state_age_seconds",
+              "Alter des letzten App-Reports in s (-1 = nie)")
+m_volume = Gauge("intercom_indoor_app_volume_percent",
+                 "App-Lautstaerke in Prozent (-1 = unbekannt)")
+m_hear = Gauge("intercom_indoor_app_hear", "App hoert den Downlink (1/0)")
+m_speak = Gauge("intercom_indoor_app_speak", "App sendet Mikrofon (1/0)")
+m_vrestarts = Gauge("intercom_indoor_video_restarts_total",
+                    "Video-Pipeline-Neustarts seit App-Start")
+m_arestarts = Gauge("intercom_indoor_audio_restarts_total",
+                    "Audio-Pipeline-Neustarts seit App-Start")
+m_uptime = Gauge("intercom_indoor_uptime_seconds", "Daemon-Laufzeit in s")
+m_up.set(1)
+
+# --------------------------------------------------------- systemd-Zustaende
+_svc_lock = threading.Lock()
+_svc_cache = {"ts": 0.0, "app": False, "tx": False}
+
+
+def refresh_services():
+    """systemd-Zustaende von App + TX-Dienst abfragen (10-s-Cache)."""
+    with _svc_lock:
+        fresh = time.time() - _svc_cache["ts"] < 10.0
+    if fresh:
+        return
+    for svc, key in ((APP_SERVICE, "app"), (TX_SERVICE, "tx")):
+        try:
+            r = subprocess.run(["systemctl", "is-active", "--quiet", svc],
+                               timeout=5)
+            ok = r.returncode == 0
+        except Exception:
+            ok = False
+        with _svc_lock:
+            _svc_cache[key] = ok
+            _svc_cache["ts"] = time.time()
+
+
+def update_metrics():
+    """Alle Gauges aus Zustand + Cache setzen (bei /metrics, /api/status)."""
+    refresh_services()
+    with lock:
+        call = state["call"]
+        app = dict(app_state)
+    with _svc_lock:
+        app_up = _svc_cache["app"]
+        tx_up = _svc_cache["tx"]
+    m_app_up.set(1 if app_up else 0)
+    m_tx.set(1 if tx_up else 0)
+    m_call.set(1 if call == "active" else 0)
+    m_ringing.set(1 if call == "ringing" else 0)
+    m_mqtt.set(1 if mqtt_connected else 0)
+    age = time.time() - app["ts"] if app["ts"] else None
+    m_age.set(age if age is not None else -1)
+    m_volume.set(app["volume"] if app["volume"] is not None else -1)
+    m_hear.set(1 if app["hear"] else 0)
+    m_speak.set(1 if app["speak"] else 0)
+    m_vrestarts.set(app["video_restarts"]
+                    if app["video_restarts"] is not None else 0)
+    m_arestarts.set(app["audio_restarts"]
+                    if app["audio_restarts"] is not None else 0)
+    m_uptime.set(time.time() - STARTED_TS)
+
+
+def status_snapshot():
+    """Vollstaendiger Status als dict (GET /api/status)."""
+    refresh_services()
+    with lock:
+        call = state["call"]
+        app = dict(app_state)
+    with _svc_lock:
+        app_up = _svc_cache["app"]
+        tx_up = _svc_cache["tx"]
+    return {
+        "call": call,
+        "mqtt": {"connected": mqtt_connected, "broker": BROKER},
+        "app": app,
+        "services": {"app": app_up, "audio_tx": tx_up},
+        "uptime_s": round(time.time() - STARTED_TS, 1),
+        "ts": int(time.time()),
+    }
 
 
 def set_tx(enabled):
@@ -84,10 +190,19 @@ def blink_led():
 
 
 def on_connect(client, userdata, flags, rc, properties=None):
+    global mqtt_connected
     if rc == 0:
+        mqtt_connected = True
         client.subscribe("intercom/door/event", qos=1)
         publish_state()
         print("mqtt connected", flush=True)
+    else:
+        mqtt_connected = False
+
+
+def on_disconnect(client, userdata, flags, rc, properties=None):
+    global mqtt_connected
+    mqtt_connected = False
 
 
 def on_message(client, userdata, msg):
@@ -117,7 +232,36 @@ def on_message(client, userdata, msg):
     print(f"door event: {event}", flush=True)
 
 
+# ------------------------------------------------------------- App-Felder
+def _app_field(field, value):
+    """Feldwert fuer app_state validieren; None bei ungueltigem Wert."""
+    try:
+        if field in ("hear", "speak"):
+            return bool(value)
+        if field == "volume":
+            return max(0, min(100, int(value)))
+        if field in ("video_restarts", "audio_restarts"):
+            return max(0, int(value))
+        if field == "app_uptime_s":
+            v = float(value)
+            return v if v >= 0 else None
+    except (TypeError, ValueError):
+        return None
+    return None
+
+
+APP_FIELDS = ("hear", "speak", "volume", "video_restarts",
+              "audio_restarts", "app_uptime_s")
+
+
 class Handler(BaseHTTPRequestHandler):
+    def _is_local(self):
+        """True, wenn die Anfrage vom Geraet selbst kommt (Loopback)."""
+        addr = self.client_address[0]
+        if addr.startswith("::ffff:"):
+            addr = addr[7:]
+        return addr in ("127.0.0.1", "::1")
+
     def _send(self, code, payload):
         body = json.dumps(payload).encode()
         self.send_response(code)
@@ -126,42 +270,91 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    def _send_metrics(self):
+        update_metrics()
+        body = generate_latest()
+        self.send_response(200)
+        self.send_header("Content-Type", CONTENT_TYPE_LATEST)
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
     def do_GET(self):
-        if self.path == "/state":
+        path = self.path.split("?")[0]
+        if path == "/metrics":
+            self._send_metrics()
+        elif path == "/api/status":
+            self._send(200, status_snapshot())
+        elif path == "/state" and self._is_local():
             with lock:
-                self._send(200, state)
+                out = dict(state)
+                out["app"] = dict(app_state)
+            self._send(200, out)
         else:
             self._send(404, {"error": "not found"})
 
     def do_POST(self):
-        if self.path != "/state":
+        path = self.path.split("?")[0]
+        if path != "/state":
             self._send(404, {"error": "not found"})
+            return
+        if not self._is_local():
+            # Schreibzugriffe (Call-State, TX-Steuerung) nur fuer die
+            # App auf diesem Geraet.
+            self._send(403, {"error": "POST nur lokal erlaubt"})
             return
         length = int(self.headers.get("Content-Length", "0"))
         try:
             payload = json.loads(self.rfile.read(length).decode())
-            new_call = payload.get("call")
-            speak = bool(payload.get("speak", False))
-            if new_call not in ("idle", "active", "ringing"):
+            if not isinstance(payload, dict):
                 raise ValueError
         except Exception:
             self._send(400, {"error": "invalid payload"})
             return
+        new_call = payload.get("call")
+        speak = bool(payload.get("speak", False))
+        if new_call is not None and new_call not in ("idle", "active", "ringing"):
+            self._send(400, {"error": "invalid call"})
+            return
         with lock:
-            state["call"] = new_call
-            state["ts"] = int(time.time())
-            cancel_ring_timer()
-            if new_call == "ringing":
-                schedule_ring_timeout()
-            set_tx(new_call == "active" and speak)
-            led_stop.set()
-            if led:
-                led.off()
+            if new_call is not None:
+                state["call"] = new_call
+                state["ts"] = int(time.time())
+                cancel_ring_timer()
+                if new_call == "ringing":
+                    schedule_ring_timeout()
+                set_tx(new_call == "active" and speak)
+                led_stop.set()
+                if led:
+                    led.off()
+            app_reported = False
+            for field in APP_FIELDS:
+                if field in payload:
+                    v = _app_field(field, payload[field])
+                    if v is not None:
+                        app_state[field] = v
+                        app_reported = True
+            if app_reported:
+                app_state["ts"] = time.time()
+            out = dict(state)
+            out["app"] = dict(app_state)
         publish_state()
-        self._send(200, state)
+        self._send(200, out)
 
     def log_message(self, fmt, *args):
         pass
+
+
+class Server(ThreadingHTTPServer):
+    """Dual-Stack: lauscht auf IPv4 und IPv6 (V6ONLY ausgeschaltet)."""
+    address_family = socket.AF_INET6
+
+    def server_bind(self):
+        try:
+            self.socket.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_V6ONLY, 0)
+        except OSError:
+            pass
+        super().server_bind()
 
 
 if LED_GPIO is not None:
@@ -174,10 +367,17 @@ client.will_set("intercom/indoor/intercombasement/state",
 client.tls_set(ca_certs=CA)
 client.username_pw_set(USER, PASSWORD)
 client.on_connect = on_connect
+client.on_disconnect = on_disconnect
 client.on_message = on_message
 client.connect(BROKER, PORT, keepalive=30)
 client.loop_start()
 
-print(f"state http on 127.0.0.1:{HTTP_PORT}", flush=True)
+print(f"http (state lokal, metrics/status LAN) dual-stack :{HTTP_PORT}", flush=True)
 set_tx(False)
-ThreadingHTTPServer(("127.0.0.1", HTTP_PORT), Handler).serve_forever()
+try:
+    srv = Server(("::", HTTP_PORT), Handler)
+except OSError:
+    # Kein IPv6 verfuegbar -> Nur-IPv4-Fallback
+    print("ipv6 nicht verfuegbar, falle zurueck auf 0.0.0.0", flush=True)
+    srv = ThreadingHTTPServer(("0.0.0.0", HTTP_PORT), Handler)
+srv.serve_forever()

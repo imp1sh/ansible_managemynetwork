@@ -9,6 +9,7 @@
   ansible.builtin.apt:
     name:
       - python3-paho-mqtt
+      - python3-prometheus-client
       - gstreamer1.0-tools
       - gstreamer1.0-plugins-good
       - gstreamer1.0-plugins-bad
@@ -28,6 +29,7 @@
     owner: root
     group: root
     mode: "0755"
+  notify: Restart intercomd
 
 - name: "Intercom indoor - systemd unit (intercomd)"
   ansible.builtin.template:
