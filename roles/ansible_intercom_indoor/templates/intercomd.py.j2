@@ -3,21 +3,29 @@
 # Innengeraet-Daemon (intercombasement):
 #   * MQTT-Subscriber fuer Tuer-Events (Ring/Hangup, Klingel-LED, TX-Steuerung)
 #   * State-HTTP-Server fuer die Qt-App:
-#       - POST /state   NUR lokal (App auf diesem Geraet)
+#       - POST /state   NUR direkt von der App (Anfragen, die via traefik0
+#                       mit X-Real-Ip ankommen, werden abgewiesen)
 #                       Call-State (call/speak) + App-Status (volume, hear,
 #                       Pipeline-Neustarts, Laufzeit) als Teilmenge
-#       - GET  /state   NUR lokal (Polling der App)
-#   * Prometheus-Exporter /metrics und Status-API /api/status:
-#       LAN-weit lesbar, schreibgeschuetzt
+#       - GET  /state   NUR direkt (500-ms-Polling der App)
+#   * WebGUI (/), Prometheus-Exporter (/metrics), Status-API (/api/status),
+#     Ereignis-Log (/api/events) und App-Neustart (/api/app/restart):
+#       oeffentlich erreichbar via traefik0 mit LAN-Allowlist
+#       (https://intercombasement.t.libcom.de)
+#   * Bind ausschliesslich 127.0.0.1 — von aussen nur durch traefik0.
+from collections import deque
+from datetime import datetime
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from urllib.parse import parse_qs, urlparse
+
 import json
-import socket
 import subprocess
 import threading
 import time
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 import paho.mqtt.client as mqtt
-from prometheus_client import CONTENT_TYPE_LATEST, Gauge, generate_latest
+from prometheus_client import (CONTENT_TYPE_LATEST, Counter, Gauge,
+                               generate_latest)
 
 BROKER = "{{ intercom_broker_host }}"
 PORT = {{ intercom_broker_port }}
@@ -29,7 +37,9 @@ RING_TIMEOUT = {{ intercom_ring_timeout }}
 LED_GPIO = {{ intercom_led_gpio if intercom_led_gpio is not none else 'None' }}
 APP_SERVICE = "intercom-app.service"
 TX_SERVICE = "intercom-audio-tx.service"
+EVENT_BUFFER = 100
 STARTED_TS = time.time()
+STARTED_AT = datetime.now().astimezone().isoformat(timespec="seconds")
 
 state = {"call": "idle", "ts": 0}
 # Letzter Status-Report der Qt-App (POST /state, Felder als Teilmenge).
@@ -39,6 +49,10 @@ app_state = {"hear": None, "speak": None, "volume": None,
 mqtt_connected = False
 lock = threading.Lock()
 ring_timer = None
+
+# Ring/Hangup/Timeout aus MQTT — RAM-Ringpuffer, wie intercom-door.
+door_events = deque(maxlen=EVENT_BUFFER)
+events_lock = threading.Lock()
 
 led = None
 led_stop = threading.Event()
@@ -63,6 +77,8 @@ m_vrestarts = Gauge("intercom_indoor_video_restarts_total",
 m_arestarts = Gauge("intercom_indoor_audio_restarts_total",
                     "Audio-Pipeline-Neustarts seit App-Start")
 m_uptime = Gauge("intercom_indoor_uptime_seconds", "Daemon-Laufzeit in s")
+m_door_events = Counter("intercom_indoor_door_events_total",
+                        "Tuer-Ereignisse (ring/hangup/timeout)", ["event"])
 m_up.set(1)
 
 # --------------------------------------------------------- systemd-Zustaende
@@ -89,7 +105,7 @@ def refresh_services():
 
 
 def update_metrics():
-    """Alle Gauges aus Zustand + Cache setzen (bei /metrics, /api/status)."""
+    """Alle Gauges setzen (bei /metrics und /api/status)."""
     refresh_services()
     with lock:
         call = state["call"]
@@ -128,9 +144,19 @@ def status_snapshot():
         "mqtt": {"connected": mqtt_connected, "broker": BROKER},
         "app": app,
         "services": {"app": app_up, "audio_tx": tx_up},
+        "started_at": STARTED_AT,
         "uptime_s": round(time.time() - STARTED_TS, 1),
         "ts": int(time.time()),
     }
+
+
+def record_event(event):
+    entry = {"ts": time.time(),
+             "time": datetime.now().astimezone().isoformat(timespec="seconds"),
+             "event": event}
+    with events_lock:
+        door_events.append(entry)
+    m_door_events.labels(event=event).inc()
 
 
 def set_tx(enabled):
@@ -167,6 +193,7 @@ def ring_timeout():
             led.off()
     ring_timer = None
     publish_state()
+    record_event("ring_timeout")
     print("ring timeout -> idle", flush=True)
 
 
@@ -229,6 +256,7 @@ def on_message(client, userdata, msg):
             if led:
                 led.off()
     publish_state()
+    record_event(event)
     print(f"door event: {event}", flush=True)
 
 
@@ -254,13 +282,179 @@ APP_FIELDS = ("hear", "speak", "volume", "video_restarts",
               "audio_restarts", "app_uptime_s")
 
 
+GUI_HTML = """<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Intercom Innenger&auml;t</title>
+<style>
+:root { --bg:#101216; --card:#171a20; --line:#262b33; --tx:#e6ebf2; --dim:#8b93a1; --ok:#2e9e5b; }
+* { box-sizing:border-box; }
+body { margin:0; background:var(--bg); color:var(--tx);
+       font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif; }
+header { display:flex; flex-wrap:wrap; gap:12px; align-items:baseline;
+         padding:16px 22px; border-bottom:1px solid var(--line); }
+header h1 { font-size:19px; margin:0; }
+header .meta { color:var(--dim); font-size:13px; }
+main { padding:18px 22px; max-width:1100px; margin:0 auto; }
+.cards { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr));
+         gap:12px; }
+.card { background:var(--card); border:1px solid var(--line); border-radius:10px;
+        padding:12px 14px; }
+.card .label { color:var(--dim); font-size:12px; text-transform:uppercase;
+               letter-spacing:.06em; }
+.card .value { font-size:22px; font-weight:600; margin-top:4px; }
+.card .sub { color:var(--dim); font-size:12px; margin-top:2px; }
+.actions { display:flex; gap:10px; margin:16px 0; flex-wrap:wrap; }
+button { border:0; border-radius:8px; padding:11px 18px; font-size:15px;
+         font-weight:600; cursor:pointer; color:#fff; }
+button:disabled { opacity:.5; cursor:wait; }
+#btn-restart { background:#b3402f; }
+button:hover { filter:brightness(1.15); }
+#toast { margin-left:auto; color:var(--dim); font-size:13px; align-self:center; }
+h2 { font-size:14px; color:var(--dim); margin:20px 0 8px; text-transform:uppercase;
+     letter-spacing:.06em; }
+table { width:100%; border-collapse:collapse; background:var(--card);
+        border:1px solid var(--line); border-radius:10px; overflow:hidden; }
+th, td { text-align:left; padding:8px 10px; border-bottom:1px solid var(--line);
+         font-size:13.5px; }
+th { color:var(--dim); font-weight:600; }
+td.dim { color:var(--dim); }
+.ok { color:var(--ok); } .err { color:#e05d5d; }
+footer { color:var(--dim); font-size:12px; padding:14px 22px;
+         border-top:1px solid var(--line); margin-top:26px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Intercom Innenger&auml;t</h1>
+  <span class="meta">intercombasement.t.libcom.de</span>
+  <span class="meta" id="restart-meta">Neustart: &ndash;</span>
+  <span id="toast"></span>
+</header>
+<main>
+  <div class="cards" id="cards"></div>
+  <div class="actions">
+    <button id="btn-restart" onclick="restartApp()">&#8635; App neu starten</button>
+  </div>
+
+  <h2>T&uuml;r-Ereignisse (seit Neustart)</h2>
+  <table id="tbl-events"><thead><tr>
+    <th>Zeit</th><th>Ereignis</th>
+  </tr></thead><tbody></tbody></table>
+</main>
+<footer>intercomd</footer>
+<script>
+let status = null;
+
+function fmtTime(iso) {
+  if (!iso) return '\u2013';
+  return new Date(iso).toLocaleString('de-DE');
+}
+
+function card(label, value, sub, cls) {
+  return '<div class="card"><div class="label">' + label + '</div>' +
+    '<div class="value ' + (cls || '') + '">' + value + '</div>' +
+    '<div class="sub">' + (sub || '') + '</div></div>';
+}
+
+function render() {
+  if (!status) return;
+  const a = status.app || {};
+  document.getElementById('restart-meta').textContent =
+    'Neustart: ' + fmtTime(status.started_at) +
+    ' (' + Math.round(status.uptime_s / 60) + ' min)';
+  let html = '';
+  html += card('Anruf', status.call === 'ringing' ? 'klingelt' :
+                      (status.call === 'active' ? 'aktiv' : 'ruhend'),
+               'Signalisierung',
+               status.call === 'ringing' ? 'err' :
+                 (status.call === 'active' ? 'ok' : ''));
+  html += card('Qt-App', status.services.app ? 'l\u00e4uft' : 'aus',
+               'systemd: intercom-app',
+               status.services.app ? 'ok' : 'err');
+  html += card('Lautst\u00e4rke',
+               a.volume !== null && a.volume !== undefined
+                 ? a.volume + ' %' : '\u2013',
+               'Eingestellt am Touchscreen');
+  const age = a.ts ? Math.round(Date.now() / 1000 - a.ts) : null;
+  html += card('App-Bericht', age !== null ? age + ' s' : '\u2013',
+               'Letzter Status-Report');
+  html += card('Audio-TX', status.services.audio_tx ? 'aktiv' : 'aus',
+               'Uplink zur T\u00fcr', status.services.audio_tx ? 'ok' : '');
+  html += card('MQTT', status.mqtt.connected ? 'verbunden' : 'getrennt',
+               status.mqtt.broker, status.mqtt.connected ? 'ok' : 'err');
+  html += card('Uptime', Math.round(status.uptime_s / 60) + ' min',
+               'Daemon seit ' + fmtTime(status.started_at));
+  if (a.app_uptime_s !== null && a.app_uptime_s !== undefined) {
+    html += card('App-Laufzeit', Math.round(a.app_uptime_s / 60) + ' min',
+                 'Qt-App seit Start');
+  }
+  document.getElementById('cards').innerHTML = html;
+}
+
+function renderEvents(data) {
+  const tb = document.querySelector('#tbl-events tbody');
+  tb.innerHTML = (data.events || []).map(e =>
+    '<tr><td>' + fmtTime(e.time) + '</td><td>' +
+    (e.event === 'ring' ? 'Klingeln' :
+     e.event === 'hangup' ? 'Aufgelegt' :
+     e.event === 'ring_timeout' ? 'Klingel-Timeout' : e.event) +
+    '</td></tr>').join('') ||
+    '<tr><td colspan="2" class="dim">keine Ereignisse</td></tr>';
+}
+
+async function refresh() {
+  try {
+    const r = await fetch('/api/status');
+    status = await r.json();
+    render();
+    const ev = await (await fetch('/api/events?limit=50')).json();
+    renderEvents(ev);
+    document.getElementById('footer').textContent =
+      'intercomd \u00b7 Metrics: /metrics \u00b7 API: /api/status';
+  } catch (e) {
+    document.getElementById('toast').textContent = 'Aktualisierung fehlgeschlagen';
+  }
+}
+
+async function restartApp() {
+  const btn = document.getElementById('btn-restart');
+  btn.disabled = true;
+  document.getElementById('toast').textContent = '';
+  try {
+    const r = await fetch('/api/app/restart', {method: 'POST'});
+    const j = await r.json();
+    document.getElementById('toast').textContent =
+      j.ok ? 'App-Neustart angestossen' : 'App-Neustart fehlgeschlagen';
+  } catch (e) {
+    document.getElementById('toast').textContent = 'Fehler: ' + e;
+  }
+  btn.disabled = false;
+  setTimeout(refresh, 4000);
+}
+
+refresh();
+setInterval(refresh, 5000);
+</script>
+</body>
+</html>
+"""
+
+
 class Handler(BaseHTTPRequestHandler):
-    def _is_local(self):
-        """True, wenn die Anfrage vom Geraet selbst kommt (Loopback)."""
-        addr = self.client_address[0]
-        if addr.startswith("::ffff:"):
-            addr = addr[7:]
-        return addr in ("127.0.0.1", "::1")
+    def _forwarded_ip(self):
+        """Echte Client-IP, wenn die Anfrage via traefik0 kam, sonst None.
+
+        intercomd lauscht nur auf 127.0.0.1: Direkte Anfragen ohne
+        Forward-Header stammen von der Qt-App auf diesem Geraet.
+        """
+        ip = self.headers.get("X-Real-Ip")
+        if not ip:
+            ip = (self.headers.get("X-Forwarded-For", "")
+                  .split(",")[0].strip())
+        return ip or None
 
     def _send(self, code, payload):
         body = json.dumps(payload).encode()
@@ -280,81 +474,103 @@ class Handler(BaseHTTPRequestHandler):
         self.wfile.write(body)
 
     def do_GET(self):
-        path = self.path.split("?")[0]
+        parsed = urlparse(self.path)
+        path = parsed.path
         if path == "/metrics":
             self._send_metrics()
         elif path == "/api/status":
             self._send(200, status_snapshot())
-        elif path == "/state" and self._is_local():
+        elif path == "/api/events":
+            limit = 100
+            try:
+                limit = max(1, min(int(parse_qs(parsed.query)
+                                      .get("limit", ["100"])[0]), EVENT_BUFFER))
+            except (ValueError, IndexError):
+                pass
+            with events_lock:
+                items = list(door_events)
+            items.reverse()
+            self._send(200, {"count": len(items), "since": STARTED_AT,
+                             "events": items[:limit]})
+        elif path == "/state" and self._forwarded_ip() is None:
+            # Nur die App auf diesem Geraet (500-ms-Polling).
             with lock:
                 out = dict(state)
                 out["app"] = dict(app_state)
             self._send(200, out)
+        elif path == "/":
+            self._send_gui()
         else:
             self._send(404, {"error": "not found"})
 
     def do_POST(self):
-        path = self.path.split("?")[0]
-        if path != "/state":
+        parsed = urlparse(self.path)
+        path = parsed.path
+        if path == "/state":
+            if self._forwarded_ip() is not None:
+                # Call-State-Steuerung bleibt der App vorbehalten; ueber
+                # traefik0 (X-Real-Ip gesetzt) wird der Zugriff abgelehnt.
+                self._send(403, {"error": "POST /state nur lokal"})
+                return
+            length = int(self.headers.get("Content-Length", "0"))
+            try:
+                payload = json.loads(self.rfile.read(length).decode())
+                if not isinstance(payload, dict):
+                    raise ValueError
+            except Exception:
+                self._send(400, {"error": "invalid payload"})
+                return
+            new_call = payload.get("call")
+            speak = bool(payload.get("speak", False))
+            if new_call is not None and new_call not in ("idle", "active", "ringing"):
+                self._send(400, {"error": "invalid call"})
+                return
+            with lock:
+                if new_call is not None:
+                    state["call"] = new_call
+                    state["ts"] = int(time.time())
+                    cancel_ring_timer()
+                    if new_call == "ringing":
+                        schedule_ring_timeout()
+                    set_tx(new_call == "active" and speak)
+                    led_stop.set()
+                    if led:
+                        led.off()
+                app_reported = False
+                for field in APP_FIELDS:
+                    if field in payload:
+                        v = _app_field(field, payload[field])
+                        if v is not None:
+                            app_state[field] = v
+                            app_reported = True
+                if app_reported:
+                    app_state["ts"] = time.time()
+                out = dict(state)
+                out["app"] = dict(app_state)
+            publish_state()
+            self._send(200, out)
+        elif path == "/api/app/restart":
+            # Wartungsaktion der WebGUI: Qt-App per systemd neu starten.
+            try:
+                r = subprocess.run(["systemctl", "restart", APP_SERVICE],
+                                   timeout=30)
+                ok = (r.returncode == 0)
+                self._send(200, {"ok": ok})
+            except Exception as exc:
+                self._send(500, {"ok": False, "error": str(exc)})
+        else:
             self._send(404, {"error": "not found"})
-            return
-        if not self._is_local():
-            # Schreibzugriffe (Call-State, TX-Steuerung) nur fuer die
-            # App auf diesem Geraet.
-            self._send(403, {"error": "POST nur lokal erlaubt"})
-            return
-        length = int(self.headers.get("Content-Length", "0"))
-        try:
-            payload = json.loads(self.rfile.read(length).decode())
-            if not isinstance(payload, dict):
-                raise ValueError
-        except Exception:
-            self._send(400, {"error": "invalid payload"})
-            return
-        new_call = payload.get("call")
-        speak = bool(payload.get("speak", False))
-        if new_call is not None and new_call not in ("idle", "active", "ringing"):
-            self._send(400, {"error": "invalid call"})
-            return
-        with lock:
-            if new_call is not None:
-                state["call"] = new_call
-                state["ts"] = int(time.time())
-                cancel_ring_timer()
-                if new_call == "ringing":
-                    schedule_ring_timeout()
-                set_tx(new_call == "active" and speak)
-                led_stop.set()
-                if led:
-                    led.off()
-            app_reported = False
-            for field in APP_FIELDS:
-                if field in payload:
-                    v = _app_field(field, payload[field])
-                    if v is not None:
-                        app_state[field] = v
-                        app_reported = True
-            if app_reported:
-                app_state["ts"] = time.time()
-            out = dict(state)
-            out["app"] = dict(app_state)
-        publish_state()
-        self._send(200, out)
 
     def log_message(self, fmt, *args):
         pass
 
-
-class Server(ThreadingHTTPServer):
-    """Dual-Stack: lauscht auf IPv4 und IPv6 (V6ONLY ausgeschaltet)."""
-    address_family = socket.AF_INET6
-
-    def server_bind(self):
-        try:
-            self.socket.setsockopt(socket.IPPROTO_IPV6, socket.IPV6_V6ONLY, 0)
-        except OSError:
-            pass
-        super().server_bind()
+    def _send_gui(self):
+        body = GUI_HTML.encode()
+        self.send_response(200)
+        self.send_header("Content-Type", "text/html; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
 
 
 if LED_GPIO is not None:
@@ -372,12 +588,7 @@ client.on_message = on_message
 client.connect(BROKER, PORT, keepalive=30)
 client.loop_start()
 
-print(f"http (state lokal, metrics/status LAN) dual-stack :{HTTP_PORT}", flush=True)
+print(f"http auf 127.0.0.1:{HTTP_PORT} (Front: traefik0, "
+      f"https://intercombasement.t.libcom.de)", flush=True)
 set_tx(False)
-try:
-    srv = Server(("::", HTTP_PORT), Handler)
-except OSError:
-    # Kein IPv6 verfuegbar -> Nur-IPv4-Fallback
-    print("ipv6 nicht verfuegbar, falle zurueck auf 0.0.0.0", flush=True)
-    srv = ThreadingHTTPServer(("0.0.0.0", HTTP_PORT), Handler)
-srv.serve_forever()
+ThreadingHTTPServer(("127.0.0.1", HTTP_PORT), Handler).serve_forever()
