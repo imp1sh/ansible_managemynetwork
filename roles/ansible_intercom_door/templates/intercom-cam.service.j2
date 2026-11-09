@@ -8,11 +8,12 @@ StartLimitIntervalSec=0
 Type=simple
 User={{ intercom_pipewire_user }}
 Group={{ intercom_pipewire_user }}
-# rpicam-vid kodiert per Hardware (H264, Inline-Header) und piped nach ffmpeg,
-# das nur remuxt und per RTSP an mediamtx pusht. Audio-Eingang ist das
-# AEC-bereinigte Mikrofon aus PipeWire (pcm.aecsrc). XDG_RUNTIME_DIR wird
-# zur Laufzeit ueber die UID des Dienst-Users aufgeloest (kein systemd-Specifier).
-ExecStart=/bin/sh -c 'export XDG_RUNTIME_DIR=/run/user/$(id -u); exec /usr/bin/rpicam-vid -t 0 --camera {{ intercom_cam_device }} --width {{ intercom_cam_width }} --height {{ intercom_cam_height }} --framerate {{ intercom_cam_framerate }} --codec h264 --inline --bitrate {{ intercom_cam_bitrate }}{% if intercom_cam_hflip %} --hflip{% endif %}{% if intercom_cam_vflip %} --vflip{% endif %}{% if intercom_cam_extra_args %} {{ intercom_cam_extra_args }}{% endif %} -o - | exec /usr/bin/ffmpeg -hide_banner -loglevel warning -nostdin -fflags nobuffer -use_wallclock_as_timestamps 1 -f h264 -i -{% if intercom_cam_audio %} -f alsa -i {{ intercom_cam_audio_card }}{% endif %} -map 0:v{% if intercom_cam_audio %} -map 1:a{% endif %} -c:v copy{% if intercom_cam_audio %} -c:a libopus -b:a {{ intercom_cam_audio_bitrate }} -ar 48000 -ac 1 -application {{ intercom_cam_audio_application }} -frame_duration {{ intercom_cam_audio_frame_duration }} -af aresample=async=1:first_pts=0{% endif %} -rtsp_transport tcp -f rtsp rtsp://127.0.0.1:{{ intercom_mediamtx_rtsp_port }}/{{ intercom_mediamtx_path }}'
+# rpicam-vid kodiert per Hardware (H264, Inline-Header) und piped nach ffmpeg.
+# Audio-Eingang: INMP441 (I2S) via PipeWire rawmic (nur linker Kanal, da das
+# INMP441 mono ist). pan=mono|c0=c0 nimmt nur Kanal 0 (links) statt zu
+# mitteln (-ac 1 wuerde (L+R)/2 rechnen und 6 dB verlieren).
+# XDG_RUNTIME_DIR wird zur Laufzeit ueber die UID des Dienst-Users aufgeloest.
+ExecStart=/bin/sh -c 'export XDG_RUNTIME_DIR=/run/user/$(id -u); exec /usr/bin/rpicam-vid -t 0 --camera {{ intercom_cam_device }} --width {{ intercom_cam_width }} --height {{ intercom_cam_height }} --framerate {{ intercom_cam_framerate }} --codec h264 --inline --bitrate {{ intercom_cam_bitrate }}{% if intercom_cam_hflip %} --hflip{% endif %}{% if intercom_cam_vflip %} --vflip{% endif %}{% if intercom_cam_extra_args %} {{ intercom_cam_extra_args }}{% endif %} -o - | exec /usr/bin/ffmpeg -hide_banner -loglevel warning -nostdin -fflags nobuffer -use_wallclock_as_timestamps 1 -f h264 -i -{% if intercom_cam_audio %} -f alsa -i {{ intercom_cam_audio_card }}{% endif %} -map 0:v{% if intercom_cam_audio %} -map 1:a{% endif %} -c:v copy{% if intercom_cam_audio %} -c:a libopus -b:a {{ intercom_cam_audio_bitrate }} -ar 48000 -af "pan=mono|c0=c0,aresample=async=1:first_pts=0" -application {{ intercom_cam_audio_application }} -frame_duration {{ intercom_cam_audio_frame_duration }}{% endif %} -rtsp_transport tcp -f rtsp rtsp://127.0.0.1:{{ intercom_mediamtx_rtsp_port }}/{{ intercom_mediamtx_path }}'
 Restart=always
 RestartSec=3
 

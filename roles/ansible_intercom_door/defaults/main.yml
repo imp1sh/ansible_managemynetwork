@@ -91,9 +91,10 @@ intercom_mediamtx_path: "door"
 # Opus im RTSP-Server des Kamera-Dienstes. 48 kbit/s mono, Modus "voip"
 # (sprachoptimiert, SWB ~12 kHz) liegt deutlich ueber G.722;
 # frame_duration 20 ms = ~26 ms Codec-Latenz.
-# Audio-Quelle ist das AEC-bereinigte Mikrofon aus PipeWire (pcm.aecsrc).
+# Quelle: Rohmikrofon (rawmic, ohne AEC) — das AEC unterdrueckt das Signal
+# bei Tuerdistanz um >20 dB. Bei Bedarf auf "aecsrc" zurueckstellen.
 intercom_cam_audio: true
-intercom_cam_audio_card: "aecsrc"
+intercom_cam_audio_card: "rawmic"
 intercom_cam_audio_bitrate: 48000
 intercom_cam_audio_application: "voip"
 intercom_cam_audio_frame_duration: 20
