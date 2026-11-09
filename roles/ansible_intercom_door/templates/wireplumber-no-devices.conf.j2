@@ -1,0 +1,12 @@
+# Managed by Ansible (role ansible_intercom_door) - do not edit by hand.
+# Kamera- und V4L2-Monitor deaktivieren: Die CSI-Kamera wird exklusiv von
+# rpicam-vid (intercom-cam) benutzt. Ohne diese Overlays wuerde WirePlumber
+# /dev/video0 belegen.
+wireplumber.components = [
+  {
+    type = virtual, provides = monitor.libcamera
+  }
+  {
+    type = virtual, provides = monitor.v4l2
+  }
+]

@@ -22,3 +22,13 @@
     name: mediamtx.service
     state: restarted
     daemon_reload: true
+
+- name: Restart intercom pipewire
+  ansible.builtin.command: >
+    systemctl --user -M {{ intercom_pipewire_user }}@.host restart pipewire.service
+  changed_when: false
+
+- name: Restart intercom wireplumber
+  ansible.builtin.command: >
+    systemctl --user -M {{ intercom_pipewire_user }}@.host restart wireplumber.service
+  changed_when: false

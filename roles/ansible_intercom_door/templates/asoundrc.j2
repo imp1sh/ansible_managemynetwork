@@ -1,0 +1,33 @@
+# Managed by Ansible (role ansible_intercom_door) - do not edit by hand.
+# ALSA-PCMs auf die AEC-Nodes von PipeWire (User intercom).
+# aecsrc  = Aufnahme vom AEC-bereinigten Mikrofon (aec.source)
+# aecsink = Wiedergabe auf den Tuer-Lautsprecher (aec.sink, USB)
+pcm.aecsrc {
+  type plug
+  slave.pcm {
+    type pipewire
+    capture_node "aec.source"
+  }
+}
+pcm.aecsink {
+  type plug
+  slave.pcm {
+    type pipewire
+    playback_node "aec.sink"
+  }
+}
+# Test-/Diagnose-PCMs (Roh-Pfade)
+pcm.rawmic {
+  type plug
+  slave.pcm {
+    type pipewire
+    capture_node "{{ intercom_pipewire_mic_node }}"
+  }
+}
+pcm.rawspk {
+  type plug
+  slave.pcm {
+    type pipewire
+    playback_node "{{ intercom_pipewire_speaker_node }}"
+  }
+}

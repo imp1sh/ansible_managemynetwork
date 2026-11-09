@@ -1,0 +1,27 @@
+# Managed by Ansible (role ansible_intercom_door) - do not edit by hand.
+# Intercom door: Echo-Unterdrueckung (AEC) am Tuer-Mikrofon.
+# capture  = INMP441 (I2S, soc_sound)
+# sink     = USB-Lautsprecher (Jieli)  <- Wiedergabe, Monitor = Echo-Referenz
+# source   = aec.source               <- bereinigtes Mikrofon (Aufnahme)
+context.modules = [
+  { name = libpipewire-module-echo-cancel
+    args = {
+      aec.method = webrtc
+      capture.props = {
+        node.name = "aec.capture"
+        target.object = "{{ intercom_pipewire_mic_node }}"
+      }
+      source.props = {
+        node.name = "aec.source"
+        node.description = "Tuer-Mikrofon (AEC)"
+        media.class = "Audio/Source"
+      }
+      sink.props = {
+        node.name = "aec.sink"
+        node.description = "Tuer-Lautsprecher (AEC, USB)"
+        media.class = "Audio/Sink"
+        target.object = "{{ intercom_pipewire_speaker_node }}"
+      }
+    }
+  }
+]

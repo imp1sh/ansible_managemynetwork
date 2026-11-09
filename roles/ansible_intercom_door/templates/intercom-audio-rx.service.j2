@@ -1,10 +1,17 @@
 [Unit]
-Description=Intercom audio receiver (Opus RTP -> Klinke)
-After=network-online.target
+Description=Intercom audio receiver (Opus RTP -> AEC-Sink/USB-Lautsprecher)
+After=network-online.target pipewire.service
 Wants=network-online.target
+StartLimitIntervalSec=0
 
 [Service]
-ExecStart=/usr/bin/gst-launch-1.0 -e udpsrc address=:: port={{ intercom_audio_rx_port }} caps=application/x-rtp,media=audio,encoding-name=OPUS,payload=96,clock-rate=48000 ! queue max-size-buffers=0 max-size-bytes=0 max-size-time=100000000 leaky=downstream ! rtpopusdepay ! opusdec ! audioconvert ! audioresample ! alsasink device=plughw:CARD=Headphones,DEV=0 sync=false buffer-time=80000 latency-time=20000
+Type=simple
+User={{ intercom_pipewire_user }}
+Group={{ intercom_pipewire_user }}
+# Wiedergabe laeuft durch den AEC-Sink von PipeWire (USB-Lautsprecher);
+# dessen Monitor dient als Echo-Referenz. XDG_RUNTIME_DIR wird zur Laufzeit
+# ueber die UID des Dienst-Users aufgeloest.
+ExecStart=/bin/sh -c 'export XDG_RUNTIME_DIR=/run/user/$(id -u); exec /usr/bin/gst-launch-1.0 -e udpsrc address=:: port={{ intercom_audio_rx_port }} caps=application/x-rtp,media=audio,encoding-name=OPUS,payload=96,clock-rate=48000 ! queue max-size-buffers=0 max-size-bytes=0 max-size-time=100000000 leaky=downstream ! rtpopusdepay ! opusdec ! audioconvert ! audioresample ! alsasink device={{ intercom_audio_rx_device }} sync=false buffer-time=80000 latency-time=20000'
 Restart=always
 RestartSec=2
 
