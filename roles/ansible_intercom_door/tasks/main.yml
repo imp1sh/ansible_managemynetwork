@@ -12,6 +12,13 @@
     update_cache: true
     cache_valid_time: 3600
 
+# ---------------- Boot-Konfiguration (config.txt) ----------------
+- name: "Intercom door - Manage config.txt overlays (INMP441 + SHTC3)"
+  ansible.builtin.blockinfile:
+    path: "{{ intercom_config_txt_path }}"
+    marker: "# {mark} ANSIBLE MANAGED - role ansible_intercom_door"
+    block: "{{ intercom_config_txt_block }}"
+
 # ---------------- PipeWire-Session fuer AEC (User intercom) ----------------
 - name: "Intercom door - Ensure service user"
   ansible.builtin.user:
@@ -71,6 +78,23 @@
     group: "{{ intercom_pipewire_user }}"
     mode: "0644"
   notify: Restart intercom wireplumber
+
+- name: "Intercom door - Disable system-wide WirePlumber camera monitors"
+  ansible.builtin.copy:
+    dest: /etc/xdg/wireplumber/wireplumber.conf.d/51-disable-camera.conf
+    content: |
+      # Managed by Ansible (role ansible_intercom_door) - do not edit by hand.
+      # Verhindert, dass ein systemweiter WirePlumber (z. B. root-Session)
+      # die Kamera-Geraete belegt und rpicam-vid blockiert. Gueltig fuer alle
+      # User-Sessions; die intercom-Session hat ihre eigene Deaktivierung in
+      # ihrer Session-Konfiguration (51-no-devices.conf).
+      wireplumber.components = [
+        { type = virtual, provides = monitor.libcamera }
+        { type = virtual, provides = monitor.v4l2 }
+      ]
+    owner: root
+    group: root
+    mode: "0644"
 
 - name: "Intercom door - ALSA PCMs for AEC nodes"
   ansible.builtin.template:

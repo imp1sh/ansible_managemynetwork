@@ -86,6 +86,18 @@ intercom_mic_volume_max: "4.0"
 # Mikrofon-Empfindlichkeit ueber WebGUI/API einstellbar (wpctl via runuser)
 intercom_mic_control: true
 
+# --- Boot-Konfiguration (config.txt) ---
+# Verwalteter Block in der Kernel-Boot-Konfiguration (blockinfile, idempotent):
+# I2C-Bus fuer den SHTC3-Sensor und das I2S-Overlay fuer das INMP441-Mikrofon.
+# Hand-gesetzte Duplikate ausserhalb des Blocks wurden bei der Migration
+# einmalig entfernt; seitdem haelt die Rolle allein den Block aktuell.
+intercom_config_txt_path: "/boot/firmware/config.txt"
+intercom_config_txt_block: |
+  # Intercom: SHTC3 am Standard-I2C (Pin 3=SDA, Pin 5=SCL) -> /dev/i2c-1
+  dtparam=i2c_arm=on
+  # Intercom: INMP441 I2S-Mikrofon (GPIO18/19/20, siehe WIRING.md)
+  dtoverlay=googlevoicehat-soundcard
+
 # --- Kamera (CSI, libcamera/rpicam) ---
 # intercom-cam pusht rpicam-vid (H264) + INMP441 (Opus) an den RTSP-Server
 # mediamtx auf dem Host; go2rtc zieht den Strom als rtsp://-Quelle (preload).
@@ -110,10 +122,14 @@ intercom_mediamtx_audio_path: "door_audio"
 # Opus im RTSP-Server des Kamera-Dienstes. 48 kbit/s mono, Modus "voip"
 # (sprachoptimiert, SWB ~12 kHz) liegt deutlich ueber G.722;
 # frame_duration 20 ms = ~26 ms Codec-Latenz.
-# Quelle: Rohmikrofon (rawmic, ohne AEC) — das AEC unterdrueckt das Signal
-# bei Tuerdistanz um >20 dB. Bei Bedarf auf "aecsrc" zurueckstellen.
+# Quelle: aecsrc (PipeWire-echo-cancel, WebRTC-AEC). Der AEC entfernt das
+# Echo des Tuer-Lautsprechers aus dem Mikrofonsignal (Full-Duplex ohne
+# Selbsthoeren am Innengeraet). Messreihe 2026-11-10 (Mikro-Gain 1.8):
+# Echo-Unterdrueckung +25.9 dB (Uplink-Ton -41.5 -> -67.4 dBFS),
+# Gegenseite (Gong) nur -2.6 dB (-0.1 -> -2.7 dBFS).
+# Fallback ohne Filterung: "rawmic" (Rohmikrofon).
 intercom_cam_audio: true
-intercom_cam_audio_card: "rawmic"
+intercom_cam_audio_card: "aecsrc"
 intercom_cam_audio_bitrate: 48000
 intercom_cam_audio_application: "voip"
 intercom_cam_audio_frame_duration: 20
