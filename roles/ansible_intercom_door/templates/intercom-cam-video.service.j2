@@ -1,0 +1,18 @@
+[Unit]
+Description=Intercom camera video (CSI/libcamera -> mediamtx, nur Video)
+After=network-online.target pipewire.service
+Wants=network-online.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+User={{ intercom_pipewire_user }}
+Group={{ intercom_pipewire_user }}
+# Nur EIN Input (Video-Pipe) — kein Audio-Input, der die Pipe blockieren koennte.
+# Das Audio laeuft im separaten Dienst intercom-cam-audio.
+ExecStart=/bin/sh -c 'export XDG_RUNTIME_DIR=/run/user/$(id -u); exec /usr/bin/rpicam-vid -t 0 --camera {{ intercom_cam_device }} --width {{ intercom_cam_width }} --height {{ intercom_cam_height }} --framerate {{ intercom_cam_framerate }} --codec h264 --inline --bitrate {{ intercom_cam_bitrate }}{% if intercom_cam_hflip %} --hflip{% endif %}{% if intercom_cam_vflip %} --vflip{% endif %}{% if intercom_cam_extra_args %} {{ intercom_cam_extra_args }}{% endif %} -o - | exec /usr/bin/ffmpeg -hide_banner -loglevel warning -nostdin -fflags nobuffer -use_wallclock_as_timestamps 1 -f h264 -i - -c:v copy -rtsp_transport tcp -f rtsp rtsp://127.0.0.1:{{ intercom_mediamtx_rtsp_port }}/{{ intercom_mediamtx_video_path }}'
+Restart=always
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

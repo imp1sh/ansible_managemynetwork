@@ -86,6 +86,8 @@ intercom_cam_extra_args: ""
 intercom_mediamtx_version: "1.21.3"
 intercom_mediamtx_rtsp_port: 8553
 intercom_mediamtx_path: "door"
+intercom_mediamtx_video_path: "door_video"
+intercom_mediamtx_audio_path: "door_audio"
 
 # --- Audio (INMP441) im cam-Stream ---
 # Opus im RTSP-Server des Kamera-Dienstes. 48 kbit/s mono, Modus "voip"

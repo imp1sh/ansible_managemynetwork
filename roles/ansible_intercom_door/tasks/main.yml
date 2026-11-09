@@ -130,10 +130,19 @@
     mode: "0644"
   notify: Restart intercom audio receiver
 
-- name: "Intercom door - systemd unit (camera)"
+- name: "Intercom door - systemd unit (camera video)"
   ansible.builtin.template:
-    src: intercom-cam.service.j2
-    dest: /etc/systemd/system/intercom-cam.service
+    src: intercom-cam-video.service.j2
+    dest: /etc/systemd/system/intercom-cam-video.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart intercom camera
+
+- name: "Intercom door - systemd unit (camera audio)"
+  ansible.builtin.template:
+    src: intercom-cam-audio.service.j2
+    dest: /etc/systemd/system/intercom-cam-audio.service
     owner: root
     group: root
     mode: "0644"
@@ -204,6 +213,19 @@
     - /opt/intercom/doorpi0-button.py
   notify: Restart intercom door
 
+- name: "Intercom door - Stop and disable legacy camera service"
+  ansible.builtin.systemd:
+    name: intercom-cam.service
+    state: stopped
+    enabled: false
+    daemon_reload: true
+  failed_when: false
+
+- name: "Intercom door - Remove legacy camera unit"
+  ansible.builtin.file:
+    path: /etc/systemd/system/intercom-cam.service
+    state: absent
+
 - name: "Intercom door - Enable and start"
   ansible.builtin.systemd:
     name: "{{ item }}"
@@ -213,5 +235,6 @@
   loop:
     - intercom-door.service
     - intercom-audio-rx.service
-    - intercom-cam.service
+    - intercom-cam-video.service
+    - intercom-cam-audio.service
     - mediamtx.service
