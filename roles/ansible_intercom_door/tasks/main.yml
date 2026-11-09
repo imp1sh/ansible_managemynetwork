@@ -54,6 +54,54 @@
     mode: "0644"
   notify: Restart intercom camera
 
+- name: "Intercom door - Download mediamtx release"
+  ansible.builtin.get_url:
+    url: "https://github.com/bluenviron/mediamtx/releases/download/v{{ intercom_mediamtx_version }}/mediamtx_v{{ intercom_mediamtx_version }}_linux_arm64.tar.gz"
+    dest: "/tmp/mediamtx_{{ intercom_mediamtx_version }}.tar.gz"
+    mode: "0644"
+  changed_when: false
+
+- name: "Intercom door - Ensure mediamtx extraction dir"
+  ansible.builtin.file:
+    path: "/tmp/mediamtx_{{ intercom_mediamtx_version }}"
+    state: directory
+    mode: "0755"
+
+- name: "Intercom door - Extract mediamtx"
+  ansible.builtin.unarchive:
+    src: "/tmp/mediamtx_{{ intercom_mediamtx_version }}.tar.gz"
+    dest: "/tmp/mediamtx_{{ intercom_mediamtx_version }}"
+    remote_src: true
+    creates: "/tmp/mediamtx_{{ intercom_mediamtx_version }}/mediamtx"
+
+- name: "Intercom door - Install mediamtx binary"
+  ansible.builtin.copy:
+    src: "/tmp/mediamtx_{{ intercom_mediamtx_version }}/mediamtx"
+    dest: /usr/local/bin/mediamtx
+    remote_src: true
+    owner: root
+    group: root
+    mode: "0755"
+  notify: Restart intercom mediamtx
+
+- name: "Intercom door - mediamtx configuration"
+  ansible.builtin.template:
+    src: mediamtx.yml.j2
+    dest: /etc/mediamtx.yml
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart intercom mediamtx
+
+- name: "Intercom door - mediamtx systemd unit"
+  ansible.builtin.template:
+    src: mediamtx.service.j2
+    dest: /etc/systemd/system/mediamtx.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart intercom mediamtx
+
 - name: "Intercom door - Stop and disable legacy button service"
   ansible.builtin.systemd:
     name: intercom-door-button.service
@@ -81,3 +129,4 @@
     - intercom-door.service
     - intercom-audio-rx.service
     - intercom-cam.service
+    - mediamtx.service

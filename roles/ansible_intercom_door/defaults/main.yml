@@ -49,9 +49,9 @@ intercom_topic_relay: "intercom/door/relay"
 # --- Audioempfaenger (Opus/RTP -> Klinke) ---
 intercom_audio_rx_port: 5004
 
-# --- Kamera (CSI, libcamera/rpicam; Push an go2rtc) ---
-# Der Dienst rpicam-vid | ffmpeg push't H264 an den RTSP-Server von go2rtc
-# (Stream-Quelle in go2rtc bleibt leer, siehe host_vars).
+# --- Kamera (CSI, libcamera/rpicam) ---
+# intercom-cam pusht rpicam-vid (H264) + INMP441 (Opus) an den RTSP-Server
+# mediamtx auf dem Host; go2rtc zieht den Strom als rtsp://-Quelle (preload).
 intercom_cam_device: 0
 intercom_cam_width: 1280
 intercom_cam_height: 720
@@ -61,8 +61,21 @@ intercom_cam_hflip: false
 intercom_cam_vflip: false
 # Freie rpicam-vid-Argumente, z. B. "--flush --denoise cdn_fast --sharpness 1.5"
 intercom_cam_extra_args: ""
-intercom_cam_stream: "cam"
-intercom_cam_rtsp_port: 8554
+
+# --- mediamtx (RTSP-Server auf dem Host, Aufnahme von intercom-cam) ---
+intercom_mediamtx_version: "1.21.3"
+intercom_mediamtx_rtsp_port: 8553
+intercom_mediamtx_path: "door"
+
+# --- Audio (INMP441) im cam-Stream ---
+# Opus im RTSP-Server des Kamera-Dienstes. 48 kbit/s mono, Modus "voip"
+# (sprachoptimiert, SWB ~12 kHz) liegt deutlich ueber G.722;
+# frame_duration 20 ms = ~26 ms Codec-Latenz.
+intercom_cam_audio: true
+intercom_cam_audio_card: "plughw:CARD=sndrpigooglevoi,DEV=0"
+intercom_cam_audio_bitrate: 48000
+intercom_cam_audio_application: "voip"
+intercom_cam_audio_frame_duration: 20
 
 intercom_packages:
   - python3-paho-mqtt

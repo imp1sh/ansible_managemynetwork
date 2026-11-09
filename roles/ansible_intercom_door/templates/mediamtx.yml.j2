@@ -1,0 +1,14 @@
+# Managed by Ansible (role ansible_intercom_door) - do not edit by hand.
+# RTSP-Server auf dem Host: nimmt den Kamera-Push von intercom-cam an
+# (Pfad "door") und stellt den Stream go2rtc / zusaetzlichen Lesern bereit.
+logLevel: info
+api: no
+metrics: no
+pprof: no
+rtspAddress: :{{ intercom_mediamtx_rtsp_port }}
+rtspTransports: [tcp]
+rtmpDisable: yes
+hlsDisable: yes
+webrtcDisable: yes
+paths:
+  {{ intercom_mediamtx_path }}:
