@@ -71,6 +71,14 @@
     group: "{{ intercom_pipewire_user }}"
     mode: "0644"
 
+- name: "Intercom door - System-wide ALSA PCM for level meter"
+  ansible.builtin.template:
+    src: asound-system.conf.j2
+    dest: /etc/asound.conf
+    owner: root
+    group: root
+    mode: "0644"
+
 - name: "Intercom door - Flush handler for PipeWire/WirePlumber restart"
   ansible.builtin.meta: flush_handlers
 

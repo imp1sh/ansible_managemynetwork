@@ -57,9 +57,11 @@ HTTP_HOST = "{{ intercom_http_host }}"
 HTTP_PORT = {{ intercom_http_port }}
 EVENT_BUFFER = {{ intercom_event_buffer }}
 
-# Schallpegel: RMS aus dem Mikrofon-Stream, dB SPL = dBFS + Offset
+# Schallpegel: RMS aus dem ROHMikrofon (PipeWire rawmic, ohne AEC),
+# dB SPL = dBFS + Offset
 LEVEL_ENABLED = {{ 'True' if intercom_level_meter else 'False' }}
 LEVEL_SOURCE = "{{ intercom_level_source }}"
+LEVEL_XDG_RUNTIME = "{{ intercom_level_xdg_runtime }}"
 LEVEL_SPL_OFFSET = {{ intercom_level_spl_offset }}
 
 TOPIC_LEGACY = "{{ intercom_topic_event }}"
@@ -250,12 +252,16 @@ class LevelMeter(threading.Thread):
         while True:
             proc = None
             try:
+                # Rohmikrofon (rawmic PCM) direkt lesen — ohne AEC/NS,
+                # damit die Anzeige die akustische Realitaet zeigt.
+                env = dict(os.environ)
+                env["XDG_RUNTIME_DIR"] = LEVEL_XDG_RUNTIME
                 proc = subprocess.Popen(
                     ["ffmpeg", "-hide_banner", "-loglevel", "error",
-                     "-rtsp_transport", "tcp", "-i", LEVEL_SOURCE,
-                     "-map", "0:a", "-f", "s16le", "-ar", "16000",
+                     "-f", "alsa", "-i", LEVEL_SOURCE,
+                     "-f", "s16le", "-ar", "16000",
                      "-ac", "1", "-"],
-                    stdout=subprocess.PIPE)
+                    stdout=subprocess.PIPE, env=env)
                 fd = proc.stdout.fileno()
                 buf = bytearray()
                 while True:

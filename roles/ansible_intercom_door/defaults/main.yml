@@ -60,12 +60,13 @@ intercom_pipewire_user_home: "/var/lib/intercom"
 intercom_pipewire_mic_node: "alsa_input.platform-soc_sound.stereo-fallback"
 intercom_pipewire_speaker_node: "alsa_output.usb-Jieli_Technology_USB_Composite_Device_A58D8A99786C4453-01.analog-stereo"
 
-# --- Schallpegel-Messung am Tuer-Mikrofon (SPL-Schaetzung) ---
-# Ein zusaetzlicher ffmpeg-Prozess dekodiert den Opus-Stream des Mikrofons
-# (mediamtx) und misst RMS -> dBFS; dB SPL = dBFS + Offset
-# (INMP441: ~-26 dBFS bei 94 dB SPL => Offset 120).
+# --- Schallpegel-Messung (SPL-Schaetzung) am Tuer-Mikrofon ---
+# Der Pegelmesser liest das ROHMikrofon (ohne AEC/NS), damit die Anzeige
+# die akustische Realitaet an der Tuer zeigt. XDG_RUNTIME_DIR verbindet
+# den ffmpeg-Prozess mit der PipeWire-Session des Users intercom.
 intercom_level_meter: true
-intercom_level_source: "rtsp://127.0.0.1:8553/door"
+intercom_level_source: "rawmic"
+intercom_level_xdg_runtime: "/run/user/{{ intercom_pipewire_uid | default('999') }}"
 intercom_level_spl_offset: 120
 
 # --- Kamera (CSI, libcamera/rpicam) ---

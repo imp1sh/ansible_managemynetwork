@@ -1,0 +1,11 @@
+# Managed by Ansible (role ansible_intercom_door) - do not edit by hand.
+# System-weite ALSA-PCMs: Zugriff auf die PipeWire-Session des Users intercom
+# (fuer Pegelmessung und Diagnose; XDG_RUNTIME_DIR noetig).
+# rawmic  = INMP441 (I2S, soc_sound) direkt - ohne AEC (Pegelmessung)
+pcm.rawmic {
+  type plug
+  slave.pcm {
+    type pipewire
+    capture_node "{{ intercom_pipewire_mic_node }}"
+  }
+}
