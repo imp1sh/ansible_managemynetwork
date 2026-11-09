@@ -65,18 +65,26 @@ intercom_pipewire_speaker_node: "alsa_output.usb-Jieli_Technology_USB_Composite_
 # die akustische Realitaet an der Tuer zeigt. XDG_RUNTIME_DIR verbindet
 # den ffmpeg-Prozess mit der PipeWire-Session des Users intercom.
 # Offset: INMP441 liefert -26 dBFS bei 94 dB SPL (120 dB Differenz).
-# Der Node-Volume (intercom_mic_volume 3.0 = +20.4 dB, Tong-Test 2026-11-09)
-# hebt das Signal digital an -> Offset um den Gain reduzieren.
+# Der Node-Volume (intercom_mic_volume) hebt das Signal digital an;
+# wpctl-Skala ist KUBISCH (linear = v^3, per pw-dump verifiziert):
+# 3.0 -> 27-fach = +28.6 dB -> Offset 120 - 28.6 = 91.4.
 intercom_level_meter: true
 intercom_level_source: "rawmic"
 intercom_level_xdg_runtime: "/run/user/{{ intercom_pipewire_uid | default('999') }}"
-intercom_level_spl_offset: 99.5
+intercom_level_spl_offset: 91.4
 
-# --- Mikrofon-Pegel (INMP441) als Default ---
-# Node-Volume in der PipeWire-Session (wpctl-Skala). 3.0 = ca. +20 dB
-# gegenueber 1.0 (gemessen: kontrollierter Tong-Test, 2026-11-09).
-# Wird nach jedem PipeWire-Start von set-mic-volume.service neu gesetzt.
+# --- Mikrofon-Empfindlichkeit (INMP441) ---
+# Node-Volume in der PipeWire-Session, wpctl-Skala (kubisch: linear = v^3):
+# 1.0 = 0 dB, 2.0 = +18.1 dB, 3.0 = +28.6 dB, 4.0 = +36.1 dB.
+# set-mic-volume.service setzt den Wert nach jedem PipeWire-Start neu;
+# Aenderungen ueber die WebGUI landen in intercom_mic_volume_file und
+# ueberleben damit Reboots.
 intercom_mic_volume: "3.0"
+intercom_mic_volume_file: "/var/lib/intercom/mic_volume"
+intercom_mic_volume_max: "4.0"
+
+# Mikrofon-Empfindlichkeit ueber WebGUI/API einstellbar (wpctl via runuser)
+intercom_mic_control: true
 
 # --- Kamera (CSI, libcamera/rpicam) ---
 # intercom-cam pusht rpicam-vid (H264) + INMP441 (Opus) an den RTSP-Server

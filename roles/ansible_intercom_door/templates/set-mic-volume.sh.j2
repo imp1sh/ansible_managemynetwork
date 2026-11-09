@@ -1,17 +1,18 @@
 #!/bin/sh
-# Mikrofon-Pegel (INMP441 via soc_sound) in der PipeWire-Session setzen.
-# Grund: Der INMP441 hat eine feste Analog-Verstaerkung; Sprache kommt roh
-# nur mit ca. -50 dBFS an. Der Node-Volume hebt das Signal digital an
-# (3.0 = ca. +20 dB, gemessen 2026-11-09 per kontrolliertem Tong-Test),
-# damit der Opus-Stream (intercom-cam-audio) und die SPL-Schaetzung
-# (intercom-door Level-Meter) auf gesundem Pegel liegen.
-# Das Skript laeuft als User-Service in der intercom-Session (linger);
-# Node-IDs wechseln zwischen Neustarts -> Suche ueber den Node-Namen.
+# Mikrofon-Empfindlichkeit (INMP441 via soc_sound) in der PipeWire-Session
+# setzen. Laeuft als User-Service in der intercom-Session (linger) nach
+# jedem PipeWire-/WirePlumber-(Re)Start, weil Nodes dabei ihr Volume
+# verlieren.
+# Quelle des Soll-Werts (Reihenfolge):
+#   1. /var/lib/intercom/mic_volume  — letzte Einstellung aus der WebGUI
+#   2. intercom_mic_volume (Ansible-Default, gerendert unten)
+# wpctl-Skala ist kubisch (linear = v^3): 3.0 = 27-fach = +28.6 dB.
 # Managed by Ansible (role ansible_intercom_door) - do not edit by hand.
 export XDG_RUNTIME_DIR=/run/user/$(id -u)
 export HOME={{ intercom_pipewire_user_home }}
 
-VOLUME="{{ intercom_mic_volume }}"
+VOLUME="$(cat {{ intercom_mic_volume_file }} 2>/dev/null || true)"
+[ -n "$VOLUME" ] || VOLUME="{{ intercom_mic_volume }}"
 MIC_NODE="{{ intercom_pipewire_mic_node }}"
 
 # Nach dem Boot dauert die Knoten-Registrierung einen Moment -> retry.
