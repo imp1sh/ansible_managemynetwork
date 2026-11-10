@@ -544,7 +544,7 @@ def on_connect(cl, userdata, flags, rc, properties=None):
         m_mqtt_connected.set(0)
 
 
-def on_disconnect(cl, userdata, flags, rc, properties=None):
+def on_disconnect(cl, userdata, flags=None, rc=None, properties=None):
     global mqtt_connected
     mqtt_connected = False
     m_mqtt_connected.set(0)
@@ -563,9 +563,9 @@ def on_message(cl, userdata, msg):
 def mqtt_setup():
     global client
     try:
-        client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION1,
+        client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2,
                              client_id="intercom-door")
-    except AttributeError:  # aeltere paho-Version
+    except AttributeError:  # aeltere paho-Version ohne CallbackAPIVersion
         client = mqtt.Client(client_id="intercom-door")
     client.will_set(TOPIC_PRESENCE, "offline", qos=1, retain=True)
     client.tls_set(ca_certs=CA)

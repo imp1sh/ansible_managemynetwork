@@ -227,7 +227,7 @@ def on_connect(client, userdata, flags, rc, properties=None):
         mqtt_connected = False
 
 
-def on_disconnect(client, userdata, flags, rc, properties=None):
+def on_disconnect(client, userdata, flags=None, rc=None, properties=None):
     global mqtt_connected
     mqtt_connected = False
 
@@ -577,7 +577,11 @@ if LED_GPIO is not None:
     from gpiozero import LED
     led = LED(LED_GPIO)
 
-client = mqtt.Client(client_id="intercomd-intercombasement")
+try:
+    client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2,
+                         client_id="intercomd-intercombasement")
+except AttributeError:  # aeltere paho-Version ohne CallbackAPIVersion
+    client = mqtt.Client(client_id="intercomd-intercombasement")
 client.will_set("intercom/indoor/intercombasement/state",
                 json.dumps({"call": "idle", "ts": 0}), qos=1, retain=True)
 client.tls_set(ca_certs=CA)
