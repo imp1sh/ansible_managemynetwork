@@ -1,17 +1,25 @@
 #!/usr/bin/env python3
 # Managed by Ansible (role ansible_intercom_indoor) - do not edit by hand.
-"""Uplink-Sender (INMP441 -> Opus/RTP) mit Stille-Waechter.
+"""Uplink-Sender (INMP441 -> Opus/RTP) mit AEC-Referenz-Fallback.
 
-Hintergrund (2026-11-10): Der PipeWire-ALSA-Capture kann bei Stream-
-Neuverbindungen sporadisch in einen digital-stillen Zustand geraten —
-aecsrc liefert dann exakt Nullen, waehrend der Raum hoerbar ist
-(beobachtet: 180-s-Aufnahme komplett -120 dB). Nur eine neue
-Capture-Verbindung heilt das.
+Hintergrund (2026-11-10, reproduziert): Der Echo-Cancel-Filter liefert nur
+dann Ausgabe, wenn sein Referenz-Eingang (aec.sink, gespeist vom Downlink
+der App) Daten liefert. Bleibt der Downlink stehen, wird aecsrc exakt
+digital still (-120 dB), obwohl das Mikrofon einwandfrei ist — der Filter
+bekommt schlicht keinen Referenzblock. Ein Neustart des Senders hilft
+dagegen NICHT (die Quelle bleibt stumm); nur neue Downlink-Daten oder ein
+Neustart des Filters helfen.
 
-Der Waechter prueft waehrend aktiver Uplinks alle 10 s eine kurze
-aecsrc-Probe (1 s). Ein normaler Raum liegt bei ca. -50..-60 dBFS
-(Mikro-Gain 2.0); digitale Stille ist < -85 dBFS. Nach 3 stillen
-Proben in Folge wird gst-launch neu gestartet.
+Strategie:
+- Normal: aecsrc (echo-bereinigt).
+- Wird aecsrc 2 Proben (~10 s) digital still, auf rawmic umschalten.
+  Das ist gefahrlos: ohne AEC-Referenz spielt auch nichts am lokalen
+  Lautsprecher, es gibt also keinen Echo, der unterdrueckt werden muesste.
+- Wird aecsrc wieder hoerbar (1 Probe), zurueck auf aecsrc.
+- Ist rawmic selbst digital still (3 Proben), Capture neu starten.
+
+Eine normale Raumprobe liegt bei ca. -50..-80 dBFS (Mikro-Gain 2.0);
+digitale Stille ist < -85 dBFS.
 """
 import array
 import math
@@ -45,40 +53,59 @@ signal.signal(signal.SIGTERM, _on_term)
 if not os.environ.get("XDG_RUNTIME_DIR"):
     os.environ["XDG_RUNTIME_DIR"] = "/run/user/%d" % os.getuid()
 
-PIPELINE = [
-    "/usr/bin/gst-launch-1.0", "-e",
-    "alsasrc", "device={{ intercom_mic_alsa_device }}",
-    "buffer-time=50000", "latency-time=10000", "!",
-    "audio/x-raw,channels=2", "!",
-    "deinterleave", "name=chan", "chan.src_0", "!",
-    "queue", "!",
-    "audioconvert", "!", "audioresample", "!",
-    "audio/x-raw,rate=48000,channels=1", "!",
-    "volume", "volume={{ intercom_audio_tx_volume }}", "!",
-    "opusenc", "bitrate=32000", "frame-size=10", "audio-type=voice", "!",
-    "rtpopuspay", "pt=96", "!",
-    "udpsink", "host={{ intercom_audio_tx_host }}",
-    "port={{ intercom_audio_tx_port }}", "sync=false",
-]
-
-PROBE = ["/usr/bin/arecord", "-D", "aecsrc", "-d", "1",
-         "-f", "S16_LE", "-r", "48000", "-c", "1", "-q"]
+AEC_DEVICE = "{{ intercom_mic_alsa_device }}"
+RAW_DEVICE = "rawmic"
 SILENCE_DB = -85.0
-MAX_SILENT = 3       # aufeinanderfolgende stille Proben bis Neustart
-PROBE_INTERVAL = 5  # s
+PROBE_INTERVAL = 5      # s zwischen den Proben
+MAX_SILENT_AEC = 2      # ~10 s ohne AEC-Referenz -> Fallback rawmic
+MAX_SILENT_RAW = 3      # ~15 s rawmic still -> Capture-Neustart
+RECOVER_AEC = 1         # 1 hoerbare Probe -> zurueck auf aecsrc
+                        # (kurz halten: waehrend rawmic laeuft, wuerde
+                        #  der eigene Lautsprecher als Echo zurueckgehen)
 
 
-def probe_db():
-    """Kurzprobe des Uplink-Signals -> Pegel in dBFS (None bei Fehler)."""
+def build_pipeline(device):
+    return [
+        "/usr/bin/gst-launch-1.0", "-e",
+        "alsasrc", "device=" + device,
+        "buffer-time=50000", "latency-time=10000", "!",
+        "audio/x-raw,channels=2", "!",
+        "deinterleave", "name=chan", "chan.src_0", "!",
+        "queue", "!",
+        "audioconvert", "!", "audioresample", "!",
+        "audio/x-raw,rate=48000,channels=1", "!",
+        "volume", "volume={{ intercom_audio_tx_volume }}", "!",
+        "opusenc", "bitrate=32000", "frame-size=10", "audio-type=voice", "!",
+        "rtpopuspay", "pt=96", "!",
+        "udpsink", "host={{ intercom_audio_tx_host }}",
+        "port={{ intercom_audio_tx_port }}", "sync=false",
+    ]
+
+
+def probe_db(device):
+    """Kurzprobe des angegebenen PCMs -> Pegel in dBFS (None bei Fehler).
+
+    Wichtig: Die erste halbe Sekunde wird verworfen. Der ALSA-PipeWire-
+    Client erzeugt beim Start immer einen kurzen Knack/Transienten
+    (ca. -40 dBFS ueber die volle Sekunde), der eine stille Quelle als
+    "laut" erscheinen laesst. Erst der Rest des Puffers zeigt den echten
+    Pegel (-120 dBFS bei starrer AEC-Quelle, ca. -70 dBFS bei Raum).
+    """
+    cmd = ["/usr/bin/arecord", "-D", device, "-d", "1",
+           "-f", "S16_LE", "-r", "48000", "-c", "1", "-q"]
     try:
-        out = subprocess.run(PROBE, capture_output=True, timeout=10).stdout
+        out = subprocess.run(cmd, capture_output=True, timeout=10).stdout
     except Exception:
         return None
-    if len(out) < 4800:  # weniger als ~0.05 s Audio
-        return None
     samples = array.array("h", out[: len(out) // 2 * 2])
-    step = max(1, len(samples) // 2000)
-    vals = samples[::step]
+    if len(samples) < 12000:  # weniger als ~0.25 s Audio
+        return None
+    skip = min(len(samples) // 2, 24000)  # erste ~0.5 s verwerfen
+    vals = samples[skip:]
+    if len(vals) < 4800:
+        return None
+    step = max(1, len(vals) // 2000)
+    vals = vals[::step]
     acc = sum(v * v for v in vals)
     rms = (acc / len(vals)) ** 0.5 / 32768.0
     if rms <= 0:
@@ -86,11 +113,13 @@ def probe_db():
     return 20.0 * math.log10(rms)
 
 
-def run_pipeline():
-    print("intercom-tx: Sender startet (aecsrc -> Opus/RTP)", flush=True)
-    proc = subprocess.Popen(PIPELINE)
+def run_pipeline(state):
+    device = state["device"]
+    print("intercom-tx: Sender startet (%s -> Opus/RTP)" % device, flush=True)
+    proc = subprocess.Popen(build_pipeline(device))
     _running["proc"] = proc
     silent = 0
+    aec_audible = 0
     try:
         while True:
             time.sleep(PROBE_INTERVAL)
@@ -98,19 +127,48 @@ def run_pipeline():
                 print("intercom-tx: gst-launch beendet (%s)"
                       % proc.returncode, flush=True)
                 break
-            db = probe_db()
+            db = probe_db(device)
             if db is None:
                 continue
-            if db <= SILENCE_DB:
-                silent += 1
-                print("intercom-tx: aecsrc digital still (%.1f dB, %d/%d)"
-                      % (db, silent, MAX_SILENT), flush=True)
-                if silent >= MAX_SILENT:
-                    print("intercom-tx: Capture haengt -> Neuverbindung",
-                          flush=True)
-                    break
+            if device == AEC_DEVICE:
+                if db <= SILENCE_DB:
+                    silent += 1
+                    print("intercom-tx: aecsrc digital still (%.1f dB, %d/%d)"
+                          % (db, silent, MAX_SILENT_AEC), flush=True)
+                    if silent >= MAX_SILENT_AEC:
+                        print("intercom-tx: AEC-Referenz fehlt -> Fallback "
+                              "auf rawmic (kein Echo ohne Downlink)",
+                              flush=True)
+                        state["device"] = RAW_DEVICE
+                        break
+                else:
+                    silent = 0
             else:
-                silent = 0
+                # Auf rawmic: parallel pruefen, ob die AEC-Quelle wieder
+                # Daten liefert (Downlink zurueck). Dann zurueckwechseln.
+                aec_db = probe_db(AEC_DEVICE)
+                if aec_db is not None and aec_db > SILENCE_DB:
+                    aec_audible += 1
+                    print("intercom-tx: aecsrc wieder hoerbar (%.1f dB, "
+                          "%d/%d)" % (aec_db, aec_audible, RECOVER_AEC),
+                          flush=True)
+                    if aec_audible >= RECOVER_AEC:
+                        print("intercom-tx: AEC-Referenz wieder da -> "
+                              "zurueck auf aecsrc", flush=True)
+                        state["device"] = AEC_DEVICE
+                        break
+                else:
+                    aec_audible = 0
+                if db <= SILENCE_DB:
+                    silent += 1
+                    print("intercom-tx: rawmic digital still (%.1f dB, %d/%d)"
+                          % (db, silent, MAX_SILENT_RAW), flush=True)
+                    if silent >= MAX_SILENT_RAW:
+                        print("intercom-tx: Capture haengt -> Neuverbindung",
+                              flush=True)
+                        break
+                else:
+                    silent = 0
     finally:
         if proc.poll() is None:
             proc.send_signal(signal.SIGTERM)
@@ -121,6 +179,7 @@ def run_pipeline():
         _running["proc"] = None
 
 
+STATE = {"device": AEC_DEVICE}
 while True:
-    run_pipeline()
+    run_pipeline(STATE)
     time.sleep(2)

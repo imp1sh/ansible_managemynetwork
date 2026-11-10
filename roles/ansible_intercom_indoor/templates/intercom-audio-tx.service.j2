@@ -4,10 +4,12 @@ After=network-online.target
 Wants=network-online.target
 
 [Service]
-# Wrapper-Skript mit Stille-Waechter: prueft aecsrc regelmaessig und
-# verbindet bei digital-stillem Capture automatisch neu (Details im
-# Skript-Kopf). XDG_RUNTIME_DIR setzt das Skript selbst (System-Services
-# erhalten es nicht automatisch).
+# Wrapper-Skript mit AEC-Referenz-Waechter: prueft aecsrc regelmaessig.
+# Bleibt die AEC-Referenz (Downlink) aus, wird aecsrc digital still; dann
+# schaltet der Sender auf rawmic um (ohne Downlink gibt es keinen Echo)
+# und spaeter automatisch zurueck. Details im Skript-Kopf.
+# XDG_RUNTIME_DIR setzt das Skript selbst (System-Services erhalten es
+# nicht automatisch).
 User={{ intercom_pipewire_user }}
 Group={{ intercom_pipewire_user }}
 ExecStart=/usr/bin/python3 /opt/intercom/intercom-audio-tx.py
