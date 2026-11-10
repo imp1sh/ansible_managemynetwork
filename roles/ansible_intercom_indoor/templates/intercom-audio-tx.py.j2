@@ -65,14 +65,19 @@ RECOVER_AEC = 1         # 1 hoerbare Probe -> zurueck auf aecsrc
 
 
 def build_pipeline(device):
+    # WICHTIG: Die INMP441 liefert ihr Signal je nach L/R-Verdrahtung auf
+    # Kanal 0 ODER Kanal 1; der jeweils andere Kanal ist digital still
+    # (-120 dBFS). Frueher wurde fest Kanal 0 entnommen — bei Kanal-1-
+    # Verdrahtung wurde damit Stille gesendet. Jetzt werden beide Kanaele
+    # mit 1.0/1.0 zu Mono summiert: der stille Kanal traegt nichts bei,
+    # der aktive kommt mit vollem Pegel durch (verifiziert 2026-11-10:
+    # Innen-rawmic Kanal 0 = -120 dB, Kanal 1 = -20.9 dB).
     return [
         "/usr/bin/gst-launch-1.0", "-e",
         "alsasrc", "device=" + device,
         "buffer-time=50000", "latency-time=10000", "!",
         "audio/x-raw,channels=2", "!",
-        "deinterleave", "name=chan", "chan.src_0", "!",
-        "queue", "!",
-        "audioconvert", "!", "audioresample", "!",
+        "audioconvert", "mix-matrix=<<1.0,1.0>>", "!",
         "audio/x-raw,rate=48000,channels=1", "!",
         "volume", "volume={{ intercom_audio_tx_volume }}", "!",
         "opusenc", "bitrate=32000", "frame-size=10", "audio-type=voice", "!",
