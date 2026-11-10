@@ -1,32 +1,41 @@
 #!/bin/sh
-# Mikrofon-Empfindlichkeit (INMP441 via soc_sound) in der PipeWire-Session
-# setzen. Laeuft als User-Service in der intercom-Session (linger) nach
-# jedem PipeWire-/WirePlumber-(Re)Start, weil Nodes dabei ihr Volume
-# verlieren.
-# Quelle des Soll-Werts (Reihenfolge):
-#   1. /var/lib/intercom/mic_volume  — letzte Einstellung aus der WebGUI
-#   2. intercom_mic_volume (Ansible-Default, gerendert unten)
-# wpctl-Skala ist kubisch (linear = v^3): 3.0 = 27-fach = +28.6 dB.
+# Setzt die Audio-Pegel der intercom-Session nach jedem PipeWire-Start:
+#   - Mikrofon-Quelle (INMP441/soc_sound): intercom_mic_volume (wpctl-Skala)
+#   - Tuer-Lautsprecher (USB/Jieli-Sink): intercom_speaker_volume
+# Grund Lautsprecher: WirePlumber restauriert Sink-Volumes aus dem eigenen
+# State; ein alter Wert (0.4 = -24 dB) machte den Uplink (Innen -> Tuer)
+# praktisch unhoerbar — seither erzwingt dieser Dienst 1.0 (100%).
+# Node-IDs wechseln zwischen Neustarts -> Suche ueber den Node-Namen.
 # Managed by Ansible (role ansible_intercom_door) - do not edit by hand.
 export XDG_RUNTIME_DIR=/run/user/$(id -u)
 export HOME={{ intercom_pipewire_user_home }}
 
-VOLUME="$(cat {{ intercom_mic_volume_file }} 2>/dev/null || true)"
-[ -n "$VOLUME" ] || VOLUME="{{ intercom_mic_volume }}"
+MIC_VOLUME="$(cat {{ intercom_mic_volume_file }} 2>/dev/null || true)"
+[ -n "$MIC_VOLUME" ] || MIC_VOLUME="{{ intercom_mic_volume }}"
 MIC_NODE="{{ intercom_pipewire_mic_node }}"
+SPK_NODE="{{ intercom_pipewire_speaker_node }}"
+SPK_VOLUME="{{ intercom_speaker_volume }}"
 
-# Nach dem Boot dauert die Knoten-Registrierung einen Moment -> retry.
-try=0
-while [ "$try" -lt 15 ]; do
-    for id in $(wpctl status 2>/dev/null | sed -n '/Sources:/,/Filters:/p' | grep -oE '[0-9]+\.' | tr -d '.'); do
-        if wpctl inspect "$id" 2>/dev/null | grep -q "node.name = \"${MIC_NODE}\""; then
-            wpctl set-volume "$id" "$VOLUME"
-            echo "intercom: Mikrofon-Volume ${VOLUME} gesetzt (Node ${id}, ${MIC_NODE})"
-            exit 0
+set_node_volume() {
+    # $1 Node-Name, $2 Volume, $3 Startmarker, $4 Endmarker der wpctl-Sektion
+    for id in $(wpctl status 2>/dev/null | sed -n "/$3/,/$4/p" | grep -oE '[0-9]+\.' | tr -d '.'); do
+        if wpctl inspect "$id" 2>/dev/null | grep -q "node.name = \"$1\""; then
+            wpctl set-volume "$id" "$2"
+            echo "intercom: ${1} -> Volume ${2} (Node ${id})"
+            return 0
         fi
     done
+    return 1
+}
+
+try=0
+while [ "$try" -lt 15 ]; do
+    ok=1
+    set_node_volume "$MIC_NODE" "$MIC_VOLUME" "Sources:" "Filters:" || ok=0
+    set_node_volume "$SPK_NODE" "$SPK_VOLUME" "Sinks:" "Sources:" || ok=0
+    [ "$ok" -eq 1 ] && exit 0
     try=$((try + 1))
     sleep 2
 done
-echo "intercom: WARNUNG - Mikrofon-Quelle ${MIC_NODE} nicht gefunden, Volume nicht gesetzt" >&2
+echo "intercom: WARNUNG - Audio-Nodes nicht vollstaendig gefunden" >&2
 exit 0

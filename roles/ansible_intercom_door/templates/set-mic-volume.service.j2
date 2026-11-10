@@ -4,7 +4,7 @@
 # ihr Volume bei Neuregistrierung). PartOf sorgt dafuer, dass der Dienst
 # beim Neustart von pipewire/wireplumber mitlaeuft und das Volume neu setzt.
 [Unit]
-Description=Intercom: Mikrofon-Volume (INMP441) setzen
+Description=Intercom: Audio-Pegel (Mikrofon + Lautsprecher) setzen
 After=pipewire.service wireplumber.service
 Wants=pipewire.service wireplumber.service
 PartOf=pipewire.service wireplumber.service

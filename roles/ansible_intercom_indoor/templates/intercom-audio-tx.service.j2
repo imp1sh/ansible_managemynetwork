@@ -1,10 +1,15 @@
 [Unit]
-Description=Intercom audio sender (HyperX -> Opus RTP)
+Description=Intercom audio sender (INMP441 -> Opus RTP)
 After=network-online.target
 Wants=network-online.target
 
 [Service]
-ExecStart=/usr/bin/gst-launch-1.0 -e alsasrc device=plughw:CARD=Sound,DEV=0 buffer-time=50000 latency-time=10000 ! audioconvert ! audioresample ! audio/x-raw,rate=48000,channels=1 ! opusenc bitrate=32000 frame-size=10 audio-type=voice ! rtpopuspay pt=96 ! udpsink host={{ intercom_audio_tx_host }} port={{ intercom_audio_tx_port }} sync=false
+# INMP441 (I2S-Karte sndrpigooglevoi): Das Signal liegt auf Kanal 0 (links,
+# da L/R an GND), Kanal 1 ist digital stumm. deinterleave nimmt gezielt
+# Kanal 0 heraus (statt beide zu mischen, was -6 dB kosten wuerde).
+# volume hebt den Pegel vor dem Opus-Encoding an (siehe
+# intercom_audio_tx_volume, Default +12 dB).
+ExecStart=/usr/bin/gst-launch-1.0 -e alsasrc device={{ intercom_mic_alsa_device }} buffer-time=50000 latency-time=10000 ! audio/x-raw,channels=2 ! deinterleave name=chan chan.src_0 ! queue ! audioconvert ! audioresample ! audio/x-raw,rate=48000,channels=1 ! volume volume={{ intercom_audio_tx_volume }} ! opusenc bitrate=32000 frame-size=10 audio-type=voice ! rtpopuspay pt=96 ! udpsink host={{ intercom_audio_tx_host }} port={{ intercom_audio_tx_port }} sync=false
 Restart=on-failure
 RestartSec=2
 

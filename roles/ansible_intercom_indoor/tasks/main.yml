@@ -16,6 +16,15 @@
       - gstreamer1.0-alsa
     state: present
 
+# ---------------- Boot-Konfiguration (config.txt) ----------------
+- name: "Intercom indoor - Manage config.txt overlay (INMP441 mic)"
+  ansible.builtin.blockinfile:
+    path: "{{ intercom_config_txt_path }}"
+    marker: "# {mark} ANSIBLE MANAGED - role ansible_intercom_indoor"
+    block: "{{ intercom_config_txt_block }}"
+  # Das I2S-Overlay laedt nur beim Boot -> Reboot-Handler.
+  notify: Reboot intercom indoor for config.txt
+
 - name: "Intercom indoor - Ensure directory"
   ansible.builtin.file:
     path: /opt/intercom

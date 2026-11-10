@@ -10,3 +10,24 @@ intercom_ring_timeout: 30
 intercom_led_gpio: null
 intercom_audio_tx_host: "fd01:4dd0:28d4::6923"
 intercom_audio_tx_port: 5004
+
+# --- Boot-Konfiguration (config.txt): Overlay fuer INMP441 ---
+# Gleiche Verdrahtung wie an der Tuerstation (GPIO18/19/20, L/R an GND,
+# siehe WIRING.md). Das Overlay erstellt die ALSA-Karte sndrpigooglevoi;
+# Aenderungen wirken erst nach einem Reboot (Handler).
+intercom_config_txt_path: "/boot/firmware/config.txt"
+intercom_config_txt_block: |
+  # Intercom indoor: INMP441 I2S-Mikrofon (GPIO18/19/20, siehe WIRING.md)
+  dtoverlay=googlevoicehat-soundcard
+
+# --- Mikrofon-Quelle (INMP441) ---
+# ALSA-Geraet der I2S-Karte (Kanal 0 = linker Kanal traegt das Signal,
+# da L/R an GND liegt). Gilt fuer intercom-audio-tx; die App uebersteuert
+# per INTERCOM_MIC_SRC (Default dort identisch).
+intercom_mic_alsa_device: "plughw:CARD=sndrpigooglevoi,DEV=0"
+
+# --- Uplink-Pegel (Digital-Gain vor Opus-Encoding) ---
+# INMP441-Sprache liegt roh bei ca. -55 dBFS; +12 dB (4.0x linear) bringt
+# die Sprache auf einen gesunden Pegel am Tuer-Lautsprecher. Auf 1.0
+# setzen, um zunaechst unveraerstert zu messen.
+intercom_audio_tx_volume: "4.0"
