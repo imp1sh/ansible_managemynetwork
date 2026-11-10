@@ -103,12 +103,13 @@ _events_lock = threading.Lock()
 _event_ids = itertools.count(1)
 
 # ----------------------------------------------------------------- Metriken
+m_up = Gauge("intercom_door_up", "Daemon laeuft (1)")
 m_button_presses = Counter(
-    "intercom_door_button_presses", "Tasterbet betaetigungen", ["event", "source"])
+    "intercom_door_button_presses_total", "Tasterbetaetigungen", ["event", "source"])
 m_relay_pulses = Counter(
-    "intercom_door_relay_pulses", "Gong-Relais Impulse", ["source", "success"])
+    "intercom_door_relay_pulses_total", "Gong-Relais Impulse", ["source", "success"])
 m_relay_failures = Counter(
-    "intercom_door_relay_failures", "Fehlgeschlagene Relais-Impulse")
+    "intercom_door_relay_failures_total", "Fehlgeschlagene Relais-Impulse")
 m_temperature = Gauge(
     "intercom_door_temperature_celsius", "SHTC3 Temperatur in Celsius")
 m_humidity = Gauge(
@@ -119,6 +120,8 @@ m_sensor_up = Gauge(
     "intercom_door_sensor_up", "Sensor verfuegbar (1/0)")
 m_call_active = Gauge(
     "intercom_door_call_active", "Gespraech aktiv (1/0)")
+m_call_ringing = Gauge(
+    "intercom_door_call_ringing", "Klingel-Modus (1/0)")
 m_mqtt_connected = Gauge(
     "intercom_door_mqtt_connected", "MQTT verbunden (1/0)")
 m_sound_dbfs = Gauge(
@@ -128,9 +131,12 @@ m_sound_spl = Gauge(
     "Geschaetzter Schalldruck am Tuermikrofon (dB SPL, re 20 uPa)")
 m_sound_peak = Gauge(
     "intercom_door_sound_peak_dbfs", "Spitzenpegel seit Start (dBFS)")
+m_uptime = Gauge(
+    "intercom_door_uptime_seconds", "Daemon-Laufzeit in s")
 m_mic_volume = Gauge(
     "intercom_door_mic_volume",
     "Mikrofon-Empfindlichkeit, wpctl-Skala (linear = v^3)")
+m_up.set(1)
 
 
 def now_iso():
@@ -556,8 +562,14 @@ def on_message(cl, userdata, msg):
         payload = json.loads(msg.payload.decode())
     except Exception:
         return
-    call_active = payload.get("call") == "active"
+    call = payload.get("call")
+    call_active = call == "active"
     m_call_active.set(1 if call_active else 0)
+    # Klingel beendet, wenn die Innenseite abnimmt (active) oder in den
+    # Idle-Zustand zurueckfaellt (Ring-Timeout / Auflegen) — nur waehrend
+    # die Innenseite selbst im Klingel-Modus steht, bleibt die 1 stehen.
+    if call_active or call == "idle":
+        m_call_ringing.set(0)
 
 
 def mqtt_setup():
@@ -705,6 +717,7 @@ def handle_press(source):
     event = "hangup" if call_active else "ring"
     call = "active" if call_active else "idle"
     entry = record_button_event(source, event, call)
+    m_call_ringing.set(1 if event == "ring" else 0)
     if event == "ring" or GONG_ON_HANGUP:
         relay_entry = gong.pulse(source=source, trigger=event,
                                 button_event_id=entry["id"])
@@ -737,6 +750,7 @@ api = FastAPI(title="intercom-door", version=APP_VERSION)
 
 @api.get("/metrics")
 def api_metrics():
+    m_uptime.set(time.time() - STARTED_TS)
     from fastapi.responses import Response
     return Response(generate_latest(), media_type=CONTENT_TYPE_LATEST)
 
