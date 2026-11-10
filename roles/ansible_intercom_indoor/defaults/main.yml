@@ -41,9 +41,10 @@ intercom_pipewire_user: "intercom"
 intercom_pipewire_user_home: "/var/lib/intercom"
 intercom_pipewire_mic_node: "alsa_input.platform-soc_sound.stereo-fallback"
 intercom_pipewire_speaker_node: "alsa_output.usb-Jieli_Technology_USB_Composite_Device_B58D8A9978704453-01.analog-stereo"
-# Speex statt WebRTC: lineare Echokompensation, laesst die Gegenseite beim
-# gleichzeitigen Sprechen durch (Messreihe an der Tuerstation, 2026-11-10).
-intercom_pipewire_aec_method: "speex"
+# PipeWire 1.4 ignoriert "aec.method" (deprecated); explizit WebRTC, weil
+# auf den Geraeten nur libspa-aec-webrtc.so installiert ist. Die frueheren
+# Speex-Notizen beruhten auf der wirkungslosen aec.method-Option.
+intercom_pipewire_aec_library: "aec/libspa-aec-webrtc"
 # Lautsprecher-Sink-Pegel (wpctl-Skala): 1.0 = 100%. Wird nach jedem
 # Session-Start erzwungen (analog zur Tuerstation, wo ein alter State von
 # 0.4 den Uplink um -24 dB daempfte). Ueber die WebGUI aenderbar; der Wert

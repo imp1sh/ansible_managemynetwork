@@ -60,15 +60,15 @@ intercom_pipewire_user_home: "/var/lib/intercom"
 intercom_pipewire_mic_node: "alsa_input.platform-soc_sound.stereo-fallback"
 intercom_pipewire_speaker_node: "alsa_output.usb-Jieli_Technology_USB_Composite_Device_A58D8A99786C4453-01.analog-stereo"
 
-# --- AEC-Methode (pipewire module-echo-cancel) ---
-# "speex": lineare Echokompensation — Gegenseite bleibt beim gleichzeitigen
-# Sprechen vollstaendig verstaendlich. Messreihe 2026-11-10 (Gain 1.8):
-#   Gegenseite (Gong) bei aktivem Uplink: -0.2 dBFS (praktisch ungedaempft)
-#   Echo (Uplink-Ton): nur noch ~-13 dBFS im 1-kHz-Band (unter dem Gong)
-# "webrtc": staerkere Echo-Unterdrueckung (~+26 dB), unterdrueckt aber die
-# Gegenseite bei aktivem Lautsprecher um ~36 dB — fuer Gegensprechanlage
-# unbrauchbar (Historie 2026-11-10, siehe TODO.md).
-intercom_pipewire_aec_method: "speex"
+# --- AEC-Library (pipewire module-echo-cancel) ---
+# PipeWire 1.4 ignoriert "aec.method" (deprecated: "aec.method is not
+# supported anymore use library.name"). Auf den Geraeten ist nur
+# libspa-aec-webrtc.so installiert (plus libspa-aec-null.so); die AEC
+# laeuft daher effektiv mit WebRTC. library.name wird jetzt explizit
+# gesetzt, damit die Konfiguration der Realitaet entspricht.
+# Hinweis: Die frueheren Speex-Notizen/Beurteilungen beruhten auf der
+# wirkungslosen aec.method-Option und sind entsprechend zu relativieren.
+intercom_pipewire_aec_library: "aec/libspa-aec-webrtc"
 
 # --- SSH-Automatisierungs-User: Audio-Stack maskieren ---
 # pipewire/wireplumber in SSH-Login-Session crash-loopen (Journal-Flut,
