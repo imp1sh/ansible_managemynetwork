@@ -148,6 +148,15 @@
     mode: "0644"
   notify: Restart intercomd
 
+- name: "Intercom indoor - Render audio sender script (with silence watchdog)"
+  ansible.builtin.template:
+    src: intercom-audio-tx.py.j2
+    dest: /opt/intercom/intercom-audio-tx.py
+    owner: root
+    group: root
+    mode: "0755"
+  notify: Restart intercom audio sender if running
+
 - name: "Intercom indoor - systemd unit (audio sender)"
   ansible.builtin.template:
     src: intercom-audio-tx.service.j2

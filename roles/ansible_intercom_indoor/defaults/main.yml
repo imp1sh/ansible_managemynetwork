@@ -54,10 +54,12 @@ intercom_speaker_volume_max: "1.0"
 
 # --- Mikrofon-Empfindlichkeit (WebGUI/API, wie Tuerstation) ---
 # Node-Volume der soc_sound-Quelle in der PipeWire-Session (wpctl-Skala,
-# kubisch: linear = v^3). 1.0 = 0 dB (Unity); das Innen-Mikro steht nah
-# am Sprecher, daher weniger Boost noetig als an der Tuer. Aenderungen
-# ueber die WebGUI landen in intercom_mic_volume_file und ueberleben
-# Reboots (set-speaker-volume.service setzt den Wert beim Start).
-intercom_mic_volume: "1.0"
+# kubisch: linear = v^3). 2.0 = +18 dB: Der Uplink muss den Strassenlaerm
+# am Tuerstandort uebersteuern (dortiger Umgebungspegel ca. -29 dBFS);
+# Sprache am Innen-Mikro liegt roh bei -45..-55 dBFS und waere ohne Boost
+# maskiert. Aenderungen ueber die WebGUI landen in
+# intercom_mic_volume_file und ueberleben Reboots
+# (set-speaker-volume.service setzt den Wert beim Start).
+intercom_mic_volume: "2.0"
 intercom_mic_volume_file: "/var/lib/intercom/mic_volume"
 intercom_mic_volume_max: "4.0"

@@ -49,11 +49,11 @@ STARTED_AT = datetime.now().astimezone().isoformat(timespec="seconds")
 
 # Schallpegel: RMS aus dem ROHMikrofon (rawmic, ohne AEC) fuer die
 # Eingangspegel-Anzeige; dB SPL = dBFS + Offset (INMP441: 120-dB-Basis,
-# Mikro-Gain 1.0 = 0 dB).
+# abzueglich des Mikro-Gains 2.0 = +18.1 dB -> Offset 101.9).
 LEVEL_ENABLED = True
 LEVEL_SOURCE = "rawmic"
 LEVEL_XDG_RUNTIME = "/run/user/{{ intercom_pipewire_uid }}"
-LEVEL_SPL_OFFSET = 120
+LEVEL_SPL_OFFSET = 101.9
 
 # Mikrofon-Empfindlichkeit (INMP441): Node-Volume der soc_sound-Quelle in
 # der intercom-Session (wpctl-Skala, kubisch: linear = v^3). Aenderungen

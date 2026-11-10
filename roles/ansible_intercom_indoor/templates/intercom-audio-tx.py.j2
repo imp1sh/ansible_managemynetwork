@@ -1,0 +1,126 @@
+#!/usr/bin/env python3
+# Managed by Ansible (role ansible_intercom_indoor) - do not edit by hand.
+"""Uplink-Sender (INMP441 -> Opus/RTP) mit Stille-Waechter.
+
+Hintergrund (2026-11-10): Der PipeWire-ALSA-Capture kann bei Stream-
+Neuverbindungen sporadisch in einen digital-stillen Zustand geraten —
+aecsrc liefert dann exakt Nullen, waehrend der Raum hoerbar ist
+(beobachtet: 180-s-Aufnahme komplett -120 dB). Nur eine neue
+Capture-Verbindung heilt das.
+
+Der Waechter prueft waehrend aktiver Uplinks alle 10 s eine kurze
+aecsrc-Probe (1 s). Ein normaler Raum liegt bei ca. -50..-60 dBFS
+(Mikro-Gain 2.0); digitale Stille ist < -85 dBFS. Nach 3 stillen
+Proben in Folge wird gst-launch neu gestartet.
+"""
+import array
+import math
+import os
+import signal
+import subprocess
+import time
+
+# Aufraeumen bei SIGTERM (systemctl stop)
+_running = {"proc": None}
+
+
+def _on_term(signum, frame):
+    proc = _running.get("proc")
+    if proc is not None and proc.poll() is None:
+        try:
+            proc.send_signal(signal.SIGTERM)
+            proc.wait(timeout=5)
+        except Exception:
+            try:
+                proc.kill()
+            except Exception:
+                pass
+    raise SystemExit(0)
+
+
+signal.signal(signal.SIGTERM, _on_term)
+
+# PipeWire-Session des Service-Users (System-Services erhalten
+# XDG_RUNTIME_DIR nicht automatisch).
+if not os.environ.get("XDG_RUNTIME_DIR"):
+    os.environ["XDG_RUNTIME_DIR"] = "/run/user/%d" % os.getuid()
+
+PIPELINE = [
+    "/usr/bin/gst-launch-1.0", "-e",
+    "alsasrc", "device={{ intercom_mic_alsa_device }}",
+    "buffer-time=50000", "latency-time=10000", "!",
+    "audio/x-raw,channels=2", "!",
+    "deinterleave", "name=chan", "chan.src_0", "!",
+    "queue", "!",
+    "audioconvert", "!", "audioresample", "!",
+    "audio/x-raw,rate=48000,channels=1", "!",
+    "volume", "volume={{ intercom_audio_tx_volume }}", "!",
+    "opusenc", "bitrate=32000", "frame-size=10", "audio-type=voice", "!",
+    "rtpopuspay", "pt=96", "!",
+    "udpsink", "host={{ intercom_audio_tx_host }}",
+    "port={{ intercom_audio_tx_port }}", "sync=false",
+]
+
+PROBE = ["/usr/bin/arecord", "-D", "aecsrc", "-d", "1",
+         "-f", "S16_LE", "-r", "48000", "-c", "1", "-q"]
+SILENCE_DB = -85.0
+MAX_SILENT = 3       # aufeinanderfolgende stille Proben bis Neustart
+PROBE_INTERVAL = 5  # s
+
+
+def probe_db():
+    """Kurzprobe des Uplink-Signals -> Pegel in dBFS (None bei Fehler)."""
+    try:
+        out = subprocess.run(PROBE, capture_output=True, timeout=10).stdout
+    except Exception:
+        return None
+    if len(out) < 4800:  # weniger als ~0.05 s Audio
+        return None
+    samples = array.array("h", out[: len(out) // 2 * 2])
+    step = max(1, len(samples) // 2000)
+    vals = samples[::step]
+    acc = sum(v * v for v in vals)
+    rms = (acc / len(vals)) ** 0.5 / 32768.0
+    if rms <= 0:
+        return -200.0
+    return 20.0 * math.log10(rms)
+
+
+def run_pipeline():
+    print("intercom-tx: Sender startet (aecsrc -> Opus/RTP)", flush=True)
+    proc = subprocess.Popen(PIPELINE)
+    _running["proc"] = proc
+    silent = 0
+    try:
+        while True:
+            time.sleep(PROBE_INTERVAL)
+            if proc.poll() is not None:
+                print("intercom-tx: gst-launch beendet (%s)"
+                      % proc.returncode, flush=True)
+                break
+            db = probe_db()
+            if db is None:
+                continue
+            if db <= SILENCE_DB:
+                silent += 1
+                print("intercom-tx: aecsrc digital still (%.1f dB, %d/%d)"
+                      % (db, silent, MAX_SILENT), flush=True)
+                if silent >= MAX_SILENT:
+                    print("intercom-tx: Capture haengt -> Neuverbindung",
+                          flush=True)
+                    break
+            else:
+                silent = 0
+    finally:
+        if proc.poll() is None:
+            proc.send_signal(signal.SIGTERM)
+            try:
+                proc.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                proc.kill()
+        _running["proc"] = None
+
+
+while True:
+    run_pipeline()
+    time.sleep(2)
