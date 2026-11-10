@@ -1,26 +1,42 @@
 #!/bin/sh
-# Erzwingt den Innen-Lautsprecher-Pegel (USB/Jieli-Sink) nach jedem
-# PipeWire-Start. Analog zur Tuerstation: dort daempfte ein alter
-# WirePlumber-State (0.4 = -24 dB) den Uplink; hier haette er die
-# App-Wiedergabe (Downlink) um denselben Betrag abgesenkt.
+# Setzt die Audio-Pegel der intercom-Session nach jedem PipeWire-Start:
+#   - Mikrofon-Quelle (INMP441/soc_sound): intercom_mic_volume aus der Datei
+#     (per WebGUI aenderbar) bzw. Ansible-Default
+#   - Lautsprecher (USB/Jieli-Sink): intercom_speaker_volume (100%)
+# Analog zur Tuerstation: WirePlumber restauriert Volumes aus dem eigenen
+# State; alte Werte (Lautsprecher 0.4 = -24 dB) machten die Wiedergabe
+# unhoerbar — seither erzwingt dieser Dienst beide Pegel.
+# Node-IDs wechseln zwischen Neustarts -> Suche ueber den Node-Namen.
 # Managed by Ansible (role ansible_intercom_indoor) - do not edit by hand.
 export XDG_RUNTIME_DIR=/run/user/$(id -u)
 export HOME={{ intercom_pipewire_user_home }}
 
+MIC_VOLUME="$(cat {{ intercom_mic_volume_file }} 2>/dev/null || true)"
+[ -n "$MIC_VOLUME" ] || MIC_VOLUME="{{ intercom_mic_volume }}"
+MIC_NODE="{{ intercom_pipewire_mic_node }}"
 SPK_NODE="{{ intercom_pipewire_speaker_node }}"
 SPK_VOLUME="{{ intercom_speaker_volume }}"
 
-try=0
-while [ "$try" -lt 15 ]; do
-    for id in $(wpctl status 2>/dev/null | sed -n '/Sinks:/,/Sources:/p' | grep -oE '[0-9]+\.' | tr -d '.'); do
-        if wpctl inspect "$id" 2>/dev/null | grep -q "node.name = \"${SPK_NODE}\""; then
-            wpctl set-volume "$id" "$SPK_VOLUME"
-            echo "intercom: Lautsprecher-Volume ${SPK_VOLUME} gesetzt (Node ${id})"
-            exit 0
+set_node_volume() {
+    # $1 Node-Name, $2 Volume, $3 Startmarker, $4 Endmarker der wpctl-Sektion
+    for id in $(wpctl status 2>/dev/null | sed -n "/$3/,/$4/p" | grep -oE '[0-9]+\.' | tr -d '.'); do
+        if wpctl inspect "$id" 2>/dev/null | grep -q "node.name = \"$1\""; then
+            wpctl set-volume "$id" "$2"
+            echo "intercom: ${1} -> Volume ${2} (Node ${id})"
+            return 0
         fi
     done
+    return 1
+}
+
+try=0
+while [ "$try" -lt 15 ]; do
+    ok=1
+    set_node_volume "$MIC_NODE" "$MIC_VOLUME" "Sources:" "Filters:" || ok=0
+    set_node_volume "$SPK_NODE" "$SPK_VOLUME" "Sinks:" "Sources:" || ok=0
+    [ "$ok" -eq 1 ] && exit 0
     try=$((try + 1))
     sleep 2
 done
-echo "intercom: WARNUNG - Lautsprecher-Node ${SPK_NODE} nicht gefunden" >&2
+echo "intercom: WARNUNG - Audio-Nodes nicht vollstaendig gefunden" >&2
 exit 0

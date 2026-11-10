@@ -48,3 +48,13 @@ intercom_pipewire_aec_method: "speex"
 # Session-Start erzwungen (analog zur Tuerstation, wo ein alter State von
 # 0.4 den Uplink um -24 dB daempfte).
 intercom_speaker_volume: "1.0"
+
+# --- Mikrofon-Empfindlichkeit (WebGUI/API, wie Tuerstation) ---
+# Node-Volume der soc_sound-Quelle in der PipeWire-Session (wpctl-Skala,
+# kubisch: linear = v^3). 1.0 = 0 dB (Unity); das Innen-Mikro steht nah
+# am Sprecher, daher weniger Boost noetig als an der Tuer. Aenderungen
+# ueber die WebGUI landen in intercom_mic_volume_file und ueberleben
+# Reboots (set-speaker-volume.service setzt den Wert beim Start).
+intercom_mic_volume: "1.0"
+intercom_mic_volume_file: "/var/lib/intercom/mic_volume"
+intercom_mic_volume_max: "4.0"

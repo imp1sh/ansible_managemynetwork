@@ -19,6 +19,12 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 
 import json
+import math
+import os
+import pwd
+import re
+import shutil
+import struct
 import subprocess
 import threading
 import time
@@ -40,6 +46,27 @@ TX_SERVICE = "intercom-audio-tx.service"
 EVENT_BUFFER = 100
 STARTED_TS = time.time()
 STARTED_AT = datetime.now().astimezone().isoformat(timespec="seconds")
+
+# Schallpegel: RMS aus dem ROHMikrofon (rawmic, ohne AEC) fuer die
+# Eingangspegel-Anzeige; dB SPL = dBFS + Offset (INMP441: 120-dB-Basis,
+# Mikro-Gain 1.0 = 0 dB).
+LEVEL_ENABLED = True
+LEVEL_SOURCE = "rawmic"
+LEVEL_XDG_RUNTIME = "/run/user/{{ intercom_pipewire_uid }}"
+LEVEL_SPL_OFFSET = 120
+
+# Mikrofon-Empfindlichkeit (INMP441): Node-Volume der soc_sound-Quelle in
+# der intercom-Session (wpctl-Skala, kubisch: linear = v^3). Aenderungen
+# wirken live auf AEC-Eingang und Uplink (intercom-audio-tx).
+MIC_ENABLED = True
+MIC_NODE = "{{ intercom_pipewire_mic_node }}"
+MIC_USER = "{{ intercom_pipewire_user }}"
+MIC_UID = {{ intercom_pipewire_uid }}
+MIC_HOME = "{{ intercom_pipewire_user_home }}"
+MIC_VOLUME_FILE = "{{ intercom_mic_volume_file }}"
+MIC_DEFAULT = {{ intercom_mic_volume | float }}
+MIC_MAX = {{ intercom_mic_volume_max | float }}
+MIC_MIN = 0.0
 
 state = {"call": "idle", "ts": 0}
 # Letzter Status-Report der Qt-App (POST /state, Felder als Teilmenge).
@@ -77,6 +104,17 @@ m_vrestarts = Gauge("intercom_indoor_video_restarts_total",
 m_arestarts = Gauge("intercom_indoor_audio_restarts_total",
                     "Audio-Pipeline-Neustarts seit App-Start")
 m_uptime = Gauge("intercom_indoor_uptime_seconds", "Daemon-Laufzeit in s")
+m_sound_dbfs = Gauge(
+    "intercom_indoor_sound_level_dbfs",
+    "Schallpegel am Innen-Mikrofon (dBFS)")
+m_sound_spl = Gauge(
+    "intercom_indoor_sound_level_db_spl",
+    "Geschaetzter Schalldruck am Innen-Mikrofon (dB SPL, re 20 uPa)")
+m_sound_peak = Gauge(
+    "intercom_indoor_sound_peak_dbfs", "Spitzenpegel seit Start (dBFS)")
+m_mic_volume = Gauge(
+    "intercom_indoor_mic_volume",
+    "Mikrofon-Empfindlichkeit, wpctl-Skala (linear = v^3)")
 m_door_events = Counter("intercom_indoor_door_events_total",
                         "Tuer-Ereignisse (ring/hangup/timeout)", ["event"])
 m_up.set(1)
@@ -278,6 +316,279 @@ def _app_field(field, value):
     return None
 
 
+# ------------------------------------------------------- Schallpegel-Messung
+class LevelMeter(threading.Thread):
+    """Misst den RMS-Pegel (dBFS) des Mikrofoneingangs und schaetzt den
+    Schalldruck. Ein ffmpeg-Prozess liest das Rohmikrofon (rawmic PCM,
+    ohne AEC) und dieser Thread wertet 125-ms-Bloecke aus."""
+
+    N = 2000  # Samples pro Block (125 ms bei 16 kHz)
+
+    def __init__(self):
+        super().__init__(daemon=True, name="level")
+        self._lock = threading.Lock()
+        self.data = {"dbfs": None, "db_spl": None, "peak_dbfs": None,
+                     "error": "keine Messung"}
+        self._smooth = None
+        self._peak = None
+
+    def run(self):
+        import select
+        n = self.N
+        while True:
+            proc = None
+            try:
+                # Rohmikrofon (rawmic PCM) direkt lesen — ohne AEC/NS,
+                # damit die Anzeige den Mikrofon-Eingangspegel zeigt.
+                env = dict(os.environ)
+                env["XDG_RUNTIME_DIR"] = LEVEL_XDG_RUNTIME
+                proc = subprocess.Popen(
+                    ["ffmpeg", "-hide_banner", "-loglevel", "error",
+                     "-f", "alsa", "-i", LEVEL_SOURCE,
+                     "-f", "s16le", "-ar", "16000",
+                     "-ac", "1", "-"],
+                    stdout=subprocess.PIPE, env=env)
+                fd = proc.stdout.fileno()
+                buf = bytearray()
+                while True:
+                    r, _, _ = select.select([fd], [], [], 5.0)
+                    if not r:
+                        raise OSError("keine Audio-Daten (Timeout)")
+                    chunk = os.read(fd, 65536)
+                    if not chunk:
+                        raise OSError("Level-Stream beendet")
+                    buf += chunk
+                    while len(buf) >= n * 2:
+                        raw = bytes(buf[:n * 2])
+                        del buf[:n * 2]
+                        samples = struct.unpack("<%dh" % n, raw)
+                        acc = 0
+                        for v in samples:
+                            acc += v * v
+                        rms = math.sqrt(acc / n) / 32768.0
+                        dbfs = (20.0 * math.log10(rms)
+                                if rms > 0 else -90.0)
+                        with self._lock:
+                            self._smooth = (
+                                dbfs if self._smooth is None
+                                else 0.7 * self._smooth + 0.3 * dbfs)
+                            if self._peak is None or dbfs > self._peak:
+                                self._peak = dbfs
+                            self.data = {
+                                "dbfs": round(self._smooth, 1),
+                                "db_spl": round(self._smooth + LEVEL_SPL_OFFSET),
+                                "peak_dbfs": (round(self._peak, 1)
+                                               if self._peak is not None
+                                               else None),
+                                "error": None,
+                            }
+                        m_sound_dbfs.set(self.data["dbfs"])
+                        m_sound_spl.set(self.data["db_spl"])
+                        m_sound_peak.set(self.data["peak_dbfs"])
+            except Exception as exc:  # noqa: BLE001 — Messung darf nie crashen
+                with self._lock:
+                    self.data = {"dbfs": None, "db_spl": None,
+                                 "peak_dbfs": (round(self._peak, 1)
+                                               if self._peak is not None
+                                               else None),
+                                 "error": str(exc)}
+                if proc is not None:
+                    try:
+                        proc.kill()
+                    except Exception:
+                        pass
+                time.sleep(2)  # reconnect
+
+    def snapshot(self):
+        with self._lock:
+            return dict(self.data)
+
+
+# ----------------------------------------------- Mikrofon-Empfindlichkeit
+class MicControl(threading.Thread):
+    """Mikrofon-Empfindlichkeit am INMP441 einstellen und beobachten.
+
+    Der Sollwert ist das Node-Volume des soc_sound-Quellenknotens in der
+    PipeWire-Session des Users intercom (wpctl-Skala, kubisch: linear
+    = v^3). Der Daemon laeuft als root und ruft wpctl per runuser in der
+    Session auf. Aenderungen wirken live auf den AEC-Eingang und den
+    Uplink (intercom-audio-tx).
+
+    Persistenz: Der Wert wird in MIC_VOLUME_FILE gespeichert und beim
+    naechsten Session-Start von set-speaker-volume.service wieder gesetzt.
+    Ein Hintergrund-Thread haelt Cache und Prometheus-Metrik aktuell.
+    """
+
+    REFRESH = 15.0  # s
+    CACHE_AGE = 10.0  # s: gueltiges Alter des Snapshot-Caches
+
+    def __init__(self):
+        super().__init__(daemon=True, name="mic-ctl")
+        self._lock = threading.Lock()
+        self._node_id = None
+        self._cache = {"volume": None, "node": None, "live": False,
+                       "error": "kein Abruf"}
+        self._cache_ts = 0.0
+
+    # ---- Hilfsmittel ------------------------------------------------
+    def _session_cmd(self, prog, args):
+        """Kommando in der PipeWire-Session des intercom-Users bauen."""
+        runuser = shutil.which("runuser") or "/usr/sbin/runuser"
+        return [runuser, "-u", MIC_USER, "--", "env",
+                "XDG_RUNTIME_DIR=/run/user/%d" % MIC_UID,
+                "HOME=" + MIC_HOME, prog] + list(args)
+
+    def _wpctl(self, *args):
+        """wpctl in der intercom-Session ausfuehren -> (rc, kombinierte
+        Ausgabe)."""
+        try:
+            r = subprocess.run(self._session_cmd("wpctl", list(args)),
+                               capture_output=True, text=True, timeout=10)
+            return r.returncode, (r.stdout or "") + (r.stderr or "")
+        except Exception as exc:  # noqa: BLE001
+            return 127, str(exc)
+
+    def _discover(self):
+        """Node-ID des Mikrofons suchen (IDs wechseln zwischen Restarts).
+
+        Gleiche Logik wie set-speaker-volume.sh: Quellen-Sektion des
+        wpctl-status scannen und Kandidaten per wpctl inspect gegen den
+        Node-Namen pruefen.
+        """
+        rc, out = self._wpctl("status")
+        if rc != 0:
+            return None
+        in_sources = False
+        for line in out.splitlines():
+            if "Sources:" in line:
+                in_sources = True
+                continue
+            if in_sources and ("Filters:" in line or "Sinks" in line):
+                break
+            if not in_sources:
+                continue
+            for m in re.finditer(r"(\d+)\.", line):
+                node_id = m.group(1)
+                rc2, out2 = self._wpctl("inspect", node_id)
+                if rc2 == 0 and 'node.name = "%s"' % MIC_NODE in out2:
+                    return node_id
+        return None
+
+    @staticmethod
+    def _read_file():
+        """Persistierten Sollwert lesen (letzter Wert aus der WebGUI)."""
+        try:
+            with open(MIC_VOLUME_FILE, "r") as fh:
+                return round(float(fh.read().strip()), 2)
+        except Exception:
+            return MIC_DEFAULT
+
+    @staticmethod
+    def _write_file(volume):
+        """Sollwert atomar persistieren; Datei gehoert danach intercom."""
+        tmp = MIC_VOLUME_FILE + ".tmp"
+        with open(tmp, "w") as fh:
+            fh.write("%.2f\n" % volume)
+        os.replace(tmp, MIC_VOLUME_FILE)
+        os.chmod(MIC_VOLUME_FILE, 0o644)
+        try:
+            pwent = pwd.getpwnam(MIC_USER)
+            os.chown(MIC_VOLUME_FILE, pwent.pw_uid, pwent.pw_gid)
+        except Exception:  # noqa: BLE001 — chown ist optional
+            pass
+
+    def _cache_update(self, data):
+        with self._lock:
+            self._cache = data
+            self._cache_ts = time.time()
+
+    # ---- Oeffentliche Schnittstelle ---------------------------------
+    def read(self, force=False):
+        """Aktuellen Volume lesen: live wenn moeglich, sonst Datei."""
+        if not force:
+            with self._lock:
+                if (self._cache.get("live")
+                        and time.time() - self._cache_ts <= self.CACHE_AGE):
+                    return dict(self._cache)
+        data = self._read_live()
+        self._cache_update(data)
+        return data
+
+    def _read_live(self):
+        node = self._node_id or self._discover()
+        if not node:
+            return {"volume": self._read_file(), "node": None, "live": False,
+                    "error": "Mikrofon-Quelle nicht gefunden"}
+        self._node_id = node
+        rc, out = self._wpctl("get-volume", node)
+        m = re.search(r"Volume:\s*([\d.]+)", out)
+        if m:
+            return {"volume": round(float(m.group(1)), 2), "node": node,
+                    "live": True, "error": None}
+        self._node_id = None
+        return {"volume": self._read_file(), "node": None, "live": False,
+                "error": "Volume nicht lesbar"}
+
+    def set(self, volume):
+        """Volume setzen (wpctl-Skala, MIC_MIN..MIC_MAX) und persistieren."""
+        try:
+            volume = round(float(volume), 2)
+        except (TypeError, ValueError):
+            raise ValueError("volume muss eine Zahl sein")
+        if not (MIC_MIN <= volume <= MIC_MAX):
+            raise ValueError(
+                "Volume muss zwischen %s und %s liegen"
+                % (MIC_MIN, MIC_MAX))
+        for attempt in (0, 1):
+            if attempt:
+                self._node_id = None  # Session evtl. neu gestartet
+            node = self._node_id or self._discover()
+            if not node:
+                break
+            self._node_id = node
+            self._wpctl("set-volume", node, "%.2f" % volume)
+            rc, out = self._wpctl("get-volume", node)
+            m = re.search(r"Volume:\s*([\d.]+)", out)
+            if m and abs(float(m.group(1)) - volume) < 0.01:
+                self._write_file(volume)
+                data = {"volume": volume, "node": node, "live": True,
+                        "error": None}
+                self._cache_update(data)
+                return data
+        # Quelle nicht erreichbar: zumindest fuer den naechsten Start
+        # persistieren (set-speaker-volume.service setzt den Wert dann neu).
+        self._write_file(volume)
+        data = {"volume": volume, "node": None, "live": False,
+                "error": "Quelle nicht erreichbar - nur gespeichert"}
+        self._cache_update(data)
+        return data
+
+    # ---- Hintergrund-Thread -------------------------------------------
+    def run(self):
+        while True:
+            try:
+                data = self._read_live()
+                if data.get("live") and data.get("volume") is not None:
+                    m_mic_volume.set(data["volume"])
+            except Exception as exc:  # noqa: BLE001 — darf nie crashen
+                data = {"volume": None, "node": None, "live": False,
+                        "error": str(exc)}
+            self._cache_update(data)
+            time.sleep(self.REFRESH)
+
+
+def mic_db(volume):
+    """Verstaerkung in dB relativ zu 1.0 (wpctl-Skala: linear = v^3)."""
+    if volume is None or volume <= 0:
+        return None
+    return round(60.0 * math.log10(volume), 1)
+
+
+# Laufzeit-Objekte (Pegelmesser + Mikrofon-Regler)
+LEVEL = LevelMeter() if LEVEL_ENABLED else None
+MIC = MicControl() if MIC_ENABLED else None
+
+
 APP_FIELDS = ("hear", "speak", "volume", "video_restarts",
               "audio_restarts", "app_uptime_s")
 
@@ -306,6 +617,7 @@ main { padding:18px 22px; max-width:1100px; margin:0 auto; }
                letter-spacing:.06em; }
 .card .value { font-size:22px; font-weight:600; margin-top:4px; }
 .card .sub { color:var(--dim); font-size:12px; margin-top:2px; }
+.card.wide { grid-column: span 2; }
 .actions { display:flex; gap:10px; margin:16px 0; flex-wrap:wrap; }
 button { border:0; border-radius:8px; padding:11px 18px; font-size:15px;
          font-weight:600; cursor:pointer; color:#fff; }
@@ -324,6 +636,20 @@ td.dim { color:var(--dim); }
 .ok { color:var(--ok); } .err { color:#e05d5d; }
 footer { color:var(--dim); font-size:12px; padding:14px 22px;
          border-top:1px solid var(--line); margin-top:26px; }
+.meter { display:flex; gap:2px; height:26px; align-items:flex-end;
+          margin-top:10px; }
+.meter i { flex:1; min-height:8px; background:#232a33; border-radius:2px; }
+.meter i.on { background:#2e9e5b; }
+.meter i.on.y { background:#d98032; }
+.meter i.on.r { background:#e05d5d; }
+.mic-panel { display:flex; gap:14px; align-items:center; background:var(--card);
+             border:1px solid var(--line); border-radius:10px; padding:12px 14px; }
+.mic-panel input[type=range] { flex:1; min-width:140px; accent-color:#2e9e5b; }
+.mic-out { min-width:150px; text-align:right; }
+.mic-big { font-size:20px; font-weight:600; }
+#btn-mic { background:#1b6e62; }
+#btn-mic-def { background:#37474f; }
+.mic-note { color:var(--dim); font-size:12px; margin-top:6px; }
 </style>
 </head>
 <body>
@@ -338,6 +664,22 @@ footer { color:var(--dim); font-size:12px; padding:14px 22px;
   <div class="actions">
     <button id="btn-restart" onclick="restartApp()">&#8635; App neu starten</button>
   </div>
+
+  <h2>Mikrofon-Empfindlichkeit (INMP441)</h2>
+  <div class="mic-panel">
+    <input type="range" id="mic-slider" min="0.5"
+           max="{{ intercom_mic_volume_max | float }}" step="0.1"
+           value="{{ intercom_mic_volume | float }}">
+    <div class="mic-out">
+      <div class="mic-big" id="mic-value">&ndash;</div>
+      <div class="sub" id="mic-db">&nbsp;</div>
+    </div>
+    <button id="btn-mic" onclick="micSet()">&#10003; Speichern</button>
+    <button id="btn-mic-def" onclick="micDefault()">Standard</button>
+  </div>
+  <div class="mic-note">wpctl-Skala (kubisch, linear = v<sup>3</sup>):
+    1.0 = 0 dB &middot; 2.0 = +18 dB &middot; 3.0 = +29 dB &middot;
+    4.0 = +36 dB &mdash; wirkt live auf AEC und Uplink.</div>
 
   <h2>T&uuml;r-Ereignisse (seit Neustart)</h2>
   <table id="tbl-events"><thead><tr>
@@ -391,6 +733,11 @@ function render() {
     html += card('App-Laufzeit', Math.round(a.app_uptime_s / 60) + ' min',
                  'Qt-App seit Start');
   }
+  html += '<div class="card wide">' +
+    '<div class="label">Schallpegel (Innen-Mikrofon)</div>' +
+    '<div class="meter" id="meter"></div>' +
+    '<div class="sub" id="level-value">wird gemessen &hellip;</div>' +
+    '</div>';
   document.getElementById('cards').innerHTML = html;
 }
 
@@ -435,8 +782,93 @@ async function restartApp() {
   setTimeout(refresh, 4000);
 }
 
+const SEG = 24, LEVEL_MIN = -60, LEVEL_MAX = 0;
+function renderLevel(l) {
+  const el = document.getElementById('meter');
+  const val = document.getElementById('level-value');
+  if (!el || !val) return;
+  if (el.children.length !== SEG) {
+    let h = '';
+    for (let i = 0; i < SEG; i++) h += '<i></i>';
+    el.innerHTML = h;
+  }
+  if (!l || l.dbfs === null || l.dbfs === undefined) {
+    for (let i = 0; i < SEG; i++) el.children[i].className = '';
+    val.textContent = l && l.error ? 'Fehler: ' + l.error : 'keine Messung';
+    return;
+  }
+  const frac = Math.max(0, Math.min(1, (l.dbfs - LEVEL_MIN) / (LEVEL_MAX - LEVEL_MIN)));
+  const lit = Math.round(frac * SEG);
+  for (let i = 0; i < SEG; i++) {
+    const segDb = LEVEL_MIN + (LEVEL_MAX - LEVEL_MIN) * (i + 1) / SEG;
+    const on = i < lit;
+    el.children[i].className = on ? (segDb > -8 ? 'on r' : (segDb > -18 ? 'on y' : 'on')) : '';
+  }
+  val.textContent = l.dbfs.toFixed(1) + ' dBFS \u00b7 ~' + Math.round(l.db_spl) + ' dB SPL' +
+    (l.peak_dbfs !== null && l.peak_dbfs !== undefined ? ' \u00b7 Peak ' + l.peak_dbfs.toFixed(1) + ' dB' : '');
+}
+
+async function refreshLevel() {
+  try {
+    renderLevel(await (await fetch('/api/level')).json());
+  } catch (e) {
+    renderLevel(null);
+  }
+}
+
+let micCur = null;
+async function refreshMic() {
+  try {
+    const r = await fetch('/api/mic');
+    micCur = await r.json();
+    const slider = document.getElementById('mic-slider');
+    const val = document.getElementById('mic-value');
+    const db = document.getElementById('mic-db');
+    if (micCur.volume !== null && micCur.volume !== undefined) {
+      if (document.activeElement !== slider) slider.value = micCur.volume;
+      val.textContent = micCur.volume.toFixed(1);
+      db.textContent = micCur.db_gain === null ? 'stumm'
+        : (micCur.db_gain >= 0 ? '+' : '') + micCur.db_gain.toFixed(1) +
+          ' dB Verstaerkung';
+    } else {
+      val.textContent = '\u2013';
+      db.textContent = micCur.error || 'nicht verf\u00fcgbar';
+    }
+  } catch (e) { /* naechster Refresh versucht es erneut */ }
+}
+
+async function micSet() {
+  const btn = document.getElementById('btn-mic');
+  const v = parseFloat(document.getElementById('mic-slider').value);
+  if (isNaN(v)) return;
+  btn.disabled = true;
+  document.getElementById('toast').textContent = '';
+  const body = JSON.stringify({volume: v});
+  try {
+    const r = await fetch('/api/mic',
+      {method: 'POST', headers: {'Content-Type': 'application/json'}, body: body});
+    const j = await r.json();
+    document.getElementById('toast').textContent = j.ok
+      ? 'Mikrofon: ' + j.volume.toFixed(1) + ' gesetzt'
+      : 'Mikrofon: ' + (j.error || 'Fehler');
+  } catch (e) {
+    document.getElementById('toast').textContent = 'Mikrofon-Fehler: ' + e;
+  }
+  btn.disabled = false;
+  refreshMic();
+}
+
+function micDefault() {
+  document.getElementById('mic-slider').value = {{ intercom_mic_volume | float }};
+  micSet();
+}
+
 refresh();
 setInterval(refresh, 5000);
+refreshLevel();
+setInterval(refreshLevel, 1000);
+refreshMic();
+setInterval(refreshMic, 5000);
 </script>
 </body>
 </html>
@@ -492,6 +924,24 @@ class Handler(BaseHTTPRequestHandler):
             items.reverse()
             self._send(200, {"count": len(items), "since": STARTED_AT,
                              "events": items[:limit]})
+        elif path == "/api/level":
+            if LEVEL:
+                self._send(200, LEVEL.snapshot())
+            else:
+                self._send(200, {"dbfs": None, "db_spl": None,
+                                 "peak_dbfs": None,
+                                 "error": "Pegelmesser deaktiviert"})
+        elif path == "/api/mic":
+            if not MIC:
+                self._send(200, {"volume": None, "db_gain": None,
+                                 "node": None, "live": False,
+                                 "default": MIC_DEFAULT,
+                                 "error": "Mikrofon-Steuerung deaktiviert"})
+            else:
+                data = MIC.read()
+                data["db_gain"] = mic_db(data.get("volume"))
+                data["default"] = MIC_DEFAULT
+                self._send(200, data)
         elif path == "/state" and self._forwarded_ip() is None:
             # Nur die App auf diesem Geraet (500-ms-Polling).
             with lock:
@@ -558,6 +1008,29 @@ class Handler(BaseHTTPRequestHandler):
                 self._send(200, {"ok": ok})
             except Exception as exc:
                 self._send(500, {"ok": False, "error": str(exc)})
+        elif path == "/api/mic":
+            # Mikrofon-Empfindlichkeit setzen (Body: {"volume": 2.0}).
+            if not MIC:
+                self._send(503, {"ok": False,
+                                 "error": "Mikrofon-Steuerung deaktiviert"})
+                return
+            length = int(self.headers.get("Content-Length", "0"))
+            try:
+                payload = json.loads(self.rfile.read(length).decode())
+                volume = payload.get("volume")
+            except Exception:
+                self._send(400, {"ok": False, "error": "invalid payload"})
+                return
+            try:
+                result = MIC.set(volume)
+            except ValueError as exc:
+                self._send(400, {"ok": False, "error": str(exc)})
+                return
+            result["ok"] = bool(result.get("live"))
+            result["db_gain"] = mic_db(result.get("volume"))
+            if result.get("volume") is not None:
+                m_mic_volume.set(result["volume"])
+            self._send(200, result)
         else:
             self._send(404, {"error": "not found"})
 
@@ -595,4 +1068,8 @@ client.loop_start()
 print(f"http auf 127.0.0.1:{HTTP_PORT} (Front: traefik0, "
       f"https://intercombasement.t.libcom.de)", flush=True)
 set_tx(False)
+if LEVEL is not None:
+    LEVEL.start()
+if MIC is not None:
+    MIC.start()
 ThreadingHTTPServer(("127.0.0.1", HTTP_PORT), Handler).serve_forever()

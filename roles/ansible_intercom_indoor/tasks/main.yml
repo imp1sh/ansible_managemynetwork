@@ -50,6 +50,10 @@
     database: passwd
     key: "{{ intercom_pipewire_user }}"
 
+- name: "Intercom indoor - Set PipeWire uid fact"
+  ansible.builtin.set_fact:
+    intercom_pipewire_uid: "{{ getent_passwd[intercom_pipewire_user][1] }}"
+
 - name: "Intercom indoor - Enable linger for PipeWire user"
   ansible.builtin.command: "loginctl enable-linger {{ intercom_pipewire_user }}"
   args:
