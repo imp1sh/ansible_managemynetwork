@@ -14,7 +14,8 @@ MIC_VOLUME="$(cat {{ intercom_mic_volume_file }} 2>/dev/null || true)"
 [ -n "$MIC_VOLUME" ] || MIC_VOLUME="{{ intercom_mic_volume }}"
 MIC_NODE="{{ intercom_pipewire_mic_node }}"
 SPK_NODE="{{ intercom_pipewire_speaker_node }}"
-SPK_VOLUME="{{ intercom_speaker_volume }}"
+SPK_VOLUME="$(cat {{ intercom_speaker_volume_file }} 2>/dev/null || true)"
+[ -n "$SPK_VOLUME" ] || SPK_VOLUME="{{ intercom_speaker_volume }}"
 
 set_node_volume() {
     # $1 Node-Name, $2 Volume, $3 Startmarker, $4 Endmarker der wpctl-Sektion
@@ -33,9 +34,18 @@ while [ "$try" -lt 15 ]; do
     ok=1
     set_node_volume "$MIC_NODE" "$MIC_VOLUME" "Sources:" "Filters:" || ok=0
     set_node_volume "$SPK_NODE" "$SPK_VOLUME" "Sinks:" "Sources:" || ok=0
-    [ "$ok" -eq 1 ] && exit 0
+    [ "$ok" -eq 1 ] && break
     try=$((try + 1))
     sleep 2
 done
+
+# Zweiter Durchlauf gegen das WirePlumber-State-Restore-Race: direkt nach
+# dem Session-Start kann WirePlumber alte Volumes aus seinem State
+# zurueckschreiben und den ersten Set ueberschreiben (beobachtet 2026-11-10
+# am Innengeraet: Sink fiel auf 0.4 zurueck).
+sleep 3
+set_node_volume "$MIC_NODE" "$MIC_VOLUME" "Sources:" "Filters:" 2>/dev/null || true
+set_node_volume "$SPK_NODE" "$SPK_VOLUME" "Sinks:" "Sources:" 2>/dev/null || true
+exit 0
 echo "intercom: WARNUNG - Audio-Nodes nicht vollstaendig gefunden" >&2
 exit 0

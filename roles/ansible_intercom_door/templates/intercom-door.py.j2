@@ -81,6 +81,18 @@ MIC_DEFAULT = {{ intercom_mic_volume | float }}
 MIC_MAX = {{ intercom_mic_volume_max | float }}
 MIC_MIN = 0.0
 
+# Lautstaerke der Tonausgabe (Tuer-Lautsprecher): Sink-Volume der
+# USB/Jieli-Senke in der PipeWire-Session (wpctl-Skala 0..1.0 = 0..100%).
+SPEAKER_ENABLED = True
+SPEAKER_NODE = "{{ intercom_pipewire_speaker_node }}"
+SPEAKER_USER = "{{ intercom_pipewire_user }}"
+SPEAKER_UID = {{ intercom_pipewire_uid | default('999') }}
+SPEAKER_HOME = "{{ intercom_pipewire_user_home }}"
+SPEAKER_VOLUME_FILE = "{{ intercom_speaker_volume_file }}"
+SPEAKER_DEFAULT = {{ intercom_speaker_volume | float }}
+SPEAKER_MAX = {{ intercom_speaker_volume_max | float }}
+SPEAKER_MIN = 0.0
+
 TOPIC_LEGACY = "{{ intercom_topic_event }}"
 TOPIC_PRESENCE = "{{ intercom_topic_presence }}"
 TOPIC_BUTTON = "{{ intercom_topic_button }}"
@@ -136,6 +148,9 @@ m_uptime = Gauge(
 m_mic_volume = Gauge(
     "intercom_door_mic_volume",
     "Mikrofon-Empfindlichkeit, wpctl-Skala (linear = v^3)")
+m_speaker_volume = Gauge(
+    "intercom_door_speaker_volume",
+    "Lautstaerke der Tonausgabe (Sink-Volume, wpctl-Skala)")
 m_up.set(1)
 
 
@@ -524,6 +539,163 @@ def mic_db(volume):
     return round(60.0 * math.log10(volume), 1)
 
 
+# ------------------------------------------------- Ausgabe-Lautstaerke
+class SpeakerControl(threading.Thread):
+    """Lautstaerke der Tonausgabe (Tuer-Lautsprecher) einstellen.
+
+    Der Sollwert ist das Node-Volume der USB/Jieli-Senke in der
+    PipeWire-Session des Users intercom (wpctl-Skala 0..1.0 = 0..100%).
+    Aenderungen wirken live auf die Uplink-Wiedergabe
+    (intercom-audio-rx -> aec.sink -> Lautsprecher).
+
+    Persistenz: Der Wert wird in SPEAKER_VOLUME_FILE gespeichert und beim
+    naechsten Session-Start von set-mic-volume.service wieder gesetzt.
+    Ein Hintergrund-Thread haelt Cache und Prometheus-Metrik aktuell.
+    """
+
+    REFRESH = 15.0  # s
+    CACHE_AGE = 10.0  # s
+
+    def __init__(self):
+        super().__init__(daemon=True, name="speaker-ctl")
+        self._lock = threading.Lock()
+        self._node_id = None
+        self._cache = {"volume": None, "node": None, "live": False,
+                       "error": "kein Abruf"}
+        self._cache_ts = 0.0
+
+    def _session_cmd(self, prog, args):
+        """Kommando in der PipeWire-Session des intercom-Users bauen."""
+        runuser = shutil.which("runuser") or "/usr/sbin/runuser"
+        return [runuser, "-u", SPEAKER_USER, "--", "env",
+                "XDG_RUNTIME_DIR=/run/user/%d" % SPEAKER_UID,
+                "HOME=" + SPEAKER_HOME, prog] + list(args)
+
+    def _wpctl(self, *args):
+        try:
+            r = subprocess.run(self._session_cmd("wpctl", list(args)),
+                               capture_output=True, text=True, timeout=10)
+            return r.returncode, (r.stdout or "") + (r.stderr or "")
+        except Exception as exc:  # noqa: BLE001
+            return 127, str(exc)
+
+    def _discover(self):
+        """Node-ID der Senke suchen (Sinks-Sektion, IDs wechseln)."""
+        rc, out = self._wpctl("status")
+        if rc != 0:
+            return None
+        in_sinks = False
+        for line in out.splitlines():
+            if "Sinks:" in line:
+                in_sinks = True
+                continue
+            if in_sinks and ("Sources:" in line or "Filters:" in line):
+                break
+            if not in_sinks:
+                continue
+            for m in re.finditer(r"(\d+)\.", line):
+                node_id = m.group(1)
+                rc2, out2 = self._wpctl("inspect", node_id)
+                if rc2 == 0 and 'node.name = "%s"' % SPEAKER_NODE in out2:
+                    return node_id
+        return None
+
+    @staticmethod
+    def _read_file():
+        try:
+            with open(SPEAKER_VOLUME_FILE, "r") as fh:
+                return round(float(fh.read().strip()), 2)
+        except Exception:
+            return SPEAKER_DEFAULT
+
+    @staticmethod
+    def _write_file(volume):
+        tmp = SPEAKER_VOLUME_FILE + ".tmp"
+        with open(tmp, "w") as fh:
+            fh.write("%.2f\n" % volume)
+        os.replace(tmp, SPEAKER_VOLUME_FILE)
+        os.chmod(SPEAKER_VOLUME_FILE, 0o644)
+        try:
+            pwent = pwd.getpwnam(SPEAKER_USER)
+            os.chown(SPEAKER_VOLUME_FILE, pwent.pw_uid, pwent.pw_gid)
+        except Exception:  # noqa: BLE001
+            pass
+
+    def _cache_update(self, data):
+        with self._lock:
+            self._cache = data
+            self._cache_ts = time.time()
+
+    def read(self, force=False):
+        if not force:
+            with self._lock:
+                if (self._cache.get("live")
+                        and time.time() - self._cache_ts <= self.CACHE_AGE):
+                    return dict(self._cache)
+        data = self._read_live()
+        self._cache_update(data)
+        return data
+
+    def _read_live(self):
+        node = self._node_id or self._discover()
+        if not node:
+            return {"volume": self._read_file(), "node": None, "live": False,
+                    "error": "Lautsprecher-Senke nicht gefunden"}
+        self._node_id = node
+        rc, out = self._wpctl("get-volume", node)
+        m = re.search(r"Volume:\s*([\d.]+)", out)
+        if m:
+            return {"volume": round(float(m.group(1)), 2), "node": node,
+                    "live": True, "error": None}
+        self._node_id = None
+        return {"volume": self._read_file(), "node": None, "live": False,
+                "error": "Volume nicht lesbar"}
+
+    def set(self, volume):
+        """Volume setzen (wpctl-Skala, SPEAKER_MIN..SPEAKER_MAX)."""
+        try:
+            volume = round(float(volume), 2)
+        except (TypeError, ValueError):
+            raise ValueError("volume muss eine Zahl sein")
+        if not (SPEAKER_MIN <= volume <= SPEAKER_MAX):
+            raise ValueError(
+                "Volume muss zwischen %s und %s liegen"
+                % (SPEAKER_MIN, SPEAKER_MAX))
+        for attempt in (0, 1):
+            if attempt:
+                self._node_id = None
+            node = self._node_id or self._discover()
+            if not node:
+                break
+            self._node_id = node
+            self._wpctl("set-volume", node, "%.2f" % volume)
+            rc, out = self._wpctl("get-volume", node)
+            m = re.search(r"Volume:\s*([\d.]+)", out)
+            if m and abs(float(m.group(1)) - volume) < 0.01:
+                self._write_file(volume)
+                data = {"volume": volume, "node": node, "live": True,
+                        "error": None}
+                self._cache_update(data)
+                return data
+        self._write_file(volume)
+        data = {"volume": volume, "node": None, "live": False,
+                "error": "Quelle nicht erreichbar - nur gespeichert"}
+        self._cache_update(data)
+        return data
+
+    def run(self):
+        while True:
+            try:
+                data = self._read_live()
+                if data.get("live") and data.get("volume") is not None:
+                    m_speaker_volume.set(data["volume"])
+            except Exception as exc:  # noqa: BLE001
+                data = {"volume": None, "node": None, "live": False,
+                        "error": str(exc)}
+            self._cache_update(data)
+            time.sleep(self.REFRESH)
+
+
 # ------------------------------------------------------------------ MQTT
 client = None
 
@@ -834,6 +1006,43 @@ def api_mic_set(data: dict):
     return result
 
 
+@api.get("/api/speaker")
+def api_speaker_get():
+    """Aktuelle Lautstaerke der Tonausgabe (wpctl-Skala 0..1.0)."""
+    if not SPEAKER:
+        return {"volume": None, "percent": None, "node": None, "live": False,
+                "default": SPEAKER_DEFAULT,
+                "error": "Lautsprecher-Steuerung deaktiviert"}
+    data = SPEAKER.read()
+    data["percent"] = (int(round(data["volume"] * 100))
+                       if data.get("volume") is not None else None)
+    data["default"] = SPEAKER_DEFAULT
+    if data.get("live") and data.get("volume") is not None:
+        m_speaker_volume.set(data["volume"])
+    return data
+
+
+@api.post("/api/speaker")
+def api_speaker_set(data: dict):
+    """Lautstaerke der Tonausgabe setzen (Body: {"volume": 0.8}).
+
+    Wirkt live auf die Uplink-Wiedergabe und wird ueber
+    SPEAKER_VOLUME_FILE persistiert (set-mic-volume.service setzt es
+    nach Reboots neu).
+    """
+    if not SPEAKER:
+        return {"ok": False, "error": "Lautsprecher-Steuerung deaktiviert"}
+    try:
+        result = SPEAKER.set(data.get("volume"))
+    except ValueError as exc:
+        return {"ok": False, "error": str(exc)}
+    result["ok"] = bool(result.get("live"))
+    if result.get("volume") is not None:
+        result["percent"] = int(round(result["volume"] * 100))
+        m_speaker_volume.set(result["volume"])
+    return result
+
+
 @api.post("/api/button/press")
 def api_button_press():
     entry = handle_press("api")
@@ -966,6 +1175,21 @@ footer { color:var(--dim); font-size:12px; padding:14px 22px;
   <div class="mic-note">wpctl-Skala (kubisch, linear = v<sup>3</sup>):
     1.0 = 0 dB &middot; 2.0 = +18 dB &middot; 3.0 = +29 dB &middot;
     4.0 = +36 dB &mdash; wirkt live auf Stream und Pegelmesser.</div>
+
+  <h2>Lautst&auml;rke Tonausgabe (T&uuml;r-Lautsprecher)</h2>
+  <div class="mic-panel">
+    <input type="range" id="spk-slider" min="0"
+           max="{{ intercom_speaker_volume_max | float }}" step="0.05"
+           value="{{ intercom_speaker_volume | float }}">
+    <div class="mic-out">
+      <div class="mic-big" id="spk-value">&ndash;</div>
+      <div class="sub" id="spk-sub">Ausgangspegel</div>
+    </div>
+    <button id="btn-spk" onclick="speakerSet()">&#10003; Speichern</button>
+    <button id="btn-spk-def" onclick="speakerDefault()">Standard</button>
+  </div>
+  <div class="mic-note">100 % = voller Ausgangspegel (wirkt live auf die
+    Wiedergabe am T&uuml;r-Lautsprecher, z. B. Uplink vom Innenger&auml;t).</div>
 
   <h2>Taster-Ereignisse (seit Neustart)</h2>
   <table id="tbl-button"><thead><tr>
@@ -1161,12 +1385,59 @@ function micDefault() {
   micSet();
 }
 
+let spkCur = null;
+async function refreshSpeaker() {
+  try {
+    const r = await fetch('/api/speaker');
+    spkCur = await r.json();
+    const slider = document.getElementById('spk-slider');
+    const val = document.getElementById('spk-value');
+    const sub = document.getElementById('spk-sub');
+    if (spkCur.volume !== null && spkCur.volume !== undefined) {
+      if (document.activeElement !== slider) slider.value = spkCur.volume;
+      val.textContent = Math.round(spkCur.volume * 100) + ' %';
+      sub.textContent = 'Ausgangspegel';
+    } else {
+      val.textContent = '\u2013';
+      sub.textContent = spkCur.error || 'nicht verf\u00fcgbar';
+    }
+  } catch (e) { /* naechster Refresh versucht es erneut */ }
+}
+
+async function speakerSet() {
+  const btn = document.getElementById('btn-spk');
+  const v = parseFloat(document.getElementById('spk-slider').value);
+  if (isNaN(v)) return;
+  btn.disabled = true;
+  document.getElementById('toast').textContent = '';
+  const body = JSON.stringify({volume: v});
+  try {
+    const r = await fetch('/api/speaker',
+      {method: 'POST', headers: {'Content-Type': 'application/json'}, body: body});
+    const j = await r.json();
+    document.getElementById('toast').textContent = j.ok
+      ? 'Lautsprecher: ' + Math.round(j.volume * 100) + ' % gesetzt'
+      : 'Lautsprecher: ' + (j.error || 'Fehler');
+  } catch (e) {
+    document.getElementById('toast').textContent = 'Lautsprecher-Fehler: ' + e;
+  }
+  btn.disabled = false;
+  refreshSpeaker();
+}
+
+function speakerDefault() {
+  document.getElementById('spk-slider').value = {{ intercom_speaker_volume | float }};
+  speakerSet();
+}
+
 refresh();
 setInterval(refresh, 5000);
 refreshLevel();
 setInterval(refreshLevel, 1000);
 refreshMic();
 setInterval(refreshMic, 5000);
+refreshSpeaker();
+setInterval(refreshSpeaker, 5000);
 </script>
 </body>
 </html>
@@ -1182,6 +1453,7 @@ def api_gui():
 SENSOR = Shtc3Sensor(SENSOR_BUS, SENSOR_ADDR, SENSOR_INTERVAL)
 LEVEL = LevelMeter() if LEVEL_ENABLED else None
 MIC = MicControl() if MIC_ENABLED else None
+SPEAKER = SpeakerControl() if SPEAKER_ENABLED else None
 
 
 def main():
@@ -1193,6 +1465,8 @@ def main():
         LEVEL.start()
     if MIC is not None:
         MIC.start()
+    if SPEAKER is not None:
+        SPEAKER.start()
     print("intercom-door gestartet: http://%s:%d (Neustart %s)"
           % (HTTP_HOST, HTTP_PORT, STARTED_AT), flush=True)
     uvicorn.run(api, host=HTTP_HOST, port=HTTP_PORT, log_level="warning")

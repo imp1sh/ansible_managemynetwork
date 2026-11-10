@@ -102,7 +102,10 @@ intercom_mic_volume_max: "4.0"
 # Lautsprecher-Pegel (USB/Jieli-Sink, wpctl-Skala): 1.0 = 100%. Wird nach
 # jedem PipeWire-Start erzwungen — einst stand der Sink auf 0.4 (-24 dB),
 # was den Uplink Innen -> Tuer praktisch unhoerbar machte (Historie 2026-11-10).
+# Ueber die WebGUI aenderbar; der Wert liegt in intercom_speaker_volume_file.
 intercom_speaker_volume: "1.0"
+intercom_speaker_volume_file: "/var/lib/intercom/speaker_volume"
+intercom_speaker_volume_max: "1.0"
 
 # Mikrofon-Empfindlichkeit ueber WebGUI/API einstellbar (wpctl via runuser)
 intercom_mic_control: true

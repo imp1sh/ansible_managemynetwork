@@ -46,8 +46,11 @@ intercom_pipewire_speaker_node: "alsa_output.usb-Jieli_Technology_USB_Composite_
 intercom_pipewire_aec_method: "speex"
 # Lautsprecher-Sink-Pegel (wpctl-Skala): 1.0 = 100%. Wird nach jedem
 # Session-Start erzwungen (analog zur Tuerstation, wo ein alter State von
-# 0.4 den Uplink um -24 dB daempfte).
+# 0.4 den Uplink um -24 dB daempfte). Ueber die WebGUI aenderbar; der Wert
+# liegt in intercom_speaker_volume_file.
 intercom_speaker_volume: "1.0"
+intercom_speaker_volume_file: "/var/lib/intercom/speaker_volume"
+intercom_speaker_volume_max: "1.0"
 
 # --- Mikrofon-Empfindlichkeit (WebGUI/API, wie Tuerstation) ---
 # Node-Volume der soc_sound-Quelle in der PipeWire-Session (wpctl-Skala,
