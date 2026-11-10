@@ -19,6 +19,14 @@ intercom_app_vt: 2
 # Optionales Latenz-Logging der Video-Pipeline (alle 10 s ins Journal).
 intercom_app_latency_log: false
 
+# Audio-Ausgabe: Leer = App nutzt ihren Kompilier-Default (direkte
+# Hardware, plughw). Auf dem Innengeraet zeigt dies auf den AEC-Sink der
+# PipeWire-Session ("aecsink"), damit die Wiedergabe als Echo-Referenz
+# dient (sonst hoert man sich beim Gegensprechen selbst).
+# XDG_RUNTIME_DIR wird dafuer aus der UID des PipeWire-Users abgeleitet.
+intercom_app_audio_sink: ""
+intercom_app_pipewire_user: "intercom"
+
 intercom_app_packages:
   # Build-Toolchain
   - build-essential

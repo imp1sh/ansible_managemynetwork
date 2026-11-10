@@ -1,0 +1,17 @@
+# Managed by Ansible (role ansible_intercom_indoor) - do not edit by hand.
+# Einmal-Dienst in der intercom-User-Session: setzt den Lautsprecher-Pegel
+# nach jedem PipeWire-/WirePlumber-(Re)Start neu (Sink-Volumes werden aus
+# dem WirePlumber-State restauriert — ein alter Wert daempft die Wiedergabe).
+[Unit]
+Description=Intercom: Lautsprecher-Pegel setzen
+After=pipewire.service wireplumber.service
+Wants=pipewire.service wireplumber.service
+PartOf=pipewire.service wireplumber.service
+
+[Service]
+Type=oneshot
+ExecStart=/opt/intercom/set-speaker-volume.sh
+RemainAfterExit=yes
+
+[Install]
+WantedBy=default.target

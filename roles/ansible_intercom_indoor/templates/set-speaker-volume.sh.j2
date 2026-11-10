@@ -1,0 +1,26 @@
+#!/bin/sh
+# Erzwingt den Innen-Lautsprecher-Pegel (USB/Jieli-Sink) nach jedem
+# PipeWire-Start. Analog zur Tuerstation: dort daempfte ein alter
+# WirePlumber-State (0.4 = -24 dB) den Uplink; hier haette er die
+# App-Wiedergabe (Downlink) um denselben Betrag abgesenkt.
+# Managed by Ansible (role ansible_intercom_indoor) - do not edit by hand.
+export XDG_RUNTIME_DIR=/run/user/$(id -u)
+export HOME={{ intercom_pipewire_user_home }}
+
+SPK_NODE="{{ intercom_pipewire_speaker_node }}"
+SPK_VOLUME="{{ intercom_speaker_volume }}"
+
+try=0
+while [ "$try" -lt 15 ]; do
+    for id in $(wpctl status 2>/dev/null | sed -n '/Sinks:/,/Sources:/p' | grep -oE '[0-9]+\.' | tr -d '.'); do
+        if wpctl inspect "$id" 2>/dev/null | grep -q "node.name = \"${SPK_NODE}\""; then
+            wpctl set-volume "$id" "$SPK_VOLUME"
+            echo "intercom: Lautsprecher-Volume ${SPK_VOLUME} gesetzt (Node ${id})"
+            exit 0
+        fi
+    done
+    try=$((try + 1))
+    sleep 2
+done
+echo "intercom: WARNUNG - Lautsprecher-Node ${SPK_NODE} nicht gefunden" >&2
+exit 0

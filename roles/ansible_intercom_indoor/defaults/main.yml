@@ -21,13 +21,30 @@ intercom_config_txt_block: |
   dtoverlay=googlevoicehat-soundcard
 
 # --- Mikrofon-Quelle (INMP441) ---
-# ALSA-Geraet der I2S-Karte (Kanal 0 = linker Kanal traegt das Signal,
-# da L/R an GND liegt). Gilt fuer intercom-audio-tx; die App uebersteuert
-# per INTERCOM_MIC_SRC (Default dort identisch).
-intercom_mic_alsa_device: "plughw:CARD=sndrpigooglevoi,DEV=0"
+# Der Uplink liest aecsrc (echo-bereinigtes Mikrofon) aus der PipeWire-
+# Session; die Rohkarte (sndrpigooglevoi) bleibt Diagnose-Ziel.
+intercom_mic_alsa_device: "aecsrc"
 
 # --- Uplink-Pegel (Digital-Gain vor Opus-Encoding) ---
 # INMP441-Sprache liegt roh bei ca. -55 dBFS; +12 dB (4.0x linear) bringt
 # die Sprache auf einen gesunden Pegel am Tuer-Lautsprecher. Auf 1.0
 # setzen, um zunaechst unveraerstert zu messen.
 intercom_audio_tx_volume: "4.0"
+
+# --- PipeWire-Session fuer AEC (Spiegel der Tuerstation) ---
+# Verhindert das Selbst-Hoeren: die App-Wiedergabe (Downlink) laeuft ueber
+# den aec.sink (dient dem Echo-Canceller als Referenz), der Uplink liest
+# aecsrc (gefiltertes Mikrofon). Die Session des Users intercom laeuft mit
+# Linger; die UID wird dynamisch ermittelt (getent), da sie sich vom
+# Tuer-Geraet unterscheiden kann (dort zufaellig 999, hier belegt dnsmasq 999).
+intercom_pipewire_user: "intercom"
+intercom_pipewire_user_home: "/var/lib/intercom"
+intercom_pipewire_mic_node: "alsa_input.platform-soc_sound.stereo-fallback"
+intercom_pipewire_speaker_node: "alsa_output.usb-Jieli_Technology_USB_Composite_Device_B58D8A9978704453-01.analog-stereo"
+# Speex statt WebRTC: lineare Echokompensation, laesst die Gegenseite beim
+# gleichzeitigen Sprechen durch (Messreihe an der Tuerstation, 2026-11-10).
+intercom_pipewire_aec_method: "speex"
+# Lautsprecher-Sink-Pegel (wpctl-Skala): 1.0 = 100%. Wird nach jedem
+# Session-Start erzwungen (analog zur Tuerstation, wo ein alter State von
+# 0.4 den Uplink um -24 dB daempfte).
+intercom_speaker_volume: "1.0"

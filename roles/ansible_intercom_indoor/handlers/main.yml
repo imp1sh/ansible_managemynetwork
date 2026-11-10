@@ -12,10 +12,11 @@
     daemon_reload: true
   when: "ansible_facts.get('services', {}).get('intercom-audio-tx.service', {}).get('state', '') == 'running'"
 
-- name: Reboot intercom indoor for config.txt
-  # Das I2S-Overlay (googlevoicehat-soundcard) laedt nur beim Boot; die Karte
-  # sndrpigooglevoi existiert erst danach. Alle Dienste (intercom-app,
-  # intercomd, intercom-audio-tx) sind systemd-aktiviert und kommen nach dem
-  # Reboot selbst wieder hoch.
+- name: Reboot intercom indoor
+  # I2S-Overlays (config.txt) und PipeWire-Session-Konfigurationen wirken
+  # erst nach einem Boot; Session-Restarts zerstoeren die AEC-Verkettung
+  # (Historie 2026-11-10, siehe REDEPLOY.md). Alle Dienste (intercom-app,
+  # intercomd, intercom-audio-tx) sind systemd-aktiviert und kommen nach
+  # dem Reboot selbst wieder hoch.
   ansible.builtin.reboot:
     reboot_timeout: 300

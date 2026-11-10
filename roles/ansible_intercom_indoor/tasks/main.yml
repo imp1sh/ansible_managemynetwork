@@ -14,6 +14,9 @@
       - gstreamer1.0-plugins-good
       - gstreamer1.0-plugins-bad
       - gstreamer1.0-alsa
+      - pipewire
+      - pipewire-alsa
+      - wireplumber
     state: present
 
 # ---------------- Boot-Konfiguration (config.txt) ----------------
@@ -23,13 +26,107 @@
     marker: "# {mark} ANSIBLE MANAGED - role ansible_intercom_indoor"
     block: "{{ intercom_config_txt_block }}"
   # Das I2S-Overlay laedt nur beim Boot -> Reboot-Handler.
-  notify: Reboot intercom indoor for config.txt
+  notify: Reboot intercom indoor
 
 - name: "Intercom indoor - Ensure directory"
   ansible.builtin.file:
     path: /opt/intercom
     state: directory
     mode: "0755"
+
+# ---------------- PipeWire-Session fuer AEC (wie Tuerstation) ----------------
+- name: "Intercom indoor - Ensure PipeWire user"
+  ansible.builtin.user:
+    name: "{{ intercom_pipewire_user }}"
+    system: true
+    create_home: true
+    home: "{{ intercom_pipewire_user_home }}"
+    groups: audio
+    shell: /usr/sbin/nologin
+    state: present
+
+- name: "Intercom indoor - Lookup PipeWire user uid"
+  ansible.builtin.getent:
+    database: passwd
+    key: "{{ intercom_pipewire_user }}"
+
+- name: "Intercom indoor - Enable linger for PipeWire user"
+  ansible.builtin.command: "loginctl enable-linger {{ intercom_pipewire_user }}"
+  args:
+    creates: "/var/lib/systemd/linger/{{ intercom_pipewire_user }}"
+  changed_when: false
+
+- name: "Intercom indoor - Enable PipeWire session units"
+  ansible.builtin.command: >
+    systemctl --user -M {{ intercom_pipewire_user }}@.host
+    enable pipewire.socket pipewire.service wireplumber.service
+  changed_when: false
+
+- name: "Intercom indoor - Ensure PipeWire config dirs"
+  ansible.builtin.file:
+    path: "{{ intercom_pipewire_user_home }}/.config/{{ item }}"
+    state: directory
+    owner: "{{ intercom_pipewire_user }}"
+    group: "{{ intercom_pipewire_user }}"
+    mode: "0755"
+  loop:
+    - pipewire/pipewire.conf.d
+    - wireplumber/wireplumber.conf.d
+    - systemd/user
+
+- name: "Intercom indoor - PipeWire echo-cancel configuration"
+  ansible.builtin.template:
+    src: pipewire-echo-cancel.conf.j2
+    dest: "{{ intercom_pipewire_user_home }}/.config/pipewire/pipewire.conf.d/90-echo-cancel.conf"
+    owner: "{{ intercom_pipewire_user }}"
+    group: "{{ intercom_pipewire_user }}"
+    mode: "0644"
+  notify: Reboot intercom indoor
+
+- name: "Intercom indoor - PipeWire quantum configuration"
+  ansible.builtin.template:
+    src: pipewire-quantum.conf.j2
+    dest: "{{ intercom_pipewire_user_home }}/.config/pipewire/pipewire.conf.d/50-quantum.conf"
+    owner: "{{ intercom_pipewire_user }}"
+    group: "{{ intercom_pipewire_user }}"
+    mode: "0644"
+  notify: Reboot intercom indoor
+
+- name: "Intercom indoor - System-wide ALSA PCMs (AEC + Rohpfade)"
+  ansible.builtin.template:
+    src: asound-system.conf.j2
+    dest: /etc/asound.conf
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: "Intercom indoor - Speaker volume script"
+  ansible.builtin.template:
+    src: set-speaker-volume.sh.j2
+    dest: /opt/intercom/set-speaker-volume.sh
+    owner: "{{ intercom_pipewire_user }}"
+    group: "{{ intercom_pipewire_user }}"
+    mode: "0755"
+
+- name: "Intercom indoor - systemd user unit (speaker volume)"
+  ansible.builtin.template:
+    src: set-speaker-volume.service.j2
+    dest: "{{ intercom_pipewire_user_home }}/.config/systemd/user/set-speaker-volume.service"
+    owner: "{{ intercom_pipewire_user }}"
+    group: "{{ intercom_pipewire_user }}"
+    mode: "0644"
+
+- name: "Intercom indoor - Ensure PipeWire session started"
+  ansible.builtin.command: >
+    systemctl --user -M {{ intercom_pipewire_user }}@.host
+    start pipewire.socket pipewire.service wireplumber.service
+  changed_when: false
+
+- name: "Intercom indoor - Enable and start speaker volume user service"
+  ansible.builtin.command: >
+    systemctl --user -M {{ intercom_pipewire_user }}@.host
+    enable --now set-speaker-volume.service
+  changed_when: false
 
 - name: "Intercom indoor - Render daemon"
   ansible.builtin.template:

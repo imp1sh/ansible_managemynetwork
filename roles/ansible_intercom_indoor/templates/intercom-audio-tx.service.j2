@@ -1,16 +1,20 @@
 [Unit]
-Description=Intercom audio sender (INMP441 -> Opus RTP)
+Description=Intercom audio sender (INMP441 -> Opus RTP, AEC-gefiltert)
 After=network-online.target
 Wants=network-online.target
 
 [Service]
-# INMP441 (I2S-Karte sndrpigooglevoi): Das Signal liegt auf Kanal 0 (links,
-# da L/R an GND), Kanal 1 ist digital stumm. deinterleave nimmt gezielt
-# Kanal 0 heraus (statt beide zu mischen, was -6 dB kosten wuerde).
-# volume hebt den Pegel vor dem Opus-Encoding an (siehe
-# intercom_audio_tx_volume, Default +12 dB).
-ExecStart=/usr/bin/gst-launch-1.0 -e alsasrc device={{ intercom_mic_alsa_device }} buffer-time=50000 latency-time=10000 ! audio/x-raw,channels=2 ! deinterleave name=chan chan.src_0 ! queue ! audioconvert ! audioresample ! audio/x-raw,rate=48000,channels=1 ! volume volume={{ intercom_audio_tx_volume }} ! opusenc bitrate=32000 frame-size=10 audio-type=voice ! rtpopuspay pt=96 ! udpsink host={{ intercom_audio_tx_host }} port={{ intercom_audio_tx_port }} sync=false
-Restart=on-failure
+# Laeuft als intercom-User; XDG_RUNTIME_DIR wird zur Laufzeit aufgeloest
+# (System-Services erhalten es nicht automatisch) — noetig, damit der
+# PipeWire-ALSA-Plugin die Session findet. aecsrc ist der AEC-bereinigte
+# Mikrofon-Eingang (die App-Wiedergabe auf dem Lautsprecher ist darin
+# bereits herausgerechnet -> kein Selbst-Hoeren am Innengeraet).
+# Kanal 0 (links) wird per deinterleave gezielt entnommen; volume hebt den
+# Pegel vor dem Opus-Encoding an (intercom_audio_tx_volume, Default +12 dB).
+User={{ intercom_pipewire_user }}
+Group={{ intercom_pipewire_user }}
+ExecStart=/bin/sh -c 'export XDG_RUNTIME_DIR=/run/user/$(id -u); exec /usr/bin/gst-launch-1.0 -e alsasrc device={{ intercom_mic_alsa_device }} buffer-time=50000 latency-time=10000 ! audio/x-raw,channels=2 ! deinterleave name=chan chan.src_0 ! queue ! audioconvert ! audioresample ! audio/x-raw,rate=48000,channels=1 ! volume volume={{ intercom_audio_tx_volume }} ! opusenc bitrate=32000 frame-size=10 audio-type=voice ! rtpopuspay pt=96 ! udpsink host={{ intercom_audio_tx_host }} port={{ intercom_audio_tx_port }} sync=false'
+Restart=always
 RestartSec=2
 
 [Install]

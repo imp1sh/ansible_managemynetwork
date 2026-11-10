@@ -1,0 +1,28 @@
+# Managed by Ansible (role ansible_intercom_indoor) - do not edit by hand.
+# Innengeraet: Echo-Unterdrueckung (AEC) am Innen-Mikrofon — Spiegel der
+# Tuerstation. Verhindert das Selbst-Hoeren beim Gegensprechen:
+#   capture = INMP441 (I2S, soc_sound)
+#   sink    = USB-Lautsprecher (Jieli)  <- App-Wiedergabe, Monitor = Referenz
+#   source  = aec.source                <- bereinigtes Mikrofon (Uplink)
+context.modules = [
+  { name = libpipewire-module-echo-cancel
+    args = {
+      aec.method = "{{ intercom_pipewire_aec_method }}"
+      capture.props = {
+        node.name = "aec.capture"
+        target.object = "{{ intercom_pipewire_mic_node }}"
+      }
+      source.props = {
+        node.name = "aec.source"
+        node.description = "Innen-Mikrofon (AEC)"
+        media.class = "Audio/Source"
+      }
+      sink.props = {
+        node.name = "aec.sink"
+        node.description = "Innen-Lautsprecher (AEC, USB)"
+        media.class = "Audio/Sink"
+        target.object = "{{ intercom_pipewire_speaker_node }}"
+      }
+    }
+  }
+]

@@ -1,0 +1,35 @@
+# Managed by Ansible (role ansible_intercom_indoor) - do not edit by hand.
+# System-weite ALSA-PCMs: Zugriff auf die PipeWire-Session des Users intercom.
+# Die Clients (App als root, intercom-audio-tx als intercom) brauchen
+# XDG_RUNTIME_DIR=/run/user/<uid> — gesetzt in den jeweiligen systemd-Units.
+# aecsrc  = Aufnahme vom AEC-bereinigten Mikrofon (Uplink)
+# aecsink = Wiedergabe auf den Innen-Lautsprecher (App-Downlink, Referenz)
+# rawmic / rawspk = Rohpfade (Diagnose, ohne AEC)
+pcm.aecsrc {
+  type plug
+  slave.pcm {
+    type pipewire
+    capture_node "aec.source"
+  }
+}
+pcm.aecsink {
+  type plug
+  slave.pcm {
+    type pipewire
+    playback_node "aec.sink"
+  }
+}
+pcm.rawmic {
+  type plug
+  slave.pcm {
+    type pipewire
+    capture_node "{{ intercom_pipewire_mic_node }}"
+  }
+}
+pcm.rawspk {
+  type plug
+  slave.pcm {
+    type pipewire
+    playback_node "{{ intercom_pipewire_speaker_node }}"
+  }
+}

@@ -9,6 +9,10 @@ Type=simple
 Environment=QT_QPA_PLATFORM=eglfs
 Environment=QSG_RHI_BACKEND=opengl
 Environment=QT_QPA_EGLFS_HIDECURSOR=1
+{% if intercom_app_audio_sink | length > 0 %}
+Environment=INTERCOM_AUDIO_SINK={{ intercom_app_audio_sink }}
+Environment=XDG_RUNTIME_DIR=/run/user/{{ getent_passwd[intercom_app_pipewire_user][1] }}
+{% endif %}
 {% if intercom_app_latency_log %}
 Environment=INTERCOM_LATENCY_LOG=1
 {% endif %}

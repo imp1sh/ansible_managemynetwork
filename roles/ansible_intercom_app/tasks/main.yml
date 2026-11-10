@@ -87,6 +87,12 @@
     mode: "0644"
   notify: Restart intercom app
 
+- name: "Intercom app - Lookup PipeWire user uid"
+  ansible.builtin.getent:
+    database: passwd
+    key: "{{ intercom_app_pipewire_user }}"
+  when: intercom_app_audio_sink | length > 0
+
 - name: "Intercom app - systemd unit"
   ansible.builtin.template:
     src: intercom-app.service.j2
