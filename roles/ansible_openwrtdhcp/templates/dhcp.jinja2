@@ -286,6 +286,23 @@ config domain
 {% endfor %}
 {% endif %}
 
+# DHCP match rules (e.g. PXE client architecture)
+{% if openwrt_dhcp_match is defined %}
+{% for matchitem in openwrt_dhcp_match %}
+config match
+	option networkid "{{ matchitem['networkid'] }}"
+	option match "{{ matchitem['match'] }}"
+{% if matchitem['force'] is defined %}
+	option force "{{ matchitem['force'] }}"
+{% endif %}
+{% if matchitem['dhcp_option'] is defined %}
+{% for dhcpoption in matchitem['dhcp_option'] %}
+	list dhcp_option "{{ dhcpoption }}"
+{% endfor %}
+{% endif %}
+{% endfor %}
+{% endif %}
+
 # PXE Boot options
 {% if openwrt_dhcp_boot is defined %}
 {% for bootitem in openwrt_dhcp_boot %}

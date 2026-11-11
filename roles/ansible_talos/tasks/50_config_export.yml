@@ -49,26 +49,28 @@
   changed_when: false
 
 # VIP ACTIVATION
-- name: MMN Talos - Generate VIP patch
+- name: MMN Talos - Generate per-node VIP patches
   ansible.builtin.copy:
-    dest: "{{ talos_patches_path }}/vip-patch.yaml"
+    dest: "{{ talos_patches_path }}/vip_{{ clusternode.name }}_patch.yaml"
     content: |
       ---
       apiVersion: v1alpha1
       kind: Layer2VIPConfig
       name: {{ talos_cluster.value.vip }}
-      link: {{ talos_cluster.value.vip_interface }}
+      link: {{ clusternode.vip_interface | default(talos_cluster.value.vip_interface) }}
+  loop: "{{ talos_cluster_hosts_cp }}"
+  loop_control:
+    loop_var: clusternode
   when:
     - talos_cluster.value.vip is defined
-    - talos_cluster.value.vip_interface is defined
 
-- name: MMN Talos - Apply VIP patch to controlplane nodes
+- name: MMN Talos - Apply VIP patches to controlplane nodes
   ansible.builtin.command: >-
     talosctl patch mc
     --nodes {{ clusternode.ip4[0] | ansible.utils.ipaddr('address') }}
     --endpoints {{ clusternode.ip4[0] | ansible.utils.ipaddr('address') }}
     --talosconfig {{ talos_config_file }}
-    --patch-file {{ talos_patches_path }}/vip-patch.yaml
+    --patch-file {{ talos_patches_path }}/vip_{{ clusternode.name }}_patch.yaml
   register: talos_vip_patch_result
   changed_when: "'no change' not in (talos_vip_patch_result.stdout | default(''))"
   failed_when: false
@@ -77,7 +79,6 @@
     loop_var: clusternode
   when:
     - talos_cluster.value.vip is defined
-    - talos_cluster.value.vip_interface is defined
 
 - name: MMN Talos - Wait for VIP to become reachable
   ansible.builtin.wait_for:

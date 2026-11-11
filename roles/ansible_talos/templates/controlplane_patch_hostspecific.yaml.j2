@@ -6,6 +6,50 @@ hostname: "{{ clusternode.name }}"
 ---
 apiVersion: v1alpha1
 kind: UnattendedInstallConfig
+installer:
+  image: factory.talos.dev/metal-installer/{{ clusternode.schematic_id | default(talos_cluster.value.schematic_id | default(talos_schematic_id)) }}:{{ talos_cluster.value.talos_version | default(talos_version) }}
 provisioning:
   diskSelector:
-    match: disk.dev_path == "/dev/{{ clusternode.systemdisk }}"
+{% if clusternode.install_disk_selector is defined %}
+    match: {{ clusternode.install_disk_selector | to_json }}
+{% else %}
+    match: disk.dev_path == "{{ clusternode.systemdisk }}"
+{% endif %}
+{% if clusternode.install_disk_wipe is defined %}
+  wipe: {{ clusternode.install_disk_wipe | bool | to_json }}
+{% endif %}
+{% for volume in clusternode.user_volumes | default([]) %}
+---
+apiVersion: v1alpha1
+kind: UserVolumeConfig
+name: "{{ volume.name }}"
+provisioning:
+  diskSelector:
+    match: {{ volume.disk_selector | to_json }}
+{% if volume.min_size is defined %}
+  minSize: {{ volume.min_size }}
+{% endif %}
+{% if volume.max_size is defined %}
+  maxSize: {{ volume.max_size }}
+{% endif %}
+{% if volume.grow is defined %}
+  grow: {{ volume.grow | bool | to_json }}
+{% endif %}
+{% if volume.filesystem is defined %}
+filesystem:
+  type: {{ volume.filesystem }}
+{% endif %}
+{% endfor %}
+{% for module in clusternode.kernel_modules | default([]) %}
+---
+apiVersion: v1alpha1
+kind: KernelModuleConfig
+name: "{{ module }}"
+{% endfor %}
+{% if talos_cluster.value.vip is defined %}
+---
+apiVersion: v1alpha1
+kind: Layer2VIPConfig
+name: {{ talos_cluster.value.vip }}
+link: {{ clusternode.vip_interface | default(talos_cluster.value.vip_interface) }}
+{% endif %}

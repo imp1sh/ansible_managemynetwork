@@ -16,5 +16,6 @@ cilium_gateway_api: false
 # Gateway API CRD version to install when cilium_gateway_api is enabled.
 cilium_gateway_api_crd_version: "v1.2.1"
 # Default schematic ID from factory.talos.dev (vanilla metal-installer, no extensions).
-# Override per cluster via talos_clusters.<name>.schematic_id.
+# Override per cluster via talos_clusters.<name>.schematic_id, or per control-plane
+# node via talos_clusters.<name>.hosts_controlplane[].schematic_id.
 talos_schematic_id: "376567988ad370138ad8b2698212367b8edcb69b5fd68c80be1f2ec7d603b4ba"

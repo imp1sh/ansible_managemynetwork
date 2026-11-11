@@ -50,6 +50,33 @@ openwrt_dhcp_poolsgroup:
 ```
 Find more possible parameters in the [OpenWrt DHCP documentation](https://openwrt.org/docs/guide-user/base-system/dhcp).
 
+## PXE / DHCP Match Rules
+
+`openwrt_dhcp_match` renders OpenWrt `config match` sections (dnsmasq
+`--dhcp-match`). They are useful for selecting an architecture-specific PXE
+bootloader:
+
+```yaml
+openwrt_dhcp_match:
+  - networkid: "efi-x86_64"
+    match: "option:client-arch,7"
+  - networkid: "efi-x86_64"
+    match: "option:client-arch,9"
+
+openwrt_dhcp_boot:
+  - networkid: "!efi-x86_64"
+    filename: "netboot.xyz.kpxe"
+    servername: "10.10.112.158"
+    serveraddress: "10.10.112.158"
+  - networkid: "efi-x86_64"
+    filename: "netboot.xyz.efi"
+    servername: "10.10.112.158"
+    serveraddress: "10.10.112.158"
+```
+
+BIOS clients get `netboot.xyz.kpxe`; x86_64 UEFI clients get
+`netboot.xyz.efi`. UEFI machines cannot boot the legacy `.kpxe` NBP.
+
 ## Static Leases
 
 > The names of the leases may not contain spaces.

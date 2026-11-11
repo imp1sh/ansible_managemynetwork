@@ -51,7 +51,7 @@ Each key under `talos_clusters` defines one cluster:
 | `talosctl_version` | no | Per-cluster talosctl version override |
 | `schematic_id` | no | Per-cluster schematic ID override |
 | `cilium_gateway_api` | no | Enable Cilium Gateway API (also installs CRDs as inline manifest) |
-| `hosts_controlplane` | yes | List of CP nodes with `name` and `ip4` |
+| `hosts_controlplane` | yes | List of CP nodes with `name` and `ip4`. Optional per-node `schematic_id` and `vip_interface` overrides. |
 | `hosts_worker` | no | List of worker nodes with `name` and `ip4` |
 
 ### Schematic ID
@@ -60,10 +60,16 @@ The schematic ID identifies a pre-built installer image recipe at
 `factory.talos.dev`. It determines which system extensions (kernel modules,
 firmware, tools) are bundled into the Talos installer image.
 
-Configurable at three levels (last one wins):
+Configurable at four levels (last one wins):
 1. Role default: `talos_schematic_id` in `defaults/main.yml`
 2. Group vars: `talos_schematic_id` in consuming playbook's group_vars
 3. Per cluster: `talos_clusters.<name>.schematic_id`
+4. Per control-plane node: `talos_clusters.<name>.hosts_controlplane[].schematic_id`
+
+The per-node override is applied through the host-specific
+`UnattendedInstallConfig` patch and only affects that node's install/upgrade
+image. The cluster-wide installer image is still generated from the
+cluster/global schematic, so nodes without an override keep using it.
 
 The default schematic (`376567988ad370138ad8b2698212367b8edcb69b5fd68c80be1f2ec7d603b4ba`)
 has `customization: {}` — plain vanilla Talos with no extensions. The same
@@ -71,8 +77,109 @@ schematic works across all Talos versions; only the `:tag` (version) changes.
 
 To get a new schematic (when you need extensions):
 - Visit `https://factory.talos.dev/new`, configure extensions, submit
-- Or use `talosctl images schematic --extension <name> ...`
+- Or POST a schematic to `https://factory.talos.dev/schematics`
 - Note the generated ID and set it as `schematic_id`
+
+Example with extensions for a single node only:
+
+```yaml
+talos_clusters:
+  junicluster0:
+    hosts_controlplane:
+      - name: "talos0"
+        ip4: ["10.10.112.172/24"]
+      - name: "talos1"
+        schematic_id: "<schematic-id-with-extensions>"
+        ip4: ["10.10.112.173/24"]
+```
+
+### Install disk selection
+
+By default the role uses the first non-loop disk reported by
+`talosctl get disks`. That is unsafe on machines with more than one disk.
+Set `install_disk_selector` to an explicit CEL expression instead:
+
+```yaml
+hosts_controlplane:
+  - name: "talos1"
+    ip4: ["10.10.112.173/24"]
+    install_disk_selector: 'disk.serial == "<serial>"'
+    install_disk_wipe: true
+```
+
+Use a stable property (`disk.serial`, `disk.wwid`, or a
+`/dev/disk/by-id/...` entry in `disk.symlinks`) and verify it with:
+
+```bash
+talosctl --nodes <node> get disks --insecure -o yaml
+```
+
+`install_disk_wipe` overrides the generated `wipe` value for that node. Set it
+to `true` for a clean install on a disk that already contains partitions.
+
+### User volumes
+
+Additional disks can be provisioned as Talos user volumes and are mounted at
+`/var/mnt/<name>`. Define them per control-plane node:
+
+```yaml
+hosts_controlplane:
+  - name: "talos1"
+    ip4: ["10.10.112.173/24"]
+    user_volumes:
+      - name: "local-path"
+        disk_selector: 'disk.serial == "<disk-serial>"'
+        min_size: "1TiB"
+        grow: true
+        filesystem: xfs
+```
+
+`disk_selector` is a CEL expression evaluated against the Talos `Disk`
+resources. Use a stable property (`disk.serial`, `disk.wwid`, or
+`disk.symlinks`), especially on machines with multiple disks.
+
+### Kernel modules
+
+Load additional kernel modules per node with `kernel_modules`:
+
+```yaml
+hosts_controlplane:
+  - name: "talos2"
+    ip4: ["10.10.112.174/24"]
+    kernel_modules:
+      - nvidia
+      - nvidia_uvm
+      - nvidia_drm
+      - nvidia_modeset
+```
+
+Each entry renders a `KernelModuleConfig` document in the host patch. This is
+required for the NVIDIA GPU extensions.
+
+### Per-node VIP interface
+
+The VIP is announced by every control-plane node, so each node's
+`Layer2VIPConfig` must point at an interface that actually exists on that node:
+
+```yaml
+talos_clusters:
+  junicluster0:
+    vip: "10.10.112.20"
+    vip_interface: "ens3"          # cluster-wide fallback
+    hosts_controlplane:
+      - name: "talos0"
+        vip_interface: "ens3"
+        ip4: ["10.10.112.172/24"]
+      - name: "talos1"
+        vip_interface: "enp191s0"
+        ip4: ["10.10.112.173/24"]
+      - name: "talos2"
+        vip_interface: "enp9s0"
+        ip4: ["10.10.112.174/24"]
+```
+
+Without a per-node override, the cluster-wide `vip_interface` is used, which is
+only safe when every node has an interface with that name.
 
 ## Upgrading Talos
 
@@ -132,6 +239,21 @@ talos_clusters:
   <cluster>:
     schematic_id: "<new-schematic-id>"
 ```
+
+If only selected control-plane nodes need the extensions, set the schematic on
+those hosts instead:
+
+```yaml
+talos_clusters:
+  <cluster>:
+    hosts_controlplane:
+      - name: "<node>"
+        schematic_id: "<new-schematic-id>"
+        ip4: ["<ip>/<prefix>"]
+```
+
+The upgrade image for such a node must be built from that node's schematic;
+upgrading it with the cluster-wide vanilla image removes the extensions again.
 
 ### Step 1 - Pre-flight checks
 
