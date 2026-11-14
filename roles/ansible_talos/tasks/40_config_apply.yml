@@ -44,7 +44,10 @@
 
 - name: MMN Talos - Determine if cluster needs bootstrap
   ansible.builtin.set_fact:
-    _talos_needs_bootstrap: "{{ not (talos_cp_bootstrapped[talos_cluster.value.hosts_controlplane[0].name] | default(false)) }}"
+    # A cluster that already has at least one bootstrapped control-plane node
+    # must never be bootstrapped again. This also covers replacing an existing
+    # node (e.g. a VM) with new hardware that reuses the same name/IP.
+    _talos_needs_bootstrap: "{{ (talos_cp_bootstrapped.values() | select('equalto', true) | list | length) == 0 }}"
 
 # ── PHASE 1: deploy first CP node and bootstrap etcd ──
 
@@ -60,12 +63,14 @@
       --file {{ talos_config_path }}/controlplane_{{ _first_cp.name }}.yaml
   vars:
     _first_cp: "{{ talos_cluster_hosts_cp[0] }}"
+  when: _talos_needs_bootstrap | bool
 
 - name: MMN Talos - Wait for first controlplane node Talos API
   ansible.builtin.wait_for:
     host: "{{ talos_cluster_hosts_cp[0].ip4[0] | ansible.utils.ipaddr('address') }}"
     port: 50000
     timeout: 600
+  when: _talos_needs_bootstrap | bool
 
 - name: MMN Talos - Bootstrap etcd on first controlplane node
   ansible.builtin.command: >-
@@ -110,9 +115,26 @@
       --nodes {{ clusternode.ip4[0] | ansible.utils.ipaddr('address') }}
       --endpoints {{ clusternode.ip4[0] | ansible.utils.ipaddr('address') }}
       --file {{ talos_config_path }}/controlplane_{{ clusternode.name }}.yaml
-  loop: "{{ talos_cluster_hosts_cp[1:] }}"
+  loop: "{{ talos_cluster_hosts_cp[1:] if (_talos_needs_bootstrap | bool) else talos_cluster_hosts_cp }}"
   loop_control:
     loop_var: clusternode
+
+- name: MMN Talos - Wait for newly deployed controlplane nodes
+  ansible.builtin.command: >-
+    talosctl --talosconfig {{ talosctl_config_path }}
+    --endpoints {{ clusternode.ip4[0] | ansible.utils.ipaddr('address') }}
+    --nodes {{ clusternode.ip4[0] | ansible.utils.ipaddr('address') }}
+    version
+  register: _talos_new_cp_ready
+  retries: 60
+  delay: 10
+  until: _talos_new_cp_ready.rc == 0
+  changed_when: false
+  loop: "{{ talos_cluster_hosts_cp }}"
+  loop_control:
+    loop_var: clusternode
+    label: "{{ clusternode.name }}"
+  when: not (talos_cp_bootstrapped[clusternode.name] | default(false))
 
 # WORKER NODES
 - name: MMN Talos - Generate worker node patches
