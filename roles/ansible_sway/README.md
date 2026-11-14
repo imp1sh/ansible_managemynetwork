@@ -374,6 +374,47 @@ sway_exec_commands:
   - command: "mako"
 ```
 
+#### Managed User Systemd Services
+
+For tray applets and other session helpers that should be supervised and
+restarted on failure, deploy a per-user systemd unit instead of a one-shot
+`exec` command. Units are written to `~/.config/systemd/user/`, enabled, and
+started for each target user. Linger is enabled for those users so Ansible can
+reach the user manager; the unit itself is still gated by
+`graphical-session.target` and only starts with the graphical session.
+
+```yaml
+sway_user_services:
+  - name: "tuned-switcher.service"
+    description: "Tuned Switcher tray applet"
+    exec_start: "/usr/bin/tuned-switcher"
+    exec_condition: "/bin/sh -c '[ -n \"$WAYLAND_DISPLAY\" ]'"
+    exec_start_pre: >-
+      /bin/sh -c 'until busctl --user status org.kde.StatusNotifierWatcher >/dev/null 2>&1; do sleep 0.5; done'
+    timeout_start_sec: 60
+    restart: "on-failure"
+    restart_sec: 3
+    after: "graphical-session.target"
+    part_of: "graphical-session.target"
+    wanted_by: "graphical-session.target"
+```
+
+Supported keys:
+
+- `name`: Unit filename (required)
+- `exec_start`: Command to run (required)
+- `description`: Unit description (defaults to `name`)
+- `exec_condition`: Optional `ExecCondition=` command; use it to skip the unit
+  outside a graphical session
+- `exec_start_pre`: Optional `ExecStartPre=` command; use it to wait for a
+  dependency such as the Waybar tray watcher
+- `timeout_start_sec`: Start timeout for `ExecStartPre`/`ExecStart` (optional)
+- `restart`: `on-failure`, `always`, etc. (optional)
+- `restart_sec`: Delay between restarts (optional)
+- `after`, `part_of`, `wanted_by`: Unit ordering/dependency settings
+- `environment`, `working_directory`, `type` (optional)
+- `start_limit_interval_sec`, `start_limit_burst` (optional)
+
 #### Additional Settings
 
 - `sway_focus_wrapping`: Focus wrapping - "yes", "no", "force", or "workspace" (default: null; boolean true/false map to yes/no)

@@ -312,6 +312,26 @@ sway_exec_commands: []
 #   - command: "waybar"
 #   - command: "mako"
 
+# Per-user systemd services
+# Deployed to ~/.config/systemd/user/ and enabled at graphical-session.target.
+# Use this for tray applets and other session helpers that need supervision
+# (restart on crash) instead of a one-shot `exec` command.
+sway_user_services: []
+# Example:
+# sway_user_services:
+#   - name: "tuned-switcher.service"
+#     description: "Tuned Switcher tray applet"
+#     exec_start: "/usr/bin/tuned-switcher"
+#     exec_condition: "/bin/sh -c '[ -n \"$WAYLAND_DISPLAY\" ]'"
+#     exec_start_pre: >-
+#       /bin/sh -c 'until busctl --user status org.kde.StatusNotifierWatcher >/dev/null 2>&1; do sleep 0.5; done'
+#     timeout_start_sec: 60
+#     restart: "on-failure"
+#     restart_sec: 3
+#     after: "graphical-session.target"
+#     part_of: "graphical-session.target"
+#     wanted_by: "graphical-session.target"
+
 # Focus wrapping
 sway_focus_wrapping: null
 

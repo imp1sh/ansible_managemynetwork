@@ -19,7 +19,20 @@
     owner: "{{ target_user }}"
     group: "{{ target_user }}"
     mode: '0700'
-  when: sway_cleanup_enable | default(true)
+  when: (sway_cleanup_enable | default(true)) or (sway_user_services | default([]) | length > 0)
+
+- name: MMN sway - Deploy user systemd services for {{ target_user }}
+  ansible.builtin.template:
+    src: "sway_user_service.j2"
+    dest: "{{ target_user_home }}/.config/systemd/user/{{ item.name }}"
+    owner: "{{ target_user }}"
+    group: "{{ target_user }}"
+    mode: '0644'
+  loop: "{{ sway_user_services | default([]) }}"
+  loop_control:
+    label: "{{ item.name }}"
+  register: sway_user_service_units
+  when: sway_user_services | default([]) | length > 0
 
 - name: MMN sway - Ensure local bin directory exists
   ansible.builtin.file:
@@ -99,7 +112,7 @@
 - name: MMN sway - Enable linger for {{ target_user }}
   ansible.builtin.command:
     cmd: "loginctl enable-linger {{ target_user }}"
-  when: sway_cleanup_enable | default(true)
+  when: (sway_cleanup_enable | default(true)) or (sway_user_services | default([]) | length > 0)
   changed_when: false
 
 - name: MMN sway - Reload systemd user daemon for {{ target_user }}
@@ -108,7 +121,7 @@
     scope: user
   become: true
   become_user: "{{ target_user }}"
-  when: sway_cleanup_enable | default(true)
+  when: (sway_cleanup_enable | default(true)) or (sway_user_services | default([]) | length > 0)
 
 - name: MMN sway - Enable and start sway cleanup timer for {{ target_user }}
   ansible.builtin.systemd:
@@ -119,3 +132,30 @@
   become: true
   become_user: "{{ target_user }}"
   when: sway_cleanup_enable | default(true)
+
+- name: MMN sway - Enable and start user systemd services for {{ target_user }}
+  ansible.builtin.systemd:
+    name: "{{ item.name }}"
+    enabled: true
+    state: started
+    scope: user
+  become: true
+  become_user: "{{ target_user }}"
+  loop: "{{ sway_user_services | default([]) }}"
+  loop_control:
+    label: "{{ item.name }}"
+  when: sway_user_services | default([]) | length > 0
+
+- name: MMN sway - Restart changed user systemd services for {{ target_user }}
+  ansible.builtin.systemd:
+    name: "{{ item.item.name }}"
+    state: restarted
+    scope: user
+  become: true
+  become_user: "{{ target_user }}"
+  loop: "{{ sway_user_service_units.results | default([]) }}"
+  loop_control:
+    label: "{{ item.item.name }}"
+  when:
+    - sway_user_services | default([]) | length > 0
+    - item.changed

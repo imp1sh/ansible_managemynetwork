@@ -1,0 +1,44 @@
+[Unit]
+Description={{ item.description | default(item.name) }}
+{% if item.after is defined %}
+After={{ item.after }}
+{% endif %}
+{% if item.part_of is defined %}
+PartOf={{ item.part_of }}
+{% endif %}
+{% if item.start_limit_interval_sec is defined %}
+StartLimitIntervalSec={{ item.start_limit_interval_sec }}
+{% endif %}
+{% if item.start_limit_burst is defined %}
+StartLimitBurst={{ item.start_limit_burst }}
+{% endif %}
+
+[Service]
+Type={{ item.type | default('simple') }}
+{% if item.exec_condition is defined %}
+ExecCondition={{ item.exec_condition }}
+{% endif %}
+{% if item.exec_start_pre is defined %}
+ExecStartPre={{ item.exec_start_pre }}
+{% endif %}
+ExecStart={{ item.exec_start }}
+{% if item.working_directory is defined %}
+WorkingDirectory={{ item.working_directory }}
+{% endif %}
+{% if item.environment is defined %}
+{% for key, value in item.environment.items() %}
+Environment={{ key }}={{ value }}
+{% endfor %}
+{% endif %}
+{% if item.restart is defined %}
+Restart={{ item.restart }}
+{% endif %}
+{% if item.restart_sec is defined %}
+RestartSec={{ item.restart_sec }}
+{% endif %}
+{% if item.timeout_start_sec is defined %}
+TimeoutStartSec={{ item.timeout_start_sec }}
+{% endif %}
+
+[Install]
+WantedBy={{ item.wanted_by | default('graphical-session.target') }}
