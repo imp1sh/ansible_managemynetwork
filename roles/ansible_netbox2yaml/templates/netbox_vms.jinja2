@@ -18,6 +18,9 @@ nb_vms:
     interfaces:
 {% for interface in dict_interfaces[vm.key|int]|default([], true) %}
       {{ interface.name }}:
+{% if interface.mac is defined and interface.mac %}
+        mac: {{ interface.mac }}
+{% endif %}
 {% set _ips = (dict_ips | default({}))[interface.ips|int] | default([], true) %}
 {% set _ip4 = _ips | selectattr('family', 'eq', 4) | sort(attribute='ip_id') | map(attribute='address') | list %}
 {% set _ip6 = _ips | selectattr('family', 'eq', 6) | sort(attribute='ip_id') | map(attribute='address') | list %}

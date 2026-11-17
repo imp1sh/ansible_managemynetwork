@@ -46,6 +46,7 @@ nb_devices:
     interfaces:
       eth0:
         id:
+        mac: aa:bb:cc:dd:ee:ff
         ip4:
           ip4_0: 10.0.0.1/24
           ip4_1: 10.0.0.2/24
@@ -150,6 +151,7 @@ nb_devices['pc1.libcom.de']['interfaces']['vmbr0']['ip6']['gua_0']
 
 ### Address map rules
 
+- Each interface also exports its NetBox `mac` address when one is set.
 - `ip4` is a map with keys `ip4_0`, `ip4_1`, ...
 - `ip6` is a map with keys `ula_0`, `ula_1`, ..., `gua_0`, `gua_1`, ...,
   `ll_0`, `ll_1`, ...

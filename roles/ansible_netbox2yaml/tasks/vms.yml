@@ -43,6 +43,7 @@
   ansible.builtin.set_fact:
     query_interfaces: '[].{id: value.virtual_machine.id,
                            name: value.name,
+                           mac: value.mac_address,
                            ips: key }'
 - name: "MMN netbox2yaml - Builds interfaces dict"
   ansible.builtin.set_fact:
