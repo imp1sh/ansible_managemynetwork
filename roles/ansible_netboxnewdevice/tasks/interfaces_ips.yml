@@ -30,8 +30,10 @@
     - nnd_physical_interfaces | length > 0
     - mmn_netbox_create_interfaces | default(true) | bool
   vars:
-    nnd_safe_name: "{{ nnd_iface_item | regex_replace('[^a-zA-Z0-9]', '_') }}"
-    nnd_raw_facts: "{{ lookup('vars', 'ansible_' ~ nnd_safe_name, default={}) }}"
+    # ansible_facts is keyed by the raw interface name (dots and dashes
+    # preserved, e.g. "bridgedown.100"), so no name mangling is needed.
+    # The previous regex_replace+lookup approach missed VLAN subinterfaces.
+    nnd_raw_facts: "{{ ansible_facts[nnd_iface_item] | default({}) }}"
     nnd_iface_type: >-
       {{
         'virtual' if (nnd_raw_facts.type | default('')) in ['bridge', 'loopback']

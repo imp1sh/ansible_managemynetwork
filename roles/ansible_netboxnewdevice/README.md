@@ -71,6 +71,39 @@ read -rs _tok; ansible-vault encrypt_string --name mmn_netbox_token "$_tok"; uns
 | `ansible_interfaces` | dcim.interfaces (excluding loopback) |
 | Per-interface `ipv4` / `ipv6` | ipam.ip_addresses (assigned to the corresponding interface) |
 
+### Interface and IP selection
+
+For every interface the wizard shows the crawled IPv4 and IPv6 addresses and
+asks which ones to store in NetBox. Input is comma-separated indices only:
+
+| Input | Meaning |
+|---|---|
+| `0` | index `0` only |
+| `0,1` | indices `0` and `1` |
+| *(empty)* | skip IP assignment for this interface |
+
+IPv6 entries are labelled with their address class — `ula` (`fc00::/7`),
+`gua` (`2000::/3`), `ll` (link-local `fe80::/10`) or `other` — for
+information only. The class abbreviations are **not** accepted as selection
+tokens; select the displayed index instead. Invalid or out-of-range indices
+abort the wizard instead of silently selecting an unintended address.
+Link-local addresses are only stored if you explicitly select them; when
+stored, `ansible_netbox2yaml` exports them as `ll_0`, `ll_1`, ... like any
+other IPv6 class.
+
+Every selected address becomes a separate `ipam.ip_address` object in NetBox
+and is assigned to that interface via `assigned_object`. NetBox therefore
+stores multiple IPv4 and IPv6 addresses per interface as independent,
+individually addressable objects. Addresses are created in ascending index
+order, so their NetBox object IDs follow the displayed order. The device-wide
+`primary_ip4` / `primary_ip6` are still selected separately at the end of the
+wizard.
+
+The `ansible_netbox2yaml` role exports these addresses as marker-keyed maps
+(`ip4_0`, `ip4_1`, `ula_0`, `ula_1`, `gua_0`, `ll_0`, ...), ordered by the
+NetBox IP object ID. See the `ansible_netbox2yaml` README for the exact
+schema.
+
 Fields that cannot be auto-detected and are always prompted (unless found on an existing device):
 
 - **Device role** (server, switch, router, firewall, ...)

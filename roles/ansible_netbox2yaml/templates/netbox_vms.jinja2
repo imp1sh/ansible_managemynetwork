@@ -18,9 +18,33 @@ nb_vms:
     interfaces:
 {% for interface in dict_interfaces[vm.key|int]|default([], true) %}
       {{ interface.name }}:
-{% if dict_ips[interface.ips|int] is defined %}
-        ip4: {{ dict_ips[interface.ips|int]|selectattr('family', 'eq', 4)|map(attribute='address')|list }}
-        ip6: {{ dict_ips[interface.ips|int]|selectattr('family', 'eq', 6)|map(attribute='address')|list }}
+{% set _ips = (dict_ips | default({}))[interface.ips|int] | default([], true) %}
+{% set _ip4 = _ips | selectattr('family', 'eq', 4) | sort(attribute='ip_id') | map(attribute='address') | list %}
+{% set _ip6 = _ips | selectattr('family', 'eq', 6) | sort(attribute='ip_id') | map(attribute='address') | list %}
+{% set _ip6_ula = _ip6 | select('match', '^[fF][cCdD]') | list %}
+{% set _ip6_gua = _ip6 | select('match', '^[23]') | list %}
+{% set _ip6_ll = _ip6 | select('match', '^[fF][eE][89aAbB]') | list %}
+{% if _ip4 | length > 0 %}
+        ip4:
+{% for addr in _ip4 %}
+          ip4_{{ loop.index0 }}: {{ addr }}
+{% endfor %}
+{% else %}
+        ip4: {}
+{% endif %}
+{% if (_ip6_ula | length) + (_ip6_gua | length) + (_ip6_ll | length) > 0 %}
+        ip6:
+{% for addr in _ip6_ula %}
+          ula_{{ loop.index0 }}: {{ addr }}
+{% endfor %}
+{% for addr in _ip6_gua %}
+          gua_{{ loop.index0 }}: {{ addr }}
+{% endfor %}
+{% for addr in _ip6_ll %}
+          ll_{{ loop.index0 }}: {{ addr }}
+{% endfor %}
+{% else %}
+        ip6: {}
 {% endif %}
 {% endfor %}
 {% endfor %}

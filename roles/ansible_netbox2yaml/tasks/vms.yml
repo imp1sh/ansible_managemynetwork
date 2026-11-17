@@ -11,16 +11,33 @@
     nb_ips_fetched: "{{ query('netbox.netbox.nb_lookup', 'ip-addresses',  api_filter='assigned_to_interface=True', api_endpoint=mmn_netbox_url, token=mmn_netbox_token) }}"
 - name: "MMN netbox2yaml - filter ip addresses for vms only"
   ansible.builtin.set_fact:
-    nb_ips_filtered: "{{ nb_ips_fetched | selectattr('value.assigned_object_type', '==', 'virtualization.vminterface') }}"
+    nb_ips_filtered: "{{ nb_ips_fetched | selectattr('value.assigned_object_type', '==', 'virtualization.vminterface') | list }}"
 # Assembling IPs
 - name: "MMN netbox2yaml - Configure IP json query"
   ansible.builtin.set_fact:
     query_ips: '[].{id: value.assigned_object_id,
+                    ip_id: value.id,
                     address: value.address,
                     family: value.family.value}'
 - name: "MMN netbox2yaml - Build IPs dict"
   ansible.builtin.set_fact:
     dict_ips: "{{ dict(nb_ips_filtered | json_query(query_ips)|groupby('id')) }}"
+- name: "MMN netbox2yaml - Identify IPv6 addresses outside ULA/GUA/link-local"
+  ansible.builtin.set_fact:
+    nb_ignored_ip6: >-
+      {{
+        nb_ips_filtered
+        | selectattr('value.family.value', 'eq', 6)
+        | rejectattr('value.address', 'match', '^[fF][cCdD]')
+        | rejectattr('value.address', 'match', '^[23]')
+        | rejectattr('value.address', 'match', '^[fF][eE][89aAbB]')
+        | map(attribute='value.address')
+        | list
+      }}
+- name: "MMN netbox2yaml - Warn about ignored IPv6 addresses"
+  ansible.builtin.debug:
+    msg: "Ignoring IPv6 addresses outside ULA/GUA/link-local: {{ nb_ignored_ip6 | join(', ') }}"
+  when: nb_ignored_ip6 | length > 0
 # Assembling Interfaces
 - name: "MMN netbox2yaml - Configure interfaces json query"
   ansible.builtin.set_fact:

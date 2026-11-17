@@ -46,8 +46,14 @@ nb_devices:
     interfaces:
       eth0:
         id:
-        ip4: 
+        ip4:
+          ip4_0: 10.0.0.1/24
+          ip4_1: 10.0.0.2/24
         ip6:
+          ula_0: fd00::1/64
+          ula_1: fd00::2/64
+          gua_0: 2000::1/64
+          ll_0: fe80::1/64
 ```
 
 ## nb_prefixes_by_name
@@ -98,35 +104,68 @@ nb_prefixes_by_network:
 So if you would like to access prefix attributes by network address in Ansible you would use e.g. `nb_prefixes_by_network['192.168.0.0/24']['site']['name']`.
 
 ## nb_devices
-Devices are 
+Devices and their interface addresses are exported as marker-keyed maps.
+The marker is generated at export time from the address family/class and the
+NetBox IP object ID; no marker is stored in NetBox.
 
 ```yaml
-netbox_devices:
+nb_devices:
   pc1.libcom.de:
     comments: Rackserver 2HE
     device_type: Rackserver 2HE
-    vmbr0:
-      description: Upstream Bridge auf enp6s0
-      dns_name: pc1.libcom.de
-      ip4: 10.11.12.13/29
-      ip6: fd00:fe0:1:4f::f/64
+    primary_ip4: 10.11.12.13/29
+    primary_ip6: fd00:fe0:1:4f::f/64
+    interfaces:
+      vmbr0:
+        ip4:
+          ip4_0: 10.11.12.13/29
+        ip6:
+          ula_0: fd00:fe0:1:4f::f/64
+          gua_0: 2a00:fe0:3f:1::f/64
   server1.libcom.de:
     comments: Towerserver 6U
     device_type: Towerserver 6U
-    vmbr0:
-      description: Management Bridge
-      dns_name: server1.libcom.de
-      ip4: 10.10.129.7/26
-      ip6: fd01:4dd0:28d4:7300::e/64
+    primary_ip4: 10.10.129.7/26
+    primary_ip6: fd01:4dd0:28d4:7300::e/64
+    interfaces:
+      vmbr0:
+        ip4:
+          ip4_0: 10.10.129.7/26
+        ip6:
+          ula_0: fd01:4dd0:28d4:7300::e/64
 ```
-This way you can access IP and interface details of any host in netbox directly, e.g. via 
+This way you can access IP and interface details of any host in netbox directly, e.g. via
 ```yaml
-nb_devices['pc1.libcom.de']['vmbr0']['ip4']
+nb_devices['pc1.libcom.de']['interfaces']['vmbr0']['ip4']['ip4_0']
 ```
 or
 ```yaml
 nb_devices['pc1.libcom.de']['primary_ip6']
 ```
+or, to pick a specific IPv6 class:
+```yaml
+nb_devices['pc1.libcom.de']['interfaces']['vmbr0']['ip6']['ula_0']
+nb_devices['pc1.libcom.de']['interfaces']['vmbr0']['ip6']['gua_0']
+```
+
+### Address map rules
+
+- `ip4` is a map with keys `ip4_0`, `ip4_1`, ...
+- `ip6` is a map with keys `ula_0`, `ula_1`, ..., `gua_0`, `gua_1`, ...,
+  `ll_0`, `ll_1`, ...
+- Within each family/class, addresses are sorted by the NetBox IP object ID.
+  New IP objects normally receive a higher ID, so they append to their class
+  and existing sequence numbers stay stable. Assigning an IP object that was
+  created earlier but only assigned later inserts it at its old ID position.
+- Deleting an earlier IP object shifts the later sequence numbers within that
+  interface and class. Re-entering/importing NetBox data can also change IDs.
+- IPv6 addresses outside ULA (`fc00::/7`), GUA (`2000::/3`) and link-local
+  (`fe80::/10`) are currently ignored; the role emits a warning listing them.
+- Empty families/classes are exported as empty maps (`ip4: {}`, `ip6: {}`).
+
+**Breaking change:** `interfaces.<name>.ip4` and `.ip6` are maps, not lists.
+Templates that used `['ip4'][0]` must use `['ip4']['ip4_0']` (or the desired
+marker) instead.
 
 ## nb_vms
 As there is data from devices there is also data from virtual machines. Those are being accessed via the `nb_vms` variable in the same fashion as `nb_devices`.
