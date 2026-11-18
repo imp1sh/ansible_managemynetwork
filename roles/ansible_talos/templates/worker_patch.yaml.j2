@@ -8,6 +8,9 @@ enabled: false
 ---
 apiVersion: v1alpha1
 kind: KubeNetworkConfig
+{% if talos_cluster.value.cluster_domain is defined %}
+dnsDomain: {{ talos_cluster.value.cluster_domain }}
+{% endif %}
 {% if talos_cluster.value.pod_subnets is defined %}
 podSubnets:
 {% for subnet in talos_cluster.value.pod_subnets %}

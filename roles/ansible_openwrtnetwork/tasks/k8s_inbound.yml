@@ -8,6 +8,7 @@
       - openwrt_network_k8s_api | length > 0
       - openwrt_network_k8s_api_token | length > 0
       - openwrt_network_k8s_subnetid | length > 0
+      - openwrt_network_k8s_poolhost | length > 0
       - openwrt_network_k8s_poolname | length > 0
     fail_msg: "openwrt_network_k8s_inbound is true but required variables are missing. Need: k8s_api, k8s_api_token, k8s_subnetid, k8s_poolname."
     success_msg: "Required k8s inbound variables are set."

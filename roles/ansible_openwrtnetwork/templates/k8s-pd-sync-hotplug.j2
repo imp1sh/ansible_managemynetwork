@@ -8,6 +8,7 @@
 
 POOL_NAME="{{ openwrt_network_k8s_poolname }}"
 SUBNET_ID="{{ openwrt_network_k8s_subnetid }}"
+POOL_HOST="{{ openwrt_network_k8s_poolhost }}"
 K8S_API="{{ openwrt_network_k8s_api }}"
 TOKEN_FILE="{{ openwrt_network_k8s_tokenfile }}"
 STATE_FILE="/tmp/cilium-pd-sync-gua-prefix"
@@ -24,9 +25,12 @@ network_get_device WAN_DEV "${WAN_IF}"
 network_get_prefix6 WAN_PFX "${WAN_IF}"
 [ -z "$WAN_PFX" ] && logger -t pd-sync "No PD prefix on {{ openwrt_network_k8s_waninterface }}" && exit 0
 
-# Derive GUA /64 from PD /56 + fixed subnet ID
+# Derive a small LB range inside the user100 /64:
+#   <PD>:<LAN subnet id>:<pool host>::/120
+# The users' LAN /64 is already on-link via RA, so clients reach the LB
+# VIPs directly; no per-client route or extra RA prefix is needed.
 GUA_BASE=$(echo "$WAN_PFX" | cut -d: -f1-3)
-GUA_PFX="${GUA_BASE}:${SUBNET_ID}::/64"
+GUA_PFX="${GUA_BASE}:${SUBNET_ID}:${POOL_HOST}::/120"
 
 # Skip if unchanged
 OLD_PFX=$(cat "$STATE_FILE" 2>/dev/null)
