@@ -1,0 +1,98 @@
+---
+# Register a repository target's SSH host key in a known_hosts file.
+#
+# Required variables:
+#   borgmatic_hostkey_host - hostname to scan
+#   borgmatic_hostkey_file - known_hosts file to update
+#
+# A name may resolve to several addresses, including multiple IPv6 addresses
+# where only some are reachable from this host. ssh-keyscan then picks one
+# address and fails if it is unreachable. Resolve all addresses first and pass
+# them to ssh-keyscan together, so it can use whichever address answers.
+
+- name: "MMN borgmatic - Check if host key is already known: {{ borgmatic_hostkey_host }}"
+  ansible.builtin.command:
+    argv:
+      - "ssh-keygen"
+      - "-F"
+      - "{{ borgmatic_hostkey_host }}"
+      - "-f"
+      - "{{ borgmatic_hostkey_file }}"
+  register: borgmatic_hostkey_known
+  changed_when: false
+  check_mode: false
+  failed_when: borgmatic_hostkey_known.rc not in [0, 1, 255]
+
+- name: "MMN borgmatic - Resolve target addresses: {{ borgmatic_hostkey_host }}"
+  ansible.builtin.command:
+    argv:
+      - "getent"
+      - "ahosts"
+      - "{{ borgmatic_hostkey_host }}"
+  register: borgmatic_hostkey_dns
+  changed_when: false
+  check_mode: false
+  failed_when: false
+
+- name: "MMN borgmatic - Register remote host key"
+  ansible.builtin.command:
+    argv:
+      - "ssh-keyscan"
+      - "-q"
+      - "-T"
+      - "{{ borgmatic_ssh_keyscan_timeout }}"
+      - "-t"
+      - "{{ borgmatic_ssh_keyscan_keytypes }}"
+      - "-f"
+      - "-"
+    stdin: "{{ borgmatic_hostkey_scan_input }}"
+  vars:
+    borgmatic_hostkey_newline: "\n"
+    borgmatic_hostkey_addresses: >-
+      {{
+        borgmatic_hostkey_dns.stdout_lines | default([])
+        | reject('match', '^ *$')
+        | map('split')
+        | map('first')
+        | unique
+        | list
+      }}
+    borgmatic_hostkey_scan_input: >-
+      {{
+        (borgmatic_hostkey_addresses if borgmatic_hostkey_addresses | length > 0 else [borgmatic_hostkey_host])
+        | map('regex_replace', '$', ',' + borgmatic_hostkey_host)
+        | join(borgmatic_hostkey_newline)
+      }}
+  register: borgmatic_hostkey_scan
+  changed_when: false
+  check_mode: false
+  retries: "{{ borgmatic_ssh_keyscan_retries }}"
+  delay: "{{ borgmatic_ssh_keyscan_delay }}"
+  timeout: "{{ borgmatic_ssh_keyscan_task_timeout }}"
+  until: >-
+    borgmatic_hostkey_scan.rc == 0
+    and borgmatic_hostkey_scan.stdout | trim | length > 0
+  when: >-
+    borgmatic_ssh_keyscan_refresh | bool
+    or borgmatic_hostkey_known.rc != 0
+
+- name: "MMN borgmatic - Install target hosts fingerprint to known hosts"
+  ansible.builtin.known_hosts:
+    path: "{{ borgmatic_hostkey_file }}"
+    name: "{{ borgmatic_hostkey_host }}"
+    key: "{{ item }}"
+    state: present
+  loop: >-
+    {{
+      borgmatic_hostkey_scan.stdout_lines | default([])
+      | reject('match', '^#')
+      | select('match', '^[^ ]+ +[^ ]+ +[^ ]+')
+      | map('regex_replace', '^[^,]+,', '')
+      | unique
+      | list
+    }}
+  loop_control:
+    label: "{{ item.split()[1] | default(item) }}"
+  when: >-
+    borgmatic_ssh_keyscan_refresh | bool
+    or borgmatic_hostkey_known.rc != 0
