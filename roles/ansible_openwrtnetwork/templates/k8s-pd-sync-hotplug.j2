@@ -11,8 +11,8 @@ SUBNET_ID="{{ openwrt_network_k8s_subnetid }}"
 POOL_HOST="{{ openwrt_network_k8s_poolhost }}"
 K8S_API="{{ openwrt_network_k8s_api }}"
 TOKEN_FILE="{{ openwrt_network_k8s_tokenfile }}"
+SNIPPET_DIR="{{ openwrt_network_k8s_snippetdir }}"
 STATE_FILE="/tmp/cilium-pd-sync-gua-prefix"
-CHAIN_NAME="{{ openwrt_network_k8s_chainname }}"
 LAN_DEV="{{ openwrt_network_k8s_landevice }}"
 
 TOKEN=$(cat "$TOKEN_FILE" 2>/dev/null)
@@ -32,33 +32,86 @@ network_get_prefix6 WAN_PFX "${WAN_IF}"
 GUA_BASE=$(echo "$WAN_PFX" | cut -d: -f1-3)
 GUA_PFX="${GUA_BASE}:${SUBNET_ID}:${POOL_HOST}::/120"
 
-# Skip if unchanged
+# Rules applied through the fw4 include sections in /etc/config/firewall.
+# They are written as persistent .nft snippets so that firewall restarts
+# rebuild them instead of dropping runtime-only nftables state.
+EXPECTED_RAW_PREROUTING="ip6 daddr ${GUA_PFX} notrack
+ip6 saddr ${GUA_PFX} notrack"
+EXPECTED_RAW_OUTPUT="$EXPECTED_RAW_PREROUTING"
+EXPECTED_FORWARD="iifname \"${LAN_DEV}\" oifname \"${WAN_DEV}\" ip6 saddr ${GUA_PFX} accept
+iifname \"${WAN_DEV}\" oifname \"${LAN_DEV}\" ip6 daddr ${GUA_PFX} accept"
+
 OLD_PFX=$(cat "$STATE_FILE" 2>/dev/null)
-[ "$OLD_PFX" = "$GUA_PFX" ] && exit 0
 
-logger -t pd-sync "New GUA prefix: ${GUA_PFX}"
+SNIPPETS_OK=0
+if [ -f "$SNIPPET_DIR/raw_prerouting.nft" ] \
+   && [ -f "$SNIPPET_DIR/raw_output.nft" ] \
+   && [ -f "$SNIPPET_DIR/forward.nft" ] \
+   && [ "$(cat "$SNIPPET_DIR/raw_prerouting.nft")" = "$EXPECTED_RAW_PREROUTING" ] \
+   && [ "$(cat "$SNIPPET_DIR/raw_output.nft")" = "$EXPECTED_RAW_OUTPUT" ] \
+   && [ "$(cat "$SNIPPET_DIR/forward.nft")" = "$EXPECTED_FORWARD" ]; then
+    SNIPPETS_OK=1
+fi
 
-# Remove old route
-if [ -n "$OLD_PFX" ]; then
+ROUTE_OK=0
+ip -6 route show "$GUA_PFX" 2>/dev/null | grep -q "dev $LAN_DEV" && ROUTE_OK=1
+
+RULES_OK=0
+if nft list chain inet fw4 forward 2>/dev/null | grep -q "$GUA_PFX" \
+   && nft list chain inet fw4 raw_prerouting 2>/dev/null | grep -q "$GUA_PFX" \
+   && nft list chain inet fw4 raw_output 2>/dev/null | grep -q "$GUA_PFX"; then
+    RULES_OK=1
+fi
+
+# Skip only if prefix, route, persistent snippets and live rules are all in sync.
+[ "$OLD_PFX" = "$GUA_PFX" ] && [ "$SNIPPETS_OK" = "1" ] && [ "$ROUTE_OK" = "1" ] && [ "$RULES_OK" = "1" ] && exit 0
+
+PREFIX_CHANGED=0
+[ "$OLD_PFX" = "$GUA_PFX" ] || PREFIX_CHANGED=1
+
+if [ "$PREFIX_CHANGED" = "1" ]; then
+    logger -t pd-sync "New GUA prefix: ${GUA_PFX}"
+else
+    logger -t pd-sync "Repairing route or firewall snippets for ${GUA_PFX}"
+fi
+
+# Remove old route if the prefix changed
+if [ "$PREFIX_CHANGED" = "1" ] && [ -n "$OLD_PFX" ]; then
     ip -6 route del "$OLD_PFX" dev "$LAN_DEV" 2>/dev/null
 fi
 
-# Add route for new GUA /64 into LAN
-ip -6 route add "$GUA_PFX" dev "$LAN_DEV" 2>/dev/null
+# Add/update route for the GUA /120 into LAN
+ip -6 route replace "$GUA_PFX" dev "$LAN_DEV"
 
-# Recreate dedicated nft chain (flush + repopulate — clean slate every time)
-nft delete chain inet fw4 "${CHAIN_NAME}" 2>/dev/null
-nft add chain inet fw4 "${CHAIN_NAME}"
-nft insert rule inet fw4 raw_prerouting jump "${CHAIN_NAME}"
-nft insert rule inet fw4 raw_output jump "${CHAIN_NAME}"
-nft insert rule inet fw4 forward jump "${CHAIN_NAME}"
+# Write persistent fw4 include snippets. Atomic writes prevent fw4 from
+# reading a partially written file during a reload.
+mkdir -p "$SNIPPET_DIR"
+write_snippet() {
+    _path="$1"
+    _content="$2"
+    _tmp="${_path}.tmp.$$"
+    printf '%s\n' "$_content" > "$_tmp"
+    if ! cmp -s "$_tmp" "$_path" 2>/dev/null; then
+        mv "$_tmp" "$_path"
+    else
+        rm -f "$_tmp"
+    fi
+}
+write_snippet "$SNIPPET_DIR/raw_prerouting.nft" "$EXPECTED_RAW_PREROUTING"
+write_snippet "$SNIPPET_DIR/raw_output.nft" "$EXPECTED_RAW_OUTPUT"
+write_snippet "$SNIPPET_DIR/forward.nft" "$EXPECTED_FORWARD"
 
-nft add rule inet fw4 "${CHAIN_NAME}" ip6 daddr "${GUA_PFX}" notrack
-nft add rule inet fw4 "${CHAIN_NAME}" ip6 saddr "${GUA_PFX}" notrack
-nft add rule inet fw4 "${CHAIN_NAME}" iifname "$LAN_DEV" oifname "${WAN_DEV}" ip6 saddr "${GUA_PFX}" accept
-nft add rule inet fw4 "${CHAIN_NAME}" iifname "${WAN_DEV}" oifname "$LAN_DEV" ip6 daddr "${GUA_PFX}" accept
+# Only reload fw4 when the firewall config actually references the snippets.
+# During migration from the old runtime-chain implementation the old chain
+# may still be active; reloading before the includes exist would drop it.
+if grep -q "$SNIPPET_DIR/forward.nft" /etc/config/firewall 2>/dev/null; then
+    logger -t pd-sync "Reloading firewall to apply persistent nft snippets"
+    /etc/init.d/firewall reload
+else
+    logger -t pd-sync "WARNING: /etc/config/firewall does not include $SNIPPET_DIR/forward.nft; run the openwrtfirewall role. Persistent nft rules are not active yet."
+fi
 
-# Create or update the GUA CiliumLoadBalancerIPPool
+# Create or update the GUA CiliumLoadBalancerIPPool.
 # Try POST first (creates the pool), fall back to PATCH (updates if it exists).
 # Capture HTTP status to distinguish auth failures from other errors.
 API_RESULT=""
@@ -75,7 +128,7 @@ case "$POST_STATUS" in
         API_RESULT="created"
         ;;
     409)
-        # Pool already exists — patch it instead
+        # Pool already exists - patch it instead
         PATCH_STATUS=$(curl -sk -o /dev/null -w "%{http_code}" -X PATCH \
             -H "Authorization: Bearer ${TOKEN}" \
             -H "Content-Type: application/merge-patch+json" \
@@ -107,4 +160,4 @@ if [ "$API_RESULT" = "failed" ]; then
 fi
 
 echo "$GUA_PFX" > "$STATE_FILE"
-logger -t pd-sync "Pool ${POOL_NAME} ${API_RESULT} with ${GUA_PFX}, route + nft chain ${CHAIN_NAME} applied"
+logger -t pd-sync "Pool ${POOL_NAME} ${API_RESULT} with ${GUA_PFX}, route + nft include snippets applied"

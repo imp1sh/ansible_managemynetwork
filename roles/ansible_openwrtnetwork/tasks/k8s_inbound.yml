@@ -26,6 +26,13 @@
     mode: "0700"
     owner: root
 
+- name: "k8s inbound - Ensure fw4 snippet directory exists"
+  ansible.builtin.file:
+    path: "{{ openwrt_network_k8s_snippetdir }}"
+    state: directory
+    mode: "0700"
+    owner: root
+
 - name: "k8s inbound - Deploy K8s API token"
   ansible.builtin.copy:
     dest: "{{ openwrt_network_k8s_tokenfile }}"

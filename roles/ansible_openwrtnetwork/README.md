@@ -560,15 +560,21 @@ end-to-end IPv6 for `Service.type: LoadBalancer` without NAT.
 
 1. ISP delegates a dynamic /56 (or /60) via PPPoE prefix delegation
 2. OpenWRT's hotplug system fires on `wan6` interface events
-3. The script derives a GUA /64 from the PD prefix using a fixed subnet ID
+3. The script derives a GUA LB range
+   (`<PD>:<subnetid>:<poolhost>::/120`) from the PD prefix. With the default
+   layout this /120 is inside the user100 LAN /64; use a different subnetid or
+   poolhost if you need another /64
 4. The script patches the `CiliumLoadBalancerIPPool` CRD via the Kubernetes API
 5. Cilium assigns new GUA IPs to services and emits NDP advertisements
-6. The script also updates the static route and nftables rules (notrack + forward)
-   on OpenWRT for the new GUA /64
+6. The script also updates the route and writes persistent fw4 nftables
+   snippets (notrack + forward) for the GUA LB /120. The snippets are loaded
+   through `config include` sections in `/etc/config/firewall`, so they survive
+   firewall restarts and reloads
 
-The GUA /64 is **not** assigned to any OpenWRT interface — it exists solely as a
-routed /64 for Cilium LB IPAM. The subnet ID must not collide with any existing
-VLAN or interface assignment from the PD delegation.
+The LB /120 is **not** assigned to an OpenWRT interface; it is either on-link
+inside the LAN /64 or routed to `openwrt_network_k8s_landevice`. Cilium
+announces the individual LB IPs via NDP. The subnetid/poolhost must not collide
+with addresses already in use.
 
 ### Variables
 
@@ -577,12 +583,13 @@ VLAN or interface assignment from the PD delegation.
 | `openwrt_network_k8s_inbound` | `false` | Enable/disable k8s inbound LB sync |
 | `openwrt_network_k8s_api` | `""` | Kubernetes API server address (e.g. `10.10.112.172:6443`) |
 | `openwrt_network_k8s_api_token` | `""` | ServiceAccount bearer token for the K8s API |
-| `openwrt_network_k8s_subnetid` | `"20"` | Fixed subnet ID within the PD /56 (hex, e.g. `20` = 4th /64) |
+| `openwrt_network_k8s_subnetid` | `"20"` | Fixed subnet ID inserted as the 4th hextet of the LB range (hex); must match the intended LAN /64 (e.g. `0` for user100 in the fwofden0 setup) |
 | `openwrt_network_k8s_poolname` | `"junicluster0-lb-pool-gua"` | Name of the CiliumLoadBalancerIPPool CRD to create/update |
 | `openwrt_network_k8s_waninterface` | `"wan6"` | OpenWRT interface to watch for PD events |
-| `openwrt_network_k8s_landevice` | `"br-lan"` | LAN bridge to route the GUA /64 to |
+| `openwrt_network_k8s_landevice` | `"br-lan"` | LAN device to route the GUA LB /120 to |
 | `openwrt_network_k8s_tokenfile` | `"/etc/cilium-pd-sync/token"` | Path to the token file on OpenWRT |
-| `openwrt_network_k8s_chainname` | `"k8s_lb"` | nftables chain name for firewall rules |
+| `openwrt_network_k8s_snippetdir` | `"/etc/cilium-pd-sync"` | Directory for the persistent fw4 include snippets |
+| `openwrt_network_k8s_chainname` | `"k8s_lb"` | Deprecated, no effect; rules now use fw4 include snippets |
 | `openwrt_network_k8s_hotplug_script` | `"/etc/hotplug.d/iface/99-cilium-pd-sync"` | Path to the hotplug script |
 
 ### Kubernetes prerequisites
@@ -644,12 +651,22 @@ openwrt_network_k8s_poolname: "junicluster0-lb-pool-gua"
 ### Notes
 
 - The role ensures `curl` is installed on OpenWRT (required for API calls)
-- The hotplug script uses a dedicated nftables chain (flushed and repopulated on
-  each PD rotation) to avoid rule accumulation
+- The hotplug script writes persistent nftables snippets under
+  `openwrt_network_k8s_snippetdir`. The snippets are referenced from
+  `/etc/config/firewall` by the `ansible_openwrtfirewall` role through
+  `openwrt_firewall_includes`: `position: chain-pre` for `forward` and
+  `raw_output`, and `position: chain-post` for `raw_prerouting` (current fw4
+  does not render a `chain-pre` hook for `raw_prerouting`; `chain-post` is
+  still inside the raw hook, before conntrack). This keeps the rules alive
+  across firewall restarts, reloads and reboots
+- The script is idempotent: it rewrites the snippets and route if they are
+  missing, verifies that the rules are present in the live fw4 chains, and
+  only triggers an fw4 reload when something actually changed or is missing
 - The script runs once during deployment to set up the pool, route, and firewall
   rules immediately — not just on the next PD rotation
-- The GUA /64 subnet ID must not collide with any /64 already assigned to an
-  OpenWRT interface. Check with `ip -6 addr show | grep <PD prefix>`
+- The subnetid/poolhost must not collide with addresses already in use. If you
+  select a separate /64, it must not already be assigned to an OpenWRT
+  interface. Check with `ip -6 addr show | grep <PD prefix>`
 - Cilium must have L2 announcements enabled and IPv6 support for NDP to work
 - Token expiry: if the Kubernetes cluster is rebuilt, the ServiceAccount UID
   changes and the token is invalidated. Regenerate and redeploy
@@ -662,9 +679,13 @@ If the pool, route, or firewall rules seem out of sync, clear the state file
 and run the hotplug script manually on OpenWRT:
 
 ```bash
-rm /etc/nftables.d/50-k8s-lb-notrack-<subnet-id>.nft
+rm -f /tmp/cilium-pd-sync-gua-prefix
 INTERFACE=wan6 ACTION=ifup /etc/hotplug.d/iface/99-cilium-pd-sync
 ```
+
+The script also repairs missing snippet files and route entries. If it logs
+`WARNING: /etc/config/firewall does not include ...`, run the
+`openwrtfirewall` playbook to add the `config include` sections.
 
 Check the logs for results:
 
@@ -690,41 +711,45 @@ kubectl get svc -A -o wide | grep LoadBalancer
 
 #### Verify the route on OpenWRT
 
-The GUA /64 should be routed to the LAN bridge:
+The GUA LB /120 should be routed to the LAN bridge:
 
 ```bash
-ip -6 route show | grep <subnet_id>
+ip -6 route show | grep '<subnet_id>:<poolhost>'
 ```
 
 Expected output (prefix varies with PD):
 
 ```
-2a0a:a547:3315:20::/64 dev br-lan metric 1024 pref medium
+2a0a:a547:3315:20:1000::/120 dev br-lan metric 1024 pref medium
 ```
 
 #### Verify nftables rules on OpenWRT
 
-The dedicated nftables chain should contain notrack and forward rules for
-the GUA /64:
+The persistent snippets are included at the top of the `forward` and
+`raw_output` chains, and at the end of `raw_prerouting` (current fw4 does not
+render `chain-pre` there):
 
 ```bash
-nft list chain inet fw4 k8s_lb
+nft list chain inet fw4 forward | grep <prefix>
+nft list chain inet fw4 raw_prerouting | grep <prefix>
+nft list chain inet fw4 raw_output | grep <prefix>
 ```
 
-Expected output (prefix varies with PD):
+Example output (prefix varies with PD):
 
 ```
-table inet fw4 {
-	chain k8s_lb {
-		ip6 daddr 2a0a:a547:3315:20::/64 notrack
-		ip6 saddr 2a0a:a547:3315:20::/64 notrack
-		iifname "br-lan" oifname "pppoe-wan" ip6 saddr 2a0a:a547:3315:20::/64 accept
-		iifname "pppoe-wan" oifname "br-lan" ip6 daddr 2a0a:a547:3315:20::/64 accept
-	}
-}
+ip6 saddr 2a0a:a547:3315:20:1000::/120 accept
+ip6 daddr 2a0a:a547:3315:20:1000::/120 accept
 ```
 
-If the chain is empty or missing, force a manual resync (above).
+Also check that fw4 actually references the snippets:
+
+```bash
+fw4 print | grep cilium-pd-sync
+```
+
+If the rules are missing, check the files under
+`/etc/cilium-pd-sync/*.nft` and force a manual resync (above).
 
 #### Verify NDP announcements in Kubernetes
 
@@ -746,9 +771,10 @@ physical interface (e.g. `ens3`).
 - **External traffic times out**: Check that the nft forward rules exist in
   both directions (WAN→LAN for inbound, LAN→WAN for return traffic). The
   return path rule is critical — without it, conntrack drops SYN-ACKs.
-- **Duplicate nft rules after multiple runs**: The script uses a dedicated
-  chain that is flushed and repopulated on each run. If you manually inserted
-  rules outside the chain, clean them up with `nft delete rule` by handle.
+- **Duplicate nft rules after multiple runs**: The script rewrites the snippet
+  files atomically and fw4 rebuilds its table on reload, so repeated runs do
+  not accumulate rules. When upgrading from the old runtime-chain version, run
+  the `openwrtfirewall` playbook once so fw4 flushes the old `k8s_lb` chain.
 - **Script doesn't fire on PD rotation**: Verify the hotplug script is at
   `/etc/hotplug.d/iface/` and has mode 0755. Check `logread | grep pd-sync`
   for errors. The script watches for `ifup`/`ifupdate` events on the
