@@ -34,15 +34,11 @@
     - name: "MMN borgmatic - Make borgbase_repo data persistent"
       set_fact:
         borgbase_repo: "{{ borgbase_repodata }}"
-    - name: MMN borgmatic - Register remote host key
-      command: "ssh-keyscan -tssh-ed25519 {{ borgbase_repodata['repo_id'] }}.repo.borgbase.com"
-      register: hostkey
-    - name: "MMN borgmatic - Install target hosts fingerprint to known hosts"
-      ansible.builtin.known_hosts:
-        path: "{{ borgmatic_sshdir }}known_hosts"
-        key: "{{ hostkey.stdout }}"
-        name: "{{ borgbase_repodata['repo_id'] }}.repo.borgbase.com"
-        state: present
+    - name: "MMN borgmatic - Register BorgBase host key"
+      ansible.builtin.include_tasks: 5ssh_hostkey.yml
+      vars:
+        borgmatic_hostkey_host: "{{ borgbase_repodata['repo_id'] }}.repo.borgbase.com"
+        borgmatic_hostkey_file: "{{ borgmatic_sshdir }}known_hosts"
 
 # SSH
 - name: "MMN borgmatic - Container SSH tasks"
@@ -54,12 +50,8 @@
         state: present
         key: "{{ sshkey['public_key'] }}"
       delegate_to: "{{ targetrepo.value['targethost'] | default('localhost') }}"
-    - name: "MMN borgmatic - Register remote host key"
-      command: "ssh-keyscan -tssh-ed25519 {{ targetrepo.value['targethost'] }}"
-      register: hostkey
-    - name: "MMN borgmatic - Install target hosts fingerprint to known hosts"
-      ansible.builtin.known_hosts:
-        path: "{{ borgmatic_sshdir }}known_hosts"
-        key: "{{ hostkey.stdout }}"
-        name: "{{ targetrepo.value['targethost'] }}"
-        state: present
+    - name: "MMN borgmatic - Register target host key"
+      ansible.builtin.include_tasks: 5ssh_hostkey.yml
+      vars:
+        borgmatic_hostkey_host: "{{ targetrepo.value['targethost'] }}"
+        borgmatic_hostkey_file: "{{ borgmatic_sshdir }}known_hosts"

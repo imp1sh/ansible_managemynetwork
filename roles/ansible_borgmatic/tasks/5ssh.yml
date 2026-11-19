@@ -30,15 +30,11 @@
     - name: "MMN borgmatic - Make borgbase_repo data persistent"
       set_fact:
         borgbase_repo: "{{ borgbase_repodata }}"
-    - name: MMN borgmatic - Register remote host key
-      command: "ssh-keyscan -tssh-ed25519 {{ borgbase_repodata['repo_id'] }}.repo.borgbase.com"
-      register: hostkey
-    - name: "MMN borgmatic - Install target hosts fingerprint to known hosts"
-      ansible.builtin.known_hosts:
-        path: "{{ borgmatic_file_sshknownhosts }}"
-        key: "{{ hostkey.stdout }}"
-        name: "{{ borgbase_repodata['repo_id'] }}.repo.borgbase.com"
-        state: present
+    - name: "MMN borgmatic - Register BorgBase host key"
+      ansible.builtin.include_tasks: 5ssh_hostkey.yml
+      vars:
+        borgmatic_hostkey_host: "{{ borgbase_repodata['repo_id'] }}.repo.borgbase.com"
+        borgmatic_hostkey_file: "{{ borgmatic_file_sshknownhosts }}"
 
 # SSH
 - name: MMN borgmatic - ssh block
@@ -51,19 +47,8 @@
         state: present
         key: "{{ rootuser['ssh_public_key'] }}"
       delegate_to: "{{ borgmatic_repository.value['targethost'] | default('localhost') }}"
-    - name: MMN borgmatic - Register remote host key
-      command: "ssh-keyscan -tssh-ed25519 {{ borgmatic_repository.value['targethost'] }}"
-      register: hostkey
-    - name: MMN borgmatic - Install target hosts fingerprint to known hosts
-      known_hosts:
-        path: "{{ borgmatic_file_sshknownhosts }}"
-        key: "{{ hostkey.stdout }}"
-        name: "{{ borgmatic_repository.value['targethost'] }}"
-        state: present
-        # this didn't work reliably. In rare cases the key value was just empty
-        # - name: MMN borgmatic - Install target hosts fingerprint to known hosts
-        #   known_hosts:
-        #     path: "{{ borgmatic_file_sshknownhosts }}"
-        #     key: "{{ lookup('pipe', 'ssh-keyscan -trsa ' + borgmatic_sshkey_targethost) }}"
-        #     name: "{{ borgmatic_sshkey_targethost }}"
-        #     state: present
+    - name: "MMN borgmatic - Register target host key"
+      ansible.builtin.include_tasks: 5ssh_hostkey.yml
+      vars:
+        borgmatic_hostkey_host: "{{ borgmatic_repository.value['targethost'] }}"
+        borgmatic_hostkey_file: "{{ borgmatic_file_sshknownhosts }}"

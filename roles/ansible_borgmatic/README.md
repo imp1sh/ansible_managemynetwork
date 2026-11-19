@@ -570,6 +570,22 @@ borgmatic_loki:
 | `borgmatic_containermode` | `false` | Enable container mode |
 | `borgmatic_containername` | - | Container name (required in container mode) |
 
+### SSH Host Key Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `borgmatic_ssh_keyscan_keytypes` | `ed25519,ecdsa,rsa` | Host key types requested from `ssh-keyscan` |
+| `borgmatic_ssh_keyscan_timeout` | `10` | Per-connection timeout in seconds (`ssh-keyscan -T`) |
+| `borgmatic_ssh_keyscan_retries` | `5` | Number of `ssh-keyscan` attempts |
+| `borgmatic_ssh_keyscan_delay` | `3` | Delay in seconds between attempts |
+| `borgmatic_ssh_keyscan_task_timeout` | `90` | Maximum runtime of a single attempt in seconds |
+| `borgmatic_ssh_keyscan_refresh` | `false` | Rescan and replace keys even if the host is already in `known_hosts` |
+
+Before scanning, the role resolves all addresses for the target and passes them
+to `ssh-keyscan` together. This avoids the common failure mode where a
+multi-address name (especially with several IPv6 addresses) is only tried on one
+unreachable address.
+
 ### Path Variables
 
 | Variable | Default (Debian) | Description |

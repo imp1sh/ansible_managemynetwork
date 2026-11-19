@@ -21,3 +21,12 @@ borgmatic_via_pip: true
 # non-empty. Set in group_vars/apps_borgmatic_container.yml for
 # container-mode hosts. Leave empty to skip.
 borgmatic_restore_dir: ""
+
+# SSH host key registration (ssh-keyscan)
+borgmatic_ssh_keyscan_keytypes: "ed25519,ecdsa,rsa"
+borgmatic_ssh_keyscan_timeout: 10
+borgmatic_ssh_keyscan_retries: 5
+borgmatic_ssh_keyscan_delay: 3
+borgmatic_ssh_keyscan_task_timeout: 90
+# Rescan and replace the stored key even if one is already present.
+borgmatic_ssh_keyscan_refresh: false
