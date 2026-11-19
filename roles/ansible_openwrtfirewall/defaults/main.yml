@@ -5,6 +5,11 @@ openwrt_firewall_deployroot: "/"
 openwrt_firewall_deploypath: "{{ openwrt_firewall_deployroot }}etc/config"
 openwrt_firewall_deployfile: "firewall"
 openwrt_firewall_setdefaultzones: true
+# Additional "config include" sections rendered into /etc/config/firewall.
+# Each item supports: name, type (script|nftables), path, position, chain,
+# enabled and fw4_compatible. For nftables includes, position/chain follow
+# the fw4 include semantics (e.g. position "chain-pre", chain "forward").
+openwrt_firewall_includes: []
 openwrt_firewall_default_forward: "REJECT"
 openwrt_firewall_default_input: "ACCEPT"
 openwrt_firewall_default_output: "ACCEPT"

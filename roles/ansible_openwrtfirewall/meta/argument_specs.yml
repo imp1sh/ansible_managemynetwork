@@ -93,3 +93,6 @@ argument_specs:
           - 1
       openwrt_firewall_zoneshost:
         type: 'dict'
+      openwrt_firewall_includes:
+        type: 'list'
+        elements: 'dict'

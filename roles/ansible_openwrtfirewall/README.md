@@ -32,6 +32,40 @@ This is just an excerpt:
 | `openwrt_firewall_default_tcp_reject_code` | tcp\_reject\_code | \-  |
 | `openwrt_firewall_default_any_reject_code` | any\_reject\_code | \-  |
 
+## Custom includes
+`openwrt_firewall_includes` renders additional `config include` sections into
+`/etc/config/firewall`. This is the documented fw4 mechanism for user-defined
+nftables snippets and is the recommended way to inject rules into existing fw4
+chains.
+
+Each list item supports `name`, `type` (`script` or `nftables`), `path`,
+`position`, `chain`, `enabled` and `fw4_compatible`. For `type: nftables`,
+`position` and `chain` select where the snippet is inserted. Valid positions
+include `chain-pre`, `chain-post`, `table-pre`, `table-post`, `ruleset-pre` and
+`ruleset-post`.
+
+Example: inject rules into the `forward` and raw chains.
+
+```yaml
+openwrt_firewall_includes:
+  - name: "k8s_lb_forward"
+    type: "nftables"
+    path: "/etc/cilium-pd-sync/forward.nft"
+    position: "chain-pre"
+    chain: "forward"
+  - name: "k8s_lb_raw_prerouting"
+    type: "nftables"
+    path: "/etc/cilium-pd-sync/raw_prerouting.nft"
+    position: "chain-post"
+    chain: "raw_prerouting"
+```
+
+Note: current fw4 versions render `chain-post` for `raw_prerouting` but not
+`chain-pre`; `chain-post` is still inside the raw hook, so `notrack` rules work.
+
+The include file must exist when fw4 starts; otherwise fw4 logs a warning and
+ignores that include section.
+
 ## Zones
 We use zones names written in capital letters, e.g. *WAN*. Ansible variable names do not make use of that convention.
 Zones are the core of firewall operations in OpenWrt. In the following cases:

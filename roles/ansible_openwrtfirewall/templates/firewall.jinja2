@@ -62,5 +62,25 @@ config defaults "defaults"
 {{ functions.create_redirects(openwrt_firewall_redirects) }}
 
 config include "include1"
+	option type "script"
 	option path "/etc/firewall.user"
+	option fw4_compatible "1"
+
+{% for inc in openwrt_firewall_includes | default([]) %}
+config include "{{ inc.name | default('include_' ~ loop.index) }}"
+	option type "{{ inc.type | default('nftables') }}"
+	option path "{{ inc.path }}"
+{% if inc.position is defined %}
+	option position "{{ inc.position }}"
+{% endif %}
+{% if inc.chain is defined %}
+	option chain "{{ inc.chain }}"
+{% endif %}
+{% if inc.enabled is defined %}
+	option enabled "{{ inc.enabled }}"
+{% endif %}
+{% if inc.fw4_compatible is defined %}
+	option fw4_compatible "{{ inc.fw4_compatible }}"
+{% endif %}
+{% endfor %}
 
